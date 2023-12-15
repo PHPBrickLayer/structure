@@ -1,6 +1,6 @@
 {
-    "name": "bricklayer/lay",
-    "description": "A lite PHP builder meta-framework to get your projects up and running quickly",
+    "name": "bricklayer/structure",
+    "description": "The core framework for Lay. The builder's builder",
     "keywords": ["framework", "lay", "lite framework", "lite php framework", "metaframework", "fast php framework"],
     "type": "library",
     "license": "GPL-3.0",
@@ -16,8 +16,8 @@
         }
     ],
     "support": {
-        "source": "https://github.com/PHPBrickLayer/lay",
-        "issues": "https://github.com/PHPBrickLayer/lay/issues"
+        "source": "https://github.com/PHPBrickLayer/structure",
+        "issues": "https://github.com/PHPBrickLayer/structure/issues"
     },
     "require": {
         "php": "^8.1",
@@ -35,21 +35,6 @@
     },
     "require-dev": {
         "phpunit/phpunit": "^10.3.2"
-    },
-    "scripts": {
-        "post-autoload-dump": [
-            "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
-            "@php artisan package:discover --ansi"
-        ],
-        "post-update-cmd": [
-            "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
-        ],
-        "post-root-package-install": [
-            "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
-        ],
-        "post-create-project-cmd": [
-            "@php artisan key:generate --ansi"
-        ]
     },
     "minimum-stability": "stable",
     "prefer-stable": true,
