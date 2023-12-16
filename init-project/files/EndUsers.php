@@ -2,7 +2,7 @@
 
 namespace res\server\controller\__front;
 
-use BrickLayer\Lay\libs\LayObject;
+use BrickLayer\Lay\Libs\LayObject;
 use res\server\utils\Email;
 
 class EndUsers

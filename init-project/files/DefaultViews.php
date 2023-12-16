@@ -3,9 +3,9 @@ declare(strict_types=1);
 
 namespace res\server\view;
 
-use BrickLayer\Lay\core\LayConfig;
-use BrickLayer\Lay\core\view\ViewBuilder;
-use BrickLayer\Lay\core\view\ViewCast;
+use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Core\View\ViewBuilder;
+use BrickLayer\Lay\Core\View\ViewCast;
 
 class DefaultViews extends ViewCast
 {

@@ -1,6 +1,6 @@
 <?php
 global $view;
-\BrickLayer\Lay\core\view\tags\Link::new()->rel("stylesheet")->href("@custom/css/style.css");
+\BrickLayer\Lay\Core\View\Tags\Link::new()->rel("stylesheet")->href("@custom/css/style.css");
 ?>
 
 <style>

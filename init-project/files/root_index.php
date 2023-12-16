@@ -7,4 +7,4 @@
 const SAFE_TO_INIT_LAY = true;
 include_once __DIR__ . DIRECTORY_SEPARATOR . "foundation.php";
 
-header("location: " . \BrickLayer\Lay\core\LayConfig::site_data()->domain);
+header("location: " . \BrickLayer\Lay\Core\LayConfig::site_data()->domain);
