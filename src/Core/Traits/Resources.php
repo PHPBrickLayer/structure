@@ -15,15 +15,15 @@ trait Resources {
     private static bool $env_loaded = false;
 
     private static string $CLIENT_VALUES = "";
-    
+
     protected static function set_internal_res_server(string $dir) : void {
 
         $slash = DIRECTORY_SEPARATOR;
 
         $obj = new \stdClass();
 
-        $obj->lay_static =$dir  .   "vendor"    .   $slash .    "bricklayer" . $slash .   "lay" . $slash . "src" . $slash . "static" . $slash;
-        $obj->lay     =   $dir  .   "vendor"    .   $slash .    "bricklayer" . $slash .   "lay" . $slash;
+        $obj->lay_static =$dir  .   "vendor"    .   $slash .    "bricklayer" . $slash .   "structure" . $slash . "src" . $slash . "static" . $slash;
+        $obj->lay     =   $dir  .   "vendor"    .   $slash .    "bricklayer" . $slash .   "structure" . $slash;
         $obj->root    =   $dir;
         $obj->temp    =   $dir  .   ".lay_temp" .   $slash;
         $obj->bricks  =   $dir  .   "bricks"    .   $slash;
@@ -31,7 +31,7 @@ trait Resources {
         $obj->web     =   $dir  .   "web"       .   $slash;
         $obj->shared  =   $dir  .   "web"       .   $slash .    "shared" .  $slash;
         $obj->domains =   $dir  .   "web"       .   $slash .    "domains" . $slash;
-        
+
         self::$server = $obj;
     }
     protected static function set_internal_site_data(array $options) : void {

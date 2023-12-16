@@ -202,6 +202,8 @@ trait Config
     {
         if (!defined("SAFE_TO_INIT_LAY") || !SAFE_TO_INIT_LAY)
             Exception::throw_exception("This script cannot be accessed this way, please return home", "BadRequest");
+
+        SQL::new()->capture_errors();
     }
 
     public function dont_compress_html(): self
@@ -234,12 +236,12 @@ trait Config
         return $this->header_data("api", $uri);
     }
 
-    
+
     public function init_name(string $short, string $full): self
     {
         return $this->metadata("name", ["short" => $short, "full" => $full]);
     }
-    
+
     public function init_color(string $pry, string $sec): self
     {
         return $this->metadata("color", ["pry" => $pry, "sec" => $sec]);
@@ -269,7 +271,7 @@ trait Config
     {
         self::initialize();
     }
-    
+
     public function is_mobile(): bool
     {
         return (bool)strpos(strtolower($_SERVER['HTTP_USER_AGENT'] ?? "cli"), "mobile");

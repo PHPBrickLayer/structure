@@ -3,17 +3,45 @@ declare(strict_types=1);
 
 namespace BrickLayer\Lay\Orm;
 
-use BrickLayer\Lay\Autoloader;
 use BrickLayer\Lay\BobDBuilder\Helper\Console\Console;
-use BrickLayer\Lay\BobDBuilder\Helper\Console\Format\Background;
 use BrickLayer\Lay\BobDBuilder\Helper\Console\Format\Foreground;
-use BrickLayer\Lay\BobDBuilder\Helper\Console\Format\Style;
 use BrickLayer\Lay\Core\Enums\LayMode;
 use BrickLayer\Lay\Core\LayConfig;
 
 class Exception
 {
     private static string $ENV = "DEVELOPMENT";
+
+    public function capture_errors() : void {
+
+        set_error_handler(function (int $err_no, string $err_str, string $err_file, int $err_line)
+        {
+            if(error_reporting() != E_ALL)
+                return;
+
+            $eol = LayConfig::get_mode() == LayMode::HTTP ? "<br>" : "\n";
+
+            if($err_no === E_WARNING || $err_no === E_USER_WARNING) {
+                $this->use_exception(
+                    "LayWarnings",
+                    $err_str . $eol
+                    . "File: " . $err_file . ":$err_line" . $eol,
+                    kill: false
+                );
+
+                return true;
+            }
+
+            $this->use_exception(
+                "LayErrors",
+                $err_str . $eol
+                . "File: " . $err_file . ":$err_line" . $eol
+            );
+
+            return true;
+        }, E_ALL|E_STRICT);
+    }
+
 
     public function set_env(string $ENV): void
     {
@@ -45,19 +73,22 @@ class Exception
 
     private function container($title, $body, $other = []): string
     {
+        $title_color = "#5656f5";
+        $body_color = "#dea303";
+        $cli_color = Foreground::light_cyan;
+
         switch ($other['core']){
-            default:
-                $title_color = "#5656f5";
-                $body_color = "#dea303";
-            break;
+            default: break;
             case "error":
                 $title_color = "#ff0014";
                 $body_color = "#ff5000";
-            break;
+                $cli_color = Foreground::red;
+                break;
             case "success":
                 $title_color = "#1cff03";
                 $body_color = "#1b8b07";
-            break;
+                $cli_color = Foreground::green;
+                break;
         }
 
         $env = $this->get_env();
@@ -117,7 +148,7 @@ class Exception
                 $body = strip_tags($body);
                 Console::log(" $title ", Foreground::bold);
                 print "---------------------\n";
-                Console::log($body, Foreground::red);
+                Console::log($body, $cli_color);
                 print "---------------------\n";
                 print $stack_raw;
 
@@ -218,10 +249,9 @@ class Exception
         }
 
         if(LayConfig::get_mode() === LayMode::HTTP)
-            http_response_code(500);
+            @http_response_code(500);
 
         if ($act == "kill")
             die;
     }
 }
-

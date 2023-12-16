@@ -51,6 +51,19 @@ class EnginePlug
         $this->force = $this->tags['force_action'] ?? $this->force;
         $spun_correct_class = false;
 
+        set_error_handler(function (int $err_no, string $err_str, string $err_file, int $err_line) {
+            if(error_reporting() === 0)
+                return false;
+
+            Exception::throw_exception(
+                $err_str . "\n"
+                . "File: " . $err_file . ":$err_line",
+                "BobWarnings",
+            );
+
+            return true;
+        }, E_WARNING|E_USER_WARNING);
+
         foreach ($this->cmd_classes as $cmd_class) {
             if($spun_correct_class)
                 break;
@@ -63,8 +76,9 @@ class EnginePlug
             }
             catch (\TypeError|\Error|\Exception $e){
                 Exception::throw_exception(
-                    $e->getMessage(),
-                    "BobError " . $cmd_class::class,
+                    $e->getMessage() . "\n"
+                    . $e->getFile() . ":" . $e->getLine()
+                    , "BobError " . $cmd_class::class,
                     stack_track: $e->getTrace()
                 );
             }

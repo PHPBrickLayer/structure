@@ -2,7 +2,6 @@
 declare(strict_types=1);
 namespace BrickLayer\Lay\Core\Traits;
 use BrickLayer\Lay\Core\Enums\LayMode;
-use BrickLayer\Lay\Autoloader;
 use stdClass;
 
 trait Init {
@@ -147,9 +146,19 @@ trait Init {
         self::set_internal_site_data($options);
         self::set_internal_res_server(self::$dir);
         self::load_env();
+        self::autoload_project_classes();
 
         self::$INITIALIZED = true;
         return self::$instance;
+    }
+
+    public static function autoload_project_classes(): void
+    {
+        spl_autoload_register(function ($className) {
+            $location = str_replace('\\', DIRECTORY_SEPARATOR, $className);
+
+            @include_once self::$dir . $location . '.php';
+        });
     }
 
     public static function is_init(bool $init_first_class = false) : void {

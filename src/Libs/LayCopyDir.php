@@ -44,7 +44,7 @@ class LayCopyDir
                 continue;
             }
 
-            $pre_copy = $pre_copy($file, $src_dir, $dest_dir);
+            $pre_copy = !is_null($pre_copy) ? $pre_copy($file, $src_dir, $dest_dir) : null;
 
             if ($pre_copy == CustomContinueBreak::CONTINUE)
                 continue;
@@ -57,7 +57,8 @@ class LayCopyDir
                 $dest_dir . $s . $file
             );
 
-            $post_copy($file, $src_dir, $dest_dir);
+            if(!is_null($post_copy))
+                $post_copy($file, $src_dir, $dest_dir);
         }
 
         closedir($dir);

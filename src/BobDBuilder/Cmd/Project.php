@@ -34,7 +34,7 @@ class Project implements CmdLayout
 
     public function create() : void
     {
-        $cmd = $this->tags['project:create'][0] ?? null;
+        $cmd = $this->tags['project_create'][0] ?? null;
 
         if(!$cmd)
             return;
@@ -49,14 +49,6 @@ class Project implements CmdLayout
         new LayCopyDir($server->lay_static . "omjs", $server->shared . "lay");
 
         // copy helper js file to project lay folder
-        copy(
-            $server->lay_static . "js" . $this->plug->s . "constants.js",
-            $server->shared . "lay" . $this->plug->s . "constants.js"
-        );
-
-        copy(
-            $server->lay_static . "js" . $this->plug->s . "constants.min.js",
-            $server->shared . "lay" . $this->plug->s . "constants.min.js"
-        );
+        new LayCopyDir($server->lay_static . "js", $server->shared . "lay");
     }
 }

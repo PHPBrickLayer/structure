@@ -30,8 +30,7 @@ class Engine
 
         $this->plug->fire();
 
-        if(empty($this->plug->active_cmd))
-            $this->end();
+        $this->end();
     }
 
     public function intro(bool $close_talk = true): void
@@ -62,11 +61,14 @@ class Engine
 
     public function end(): void
     {
-        $this->plug->write_info(
-            "-- Bob has determined that the current command is invalid\n"
-            . "-- Please use --help to see the list of commands available"
-            , ["current_cmd" => $this->plug->typed_cmd]
-        );
+        if(empty($this->plug->active_cmd))
+            $this->plug->write_info(
+                "-- Bob has determined that the current command is invalid\n"
+                . "-- Please use --help to see the list of commands available"
+                , ["current_cmd" => $this->plug->typed_cmd]
+            );
+
+        $this->plug->write_success("-- Operation completed!");
     }
 
 
