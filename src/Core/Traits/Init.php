@@ -37,7 +37,13 @@ trait Init {
     }
 
     private static function set_dir() : void {
-        self::$dir = Autoloader::get_root_dir();
+        $s = DIRECTORY_SEPARATOR;
+
+        self::$dir = explode
+            (
+                "{$s}vendor{$s}bricklayer{$s}structure",
+                __DIR__ . $s
+            )[0] . $s;
     }
 
     private static function first_class_citizens() : void {
@@ -132,9 +138,9 @@ trait Init {
         ];
 
         self::$COMPRESS_HTML = $options['compress_html'];
-        
+
         self::$server   = new stdClass();
-        
+
         $options['mail'][0] = $options['mail'][0] ?? "info@" . self::$base_no_proto;
 
         self::set_web_root($options);

@@ -14,6 +14,7 @@ class Project implements CmdLayout
     use IsSingleton;
 
     private readonly EnginePlug $plug;
+    private readonly array $tags;
 
     public function _init(EnginePlug $plug) : void
     {
@@ -26,11 +27,18 @@ class Project implements CmdLayout
         if(!$this->plug->project_mode)
             return;
 
+        $this->tags = $this->plug->tags;
+
         $this->create();
     }
 
     public function create() : void
     {
+        $cmd = $this->tags['project:create'][0] ?? null;
+
+        if(!$cmd)
+            return;
+
         $server = $this->plug->server;
 
         // copy env file if it doesn't exist
