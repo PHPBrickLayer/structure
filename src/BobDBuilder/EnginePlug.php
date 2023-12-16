@@ -104,7 +104,7 @@ class EnginePlug
         $namespace = implode("\\", $namespace) . "\\Cmd";
 
         foreach (scandir(__DIR__ . $this->s . "Cmd") as $class) {
-            if ($class == "." || $class == "..")
+            if ($class == "." || $class == ".." || is_dir($class))
                 continue;
 
             $cmd_class = $namespace . "\\" . explode(".php", $class)[0];

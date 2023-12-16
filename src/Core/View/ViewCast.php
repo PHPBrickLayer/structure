@@ -14,7 +14,6 @@ abstract class ViewCast
     public function init_pages(): void
     {
         $this->builder->init_start()
-            ->page('type', 'front')
             ->page('section', 'app');
         $this->builder->init_end();
     }
@@ -35,7 +34,7 @@ abstract class ViewCast
 
     public function pages(): void
     {
-        $this->builder->route("index")->bind(function (ViewBuilder $builder, array $init_values) {
+        $this->builder->route("index")->bind(function (ViewBuilder $builder) {
             $builder->page("title", "Default Lay Page")
                 ->page("desc", "A default description. This goes to the meta tags responsible for the page description")
                 ->local("current_page", "home")
@@ -50,10 +49,10 @@ abstract class ViewCast
      */
     public function default(): void
     {
-        $this->builder->route($this->builder::DEFAULT_ROUTE)->bind(function (ViewBuilder $builder, array $init_values) {
+        $this->builder->route($this->builder::DEFAULT_ROUTE)->bind(function (ViewBuilder $builder) {
             $builder
                 ->page("title", $builder->request('route') . " - Page not found")
-                ->body_attr("defult-home")
+                ->body_attr("default-home")
                 ->local("current_page", "error")
                 ->local("section", "error")
                 ->body(function (array $meta) { ?>
