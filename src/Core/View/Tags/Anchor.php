@@ -2,23 +2,27 @@
 declare(strict_types=1);
 namespace BrickLayer\Lay\Core\View\Tags;
 
+use BrickLayer\Lay\Core\View\DomainResource;
+use BrickLayer\Lay\Core\View\Tags\Traits\Standard;
 use Couchbase\View;
 use JetBrains\PhpStorm\ExpectedValues;
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\View\Enums\DomainType;
 use BrickLayer\Lay\Core\View\ViewBuilder;
-use BrickLayer\Lay\Core\View\Domain;
 
 final class Anchor {
     private string $link = "";
 
-    use \BrickLayer\Lay\Core\View\Tags\Traits\Standard;
+    use Standard;
 
     public function href(?string $link = "", ?string $domain_id = null) : self {
-        $req = ViewBuilder::new()->request('*');
+        $dom = DomainResource::get()->domain;
+
         $link = is_null($link) ? '' : $link;
+        $link = ltrim($link, "/");
+
         $base = LayConfig::site_data();
-        $base_full = $base->base;
+        $base_full = $base->domain;
 
         if(str_starts_with($link,"http")) {
             $base_full = "";
@@ -26,26 +30,24 @@ final class Anchor {
         }
 
         if($domain_id) {
-            $same_domain = $domain_id == $req['domain_id'];
-            $domain_id = Domain::new()->get_domain_by_id($domain_id);
+            $same_domain = $domain_id == $dom->domain_id;
 
-            $req['pattern'] = $domain_id ? $domain_id['patterns'][0] : "*";
-
-            if($req['pattern'] != "*" && LayConfig::$ENV_IS_PROD) {
-                $x = explode(".", $base->base_no_proto, 2);
-                $base_full = $base->proto . "://" . $req['pattern'] . "." . end($x) . "/";
-                $req['pattern'] = "*";
+            if($dom->pattern != "*" && LayConfig::$ENV_IS_PROD) {
+                $x = explode(".", $base->domain_no_proto, 2);
+                $base_full = $base->proto . "://" . $dom->pattern . "." . end($x);
+                $base_full = rtrim($base_full, "/") . "/";
+                $dom->pattern = "*";
             }
 
-            if(!$same_domain && $req['domain_type'] == DomainType::SUB) {
-                $x = explode(".", $base->base_no_proto, 2);
+            if(!$same_domain && $dom->domain_type == DomainType::SUB) {
+                $x = explode(".", $base->domain_no_proto, 2);
                 $base_full = $base->proto . "://" . end($x) . "/";
             }
         }
 
-        $domain = $req['pattern'] == "*" ? "" : $req['pattern'];
+        $domain = $dom->pattern == "*" ? "" : $dom->pattern;
 
-        if($req['domain_type'] == DomainType::LOCAL)
+        if($dom->domain_type == DomainType::LOCAL)
             $domain = $domain ? $domain . "/" : $domain;
         else
             $domain = "";
@@ -73,7 +75,7 @@ final class Anchor {
     public function children(string ...$children) : string {
         $attr = $this->get_attr();
         $children = implode(" ", $children);
-        
+
         return <<<LNK
             <a $attr href="{$this->link}">$children</a>
         LNK;

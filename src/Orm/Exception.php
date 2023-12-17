@@ -23,7 +23,7 @@ class Exception
 
             if($err_no === E_WARNING || $err_no === E_USER_WARNING) {
                 $this->use_exception(
-                    "LayWarnings",
+                    "LayWarning",
                     $err_str . $eol
                     . "File: " . $err_file . ":$err_line" . $eol,
                     kill: false
@@ -33,7 +33,7 @@ class Exception
             }
 
             $this->use_exception(
-                "LayErrors",
+                "LayError",
                 $err_str . $eol
                 . "File: " . $err_file . ":$err_line" . $eol
             );
@@ -136,7 +136,7 @@ class Exception
 
         if ($display) {
             $display = <<<DEBUG
-            <div style='background:#1d2124;padding:5px;color:#fffffa;overflow:auto;'>
+            <div style="min-height: 300px; background:#1d2124;padding:10px;color:#fffffa;overflow:auto;">
                 <h3 style='text-transform: uppercase; color: $title_color; margin: 2px 0'> $title </h3>
                 <div style='color: $body_color; font-weight: bold; margin: 5px 0;'> $body </div><br>
                 <div><b style="color: #dea303">$env ENVIRONMENT</b></div>

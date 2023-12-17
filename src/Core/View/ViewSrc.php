@@ -6,7 +6,7 @@ final class ViewSrc {
     public static function gen(string $src) : string
     {
         $client = DomainResource::get();
-        
+
         $src = str_replace(
             [
                 "@shared/",             "@#/",              "@static/",
@@ -15,7 +15,7 @@ final class ViewSrc {
                 "@shared_css/",         "@css/",
             ],
             [
-                $client->shared->root,  $client->root,      $client->static_root,
+                $client->shared->root,  $client->root,      $client->static,
                 $client->shared->js,    $client->js,
                 $client->shared->img,   $client->img,
                 $client->shared->css,   $client->css,

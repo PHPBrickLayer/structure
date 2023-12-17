@@ -55,14 +55,16 @@ abstract class ViewCast
                 ->body_attr("default-home")
                 ->local("current_page", "error")
                 ->local("section", "error")
-                ->body(function (array $meta) { ?>
+                ->body(function () {
+                    $meta = DomainResource::plaster()
+                    ?>
                     <style>
                         .return{
-                            color: #fff;
+                            color: #000;
                             font-weight: 600;
                             text-decoration: none;
                             background: transparent;
-                            border: solid 1px;
+                            border: solid 1px #000;
                             padding: 10px;
                             border-radius: 30px;
                             transition: all ease-in-out .3s;
@@ -73,9 +75,9 @@ abstract class ViewCast
                             color: #000;
                         }
                     </style>
-                    <h1><?= $meta['page']['title'] ?></h1>
+                    <h1><?= $meta->page->title ?></h1>
                     <p>This is the default error page of Lay Framework</p>
-                    <a class="return" href="<?= \BrickLayer\Lay\Core\LayConfig::site_data()->base ?>">Return Home</a>
+                    <a class="return" href="<?= DomainResource::get()->domain->domain_uri ?>">Return Home</a>
                 <?php });
         });
     }

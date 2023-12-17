@@ -11,7 +11,7 @@ use JetBrains\PhpStorm\ObjectShape;
 class DomainResource
 {
     use IsSingleton;
-    
+
     private static object $resource;
     private static object $plaster;
 
@@ -43,10 +43,10 @@ class DomainResource
         $base = $domain->domain_base;
         $env_src = $data->use_prod && LayConfig::$ENV_IS_PROD ? 'prod' : 'dev';
 
-        $obj->base =            $base . "uploads/";
-        $obj->upload =          $base . "uploads/";
-        $obj->static_root =     $base . "static/";
-        $obj->root =            $obj->static_root . $env_src . "/";
+        $obj->root =       $base;
+        $obj->upload =     $base . "uploads/";
+        $obj->static =     $base . "static/";
+        $obj->static_env =            $obj->static . $env_src . "/";
 
         $obj->css =     $obj->root     . "css/";
         $obj->img =     $obj->root     . "images/";
@@ -55,14 +55,15 @@ class DomainResource
         $shared = $obj->root . "shared/";
         $obj->shared = (object) [
             "root" =>   $shared,
-            "css" =>    $shared         . "css/",
-            "img" =>    $shared         . "images/",
-            "js" =>     $shared         . "js/",
+            "static" => $shared         . "static/",
+            "css" =>    $shared         . "static/" . $env_src . "/css/",
+            "img" =>    $shared         . "static/" . $env_src . "/images/",
+            "js" =>     $shared         . "static/" . $env_src . "/js/",
             "img_default" => (object) [
-                "logo" =>       $shared . "images/logo.png",
-                "favicon" =>    $shared . "images/favicon.png",
-                "icon" =>       $shared . "images/icon.png",
-                "meta" =>       $shared . "images/meta.png",
+                "logo" =>       $shared . "static/" . $env_src . "/images/logo.png",
+                "favicon" =>    $shared . "static/" . $env_src . "/images/favicon.png",
+                "icon" =>       $shared . "static/" . $env_src . "/images/icon.png",
+                "meta" =>       $shared . "static/" . $env_src . "/images/meta.png",
             ]
         ];
 
@@ -82,16 +83,17 @@ class DomainResource
     }
 
     #[ObjectShape([
-        'lay' => 'object',
-        'upload' => 'string',
-        'static_root' => 'string',
         'root' => 'string',
+        'upload' => 'string',
+        'static' => 'string',
+        'static_env' => 'string',
         'css' => 'string',
         'img' => 'string',
         'js' => 'string',
-        'shared' => 'object',
+        'shared' => 'object [root, static, css, img, js, img_default [object [logo, favicon, icon, meta]]]',
         'server' => 'object',
         'domain' => 'object',
+        'lay' => 'object [uri, root]',
     ])]
     public static function get() : object
     {

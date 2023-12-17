@@ -160,7 +160,9 @@ class Domain {
         $ext = strtolower((string) end($x));
 
         if(count($x) > 1 && in_array($ext,$ext_array,true)) {
+            header("Content-Type: application/json");
             http_response_code(404);
+
             echo "{error: 404, response: 'resource not found'}";
             die;
         }
