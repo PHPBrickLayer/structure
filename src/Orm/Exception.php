@@ -5,16 +5,22 @@ namespace BrickLayer\Lay\Orm;
 
 use BrickLayer\Lay\BobDBuilder\Helper\Console\Console;
 use BrickLayer\Lay\BobDBuilder\Helper\Console\Format\Foreground;
+use BrickLayer\Lay\BobDBuilder\Helper\Console\Format\Style;
 use BrickLayer\Lay\Core\Enums\LayMode;
 use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Core\Traits\IsSingleton;
 
 class Exception
 {
+    use IsSingleton;
+
     private static string $ENV = "DEVELOPMENT";
+    private static string $message;
+    private static bool $already_caught = false;
 
-    public function capture_errors() : void {
-
-        set_error_handler(function (int $err_no, string $err_str, string $err_file, int $err_line)
+    public function capture_errors(bool $turn_warning_to_errors = false) : void
+    {
+        set_error_handler(function (int $err_no, string $err_str, string $err_file, int $err_line) use($turn_warning_to_errors)
         {
             if(error_reporting() != E_ALL)
                 return;
@@ -26,7 +32,8 @@ class Exception
                     "LayWarning",
                     $err_str . $eol
                     . "File: " . $err_file . ":$err_line" . $eol,
-                    kill: false
+                    kill: $turn_warning_to_errors,
+                    raw: ["err_code" => $err_no]
                 );
 
                 return true;
@@ -35,13 +42,13 @@ class Exception
             $this->use_exception(
                 "LayError",
                 $err_str . $eol
-                . "File: " . $err_file . ":$err_line" . $eol
+                . "File: " . $err_file . ":$err_line" . $eol,
+                raw: ["err_code" => $err_no]
             );
 
             return true;
         }, E_ALL|E_STRICT);
     }
-
 
     public function set_env(string $ENV): void
     {
@@ -117,12 +124,12 @@ class Exception
 
             $k++;
             $last_file = explode("/", $v['file']);
-            $last_file = end($last_file);
+            $last_file = $v['class'] ?? end($last_file);
             $stack .= <<<STACK
                 <div style="color: #fff; padding-left: 20px">
                     <div>#$k: {$v['function']}(...)</div>
                     <div><b>$last_file ({$v['line']})</b></div>
-                    <span style="white-space: nowrap; word-break: keep-all">{$v['file']}; <b>{$v['line']}</b></span>
+                    <span style="white-space: nowrap; word-break: keep-all">{$v['file']}:<b>{$v['line']}</b></span>
                     <hr>
                 </div>
             STACK;
@@ -133,6 +140,8 @@ class Exception
         }
 
         $stack .= "</div>";
+
+        self::$message = $title . " \n" . strip_tags($body);
 
         if ($display) {
             $display = <<<DEBUG
@@ -146,7 +155,7 @@ class Exception
 
             if($cli_mode) {
                 $body = strip_tags($body);
-                Console::log(" $title ", Foreground::bold);
+                Console::log(" $title ", Style::bold);
                 print "---------------------\n";
                 Console::log($body, $cli_color);
                 print "---------------------\n";
@@ -199,6 +208,9 @@ class Exception
      */
     protected function show_exception($type, $opt = []): void
     {
+        if(self::$already_caught)
+            return;
+
         $query = $opt[0] ?? "";
         $query_type = $opt[1] ?? "";
         $use_lay_error = $opt['use_lay_error'] ?? true;
@@ -251,7 +263,11 @@ class Exception
         if(LayConfig::get_mode() === LayMode::HTTP)
             @http_response_code(500);
 
-        if ($act == "kill")
-            die;
+        if ($act == "kill") {
+            self::$already_caught = true;
+            error_reporting(0);
+            ini_set('error_log', false);
+            throw new \Exception(self::$message, 914);
+        }
     }
 }

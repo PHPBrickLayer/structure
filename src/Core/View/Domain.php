@@ -131,9 +131,16 @@ class Domain {
 
         $file = explode("\\", $builder::class);
         array_pop($file);
+        $domain_file = $file;
+        array_shift($domain_file);
+
+        $doc_root = explode(DIRECTORY_SEPARATOR, $_SERVER['DOCUMENT_ROOT']);
+        $doc_root = end($doc_root);
+
+        $domain_base = $doc_root != end($domain_file) ? implode("/", $domain_file) . "/" : "";
 
         $data = LayConfig::site_data();
-        $base = $data->using_domain ? "" : implode("/", $file) . "/";
+
 
         self::$current_route_details['route'] = $route ?: "index";
         self::$current_route_details['route_as_array'] = $route_as_array;
@@ -141,7 +148,7 @@ class Domain {
         self::$current_route_details['domain_type'] = $domain_type;
         self::$current_route_details['domain_id'] = $id;
         self::$current_route_details['domain_uri'] = $data->domain . ($pattern != '*' ? $pattern . '/' : '');
-        self::$current_route_details['domain_base'] = $data->base . $base;
+        self::$current_route_details['domain_base'] = $data->base . $domain_base;
         self::$current_route_details['domain_root'] = LayConfig::server_data()->root . implode(DIRECTORY_SEPARATOR, $file) . DIRECTORY_SEPARATOR;
 
         $builder->init();
@@ -335,6 +342,7 @@ class Domain {
             'domain_type',
             'domain_id',
             'domain_uri',
+            'domain_base',
             'domain_root',
             'pattern',
             '*',

@@ -12,6 +12,15 @@ class LayUnlinkDir {
     {
         if (!is_dir($dir)) {
             self::$result = false;
+
+            if(file_exists($dir))
+                self::$result = unlink($dir);
+
+            return;
+        }
+
+        if(is_link($dir)) {
+            self::$result = unlink($dir);
             return;
         }
 

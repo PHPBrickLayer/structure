@@ -48,9 +48,9 @@ class DomainResource
         $obj->static =     $base . "static/";
         $obj->static_env =            $obj->static . $env_src . "/";
 
-        $obj->css =     $obj->root     . "css/";
-        $obj->img =     $obj->root     . "images/";
-        $obj->js =      $obj->root     . "js/";
+        $obj->css =     $obj->static_env . "css/";
+        $obj->img =     $obj->static_env . "images/";
+        $obj->js =      $obj->static_env . "js/";
 
         $shared = $obj->root . "shared/";
         $obj->shared = (object) [

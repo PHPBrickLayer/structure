@@ -2,9 +2,7 @@
 
 namespace BrickLayer\Lay\BobDBuilder\Cmd;
 
-use BrickLayer\Lay\BobDBuilder\Engine;
 use BrickLayer\Lay\BobDBuilder\EnginePlug;
-use BrickLayer\Lay\BobDBuilder\Enum\CmdOutType;
 use BrickLayer\Lay\BobDBuilder\Interface\CmdLayout;
 use BrickLayer\Lay\Core\Traits\IsSingleton;
 
@@ -14,7 +12,7 @@ class Symlink implements CmdLayout
 
     private readonly EnginePlug $plug;
 
-    public function _init(EnginePlug $plug) : void
+    public function _init(EnginePlug $plug): void
     {
         $this->plug = $plug;
 
@@ -73,7 +71,7 @@ class Symlink implements CmdLayout
     {
         $link = $this->plug->tags['link_dir'] ?? null;
 
-        if(!$link)
+        if (!$link)
             return;
 
         if (!isset($link[0]))
@@ -87,15 +85,15 @@ class Symlink implements CmdLayout
 
         if (!is_dir($src))
             $this->plug->write_fail(
-                "Source directory $src does not exist!\n"
+                "Source directory *$src* does not exist!\n"
                 . "You cannot link a directory that doesn't exist"
             );
 
         if (is_dir($dest)) {
             if (!$this->plug->force)
                 $this->plug->write_warn(
-                    "Destination directory: $dest exists already!\n"
-                    . "If you want to REPLACE!! it, pass the flag --force\n"
+                    "Destination directory: *$dest* exists already!\n"
+                    . "If you want to REPLACE!! it, pass the flag *--force*\n"
                     . "***### Take Note:: You will be deleting the former directory if you decide to pass the flag --force"
                 );
 
@@ -106,8 +104,8 @@ class Symlink implements CmdLayout
 
         $this->plug->write_success(
             "Directory link created successfully!\n"
-            . "Source Directory: $src\n"
-            . "Destination Directory: $dest"
+            . "Source Directory: *$src*\n"
+            . "Destination Directory: *$dest*"
         );
     }
 
@@ -115,7 +113,7 @@ class Symlink implements CmdLayout
     {
         $link = $this->plug->tags['link_file'] ?? null;
 
-        if(!$link)
+        if (!$link)
             return;
 
         if (!isset($link[0]))

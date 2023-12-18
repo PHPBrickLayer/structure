@@ -8,4 +8,5 @@ enum CmdOutType
     case WARN;
     case FAIL;
     case SUCCESS;
+    case TALK;
 }

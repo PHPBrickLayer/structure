@@ -171,11 +171,14 @@ trait Config
     public static function get_orm(): SQL
     {
         self::is_init();
-        try {
-            return self::$SQL_INSTANCE;
-        } catch (\Error $e){
-            Exception::throw_exception("Trying to access the database without connecting; call `LayConfig::connect()` or if you are in a View Handler, call `\$this->builder->connect_db()`.","ORMErr");
-        }
+
+        if(!isset(self::$SQL_INSTANCE))
+            Exception::throw_exception(
+                "Trying to access the database without connecting; use`\$this->builder->connect_db()` to connect db.",
+                "OrmNotDetected"
+            );
+
+        return self::$SQL_INSTANCE;
     }
 
     public static function is_page_compressed(): bool
@@ -203,7 +206,7 @@ trait Config
         if (!defined("SAFE_TO_INIT_LAY") || !SAFE_TO_INIT_LAY)
             Exception::throw_exception("This script cannot be accessed this way, please return home", "BadRequest");
 
-        SQL::new()->capture_errors();
+        Exception::new()->capture_errors();
     }
 
     public function dont_compress_html(): self

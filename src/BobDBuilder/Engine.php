@@ -11,15 +11,44 @@ class Engine
     public EnginePlug $plug;
 
     public function __construct(
-        private readonly array $args
+        private array $args
     )
     {
+        $show_help = array_search("--help", $this->args, true);
+        $show_help = $show_help === false ? array_search("--h", $this->args, true) : $show_help;
+
+        if ($show_help !== false) {
+            unset($this->args[$show_help]);
+            $show_help = true;
+        }
+
+        $force_action = array_search("--force", $this->args, true);
+        $force_action = $force_action === false ? array_search("--f", $this->args, true) : $force_action;
+
+        if ($force_action !== false) {
+            unset($this->args[$force_action]);
+            $force_action = true;
+        }
+
         $this->plug = new EnginePlug($this->args);
+
+        $this->plug->force = $force_action ?? false;
+        $this->plug->show_help = $show_help ?? false;
 
         foreach ($this->args as $i => $arg) {
             if($this->plug->run($i, $arg) == CustomContinueBreak::BREAK)
                 break;
         }
+
+        // start BOB Execution
+        $this->plug->write(
+            "",
+            CmdOutType::TALK,
+            [
+                'open_talk' => true,
+                'hide_current_cmd' => false,
+            ]
+        );
 
         if ($this->plug->show_intro) {
             $this->intro();
@@ -30,7 +59,22 @@ class Engine
 
         $this->plug->fire();
 
-        $this->end();
+        // End Bob execution
+        if(empty($this->plug->active_cmd))
+            $this->plug->write_info(
+                "-- Bob has determined that the current command is invalid\n"
+                . "-- Please use --help to see the list of available commands"
+                , ["current_cmd" => $this->plug->typed_cmd]
+            );
+
+        $this->plug->write_success(
+            "\n" . (
+            isset($this->plug->active_cmd_class) ?
+                "-- Operation completed!" :
+                ""
+            ),
+            ['close_talk' => true]
+        );
     }
 
     public function intro(bool $close_talk = true): void
@@ -47,7 +91,7 @@ class Engine
 
     public function help(): void
     {
-        if (!$this->plug->tags['show_help'])
+        if (!$this->plug->show_help)
             return;
 
         $this->intro(false);
@@ -58,18 +102,5 @@ class Engine
             , [ "open_talk" => false, "hide_current_cmd" => true ]
         );
     }
-
-    public function end(): void
-    {
-        if(empty($this->plug->active_cmd))
-            $this->plug->write_info(
-                "-- Bob has determined that the current command is invalid\n"
-                . "-- Please use --help to see the list of commands available"
-                , ["current_cmd" => $this->plug->typed_cmd]
-            );
-
-        $this->plug->write_success("-- Operation completed!");
-    }
-
 
 }

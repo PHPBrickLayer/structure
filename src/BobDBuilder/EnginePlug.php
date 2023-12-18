@@ -6,21 +6,22 @@ use BrickLayer\Lay\BobDBuilder\Enum\CmdOutType;
 use BrickLayer\Lay\BobDBuilder\Helper\Console\Console;
 use BrickLayer\Lay\BobDBuilder\Helper\Console\Format\Background;
 use BrickLayer\Lay\BobDBuilder\Helper\Console\Format\Foreground;
+use BrickLayer\Lay\BobDBuilder\Helper\Console\Format\Style;
 use BrickLayer\Lay\BobDBuilder\Interface\CmdLayout;
 use BrickLayer\Lay\Core\Enums\CustomContinueBreak;
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
 use Error;
 use ReflectionClass;
+use ReflectionException;
+use TypeError;
 
 class EnginePlug
 {
-    /**
-     * @var bool
-     */
     public bool $show_intro = true;
-    public bool $cmd_found = false;
+    public bool $show_help = false;
     public bool $force = false;
+    public bool $cmd_found = false;
     public array $tags = [];
     public array $plugged_args = [];
     public string $typed_cmd = "";
@@ -48,21 +49,15 @@ class EnginePlug
 
     public function fire(): void
     {
-        $this->force = $this->tags['force_action'] ?? $this->force;
         $spun_correct_class = false;
 
-        set_error_handler(function (int $err_no, string $err_str, string $err_file, int $err_line) {
-            if(error_reporting() === 0)
-                return false;
+        Exception::new()->capture_errors(true);
 
-            Exception::throw_exception(
-                $err_str . "\n"
-                . "File: " . $err_file . ":$err_line",
-                "BobWarnings",
-            );
-
-            return true;
-        }, E_WARNING|E_USER_WARNING);
+        // This property is active when the command sent matches any on the existing Cmd classes
+        // If it's not set, there's no need to loop through the existing classes to spin their methods,
+        // we simply need to break out of this method and save php the stress.
+        if(!isset($this->active_cmd_class))
+            return;
 
         foreach ($this->cmd_classes as $cmd_class) {
             if($spun_correct_class)
@@ -74,7 +69,7 @@ class EnginePlug
             try{
                 $cmd_class->_spin();
             }
-            catch (\TypeError|\Error|\Exception $e){
+            catch (TypeError|Error|\Exception $e){
                 Exception::throw_exception(
                     $e->getMessage() . "\n"
                     . $e->getFile() . ":" . $e->getLine()
@@ -96,12 +91,6 @@ class EnginePlug
 
         if ($index == 1)
             $this->typed_cmd = $arg;
-
-        if ($this->arg(self::class, ["--help", "-h", "help"], $this->tags['show_help'], true))
-            return CustomContinueBreak::BREAK;
-
-        if ($this->arg(self::class, ["--force", "-f"], $this->tags['force_action'], true))
-            return CustomContinueBreak::BREAK;
 
         foreach ($this->plugged_args as $key => $arg) {
             if ($this->arg($arg['class'], [...$arg['cmd']], $this->tags[$key], ...$arg['value']))
@@ -127,7 +116,7 @@ class EnginePlug
 
             try {
                 $class = $class->getMethod('new');
-            } catch (\ReflectionException) {
+            } catch (ReflectionException) {
                 Exception::throw_exception(
                     " $cmd_class is not a singleton. \n"
                     . " All Cmd classes must be singletons, use the trait `IsSingleton` to clear this error",
@@ -196,30 +185,51 @@ class EnginePlug
     }
 
     public function write_fail(string $message, array $opts = []) : void {
+        $opts['close_talk'] = true;
+        $opts['kill'] = true;
+
         $this->write($message, CmdOutType::FAIL, $opts);
     }
 
+    public function write_talk(string $message, array $opts = []) : void {
+        $opts['color'] = "red";
+        $this->write($message, CmdOutType::TALK, $opts);
+    }
+
     public function write_warn(string $message, array $opts = []) : void {
+        $opts['close_talk'] = true;
+        $opts['kill'] = true;
+
         $this->write($message, CmdOutType::WARN, $opts);
     }
 
-    public function write(string $message, CmdOutType $type, array $opts = []): void
+    public function write(string $message, ?CmdOutType $type = null, array $opts = []): void
     {
-        $kill = $opts['kill'] ?? true;
-        $close_talk = $opts['close_talk'] ?? true;
-        $open_talk = $opts['open_talk'] ?? true;
+        $kill = $opts['kill'] ?? false;
+        $open_talk = $opts['open_talk'] ?? false;
+        $close_talk = $opts['close_talk'] ?? false;
         $current_cmd = $this->active_cmd ?: ($opts['current_cmd'] ?? "");
-        $hide_cur_cmd = $opts['hide_current_cmd'] ?? false;
+        $hide_cur_cmd = $opts['hide_current_cmd'] ?? true;
 
         $color = match ($type) {
-            default => Foreground::normal,
+            default => Style::normal,
             CmdOutType::SUCCESS => Foreground::green,
             CmdOutType::INFO => Foreground::light_cyan,
+            CmdOutType::WARN => Foreground::yellow,
             CmdOutType::FAIL => Foreground::red,
+            CmdOutType::TALK => Foreground::light_purple,
         };
 
+        $color = $opts['color'] ?? $color;
+
+        if(gettype($color) !== "object" || get_class($color) != Foreground::class)
+            Exception::throw_exception(
+                "Invalid Color Type received. Color must be of " . Foreground::class,
+                "InvalidConsoleColor"
+            );
+
         if ($open_talk)
-            Console::log("##>>> BobTheBuilder SAYS (::--__--::)", Foreground::light_gray);
+            Console::log("(^_^) Bob is Building --::--", Foreground::light_gray);
 
         if (!$hide_cur_cmd && !empty($current_cmd)) {
             print "   CURRENT COMMAND ";
@@ -229,16 +239,48 @@ class EnginePlug
             );
         }
 
-        foreach (explode("\n", $message) as $m) {
-            Console::log("   " . $m, $color);
+        $list = false;
+
+        if($type == CmdOutType::TALK && str_starts_with($message, "-")) {
+            Console::log("   o", Foreground::light_blue, newline: false);
+            $message = ltrim($message, "-");
+            $list = true;
+        }
+
+        foreach (explode("\n", $message) as $k => $m) {
+            if(empty($m))
+                continue;
+
+            if($list && $k > 0)
+                $m = "     " . $m;
+
+            if(!$list)
+                $m = "   " . $m;
+
+            if(str_contains($m, "*")) {
+                $m = preg_replace("/\*+/", "*", $m);
+
+                foreach (explode("*", $m) as $i => $s) {
+                    if($i % 2 == 0)
+                        Console::log($s, $color, newline: false);
+                    else
+                        Console::log($s, Foreground::cyan, style: Style::bold , newline: false);
+                }
+
+                Console::log("");
+
+                continue;
+            }
+
+            Console::log($m, $color);
         }
 
         if ($close_talk)
-            Console::log("####> BobTheBuilder DONE TALKING...(-_-)", Foreground::light_gray);
+            Console::log("(-_-) Bob is Done -----", Foreground::light_gray);
 
         Console::bell();
 
-        if ($kill)
+        if($kill)
             die;
     }
 

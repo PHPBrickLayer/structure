@@ -4,10 +4,6 @@ namespace BrickLayer\Lay\BobDBuilder\Helper\Console\Format;
 
 enum Foreground : string
 {
-    case bold           = '1';
-    case normal         = '0;39';
-    case dim            = '2';
-
     case black          = '0;30';
     case blue           = '0;34';
     case green          = '0;32';

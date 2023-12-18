@@ -26,7 +26,7 @@ class Console {
      * @param boolean $newline Append EOF?
      * @return void
      */
-    public static function log(string $text = '', Foreground $color = Foreground::normal, ?Background $bg_color = null, ?Style $style = null, bool $newline = true) : void
+    public static function log(string $text = '', Foreground|Style $color = Style::normal, ?Background $bg_color = null, ?Style $style = null, bool $newline = true) : void
     {
         $colored_string = "\033[" . $color->value . "m";
 

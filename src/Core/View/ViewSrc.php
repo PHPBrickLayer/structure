@@ -23,16 +23,14 @@ final class ViewSrc {
             $src
         );
 
-        $base = $client->domain->domain_uri;
+        $base = $client->domain->domain_base;
 
         if(!str_starts_with($src, $base))
             return $src;
 
         $local_file = str_replace($base, "", $src);
 
-        try {
-            $src .= "?mt=" . @filemtime($local_file);
-        } catch (\Exception) {}
+        $src .= "?mt=" . @filemtime($local_file);
 
         return $src;
     }
