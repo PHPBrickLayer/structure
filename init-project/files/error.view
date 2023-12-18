@@ -1,6 +1,3 @@
-<?php
-global $meta, $layConfig;
-?>
 <style>
     .return{
         color: #fff;
@@ -18,6 +15,6 @@ global $meta, $layConfig;
         color: #000;
     }
 </style>
-<h1><?= $meta->page->title ?></h1>
+<h1><?= \BrickLayer\Lay\Core\View\DomainResource::plaster()->page->title ?></h1>
 <p>This is the default error page of Lay Framework</p>
-<a class="return" href="<?= $layConfig->get_site_data('base') ?>">Return Home</a>
+<a class="return" href="<?= \BrickLayer\Lay\Core\LayConfig::site_data()->base ?>">Return Home</a>

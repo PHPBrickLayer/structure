@@ -2,8 +2,8 @@
 
 namespace res\server\utils;
 
-use BrickLayer\Lay\core\traits\IsSingleton;
-use BrickLayer\Lay\libs\LayMail;
+use BrickLayer\Lay\Core\Traits\IsSingleton;
+use BrickLayer\Lay\Libs\LayMail;
 
 class Email extends LayMail
 {

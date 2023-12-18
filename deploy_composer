@@ -2,7 +2,7 @@
 <?php
 require_once __DIR__ . DIRECTORY_SEPARATOR . "AutoLoader.php";
 
-$server = \BrickLayer\Lay\core\LayConfig::server_data();
+$server = \BrickLayer\Lay\Core\LayConfig::server_data();
 $root = $server->root;
 $temp = $server->temp;
 $command = file_exists($root . "composer.lock") ? "update" : "install";
@@ -12,4 +12,4 @@ exec("export HOME=$root && cd $root && composer $command --no-dev --optimize-aut
 file_put_contents($temp . "deploy_composer_output.txt", implode("\n", $out));
 
 // unset cron job after updating composer packages
-\BrickLayer\Lay\libs\LayCron::new()->unset("update-composer-pkgs");
+\BrickLayer\Lay\Libs\LayCron::new()->unset("update-composer-pkgs");

@@ -1,6 +1,6 @@
 <?php
 
-use BrickLayer\Lay\core\LayConfig;
+use BrickLayer\Lay\Core\LayConfig;
 
 include_once __DIR__ . DIRECTORY_SEPARATOR . "vendor" . DIRECTORY_SEPARATOR . "bricklayer" . DIRECTORY_SEPARATOR . "lay" . DIRECTORY_SEPARATOR . "Autoloader.php";
 

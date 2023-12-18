@@ -4,7 +4,7 @@ const SAFE_TO_INIT_LAY = true;
 
 require_once __DIR__ . DIRECTORY_SEPARATOR . ".." . DIRECTORY_SEPARATOR . "layconfig.php";
 
-$req = \BrickLayer\Lay\core\api\ApiEngine::new();
+$req = \BrickLayer\Lay\Core\Api\ApiEngine::new();
 $req::fetch();
 
 $req->prefix("client")

@@ -4,7 +4,7 @@ const SAFE_TO_INIT_LAY = true;
 
 include_once "layconfig.php";
 
-\BrickLayer\Lay\core\view\Domain::new()->create(
+\BrickLayer\Lay\Core\View\Domain::new()->create(
     id: "default",
     patterns: ["*"],
     builder: new \res\server\view\DefaultViews()

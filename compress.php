@@ -1,9 +1,9 @@
 <?php
 require_once __DIR__ . DIRECTORY_SEPARATOR . "AutoLoader.php";
 
-use BrickLayer\Lay\libs\CopyDirectory;
-use BrickLayer\Lay\libs\LayCache;
-use BrickLayer\Lay\libs\LayDate;
+use BrickLayer\Lay\Libs\CopyDirectory;
+use BrickLayer\Lay\Libs\LayCache;
+use BrickLayer\Lay\Libs\LayDate;
 
 $intro = function() {
     print "----------------------------------------------------------\n";
