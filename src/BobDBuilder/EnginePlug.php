@@ -107,12 +107,20 @@ class EnginePlug
         $namespace = implode("\\", $namespace) . "\\Cmd";
 
         foreach (scandir(__DIR__ . $this->s . "Cmd") as $class) {
-            if ($class == "." || $class == ".." || is_dir($class))
+            if (
+                $class == "." ||
+                $class == ".." ||
+                is_dir(__DIR__ . $this->s . "Cmd" . $this->s . $class)
+            )
                 continue;
 
             $cmd_class = $namespace . "\\" . explode(".php", $class)[0];
 
-            $class = new ReflectionClass($cmd_class);
+            try{
+                $class = new ReflectionClass($cmd_class);
+            } catch (ReflectionException $e){
+                Exception::throw_exception($e->getMessage(), "ReflectionException");
+            }
 
             try {
                 $class = $class->getMethod('new');
