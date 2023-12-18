@@ -1,6 +1,6 @@
 <?php
 
-namespace BrickLayer\Lay\BobDBuilder\Cmd\MakeTraits;
+namespace BrickLayer\Lay\BobDBuilder\Cmd\Traits\Make;
 
 trait Brick
 {

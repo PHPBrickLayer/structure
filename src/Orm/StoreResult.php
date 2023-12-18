@@ -3,10 +3,11 @@ declare(strict_types=1);
 
 namespace BrickLayer\Lay\Orm;
 
+use BrickLayer\Lay\Core\CoreException;
 use Closure;
 use mysqli_result;
 
-class StoreResult extends Exception
+class StoreResult extends CoreException
 {
     /**
      * @param $exec mysqli_result

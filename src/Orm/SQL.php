@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace BrickLayer\Lay\Orm;
 
+use BrickLayer\Lay\Core\CoreException;
+use BrickLayer\Lay\Core\Traits\IsSingleton;
 use BrickLayer\Lay\Orm\Traits\Controller;
 use mysqli;
 use mysqli_result;
@@ -10,8 +12,9 @@ use mysqli_result;
 /**
  * Simple Query Language
  **/
-class SQL extends Exception
+class SQL
 {
+    use IsSingleton;
     use Config;
     use Controller;
 
@@ -33,6 +36,15 @@ class SQL extends Exception
         return mysqli_select_db(self::$link, $name);
     }
 
+    public function exception(string $title, string $message, array $opts = []) : CoreException
+    {
+        return CoreException::new()->use_exception(
+            "OrmExp_" . $title,
+            $message,
+            opts: $opts
+        );
+    }
+
     /**
      * Query Engine
      * @param string $query
@@ -43,7 +55,10 @@ class SQL extends Exception
     final public function query(string $query, array $option = []): int|bool|array|null|mysqli_result
     {
         if (!isset(self::$link))
-            $this->show_exception(0);
+            $this->exception(
+                "ConnErr",
+                "No connection detected: <h5>Connection might be closed!</h5>",
+            );
 
         $option = $this->array_flatten($option);
         $debug = $option['debug'] ?? 0;
@@ -65,7 +80,11 @@ class SQL extends Exception
         $option['debug'][1] = $query_type;
 
         if ($debug)
-            $this->show_exception(-9, $option['debug']);
+            $this->exception(
+                "QueryReview",
+                "<pre style='color: #dea303 !important'>$query</pre>",
+                [ "type" => "view" ]
+            );
 
         // execute query
         $exec = false;
@@ -75,7 +94,12 @@ class SQL extends Exception
         } catch (\Exception) {
             $has_error = true;
             if ($exec === false && $catch_error === 0)
-                $this->show_exception(-10, $option['debug']);
+                $this->exception(
+                    "QueryExec",
+                    "<b style='color: #008dc5'>" . mysqli_error($this->get_link()) . "</b> 
+                    <div style='color: #fff0b3; margin-top: 5px'>$query</div> 
+                    <div style='margin: 10px 0'>Statement: $query_type</div>"
+                );
         }
 
         // init query info structure

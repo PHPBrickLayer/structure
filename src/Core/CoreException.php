@@ -1,16 +1,15 @@
 <?php
 declare(strict_types=1);
 
-namespace BrickLayer\Lay\Orm;
+namespace BrickLayer\Lay\Core;
 
 use BrickLayer\Lay\BobDBuilder\Helper\Console\Console;
 use BrickLayer\Lay\BobDBuilder\Helper\Console\Format\Foreground;
 use BrickLayer\Lay\BobDBuilder\Helper\Console\Format\Style;
 use BrickLayer\Lay\Core\Enums\LayMode;
-use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\Traits\IsSingleton;
 
-class Exception
+class CoreException
 {
     use IsSingleton;
 
@@ -23,7 +22,7 @@ class Exception
         set_error_handler(function (int $err_no, string $err_str, string $err_file, int $err_line) use($turn_warning_to_errors)
         {
             if(error_reporting() != E_ALL)
-                return;
+                return false;
 
             $eol = LayConfig::get_mode() == LayMode::HTTP ? "<br>" : "\n";
 
@@ -64,16 +63,16 @@ class Exception
     /**
      * @throws \Exception
      */
-    public function use_exception(string $title, string $body, bool $kill = true, array $trace = [], array $raw = [], bool $use_lay_error = true): void
+    public function use_exception(string $title, string $body, bool $kill = true, array $trace = [], array $raw = [], bool $use_lay_error = true, array $opts = []): void
     {
-        $this->show_exception(-8,
-            [
+        $this->show_exception([
                 "title" => $title,
                 "body_includes" => $body,
                 "kill" => $kill,
                 "trace" => $trace,
                 "raw" => $raw,
                 "use_lay_error" => $use_lay_error,
+                "exception_type" => $opts['type'] ?? 'error'
             ]
         );
     }
@@ -206,16 +205,14 @@ class Exception
     /**
      * @throws \Exception
      */
-    protected function show_exception($type, $opt = []): void
+    private function show_exception($opt = []): void
     {
         if(self::$already_caught)
             return;
 
-        $query = $opt[0] ?? "";
-        $query_type = $opt[1] ?? "";
         $use_lay_error = $opt['use_lay_error'] ?? true;
-        $query = (self::$ENV == "DEVELOPMENT" && is_string($query)) ? htmlspecialchars($query) : $query;
         $trace = [...$opt['trace'] ?? [], ...debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS)];
+        $type = $opt['exception_type'];
 
         if (!$use_lay_error) {
             if($opt['kill'] ?? true) {
@@ -232,33 +229,16 @@ class Exception
             return;
         }
 
-        switch ($type) {
-            default:
-                $act = $this->container("QueryExecErr", "<b style='color: #008dc5'>" . mysqli_error(SQL::new()->get_link()) . "</b> <div style='color: #fff0b3; margin-top: 5px'>$query</div> <div style='margin: 10px 0'>Statement: __RAW_VALUE_TYPE__</div>", ["stack" => $trace, "core" => "error", "raw" => ["__RAW_VALUE_TYPE__" => $query_type], "act" => "kill"]);
-                break;
-            case -9:
-                $act = $this->container("QueryReview", "<pre style='color: #dea303 !important'>$query</pre>", ["stack" => $trace, "core" => "view"]);
-                break;
-            case -8:
-                $act = $this->container($opt['title'], $opt['body_includes'], ["stack" => $trace, "core" => "error", "act" => @$opt['kill'] ? "kill" : "allow", "raw" => $opt['raw']]);
-                break;
-
-            case 0:
-                $act = $this->container("ConnErr", "No connection detected: <h5 style='color: #008dc5'>Connection might be closed:</h5>", ["stack" => $trace, "core" => "error"]);
-                break;
-            case 1:
-                $db = $opt[0];
-                $usr = $opt[1];
-                $host = $opt[2];
-                $act = $this->container("ConnTest", "<h2>Connection Established!</h2><u>Your connection info states:</u><div style='color: gold; font-weight: bold; margin: 5px 1px;'>&gt; Host: <u>" . $host . "</u></div><div style='color: gold; font-weight: bold; margin: 5px 1px;'>&gt; User: <u>" . $usr . "</u></div><div style='color: gold; font-weight: bold; margin: 5px 1px;'>&gt; Database: <u>" . $db . "</u></div>", ["stack" => $trace, "core" => "success"]);
-                break;
-            case 2:
-                $act = $this->container("ConnErr", "<div style='color: #e00; font-weight: bold; margin: 5px 1px;'>" . mysqli_connect_error() . "</div>", ["stack" => $trace, "core" => "error", "act" => "kill"]);
-                break;
-            case 3:
-                $act = $this->container("ConnErr", "<div style='color: #e00; font-weight: bold; margin: 5px 1px;'>Failed to close connection. No pre-existing DB connection</div>", ["stack" => $trace, "core" => "error", "act" => "kill"]);
-                break;
-        }
+        $act = $this->container(
+            $opt['title'],
+            $opt['body_includes'],
+            [
+                "stack" => $trace,
+                "core" => $type,
+                "act" => @$opt['kill'] ? "kill" : "allow",
+                "raw" => $opt['raw'],
+            ]
+        );
 
         if(LayConfig::get_mode() === LayMode::HTTP)
             @http_response_code(500);

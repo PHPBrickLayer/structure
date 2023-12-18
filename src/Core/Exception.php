@@ -11,8 +11,8 @@ abstract class Exception {
         self::new()->use_exception("LayExp_$title", $message, $kill, trace: $stack_track, use_lay_error: $use_lay_error);
     }
 
-    public static function new() : \BrickLayer\Lay\Orm\Exception
+    public static function new() : \BrickLayer\Lay\Core\CoreException
     {
-        return \BrickLayer\Lay\Orm\Exception::new();
+        return \BrickLayer\Lay\Core\CoreException::new();
     }
 }

@@ -1,6 +1,6 @@
 <?php
 
-namespace BrickLayer\Lay\BobDBuilder\Cmd\MakeTraits;
+namespace BrickLayer\Lay\BobDBuilder\Cmd\Traits\Make;
 
 use BrickLayer\Lay\Libs\LayCopyDir;
 use BrickLayer\Lay\Libs\LayUnlinkDir;

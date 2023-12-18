@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 namespace BrickLayer\Lay\Orm;
+use BrickLayer\Lay\Core\CoreException;
+use BrickLayer\Lay\Core\LayConfig;
 use mysqli;
 
 trait Config{
@@ -26,17 +28,10 @@ trait Config{
     ];
 
     private static function _init(mysqli|array|null $connection) : void {
-        $me = self::instance();
-        $http_host = $_SERVER['REMOTE_ADDR'] ?? $_SERVER['HTTP_HOST'];
-        $localhost = ["127.0.","192.168."];
-        $env = is_array($connection) ? @$connection['env'] : null;
 
-        // confirm development environment or guess it based on host
-        (empty($env) && ($http_host == "localhost" || str_contains($http_host, $localhost[0]) || str_contains($http_host, $localhost[1]))) ?
-            $me->set_env("DEVELOPMENT") :
-            $me->set_env("PRODUCTION");
+        CoreException::new()->set_env(LayConfig::$ENV_IS_PROD ? "PRODUCTION" : "DEVELOPMENT");
 
-        $me->set_db($connection);
+        self::new()->set_db($connection);
     }
 
     /**
@@ -46,7 +41,7 @@ trait Config{
     private function connect() : ?mysqli {
         extract(self::$DB_ARGS);
         $charset = $charset ?? self::$CHARSET;
-        $this->set_env($env ?? $this->get_env());
+        CoreException::new()->set_env($env ?? $this->get_env());
         $cxn = $this->ping(true,null, true);
         $port = $port ?? null;
         $socket = $socket ?? null;
@@ -81,7 +76,10 @@ trait Config{
                 if (filter_var($silent,FILTER_VALIDATE_BOOL))
                     return null;
                 else
-                    $this->show_exception(2);
+                    $this->exception(
+                        "ConnErr",
+                        "<div style='color: #e00; font-weight: bold; margin: 5px 1px;'>" . mysqli_connect_error() . "</div>"
+                    );
             }
         }
 
@@ -118,14 +116,40 @@ trait Config{
         if($cxn){
             if(isset($this->get_link()->host_info)) {
                 if (@mysqli_ping($cxn)) {
-                    $x = $this->query("SELECT SUBSTRING_INDEX(host, ':', 1) AS host_short,
-                    USER AS users, db FROM information_schema.processlist", ["fetch_as" => "assoc", "query_type" => "select"]);
+                    $x = $this->query(
+                        "SELECT SUBSTRING_INDEX(host, ':', 1) AS host_short,
+                                USER AS users, db FROM information_schema.processlist",
+                        ["fetch_as" => "assoc", "query_type" => "select"]
+                    );
+
                     $db = $x['db'];
                     $usr = $x['users'];
                     $host = $x['host_short'];
-                    if (!$ignore_msg) $this->show_exception(1, [$db, $usr, $host]);
+
+                    if (!$ignore_msg)
+                        $this->exception(
+                            "ConnTest",
+                            <<<CONN
+                            <h2>Connection Established!</h2>
+                            <u>Your connection info states:</u>
+                            <div style="color: gold; font-weight: bold; margin: 5px 1px;">
+                                &gt; Host: <u>$host</u>
+                            </div>
+                            <div style="color: gold; font-weight: bold; margin: 5px 1px;">
+                                &gt; User: <u>$usr</u>
+                            </div>
+                            <div style="color: gold; font-weight: bold; margin: 5px 1px;">
+                                &gt; Database: <u>$db</u>
+                            </div>
+                            CONN,
+                            [ "type" => "success" ]
+                        );
                 }
-                else if (!$ignore_no_conn) $this->show_exception(0);
+                else if (!$ignore_no_conn)
+                    $this->exception(
+                        "ConnErr",
+                        "No connection detected: <h5 style='color: #008dc5'>Connection might be closed:</h5>",
+                    );
             }
         } return ["host" => $host, "user" => $usr, "db" => $db];
     }
@@ -135,7 +159,10 @@ trait Config{
             return mysqli_close($link ?? $this->get_link());
         }catch (\Exception $e){
             if(!$silent_error)
-                $this->show_exception(3);
+                $this->exception(
+                    "ConnErr",
+                    "<div style='color: #e00; font-weight: bold; margin: 5px 1px;'>Failed to close connection. No pre-existing DB connection</div>"
+                );
         }
 
         return false;

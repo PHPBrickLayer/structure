@@ -134,13 +134,8 @@ class Domain {
         $domain_file = $file;
         array_shift($domain_file);
 
-        $doc_root = explode(DIRECTORY_SEPARATOR, $_SERVER['DOCUMENT_ROOT']);
-        $doc_root = end($doc_root);
-
-        $domain_base = $doc_root != end($domain_file) ? implode("/", $domain_file) . "/" : "";
-
         $data = LayConfig::site_data();
-
+        $domain_base = $data->use_domain_file ? implode("/", $domain_file) . "/" : "";
 
         self::$current_route_details['route'] = $route ?: "index";
         self::$current_route_details['route_as_array'] = $route_as_array;
@@ -148,7 +143,7 @@ class Domain {
         self::$current_route_details['domain_type'] = $domain_type;
         self::$current_route_details['domain_id'] = $id;
         self::$current_route_details['domain_uri'] = $data->domain . ($pattern != '*' ? $pattern . '/' : '');
-        self::$current_route_details['domain_base'] = $data->base . $domain_base;
+        self::$current_route_details['domain_base'] = $data->domain . $domain_base;
         self::$current_route_details['domain_root'] = LayConfig::server_data()->root . implode(DIRECTORY_SEPARATOR, $file) . DIRECTORY_SEPARATOR;
 
         $builder->init();
@@ -164,7 +159,7 @@ class Domain {
     private function check_route_is_static_file(string $view) : string {
         $ext_array = ["js","css","map","jpeg","jpg","png","gif","jiff","webp","svg","json","xml","yaml","ttf","woff2","woff"];
         $x = explode(".",$view);
-        $ext = strtolower((string) end($x));
+        $ext = explode("?", strtolower((string) end($x)))[0];
 
         if(count($x) > 1 && in_array($ext,$ext_array,true)) {
             header("Content-Type: application/json");

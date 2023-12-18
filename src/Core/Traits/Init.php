@@ -28,11 +28,16 @@ trait Init {
         $options['base_no_proto'] = self::$base_no_proto;
         $options['base_no_proto_no_www'] = self::$base_no_proto_no_www;
 
-        $web = $options['using_domain'] ? "" : "/web";
+        $web =  "";
 
-        $options['domain'] = self::$base . ( $web ? "web/" : "" );
-        $options['domain_no_proto'] = self::$base_no_proto . $web;
-        $options['domain_no_proto_no_www'] = self::$base_no_proto_no_www . $web;
+        if(!$options['using_domain']) {
+            $web = $options['using_web'] ? "" : "web/";
+            $options['use_domain_file'] = true;
+        }
+
+        $options['domain'] = self::$base . ( $web ?: "" );
+        $options['domain_no_proto'] = self::$base_no_proto . ($web ? "/$web" : "");
+        $options['domain_no_proto_no_www'] = self::$base_no_proto_no_www . ($web ? "/$web" : "");
     }
 
     private static function set_dir() : void {
@@ -51,7 +56,7 @@ trait Init {
 
         // Don't bother running any process if document root is not set.
         // This means the framework is being accessed from the cli,
-        // we don't want run unnecessary compute and waste resources.
+        // we don't want to run unnecessary compute and waste resources.
         if(empty($_SERVER['DOCUMENT_ROOT'])) {
             self::$LAY_MODE = LayMode::CLI;
             return;
@@ -70,12 +75,15 @@ trait Init {
 
         $pin = rtrim($pin, "/");
         $base           = explode($pin, $string);
-        $options['using_domain'] = str_starts_with($base[1], "/web/domains/");
 
-        if($options['using_domain'])
+        $options['using_web'] = str_starts_with($base[1], "/web");
+        $options['using_domain'] = str_starts_with($base[1], "/web/domain");
+
+        if($options['using_domain'] || $options['using_web'])
             $base = [""];
 
         self::$layConfigOptions['header']['using_domain'] = $options['using_domain'];
+        self::$layConfigOptions['header']['using_web'] = $options['using_web'];
 
         $http_host      = $_SERVER['HTTP_HOST'] ?? "cli";
         $env_host       = $_SERVER['REMOTE_ADDR'] ?? "cli";
@@ -120,6 +128,8 @@ trait Init {
             "cache_domains" => $options['switch']['cache_domains'] ?? true,
             "global_api" => $options['header']['api'] ?? null,
             "using_domain" => $options['header']['using_domain'] ?? null,
+            "using_web" => $options['header']['using_web'] ?? null,
+            "use_domain_file" => null, // this is updated when webroot is created after first class is init
             "name" => [
                 "short" => $options['meta']['name']['short'] ?? "Lay - Lite PHP Framework",
                 "long" => $options['meta']['name']['full'] ?? "Lay - Lite PHP Framework | Simple, Light, Quick",

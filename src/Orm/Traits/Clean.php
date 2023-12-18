@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace BrickLayer\Lay\Orm\Traits;
 
+use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Orm\SQL;
 
 trait Clean {
@@ -176,6 +177,6 @@ trait Clean {
 
         }
 
-        $this->use_exception($title,$body,raw: $option);
+        Exception::new()->use_exception($title,$body,raw: $option);
     }
 }
