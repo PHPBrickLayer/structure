@@ -21,7 +21,9 @@ class EnginePlug
     public bool $show_intro = true;
     public bool $show_help = false;
     public bool $force = false;
+    public bool $silent = false;
     public bool $cmd_found = false;
+    public bool $is_internal = false;
     public array $tags = [];
     public array $plugged_args = [];
     public string $typed_cmd = "";
@@ -200,7 +202,6 @@ class EnginePlug
     }
 
     public function write_talk(string $message, array $opts = []) : void {
-        $opts['color'] = "red";
         $this->write($message, CmdOutType::TALK, $opts);
     }
 
@@ -214,7 +215,7 @@ class EnginePlug
     public function write(string $message, ?CmdOutType $type = null, array $opts = []): void
     {
         $kill = $opts['kill'] ?? false;
-        $open_talk = $opts['open_talk'] ?? false;
+        $open_talk =  $opts['open_talk'] ?? false;
         $close_talk = $opts['close_talk'] ?? false;
         $current_cmd = $this->active_cmd ?: ($opts['current_cmd'] ?? "");
         $hide_cur_cmd = $opts['hide_current_cmd'] ?? true;
@@ -236,7 +237,7 @@ class EnginePlug
                 "InvalidConsoleColor"
             );
 
-        if ($open_talk)
+        if ($open_talk && !$this->silent)
             Console::log("(^_^) Bob is Building --::--", Foreground::light_gray);
 
         if (!$hide_cur_cmd && !empty($current_cmd)) {
@@ -283,7 +284,7 @@ class EnginePlug
             Console::log($m, $color);
         }
 
-        if ($close_talk)
+        if ($close_talk && !$this->silent)
             Console::log("(-_-) Bob is Done -----", Foreground::light_gray);
 
         Console::bell();

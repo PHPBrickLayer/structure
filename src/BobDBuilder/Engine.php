@@ -11,29 +11,20 @@ class Engine
     public EnginePlug $plug;
 
     public function __construct(
-        private array $args
+        private array $args,
+        private readonly bool $is_internal = false
     )
     {
-        $show_help = array_search("--help", $this->args, true);
-        $show_help = $show_help === false ? array_search("--h", $this->args, true) : $show_help;
-
-        if ($show_help !== false) {
-            unset($this->args[$show_help]);
-            $show_help = true;
-        }
-
-        $force_action = array_search("--force", $this->args, true);
-        $force_action = $force_action === false ? array_search("--f", $this->args, true) : $force_action;
-
-        if ($force_action !== false) {
-            unset($this->args[$force_action]);
-            $force_action = true;
-        }
+        $force = $this->extract_global_tag("--force", "-f");
+        $show_help = $this->extract_global_tag("--help", "-h");
+        $silent = $this->extract_global_tag("--silent", "-s");
 
         $this->plug = new EnginePlug($this->args);
+        $this->plug->is_internal = $this->is_internal;
 
-        $this->plug->force = $force_action ?? false;
-        $this->plug->show_help = $show_help ?? false;
+        $this->plug->force = $force;
+        $this->plug->show_help = $show_help;
+        $this->plug->silent = $silent;
 
         foreach ($this->args as $i => $arg) {
             if($this->plug->run($i, $arg) == CustomContinueBreak::BREAK)
@@ -61,20 +52,41 @@ class Engine
 
         // End Bob execution
         if(empty($this->plug->active_cmd))
-            $this->plug->write_info(
+            $this->plug->write_warn(
                 "-- Bob has determined that the current command is invalid\n"
                 . "-- Please use --help to see the list of available commands"
                 , ["current_cmd" => $this->plug->typed_cmd]
             );
 
-        $this->plug->write_success(
-            "\n" . (
-            isset($this->plug->active_cmd_class) ?
-                "-- Operation completed!" :
-                ""
-            ),
-            ['close_talk' => true]
-        );
+        if(!$this->plug->silent)
+            $this->plug->write_success(
+                "\n" . (
+                isset($this->plug->active_cmd_class) ?
+                    "-- Operation completed!" :
+                    ""
+                ),
+                ['close_talk' => true]
+            );
+    }
+
+    public function extract_global_tag(string ...$tags) : bool
+    {
+        $out = false;
+
+        foreach ($tags as $tag) {
+            if($out !== false)
+                break;
+
+            $out = array_search($tag, $this->args, true);
+
+        }
+
+        if ($out !== false) {
+            unset($this->args[$out]);
+            $out = true;
+        }
+
+        return $out;
     }
 
     public function intro(bool $close_talk = true): void

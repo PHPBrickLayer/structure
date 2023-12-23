@@ -31,7 +31,7 @@ trait Domain
                 . "Example: 'case-study'\n"
             );
 
-        if (empty($pattern) || trim($pattern) == "*")
+        if (empty($pattern) || (!$this->plug->is_internal && trim($pattern) == "*"))
             $this->plug->write_warn(
                 "Pattern cannot be an empty quote or '*'\n"
                 . "\n"
@@ -42,7 +42,7 @@ trait Domain
 
 
         $domain = explode(" ", ucwords($domain));
-        $domain_id = implode("-", $domain) . "-id";
+        $domain_id = strtolower(implode("-", $domain) . "-id");
         $domain = implode("", $domain);
         $domain_dir = $this->plug->server->domains . $domain;
         $exists = is_dir($domain_dir);
@@ -162,7 +162,7 @@ trait Domain
         copy($main_file, $lock_file);
 
         $file = new SplFileObject($lock_file, 'r+');
-        $file->setFlags(SplFileObject::DROP_NEW_LINE | SplFileObject::READ_AHEAD | SplFileObject::SKIP_EMPTY);
+        $file->setFlags(SplFileObject::DROP_NEW_LINE);
 
         $page = [];
         $domains = [];
@@ -174,7 +174,7 @@ trait Domain
         while (!$file->eof()) {
             $entry = $file->fgets();
 
-            if($page_index > 0 && empty($entry))
+            if($page_index > 7 && empty($entry))
                 continue;
 
             if (str_starts_with($entry, "Domain::new()"))
@@ -185,8 +185,8 @@ trait Domain
                 $domains[$key][] = $entry;
 
                 if(
-                    $this->plug->force &&
-                    $existing_domain_key !== null
+                    $existing_domain_key === null &&
+                    $this->plug->force
                 ) {
                     if(
                         str_starts_with(ltrim($entry), "id:")
@@ -218,8 +218,12 @@ trait Domain
             $page_index++;
         }
 
-        $default_domain = end($domains);
-        array_pop($domains);
+        $default_domain = [];
+
+        if(!$this->plug->is_internal) {
+            $default_domain = end($domains);
+            array_pop($domains);
+        }
 
         if($existing_domain_key)
             unset($domains[$existing_domain_key]);
@@ -235,9 +239,8 @@ trait Domain
         ];
 
         try{
-            array_push($page, "", ...$domains, ...[""], ...$new_domain, ...[""], ...$default_domain);
-
-            $file->seek(0);
+            array_push($page, "", ...$domains, ...[""], ...$new_domain, ...[""], ...$default_domain, ...[""]);
+            $file->rewind();
             $file->fwrite(implode("\n", $page));
         } catch (\Exception $e) {
             Exception::throw_exception($e->getMessage(), "MakeDomain");

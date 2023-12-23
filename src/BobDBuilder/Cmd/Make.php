@@ -15,9 +15,9 @@ class Make implements CmdLayout
     use Domain;
     use Brick;
 
-    private readonly EnginePlug $plug;
-    private readonly array $tags;
-    private readonly string $internal_dir;
+    private EnginePlug $plug;
+    private array $tags;
+    private string $internal_dir;
 
     public function _init(EnginePlug $plug): void
     {

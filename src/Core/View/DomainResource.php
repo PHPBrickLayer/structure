@@ -91,7 +91,6 @@ class DomainResource
         'img' => 'string',
         'js' => 'string',
         'shared' => 'object [root, static, css, img, js, img_default [object [logo, favicon, icon, meta]]]',
-        'server' => 'object',
         'domain' => 'object',
         'lay' => 'object [uri, root]',
     ])]
