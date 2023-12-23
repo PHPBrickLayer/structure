@@ -13,7 +13,7 @@ class Symlink implements CmdLayout
 {
     use IsSingleton;
 
-    private readonly EnginePlug $plug;
+    private EnginePlug $plug;
 
     public function _init(EnginePlug $plug): void
     {

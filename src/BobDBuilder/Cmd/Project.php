@@ -2,6 +2,7 @@
 
 namespace BrickLayer\Lay\BobDBuilder\Cmd;
 
+use BrickLayer\Lay\BobDBuilder\BobExec;
 use BrickLayer\Lay\BobDBuilder\EnginePlug;
 use BrickLayer\Lay\BobDBuilder\Interface\CmdLayout;
 use BrickLayer\Lay\Core\Traits\IsSingleton;
@@ -11,13 +12,13 @@ class Project implements CmdLayout
 {
     use IsSingleton;
 
-    private readonly EnginePlug $plug;
-    private readonly array $tags;
+    private EnginePlug $plug;
+    private array $tags;
 
     public function _init(EnginePlug $plug): void
     {
         $this->plug = $plug;
-        $plug->add_arg($this, ["project:create"], 'project_create', true);
+        $plug->add_arg($this, ["project:create"], 'project_create', true, 0);
     }
 
     public function _spin(): void
@@ -33,9 +34,12 @@ class Project implements CmdLayout
     public function create(): void
     {
         $cmd = $this->tags['project_create'][0] ?? null;
+        $tag = $this->tags['project_create'][1] ?? "";
 
         if (!$cmd)
             return;
+
+        $tag = trim($tag);
 
         $server = $this->plug->server;
 
@@ -48,5 +52,18 @@ class Project implements CmdLayout
 
         // copy helper js file to project lay folder
         new LayCopyDir($server->lay_static . "js", $server->shared . "lay");
+
+        if($tag == "--fresh-project") {
+            $this->plug->write_info("Fresh project detected!");
+
+            // create a default domain folder
+            new BobExec("make:domain Default * --force --silent");
+
+            // link lay folder to default folder
+            $s = DIRECTORY_SEPARATOR;
+            new BobExec("link:dir web{$s}shared{$s}lay web{$s}domains{$s}Default{$s}lay --silent");
+
+            $this->plug->write_info("Default domain folder created successfully!");
+        }
     }
 }
