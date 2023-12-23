@@ -53,17 +53,15 @@ class Project implements CmdLayout
         // copy helper js file to project lay folder
         new LayCopyDir($server->lay_static . "js", $server->shared . "lay");
 
-        if($tag == "--fresh-project") {
+        if($tag == "--fresh-project")
             $this->plug->write_info("Fresh project detected!");
 
-            // create a default domain folder
-            new BobExec("make:domain Default * --force --silent");
+        // create a default domain folder if not exists
+        if(!is_dir($this->plug->server->domains . "Default"))
+            new BobExec("make:domain Default * --silent");
 
-            // link lay folder to default folder
-            $s = DIRECTORY_SEPARATOR;
-            new BobExec("link:dir web{$s}shared{$s}lay web{$s}domains{$s}Default{$s}lay --silent");
-
-            $this->plug->write_info("Default domain folder created successfully!");
-        }
+        // link lay folder to default folder
+        $s = DIRECTORY_SEPARATOR;
+        new BobExec("link:dir web{$s}shared{$s}lay web{$s}domains{$s}Default{$s}lay --silent");
     }
 }
