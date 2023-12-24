@@ -384,7 +384,7 @@ final class ViewEngine {
         $lay_base = $domain->lay->uri;
         $lay_root = $domain->lay->root;
 
-        list($omj,$const) = null;
+        list($omj, $const) = null;
 
         if ($layConfig::$ENV_IS_PROD) {
             if (file_exists($lay_root . $s . 'index.min.js'))
