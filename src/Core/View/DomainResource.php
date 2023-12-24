@@ -70,8 +70,8 @@ class DomainResource
         $obj->domain = $domain;
 
         $obj->lay = (object) [
-            "uri" => $base . "lay/",
-            "root" => $domain->domain_root . "lay/",
+            "uri" => $shared . "lay/",
+            "root" => $domain->domain_root . "shared" . DIRECTORY_SEPARATOR . "lay" . DIRECTORY_SEPARATOR,
         ];
 
         self::$resource = $obj;

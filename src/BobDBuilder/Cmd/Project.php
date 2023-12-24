@@ -63,9 +63,5 @@ class Project implements CmdLayout
         // create a default domain folder if not exists
         if(!is_dir($this->plug->server->domains . "Default"))
             new BobExec("make:domain Default * --silent");
-
-        // link lay folder to default folder
-        $s = DIRECTORY_SEPARATOR;
-        new BobExec("link:dir web{$s}shared{$s}lay web{$s}domains{$s}Default{$s}lay --silent");
     }
 }
