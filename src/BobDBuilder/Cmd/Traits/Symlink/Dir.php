@@ -33,7 +33,7 @@ trait Dir
                 . "***### Take Note:: You will be deleting the former directory if you decide to pass the flag --force"
             );
 
-        unlink($dest);
+        @unlink($dest);
         symlink($src, $dest);
 
         $this->plug->write_success(

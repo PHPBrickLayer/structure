@@ -240,7 +240,7 @@ class EnginePlug
         if ($open_talk && !$this->silent)
             Console::log("(^_^) Bob is Building --::--", Foreground::light_gray);
 
-        if (!$hide_cur_cmd && !empty($current_cmd)) {
+        if (!$this->silent && $hide_cur_cmd && !empty($current_cmd)) {
             print "   CURRENT COMMAND ";
             Console::log(
                 " $current_cmd ",

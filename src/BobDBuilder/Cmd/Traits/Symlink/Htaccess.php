@@ -27,17 +27,14 @@ trait Htaccess
 
         $dest .= ".htaccess";
 
-        if (file_exists($dest)) {
-            if (!$plug->force)
-                $plug->write_warn(
-                    "htaccess exists already at: $dest"
-                    . "If you want to REPLACE!! it, pass the flag --force\n"
-                    . "***### Take Note:: You will be deleting the former htaccess if you decide to pass the flag --force"
-                );
+        if (file_exists($dest) && !$plug->force)
+            $plug->write_warn(
+                "htaccess exists already at: $dest"
+                . "If you want to REPLACE!! it, pass the flag --force\n"
+                . "***### Take Note:: You will be deleting the former htaccess if you decide to pass the flag --force"
+            );
 
-            unlink($dest);
-        }
-
+        @unlink($dest);
         symlink($plug->server->web . ".htaccess", $dest);
 
         $plug->write_success("htaccess successfully linked to: $dest");
