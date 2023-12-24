@@ -23,17 +23,14 @@ trait File
         if (!file_exists($src))
             $this->plug->write_fail("Source file *$src* does not exist! You cannot link a file that doesn't exist");
 
-        if (file_exists($dest)) {
-            if (!$this->plug->force)
-                $this->plug->write_warn(
-                    "Destination file: *$dest* exists already!\n"
-                    . "If you want to REPLACE!! it, pass the flag *--force*\n"
-                    . "***### Take Note::  You will be deleting the former file if you decide to pass the flag --force"
-                );
+        if (file_exists($dest) && !$this->plug->force)
+            $this->plug->write_warn(
+                "Destination file: *$dest* exists already!\n"
+                . "If you want to REPLACE!! it, pass the flag *--force*\n"
+                . "***### Take Note::  You will be deleting the former file if you decide to pass the flag --force"
+            );
 
-            unlink($dest);
-        }
-
+        unlink($dest);
         symlink($src, $dest);
 
         $this->plug->write_success(
