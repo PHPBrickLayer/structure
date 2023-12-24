@@ -2,6 +2,7 @@
 
 namespace BrickLayer\Lay\BobDBuilder\Cmd\Traits\Make;
 
+use BrickLayer\Lay\BobDBuilder\BobExec;
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Libs\LayCopyDir;
 use BrickLayer\Lay\Libs\LayUnlinkDir;
@@ -70,10 +71,10 @@ trait Domain
         $this->domain_default_files($domain, $domain_dir);
 
         $talk("- Linking .htaccess *{$this->plug->server->web}*");
-        symlink($this->plug->server->web . ".htaccess", $domain_dir . $this->plug->s . ".htaccess");
+        new BobExec("link:htaccess $domain --silent");
 
         $talk("- Linking shared directory *{$this->plug->server->shared}*");
-        symlink($this->plug->server->shared, $domain_dir . $this->plug->s . "shared");
+        new BobExec("link:dir web{$this->plug->s}shared web{$this->plug->s}domains{$this->plug->s}$domain{$this->plug->s}shared --silent");
 
         $talk("- Updating domains entry in *{$this->plug->server->web}index.php*");
         $this->update_general_domain_entry($domain, $domain_id, $pattern);
