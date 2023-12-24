@@ -48,6 +48,18 @@ trait Domain
         $domain_dir = $this->plug->server->domains . $domain;
         $exists = is_dir($domain_dir);
 
+        if($domain == "Default" && !$this->plug->is_internal)
+            $this->plug->write_warn(
+                "Unfortunately you cannot create a *Default* domain automatically\n"
+                . "If for whatever reasons you need to do that, navigate to the Lay Repository and copy it from there\n"
+                . "Github: *https://github.com/PHPBrickLayer/lay*"
+            );
+
+        if($domain == "Default" && $this->plug->is_internal) {
+            $domain_id = "default";
+            $pattern = "*";
+        }
+
         if (!$this->plug->force && $exists)
             $this->plug->write_fail(
                 "Domain directory *$domain_dir* exists already!\n"
@@ -71,7 +83,7 @@ trait Domain
         $this->domain_default_files($domain, $domain_id, $domain_dir);
 
         $talk("- Linking .htaccess *{$this->plug->server->web}*");
-        new BobExec("link:h taccess $domain --silent");
+        new BobExec("link:htaccess $domain --silent");
 
         $talk("- Linking shared directory *{$this->plug->server->shared}*");
         new BobExec("link:dir web{$this->plug->s}shared web{$this->plug->s}domains{$this->plug->s}$domain{$this->plug->s}shared --silent");
@@ -221,14 +233,13 @@ trait Domain
 
         $default_domain = [''];
 
-        if(!$this->plug->is_internal)
+        if(!$this->plug->is_internal) {
             $default_domain = end($domains);
-
-        if($domains > 1)
             array_pop($domains);
 
-        if($existing_domain_key)
-            unset($domains[$existing_domain_key]);
+            if($existing_domain_key)
+                unset($domains[$existing_domain_key]);
+        }
 
         $domains = SQL::new()->array_flatten($domains);
 
