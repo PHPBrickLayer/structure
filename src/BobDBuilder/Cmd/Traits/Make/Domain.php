@@ -68,10 +68,10 @@ trait Domain
         new LayCopyDir($this->internal_dir . "Domain", $domain_dir);
 
         $talk("- Copying default files");
-        $this->domain_default_files($domain, $domain_dir);
+        $this->domain_default_files($domain, $domain_id, $domain_dir);
 
         $talk("- Linking .htaccess *{$this->plug->server->web}*");
-        new BobExec("link:htaccess $domain --silent");
+        new BobExec("link:h taccess $domain --silent");
 
         $talk("- Linking shared directory *{$this->plug->server->shared}*");
         new BobExec("link:dir web{$this->plug->s}shared web{$this->plug->s}domains{$this->plug->s}$domain{$this->plug->s}shared --silent");
@@ -80,7 +80,7 @@ trait Domain
         $this->update_general_domain_entry($domain, $domain_id, $pattern);
     }
 
-    public function domain_default_files(string $domain_name, string $domain_dir): void
+    public function domain_default_files(string $domain_name, string $domain_id, string $domain_dir): void
     {
         file_put_contents(
             $domain_dir . $this->plug->s . "index.php",
@@ -93,7 +93,7 @@ trait Domain
             include_once __DIR__ . DIRECTORY_SEPARATOR . ".." . DIRECTORY_SEPARATOR . ".." . DIRECTORY_SEPARATOR . "index.php";
             
             Domain::new()->create(
-                id: "default",
+                id: "$domain_id",
                 builder: new \web\domains\\$domain_name\Plaster(),
             );
             
@@ -219,12 +219,13 @@ trait Domain
             $page_index++;
         }
 
-        $default_domain = [];
+        $default_domain = [''];
 
-        if(!$this->plug->is_internal) {
+        if(!$this->plug->is_internal)
             $default_domain = end($domains);
+
+        if($domains > 1)
             array_pop($domains);
-        }
 
         if($existing_domain_key)
             unset($domains[$existing_domain_key]);

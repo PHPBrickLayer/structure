@@ -30,7 +30,7 @@ trait File
                 . "***### Take Note::  You will be deleting the former file if you decide to pass the flag --force"
             );
 
-        unlink($dest);
+        @unlink($dest);
         symlink($src, $dest);
 
         $this->plug->write_success(
