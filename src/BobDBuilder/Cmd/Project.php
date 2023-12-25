@@ -5,20 +5,17 @@ namespace BrickLayer\Lay\BobDBuilder\Cmd;
 use BrickLayer\Lay\BobDBuilder\BobExec;
 use BrickLayer\Lay\BobDBuilder\EnginePlug;
 use BrickLayer\Lay\BobDBuilder\Interface\CmdLayout;
-use BrickLayer\Lay\Core\Traits\IsSingleton;
 use BrickLayer\Lay\Libs\LayCopyDir;
 
 class Project implements CmdLayout
 {
-    use IsSingleton;
-
     private EnginePlug $plug;
     private array $tags;
 
     public function _init(EnginePlug $plug): void
     {
         $this->plug = $plug;
-        $plug->add_arg($this, ["project:create"], 'project_create', true, 0);
+        $plug->add_arg($this, ["project:create"], 'project_create', 0);
     }
 
     public function _spin(): void
@@ -33,10 +30,9 @@ class Project implements CmdLayout
 
     public function create(): void
     {
-        $cmd = $this->tags['project_create'][0] ?? null;
-        $tag = $this->tags['project_create'][1] ?? "";
+        $tag = $this->tags['project_create'][0] ?? null;
 
-        if (!$cmd)
+        if (!$tag)
             return;
 
         $tag = trim($tag);
@@ -53,11 +49,19 @@ class Project implements CmdLayout
         // copy helper js file to project lay folder
         new LayCopyDir($server->lay_static . "js", $server->shared . "lay");
 
+        if($tag == "--force-refresh") {
+            $this->plug->write_info("Default domain forcefully refreshed");
+
+            new BobExec("make:domain Default * --silent --force");
+            return;
+        }
+
         if($tag == "--fresh-project") {
             $this->plug->write_info("Fresh project detected!");
 
             // Replace default domain folder on a fresh project
             new BobExec("make:domain Default * --silent --force");
+            return;
         }
 
         // create a default domain folder if not exists

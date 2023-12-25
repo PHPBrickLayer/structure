@@ -11,8 +11,6 @@ use BrickLayer\Lay\Core\Traits\IsSingleton;
 
 class Symlink implements CmdLayout
 {
-    use IsSingleton;
-
     private EnginePlug $plug;
 
     public function _init(EnginePlug $plug): void
@@ -30,7 +28,6 @@ class Symlink implements CmdLayout
         $this->dir();
         $this->file();
     }
-
 
     use Htaccess;
     use Dir;

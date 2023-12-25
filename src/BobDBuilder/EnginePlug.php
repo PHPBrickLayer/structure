@@ -84,24 +84,6 @@ class EnginePlug
         }
     }
 
-    public function run(int $index, string $arg): CustomContinueBreak
-    {
-        $this->current_arg = $arg;
-        $this->current_index = $index;
-
-        $this->show_intro = $index < 1;
-
-        if ($index == 1)
-            $this->typed_cmd = $arg;
-
-        foreach ($this->plugged_args as $key => $arg) {
-            if ($this->arg($arg['class'], [...$arg['cmd']], $this->tags[$key], ...$arg['value']))
-                return CustomContinueBreak::BREAK;
-        }
-
-        return CustomContinueBreak::CONTINUE;
-    }
-
     private function load_cmd_classes() : void
     {
         $namespace = explode("\\", self::class);
@@ -125,16 +107,15 @@ class EnginePlug
             }
 
             try {
-                $class = $class->getMethod('new');
+                $class = $class->newInstance();
             } catch (ReflectionException) {
                 Exception::throw_exception(
-                    " $cmd_class is not a singleton. \n"
-                    . " All Cmd classes must be singletons, use the trait `IsSingleton` to clear this error",
-                    "IsNotSingleton"
+                    " $cmd_class constructor class is private. \n"
+                    . " All Cmd classes must expose their __construct function to clear this error",
+                    "ConstructPrivate"
                 );
             }
 
-            $class = $class->invoke(null);
             $this->cmd_classes[] = $class;
 
             try {
@@ -143,6 +124,24 @@ class EnginePlug
                 Exception::throw_exception($e->getMessage(), "BobError");
             }
         }
+    }
+
+    public function run(int $index, string $arg): CustomContinueBreak
+    {
+        $this->current_arg = $arg;
+        $this->current_index = $index;
+
+        $this->show_intro = $index < 1;
+
+        if ($index == 1)
+            $this->typed_cmd = $arg;
+
+        foreach ($this->plugged_args as $key => $arg) {
+            if ($this->arg($arg['class'], [...$arg['cmd']], $this->tags[$key], ...$arg['value']))
+                return CustomContinueBreak::BREAK;
+        }
+
+        return CustomContinueBreak::CONTINUE;
     }
 
     /**
