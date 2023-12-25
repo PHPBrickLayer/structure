@@ -94,6 +94,7 @@ trait Domain
 
     public function domain_default_files(string $domain_name, string $domain_id, string $domain_dir): void
     {
+        // root index.php
         file_put_contents(
             $domain_dir . $this->plug->s . "index.php",
             <<<FILE
@@ -112,6 +113,7 @@ trait Domain
             FILE
         );
 
+        // Plaster.php for handling routes
         file_put_contents(
             $domain_dir . $this->plug->s .
             "Plaster.php",
@@ -157,6 +159,12 @@ trait Domain
             }
             
             FILE
+        );
+
+        // favicon.ico
+        copy(
+            $this->plug->server->lay_static . "img" . $this->plug->s . "favicon.ico",
+            $domain_dir . $this->plug->s . "favicon.ico"
         );
     }
 
