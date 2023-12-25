@@ -239,14 +239,14 @@ trait Domain
             $page_index++;
         }
 
-        $default_domain = [''];
+        $default_domain = end($domains);
+        array_pop($domains);
 
-        if(!$this->plug->is_internal) {
-            $default_domain = end($domains);
-            array_pop($domains);
+        if($existing_domain_key)
+            unset($domains[$existing_domain_key]);
 
-            if($existing_domain_key)
-                unset($domains[$existing_domain_key]);
+        if($this->plug->is_internal && $domain == "Default") {
+            $default_domain = [''];
         }
 
         $domains = SQL::new()->array_flatten($domains);
