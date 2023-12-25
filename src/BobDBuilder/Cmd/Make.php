@@ -6,12 +6,9 @@ use BrickLayer\Lay\BobDBuilder\Cmd\Traits\Make\Brick;
 use BrickLayer\Lay\BobDBuilder\Cmd\Traits\Make\Domain;
 use BrickLayer\Lay\BobDBuilder\EnginePlug;
 use BrickLayer\Lay\BobDBuilder\Interface\CmdLayout;
-use BrickLayer\Lay\Core\Traits\IsSingleton;
 
 class Make implements CmdLayout
 {
-    use IsSingleton;
-
     use Domain;
     use Brick;
 

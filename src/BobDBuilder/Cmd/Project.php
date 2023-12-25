@@ -5,13 +5,10 @@ namespace BrickLayer\Lay\BobDBuilder\Cmd;
 use BrickLayer\Lay\BobDBuilder\BobExec;
 use BrickLayer\Lay\BobDBuilder\EnginePlug;
 use BrickLayer\Lay\BobDBuilder\Interface\CmdLayout;
-use BrickLayer\Lay\Core\Traits\IsSingleton;
 use BrickLayer\Lay\Libs\LayCopyDir;
 
 class Project implements CmdLayout
 {
-    use IsSingleton;
-
     private EnginePlug $plug;
     private array $tags;
 
