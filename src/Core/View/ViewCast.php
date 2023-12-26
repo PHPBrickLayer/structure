@@ -23,8 +23,6 @@ abstract class ViewCast
         if(!isset($this->builder))
             $this->builder = ViewBuilder::new();
 
-        DomainResource::new()::init();
-
         $this->init_pages();
         $this->default();
         $this->pages();

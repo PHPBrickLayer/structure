@@ -130,6 +130,7 @@ class Domain {
         $this->cache_active_domain($id, $pattern);
 
         $file = explode("\\", $builder::class);
+
         array_pop($file);
         $domain_file = $file;
         array_shift($domain_file);
@@ -146,6 +147,19 @@ class Domain {
         self::$current_route_details['domain_base'] = $data->domain . $domain_base;
         self::$current_route_details['domain_root'] = LayConfig::server_data()->root . implode(DIRECTORY_SEPARATOR, $file) . DIRECTORY_SEPARATOR;
 
+        // Init domain resources before including the domain-level foundation file so the data can be manipulated
+        DomainResource::init();
+
+        // Include domain-level foundation file
+        $web_root = LayConfig::server_data()->web;
+
+        if(file_exists(self::$current_route_details['domain_root'] . "foundation.php"))
+            include_once self::$current_route_details['domain_root'] . "foundation.php";
+
+        if(file_exists($web_root . "foundation.php"))
+            include_once $web_root . "foundation.php";
+
+        // init domain
         $builder->init();
     }
 
