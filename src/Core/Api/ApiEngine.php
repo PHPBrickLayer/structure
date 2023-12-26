@@ -37,7 +37,11 @@ final class ApiEngine {
             return true;
 
         if($throw_exception)
-            self::exception("InvalidRequestMethod", "Invalid request method received, please use a valid request verb");
+            self::exception(
+                "UnmatchedRequestMethod",
+                "Request method for api request [". self::$request_uri_raw ."]; don't match. 
+                Check if you have binded you route to a method, it could be using the method of the previous route"
+            );
 
         return false;
     }
@@ -145,9 +149,9 @@ final class ApiEngine {
      * `user/register`
      * `user/login`
      * `$req->group("user", function(LayRequestHandler $req) {
-            $req->post("register")->bind(fn() => SystemUsers::new()->register())
-            ->post("login")->bind(fn() => SystemUsers::new()->login());
-        })`
+    $req->post("register")->bind(fn() => SystemUsers::new()->register())
+    ->post("login")->bind(fn() => SystemUsers::new()->login());
+    })`
      */
     public function group(string $name, \Closure $grouped_requests) : self {
         if(self::$request_complete)

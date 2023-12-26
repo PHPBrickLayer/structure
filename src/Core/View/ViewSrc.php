@@ -7,23 +7,9 @@ use BrickLayer\Lay\Core\LayConfig;
 final class ViewSrc {
     public static function gen(string $src) : string
     {
-        $client = DomainResource::get();
+        $src = SrcFilter::go($src);
 
-        $src = str_replace(
-            [
-                "@shared/",             "@#/",              "@static/",
-                "@shared_js/",          "@js/",
-                "@shared_img/",         "@img/",
-                "@shared_css/",         "@css/",
-            ],
-            [
-                $client->shared->root,  $client->root,      $client->static,
-                $client->shared->js,    $client->js,
-                $client->shared->img,   $client->img,
-                $client->shared->css,   $client->css,
-            ],
-            $src
-        );
+        $client = DomainResource::get();
 
         $base = $client->domain->domain_base;
 

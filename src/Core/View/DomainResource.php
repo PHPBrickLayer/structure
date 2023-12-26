@@ -5,6 +5,7 @@ namespace BrickLayer\Lay\Core\View;
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\Traits\IsSingleton;
 use BrickLayer\Lay\Core\View\Enums\DomainType;
+use BrickLayer\Lay\Libs\LayObject;
 use JetBrains\PhpStorm\ArrayShape;
 use JetBrains\PhpStorm\ObjectShape;
 
@@ -74,12 +75,18 @@ class DomainResource
             "root" => $domain->domain_root . "shared" . DIRECTORY_SEPARATOR . "lay" . DIRECTORY_SEPARATOR,
         ];
 
+        if(isset(self::$resource))
+            $obj = (object) array_merge((array) $obj, (array) self::$resource);
+
         self::$resource = $obj;
     }
 
     public static function set_res(string $key, mixed $value) : void
     {
-        self::$resource->others->key = $value;
+        if(!isset(self::$resource))
+            self::$resource = new \stdClass();
+
+        self::$resource->{$key} = $value;
     }
 
     #[ObjectShape([
@@ -91,7 +98,7 @@ class DomainResource
         'img' => 'string',
         'js' => 'string',
         'shared' => 'object [root, static, css, img, js, img_default [object [logo, favicon, icon, meta]]]',
-        'domain' => 'object',
+        'domain' => 'object [domain_uri,route, route_as_array, domain_type, domain_id, domain_root, pattern, 0, 1 ...n]',
         'lay' => 'object [uri, root]',
     ])]
     public static function get() : object

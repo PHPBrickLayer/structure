@@ -188,7 +188,7 @@ final class ViewEngine {
             {$this->skeleton_body()}
         </body></html>
         STR;
-        
+
         if($layConfig::$ENV_IS_PROD && $layConfig::is_page_compressed())
             $page = preg_replace("/>(\s)+</m","><",preg_replace("/<!--(.|\s)*?-->/","",$page));
 
@@ -210,6 +210,7 @@ final class ViewEngine {
         ob_start();
 
         $this->add_view_section(self::key_body);
+        echo $this->core_script();
         $this->add_view_section(self::key_script);
 
         $this->dump_assets("js");
@@ -321,9 +322,6 @@ final class ViewEngine {
         foreach (self::$assets as $k => $asset) {
             $view .= $resolve_asset($asset, $k);
         }
-
-        if($asset_type == "js")
-            $view = $this->core_script() . $view;
 
         echo $view;
     }
