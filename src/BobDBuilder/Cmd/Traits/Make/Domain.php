@@ -14,6 +14,9 @@ trait Domain
 {
     public function domain(): void
     {
+        if(!isset($this->tags['make_domain']))
+            return;
+
         $domain = $this->tags['make_domain'][0] ?? null;
         $pattern = $this->tags['make_domain'][1] ?? null;
 
