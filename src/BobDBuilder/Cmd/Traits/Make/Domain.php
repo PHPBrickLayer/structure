@@ -165,6 +165,14 @@ trait Domain
         );
 
         // favicon.ico
+        if(file_exists($this->plug->server->web . "favicon.ico")) {
+            copy(
+                $this->plug->server->web . "favicon.ico",
+                $domain_dir . $this->plug->s . "favicon.ico"
+            );
+
+            return;
+        }
         copy(
             $this->plug->server->lay_static . "img" . $this->plug->s . "favicon.ico",
             $domain_dir . $this->plug->s . "favicon.ico"

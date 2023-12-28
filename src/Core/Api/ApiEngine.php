@@ -332,11 +332,14 @@ final class ApiEngine {
         return self::new();
     }
 
-    public static function end() : ?string {
+    public static function end(bool $print_existing_result = true) : ?string {
         $uri = self::$request_uri_raw ?? "";
 
         if(self::$request_found === false)
             self::exception("NoRequestExecuted", "No valid handler for request [$uri]. If you are sure a handler exists, then confirm if the sent [REQUEST_METHOD] matches the defined RESPONSE [REQUEST_METHOD]");
+
+        if($print_existing_result)
+            self::new()->print_as_json();
 
         return null;
     }

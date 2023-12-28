@@ -218,6 +218,7 @@ class EnginePlug
         $close_talk = $opts['close_talk'] ?? false;
         $current_cmd = $this->active_cmd ?: ($opts['current_cmd'] ?? "");
         $hide_cur_cmd = $opts['hide_current_cmd'] ?? true;
+        $silent = $opts['silent'] ?? $this->silent;
 
         $color = match ($type) {
             default => Style::normal,
@@ -236,10 +237,10 @@ class EnginePlug
                 "InvalidConsoleColor"
             );
 
-        if ($open_talk && !$this->silent)
+        if ($open_talk && !$silent)
             Console::log("(^_^) Bob is Building --::--", Foreground::light_gray);
 
-        if (!$this->silent && $hide_cur_cmd && !empty($current_cmd)) {
+        if (!$silent && $hide_cur_cmd && !empty($current_cmd)) {
             print "   CURRENT COMMAND ";
             Console::log(
                 " $current_cmd ",
@@ -283,10 +284,10 @@ class EnginePlug
             Console::log($m, $color);
         }
 
-        if ($close_talk && !$this->silent)
+        if ($close_talk && !$silent) {
             Console::log("(-_-) Bob is Done -----", Foreground::light_gray);
-
-        Console::bell();
+            Console::bell();
+        }
 
         if($kill)
             die;

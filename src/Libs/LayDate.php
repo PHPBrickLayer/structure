@@ -111,10 +111,15 @@ class LayDate {
 
         $datetime = $datetime ?: date($format);
 
-        if($figure)
-            return strtotime($datetime);
+        $strtotime = strtotime($datetime);
 
-        return date($format, strtotime($datetime));
+        if($figure && $strtotime)
+            return $strtotime;
+
+        if(!$strtotime)
+            return $datetime;
+
+        return date($format, $strtotime);
     }
 
     public static function elapsed(string $current_time, int $depth = 1, string $format = "M d, o", bool $append_ago = true): string
@@ -144,7 +149,7 @@ class LayDate {
                 continue;
             }
 
-            unset($string[$k]);            
+            unset($string[$k]);
         }
 
         $string = array_slice($string, 0, $depth);

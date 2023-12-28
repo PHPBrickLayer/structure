@@ -14,7 +14,8 @@ class LayCopyDir
         ?Closure $pre_copy = null,
         ?Closure $post_copy = null,
         int $permissions = 0777,
-        bool $recursive = true
+        bool $recursive = true,
+        ?callable $skip_if = null
     )
     {
         if (!is_dir($src_dir))
@@ -29,7 +30,7 @@ class LayCopyDir
         $s = DIRECTORY_SEPARATOR;
 
         while (($file = readdir($dir)) !== false) {
-            if ($file === '.' || $file === '..')
+            if ($file === '.' || $file === '..' || (!is_null($skip_if) && $skip_if($file)))
                 continue;
 
             if (is_dir("$src_dir{$s}$file")) {

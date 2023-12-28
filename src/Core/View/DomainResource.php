@@ -52,6 +52,7 @@ class DomainResource
         $obj->css =     $obj->static_env . "css/";
         $obj->img =     $obj->static_env . "images/";
         $obj->js =      $obj->static_env . "js/";
+        $obj->ui =      $obj->static_env . "ui/";
 
         $shared = $obj->root . "shared/";
         $obj->shared = (object) [
@@ -97,6 +98,7 @@ class DomainResource
         'css' => 'string',
         'img' => 'string',
         'js' => 'string',
+        'ui' => 'string',
         'shared' => 'object [root, static, css, img, js, img_default [object [logo, favicon, icon, meta]]]',
         'domain' => 'object [domain_uri,route, route_as_array, domain_type, domain_id, domain_root, pattern, 0, 1 ...n]',
         'lay' => 'object [uri, root]',

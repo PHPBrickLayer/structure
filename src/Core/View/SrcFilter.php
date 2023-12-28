@@ -17,7 +17,7 @@ class SrcFilter
             [
                 $client->shared->root,  $client->root,      $client->static,
                 $client->shared->js,    $client->js,        $client->static_env,
-                $client->shared->img,   $client->img,       $client->static_env . "ui/",
+                $client->shared->img,   $client->img,       $client->ui,
                 $client->shared->css,   $client->css,
             ],
             $src
