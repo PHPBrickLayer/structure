@@ -136,7 +136,6 @@ trait Init {
             # Used by the Domain module to instruct the handler to cache all the listed domains in a session or cookie,
             # depending on the value sent by dev
             "cache_domains" => $options['switch']['cache_domains'] ?? true,
-            "global_api" => $options['header']['api'] ?? null,
             "using_domain" => $options['header']['using_domain'] ?? null,
             "using_web" => $options['header']['using_web'] ?? null,
             "use_domain_file" => null, // this is updated when webroot is created after first class is init
