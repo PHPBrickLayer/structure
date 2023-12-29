@@ -22,6 +22,7 @@ trait Config
     private static bool $USE_DEFAULT_ROUTE = true;
     private static bool $COMPRESS_HTML;
     private static string $SESSION_KEY = "__LAY_VARS__";
+    private static string $GLOBAL_API;
 
     private function header_data(string $key, mixed $value): self
     {
@@ -236,9 +237,14 @@ trait Config
 
     public function set_global_api(string $uri): self
     {
-        return $this->header_data("api", $uri);
+        self::$GLOBAL_API = $uri;
+        return $this;
     }
 
+    public function get_global_api(): ?string
+    {
+        return self::$GLOBAL_API ?? null;
+    }
 
     public function init_name(string $short, string $full): self
     {
