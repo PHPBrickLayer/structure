@@ -37,7 +37,6 @@ class Engine
             CmdOutType::TALK,
             [
                 'open_talk' => true,
-                'hide_current_cmd' => false,
             ]
         );
 
@@ -65,7 +64,10 @@ class Engine
                     "-- Operation completed!" :
                     ""
                 ),
-                ['close_talk' => true]
+                [
+                    'close_talk' => true,
+                    'hide_current_cmd' => true,
+                ]
             );
     }
 

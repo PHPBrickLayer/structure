@@ -2,6 +2,7 @@
 
 namespace BrickLayer\Lay\BobDBuilder\Cmd;
 
+use BrickLayer\Lay\BobDBuilder\Cmd\Traits\Make\AutoDeploy;
 use BrickLayer\Lay\BobDBuilder\Cmd\Traits\Make\Brick;
 use BrickLayer\Lay\BobDBuilder\Cmd\Traits\Make\Domain;
 use BrickLayer\Lay\BobDBuilder\EnginePlug;
@@ -11,6 +12,7 @@ class Make implements CmdLayout
 {
     use Domain;
     use Brick;
+    use AutoDeploy;
 
     private EnginePlug $plug;
     private array $tags;
@@ -23,6 +25,12 @@ class Make implements CmdLayout
 
         $plug->add_arg($this, ["make:domain"], 'make_domain', 0, 1);
         $plug->add_arg($this, ["make:brick"], 'make_brick', 0, 1);
+        $plug->add_arg($this, ["make:auto_deploy"], 'make_auto_deploy', 0, 1);
+    }
+
+    private function talk(string $msg) : void
+    {
+        $this->plug->write_talk($msg, ['silent' => true]);
     }
 
     public function _spin(): void
@@ -31,6 +39,7 @@ class Make implements CmdLayout
 
         $this->brick();
         $this->domain();
+        $this->auto_deploy();
     }
 
 }

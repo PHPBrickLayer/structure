@@ -144,6 +144,36 @@ class EnginePlug
         return CustomContinueBreak::CONTINUE;
     }
 
+    public function extract_tags(array $tags, ...$value_index) : mixed
+    {
+        $out = false;
+
+        foreach ($tags as $tag) {
+            if($out !== false)
+                break;
+
+            $out = array_search($tag, $this->args, true);
+        }
+
+        $value = [];
+
+        foreach ($value_index as $index) {
+            if ($out === false)
+                break;
+
+            if(is_bool($index)) {
+                $value[] = $index;
+                continue;
+            }
+
+            $index++;
+
+            $value[] = $this->args[($out + $index)] ?? null;
+        }
+
+        return $value;
+    }
+
     /**
      * Use this function to add the arguments required by each Cmd Class
      * @param CmdLayout $cmd_layout
@@ -217,8 +247,9 @@ class EnginePlug
         $open_talk =  $opts['open_talk'] ?? false;
         $close_talk = $opts['close_talk'] ?? false;
         $current_cmd = $this->active_cmd ?: ($opts['current_cmd'] ?? "");
-        $hide_cur_cmd = $opts['hide_current_cmd'] ?? true;
+        $hide_cur_cmd = $opts['hide_current_cmd'] ?? false;
         $silent = $opts['silent'] ?? $this->silent;
+        $maintain_line = $opts['maintain_line'] ?? false;
 
         $color = match ($type) {
             default => Style::normal,
@@ -240,7 +271,7 @@ class EnginePlug
         if ($open_talk && !$silent)
             Console::log("(^_^) Bob is Building --::--", Foreground::light_gray);
 
-        if (!$silent && $hide_cur_cmd && !empty($current_cmd)) {
+        if (!$silent && !$hide_cur_cmd && !empty($current_cmd)) {
             print "   CURRENT COMMAND ";
             Console::log(
                 " $current_cmd ",
@@ -276,12 +307,12 @@ class EnginePlug
                         Console::log($s, Foreground::cyan, style: Style::bold , newline: false);
                 }
 
-                Console::log("");
+                Console::log("", maintain_line: $maintain_line);
 
                 continue;
             }
 
-            Console::log($m, $color);
+            Console::log($m, $color, maintain_line: $maintain_line);
         }
 
         if ($close_talk && !$silent) {

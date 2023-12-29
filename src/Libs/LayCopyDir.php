@@ -15,7 +15,7 @@ class LayCopyDir
         ?Closure $post_copy = null,
         int $permissions = 0777,
         bool $recursive = true,
-        ?callable $skip_if = null
+        ?Closure $skip_if = null
     )
     {
         if (!is_dir($src_dir))
@@ -41,16 +41,20 @@ class LayCopyDir
                     $post_copy,
                     $permissions,
                     $recursive,
+                    $skip_if,
                 );
                 continue;
             }
 
-            $pre_copy = !is_null($pre_copy) ? $pre_copy($file, $src_dir, $dest_dir) : null;
+            $pre_copy_result = null;
 
-            if ($pre_copy == CustomContinueBreak::CONTINUE)
+            if(is_callable($pre_copy))
+                $pre_copy_result = $pre_copy($file, $src_dir, $dest_dir);
+
+            if ($pre_copy_result == CustomContinueBreak::CONTINUE)
                 continue;
 
-            if ($pre_copy == CustomContinueBreak::BREAK)
+            if ($pre_copy_result == CustomContinueBreak::BREAK)
                 break;
 
             copy(
@@ -58,7 +62,7 @@ class LayCopyDir
                 $dest_dir . $s . $file
             );
 
-            if(!is_null($post_copy))
+            if(is_callable($post_copy))
                 $post_copy($file, $src_dir, $dest_dir);
         }
 

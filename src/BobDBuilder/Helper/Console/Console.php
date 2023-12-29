@@ -26,7 +26,7 @@ class Console {
      * @param boolean $newline Append EOF?
      * @return void
      */
-    public static function log(string $text = '', Foreground|Style $color = Style::normal, ?Background $bg_color = null, ?Style $style = null, bool $newline = true) : void
+    public static function log(string $text = '', Foreground|Style $color = Style::normal, ?Background $bg_color = null, ?Style $style = null, bool $newline = true, bool $maintain_line = false) : void
     {
         $colored_string = "\033[" . $color->value . "m";
 
@@ -36,7 +36,12 @@ class Console {
         if($style)
             $colored_string .= "\033[" . $style->value . "m";
 
-        echo $colored_string . $text . "\033[0m" . ($newline ? PHP_EOL : '');
+        $newline = ($newline ? PHP_EOL : '');
+
+        if($maintain_line)
+            $newline = "\r\033[K";
+
+        echo $colored_string . $text . "\033[0m" . $newline;
     }
 
     /**
