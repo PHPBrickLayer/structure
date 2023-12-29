@@ -1,6 +1,4 @@
 /vendor/
-/res/uploads/
-/.lay_temp/
 
 # Logs
 .logs

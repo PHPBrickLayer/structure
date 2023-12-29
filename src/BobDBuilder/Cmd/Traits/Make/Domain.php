@@ -202,7 +202,7 @@ trait Domain
         while (!$file->eof()) {
             $entry = $file->fgets();
 
-            if($page_index > 7 && empty($entry))
+            if($page_index > 6 && empty($entry))
                 continue;
 
             if (str_starts_with($entry, "Domain::new()"))
@@ -261,7 +261,7 @@ trait Domain
         $new_domain = [
             'Domain::new()->create(',
             '    id: "' . $domain_id . '",',
-            '    builder: new \web\domains\\' . $domain . '\\Plaster(),',
+            '    builder: \web\domains\\' . $domain . '\\Plaster::class,',
             '    patterns: [' . $pattern . '],',
             ');',
         ];
