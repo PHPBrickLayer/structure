@@ -102,14 +102,12 @@ trait Domain
             <?php
             use BrickLayer\Lay\Core\View\Domain;
             
-            const DOMAIN_SET = true;
+            const SAFE_TO_INIT_LAY = true;
+            include_once __DIR__ . DIRECTORY_SEPARATOR . ".." . DIRECTORY_SEPARATOR . ".." . DIRECTORY_SEPARATOR . ".." . DIRECTORY_SEPARATOR . "foundation.php";
+            
+            Domain::new()->index("$domain_id");
             
             include_once __DIR__ . DIRECTORY_SEPARATOR . ".." . DIRECTORY_SEPARATOR . ".." . DIRECTORY_SEPARATOR . "index.php";
-            
-            Domain::new()->create(
-                id: "$domain_id",
-                builder: new \web\domains\\$domain_name\Plaster(),
-            );
             
             FILE
         );

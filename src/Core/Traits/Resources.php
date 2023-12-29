@@ -22,15 +22,17 @@ trait Resources {
 
         $obj = new \stdClass();
 
-        $obj->lay_static =$dir  .   "vendor"    .   $slash .    "bricklayer" . $slash .   "structure" . $slash . "src" . $slash . "static" . $slash;
-        $obj->lay     =   $dir  .   "vendor"    .   $slash .    "bricklayer" . $slash .   "structure" . $slash;
-        $obj->root    =   $dir;
-        $obj->temp    =   $dir  .   ".lay_temp" .   $slash;
-        $obj->bricks  =   $dir  .   "bricks"    .   $slash;
-        $obj->utils   =   $dir  .   "utils"     .   $slash;
-        $obj->web     =   $dir  .   "web"       .   $slash;
-        $obj->shared  =   $dir  .   "web"       .   $slash .    "shared" .  $slash;
-        $obj->domains =   $dir  .   "web"       .   $slash .    "domains" . $slash;
+        $obj->lay_static        =   $dir  .   "vendor"    .   $slash .    "bricklayer" . $slash .   "structure" . $slash . "src" . $slash . "static" . $slash;
+        $obj->lay               =   $dir  .   "vendor"    .   $slash .    "bricklayer" . $slash .   "structure" . $slash;
+        $obj->root              =   $dir;
+        $obj->temp              =   $dir  .   ".lay_temp" .   $slash;
+        $obj->bricks            =   $dir  .   "bricks"    .   $slash;
+        $obj->utils             =   $dir  .   "utils"     .   $slash;
+        $obj->web               =   $dir  .   "web"       .   $slash;
+        $obj->shared            =   $dir  .   "web"       .   $slash .    "shared" .  $slash;
+        $obj->domains           =   $dir  .   "web"       .   $slash .    "domains" . $slash;
+        $obj->uploads           =   $dir  .   "web"       .   $slash .    "uploads" . $slash;
+        $obj->uploads_no_root   =   "uploads" . $slash;
 
         self::$server = $obj;
     }
@@ -59,11 +61,6 @@ trait Resources {
         self::$site = (object) $obj;
     }
 
-    public static function res_server() : object
-    {
-        return self::server_data();
-    }
-
     #[ObjectShape([
         "lay" => 'string',
         "lay_static" => 'string',
@@ -74,6 +71,8 @@ trait Resources {
         "web" => 'string',
         "shared" => 'string',
         "domains" => 'string',
+        "uploads" => 'string',
+        "uploads_no_root" => 'string',
     ])]
     public static function server_data() : object
     {

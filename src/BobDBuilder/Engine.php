@@ -64,10 +64,7 @@ class Engine
                     "-- Operation completed!" :
                     ""
                 ),
-                [
-                    'close_talk' => true,
-                    'hide_current_cmd' => true,
-                ]
+                [ 'close_talk' => true, ]
             );
     }
 
