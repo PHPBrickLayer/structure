@@ -16,6 +16,7 @@ class Domain {
 
     private static string $current_route;
     private static array $current_route_details;
+    private static string $indexed_domain;
 
     private static bool $lay_init = false;
     private static LayConfig $layConfig;
@@ -25,6 +26,7 @@ class Domain {
     private static bool $domain_found = false;
     private static string $domain_list_key = "__LAY_DOMAINS__";
     private static array $domain_ram;
+    private static DomainType $domain_type;
 
     private static function init_lay() : void {
         if(self::$lay_init)
@@ -120,7 +122,7 @@ class Domain {
         return $this->domain_cache_key(DomainCacheKeys::CACHED);
     }
 
-    private function activate_domain(string $id, string $pattern, ViewCast|ApiHooks $builder, DomainType $domain_type) : void {
+    private function activate_domain(string $id, string $pattern, ViewCast|ApiHooks $builder) : void {
         $route = $this->get_current_route();
         $route = explode($pattern, $route, 2);
         $route = ltrim(end($route), "/");
@@ -141,7 +143,7 @@ class Domain {
         self::$current_route_details['route'] = $route ?: "index";
         self::$current_route_details['route_as_array'] = $route_as_array;
         self::$current_route_details['pattern'] = $pattern;
-        self::$current_route_details['domain_type'] = $domain_type;
+        self::$current_route_details['domain_type'] = self::$domain_type;
         self::$current_route_details['domain_id'] = $id;
         self::$current_route_details['domain_uri'] = $data->domain . ($pattern != '*' ? $pattern . '/' : '');
         self::$current_route_details['domain_base'] = $data->domain . $domain_base;
@@ -268,7 +270,7 @@ class Domain {
         // Example:
         //  localhost/example.com/admin/;
         //  localhost/example.com/clients/;
-        //  localhost/example.com/vendors;
+        //  localhost/example.com/vendors/;
         //
         // This condition is looking out for "/admin" || "/clients" || "/vendors" in the `patterns` argument.
         $is_local_domain = $domain['local']['found'];
@@ -276,15 +278,17 @@ class Domain {
         if($is_subdomain && $is_local_domain)
             $is_local_domain = false;
 
+        self::$domain_type = $is_local_domain ? DomainType::LOCAL : DomainType::SUB;
+
         if($is_subdomain && $domain['sub']['value'] == $pattern) {
             $builder = $this->get_cached_domain_details($id)['builder'];
-            $this->activate_domain($id, $pattern, $builder, DomainType::SUB);
+            $this->activate_domain($id, $pattern, $builder);
             return CustomContinueBreak::BREAK;
         }
 
         if($is_local_domain && $domain['local']['value'] == $pattern) {
             $builder = $this->get_cached_domain_details($id)['builder'];
-            $this->activate_domain($id, $pattern, $builder, DomainType::LOCAL);
+            $this->activate_domain($id, $pattern, $builder);
             return CustomContinueBreak::BREAK;
         }
 
@@ -297,6 +301,20 @@ class Domain {
         if(self::$domain_found)
             return true;
 
+        if(isset(self::$indexed_domain)) {
+            foreach ($this->get_domain_by_id(self::$indexed_domain)['patterns'] as $pattern) {
+                $this->test_pattern(self::$indexed_domain, $pattern);
+
+                $this->activate_domain(
+                    self::$indexed_domain,
+                    $pattern,
+                    $this->get_cached_domain_details(self::$indexed_domain)['builder']
+                );
+            }
+
+            return true;
+        }
+
         $patterns = $this->get_all_domain_ids();
 
         foreach ($patterns as $pattern => $id) {
@@ -307,12 +325,13 @@ class Domain {
 
             if($id == "default" || $pattern == "*") {
                 $builder = $this->get_cached_domain_details($id)['builder'];
-                $this->activate_domain($id, $pattern, $builder, DomainType::LOCAL);
+                $this->activate_domain($id, $pattern, $builder);
             }
         }
 
         return false;
     }
+
     private function cache_patterns(string $id, array $patterns) : void {
         foreach ($patterns as $pattern) {
             $this->cache_all_domain_ids($id, $pattern);
@@ -342,6 +361,11 @@ class Domain {
         ]);
 
         $this->cache_patterns($id, $patterns);
+    }
+
+    public function index(string $id) : void
+    {
+        self::$indexed_domain = $id;
     }
 
     public static function current_route_data(

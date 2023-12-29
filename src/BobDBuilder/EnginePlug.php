@@ -220,6 +220,7 @@ class EnginePlug
     }
 
     public function write_success(string $message, array $opts = []) : void {
+        $opts['hide_current_cmd'] = true;
         $this->write($message, CmdOutType::SUCCESS, $opts);
     }
 
@@ -271,7 +272,7 @@ class EnginePlug
         if ($open_talk && !$silent)
             Console::log("(^_^) Bob is Building --::--", Foreground::light_gray);
 
-        if (!$silent && !$hide_cur_cmd && !empty($current_cmd)) {
+        if (!$hide_cur_cmd && !$silent && !empty($current_cmd)) {
             print "   CURRENT COMMAND ";
             Console::log(
                 " $current_cmd ",
