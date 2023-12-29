@@ -52,7 +52,7 @@ class Project implements CmdLayout
         if($tag == "--refresh-links") {
             $this->plug->write_info("Refreshing symlinks!");
 
-            (new Symlink())->refresh_link();
+            (new Symlink($this->plug))->refresh_link();
         }
 
         if($tag == "--force-refresh") {

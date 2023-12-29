@@ -216,6 +216,7 @@ class EnginePlug
     }
 
     public function write_info(string $message, array $opts = []) : void {
+        $opts['hide_current_cmd'] = true;
         $this->write($message, CmdOutType::INFO, $opts);
     }
 
