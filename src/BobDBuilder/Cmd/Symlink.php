@@ -15,6 +15,15 @@ class Symlink implements CmdLayout
     private EnginePlug $plug;
     private static string $link_db;
 
+    public function __construct(?EnginePlug $plug = null)
+    {
+        if(!$plug)
+            return;
+
+        $this->plug = $plug;
+        $this->init_db();
+    }
+
     public function _init(EnginePlug $plug): void
     {
         $this->plug = $plug;
@@ -26,11 +35,16 @@ class Symlink implements CmdLayout
 
     public function _spin(): void
     {
-        self::$link_db = $this->plug->server->root . "symlinks.json";
+        $this->init_db();
 
         $this->htaccess();
         $this->dir();
         $this->file();
+    }
+
+    private function init_db() : void
+    {
+        self::$link_db = $this->plug->server->root . "symlinks.json";
     }
 
     private function track_link(string $src, string $dest, string $link_type) : void
