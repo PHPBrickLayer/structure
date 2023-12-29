@@ -4,12 +4,15 @@ declare(strict_types=1);
 namespace BrickLayer\Lay\Core\View;
 
 use BrickLayer\Lay\Core\Api\ApiHooks;
+use BrickLayer\Lay\Core\Exception;
 use JetBrains\PhpStorm\ExpectedValues;
 use BrickLayer\Lay\Core\Enums\CustomContinueBreak;
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\Traits\IsSingleton;
 use BrickLayer\Lay\Core\View\Enums\DomainCacheKeys;
 use BrickLayer\Lay\Core\View\Enums\DomainType;
+use ReflectionClass;
+use ReflectionException;
 
 class Domain {
     use IsSingleton;
@@ -122,7 +125,7 @@ class Domain {
         return $this->domain_cache_key(DomainCacheKeys::CACHED);
     }
 
-    private function activate_domain(string $id, string $pattern, ViewCast|ApiHooks $builder) : void {
+    private function activate_domain(string $id, string $pattern, string $builder) : void {
         $route = $this->get_current_route();
         $route = explode($pattern, $route, 2);
         $route = ltrim(end($route), "/");
@@ -131,7 +134,8 @@ class Domain {
         self::$domain_found = true;
         $this->cache_active_domain($id, $pattern);
 
-        $file = explode("\\", $builder::class);
+        $builder_class = $builder;
+        $file = explode("\\", $builder);
 
         array_pop($file);
         $domain_file = $file;
@@ -161,7 +165,22 @@ class Domain {
         if(file_exists($web_root . "foundation.php"))
             include_once $web_root . "foundation.php";
 
-        // init domain
+        try{
+            $builder = new ReflectionClass($builder);
+        } catch (ReflectionException $e){
+            Exception::throw_exception($e->getMessage(), "DomainException");
+        }
+
+        try {
+            $builder = $builder->newInstance();
+        } catch (ReflectionException) {
+            Exception::throw_exception(
+                " $builder_class constructor class is private. \n"
+                . " All builder classes must expose their __construct function to clear this error",
+                "ConstructPrivate"
+            );
+        }
+
         $builder->init();
     }
 
@@ -345,7 +364,7 @@ class Domain {
         }
     }
 
-    public function create(string $id, ViewCast|ApiHooks $builder, array $patterns = ["*"]) : void {
+    public function create(string $id, string $builder, array $patterns = ["*"]) : void {
         self::init_lay();
         self::init_cache_domain();
 
