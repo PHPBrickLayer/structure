@@ -49,6 +49,12 @@ class Project implements CmdLayout
         // copy helper js file to project lay folder
         new LayCopyDir($server->lay_static . "js", $server->shared . "lay");
 
+        if($tag == "--refresh-links") {
+            $this->plug->write_info("Refreshing symlinks!");
+
+            (new Symlink())->refresh_link();
+        }
+
         if($tag == "--force-refresh") {
             $this->plug->write_info("Default domain forcefully refreshed");
 

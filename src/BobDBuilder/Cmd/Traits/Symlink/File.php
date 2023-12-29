@@ -32,6 +32,7 @@ trait File
 
         @unlink($dest);
         symlink($src, $dest);
+        $this->track_link($src, $dest, "file");
 
         $this->plug->write_success(
             "Directory link created successfully!\n"

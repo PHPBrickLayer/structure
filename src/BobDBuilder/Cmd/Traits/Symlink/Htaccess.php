@@ -12,7 +12,8 @@ trait Htaccess
         if (!$dest)
             return;
 
-        $dest = $plug->server->domains . rtrim(str_replace(".htaccess", "", $dest), "/") . $plug->s;
+        $domain = rtrim(str_replace(".htaccess", "", $dest), "/") . $plug->s;
+        $dest = $plug->server->domains . $domain;
 
         if (!is_dir($dest)) {
             if (!$plug->force)
@@ -36,6 +37,7 @@ trait Htaccess
 
         @unlink($dest);
         symlink($plug->server->web . ".htaccess", $dest);
+        $this->track_link("", $domain, "htaccess");
 
         $plug->write_success("htaccess successfully linked to: $dest");
     }
