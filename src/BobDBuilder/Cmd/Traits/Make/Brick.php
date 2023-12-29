@@ -106,7 +106,13 @@ trait Brick
             FILE
         );
 
-        // default model file
+        /**
+         * Default model file
+         */
+        // delete placeholder file
+        unlink($brick_dir . $this->plug->s . "model" . $this->plug->s . "model.php");
+
+        // make brick default model file
         file_put_contents(
             $brick_dir . $this->plug->s . "model" . $this->plug->s . "$brick.php",
             <<<FILE
@@ -149,7 +155,14 @@ trait Brick
             FILE
         );
 
-        // default controller file
+        /**
+         * Default controller file
+         */
+
+        // delete placeholder file
+        unlink($brick_dir . $this->plug->s . "model" . $this->plug->s . "controller.php");
+
+        // make brick default controller
         file_put_contents(
             $brick_dir . $this->plug->s . "controller" . $this->plug->s . "$brick_plural.php",
             <<<FILE

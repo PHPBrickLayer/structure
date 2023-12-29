@@ -1,6 +1,6 @@
 <?php
 
-use BrickLayer\Lay\core\view\DomainResource;
+use BrickLayer\Lay\Core\View\DomainResource;
 
 echo DomainResource::plaster()->body;
 ?>

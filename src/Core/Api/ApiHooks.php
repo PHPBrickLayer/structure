@@ -11,7 +11,8 @@ abstract class ApiHooks
     public readonly ApiEngine $request;
 
     public function __construct(
-        private readonly bool $prefetch = true
+        private readonly bool $prefetch = true,
+        private readonly bool $print_end_result = true,
     ) {
         if(!isset($this->request))
             $this->request = ApiEngine::new();
@@ -25,7 +26,7 @@ abstract class ApiHooks
             $this->request::fetch();
 
         $this->hooks();
-        $this->request::end();
+        $this->request::end($this->print_end_result);
     }
 
     public function hooks() : void

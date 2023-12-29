@@ -199,8 +199,6 @@ abstract class LayCookieStorage
 
     public static function browser_info(): string
     {
-        $root = self::lay()->get_res__server('root');
-
         $browser = new BrowserDetection();
         return $browser->getName() . " " . $browser->getPlatform() . " " . $browser->getUserAgent();
     }

@@ -20,8 +20,6 @@ trait Domain
         $domain = $this->tags['make_domain'][0] ?? null;
         $pattern = $this->tags['make_domain'][1] ?? null;
 
-        $talk = fn($msg) => $this->plug->write_talk($msg);
-
         if (!$domain)
             $this->plug->write_fail("No domain specified");
 
@@ -71,7 +69,7 @@ trait Domain
             );
 
         if ($exists) {
-            $talk(
+            $this->talk(
                 "- Directory *$domain_dir* exists but --force tag detected\n"
                 . "- Deleting existing *$domain_dir*"
             );
@@ -79,19 +77,19 @@ trait Domain
             new LayUnlinkDir($domain_dir);
         }
 
-        $talk("- Creating new Domain directory in *$domain_dir*");
+        $this->talk("- Creating new Domain directory in *$domain_dir*");
         new LayCopyDir($this->internal_dir . "Domain", $domain_dir);
 
-        $talk("- Copying default files");
+        $this->talk("- Copying default files");
         $this->domain_default_files($domain, $domain_id, $domain_dir);
 
-        $talk("- Linking .htaccess *{$this->plug->server->web}*");
+        $this->talk("- Linking .htaccess *{$this->plug->server->web}*");
         new BobExec("link:htaccess $domain --silent");
 
-        $talk("- Linking shared directory *{$this->plug->server->shared}*");
+        $this->talk("- Linking shared directory *{$this->plug->server->shared}*");
         new BobExec("link:dir web{$this->plug->s}shared web{$this->plug->s}domains{$this->plug->s}$domain{$this->plug->s}shared --silent");
 
-        $talk("- Updating domains entry in *{$this->plug->server->web}index.php*");
+        $this->talk("- Updating domains entry in *{$this->plug->server->web}index.php*");
         $this->update_general_domain_entry($domain, $domain_id, $pattern);
     }
 
@@ -165,6 +163,14 @@ trait Domain
         );
 
         // favicon.ico
+        if(file_exists($this->plug->server->web . "favicon.ico")) {
+            copy(
+                $this->plug->server->web . "favicon.ico",
+                $domain_dir . $this->plug->s . "favicon.ico"
+            );
+
+            return;
+        }
         copy(
             $this->plug->server->lay_static . "img" . $this->plug->s . "favicon.ico",
             $domain_dir . $this->plug->s . "favicon.ico"
