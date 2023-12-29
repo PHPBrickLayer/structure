@@ -116,6 +116,16 @@ trait Init {
     private static function initialize() : self {
         self::init_first_class();
 
+        if(self::get_mode() == LayMode::CLI) {
+            self::new();
+            self::$INITIALIZED = true;
+
+            self::set_internal_res_server(self::$dir);
+            self::load_env();
+            self::autoload_project_classes();
+            return self::new()->init_orm(true);
+        }
+
         $options = self::$layConfigOptions ?? [];
 
         $options = [

@@ -37,13 +37,14 @@ trait AutoDeploy
         }
 
         $this->talk("- Creating new Domain directory in *$domain_dir*");
-        new LayCopyDir($this->internal_dir . "Domain", $domain_dir);
+        umask(0);
+        mkdir($domain_dir, 0755, true);
 
         $this->talk("- Making default files");
-        $this->ad_default_files($pattern, $domain_dir);
+        $this->ad_default_files($domain, $pattern, $domain_dir);
     }
 
-    public function ad_default_files(string $pattern, string $domain_dir): void
+    public function ad_default_files(string $domain, string $pattern, string $domain_dir): void
     {
         $uuid = LayConfig::connect()->uuid();
 
@@ -55,9 +56,22 @@ trait AutoDeploy
             use BrickLayer\Lay\Libs\LayCron;
             use BrickLayer\Lay\Core\Exception;
             
-            // https://$pattern.[PRIMARY_DOMAIN]/$uuid
-            // Verify webhook from GitHub
+            const DOMAIN_SET = true;
 
+            include_once __DIR__ . DIRECTORY_SEPARATOR . ".." . DIRECTORY_SEPARATOR . ".." . DIRECTORY_SEPARATOR . "index.php";
+
+            // Replace [PRIMAY_DOMAIN] with your actual primary domain. 
+            // Create a subdomain entry on your dns. 
+            // Finally paste the link below to github or your CI platform
+            // https://$pattern.[PRIMARY_DOMAIN]/$uuid
+            // As you can see, we recommend using a subdomain as your webhook url. 
+            
+            // If you insist on using a direct domain url, you can do something like this
+            // https://[PRIMARY_DOMAIN]/domains/$domain/$uuid
+            // Note that this will only work, if your server is reading the index.php file 
+            // on the root directory of the web directory, else, you have no choice but to use a subdomain 
+            
+            // Verify webhook from GitHub
             if(\$_SERVER['REQUEST_METHOD'] !== 'POST' or @\$_GET['brick'] !== "$uuid") {
                 Exception::throw_exception("Invalid endpoint met! please check your uuid and try again", "GitADMismatched");
                 die;
