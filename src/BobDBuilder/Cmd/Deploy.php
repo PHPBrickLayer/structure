@@ -132,7 +132,7 @@ class Deploy implements CmdLayout
                 if(!empty($current_error))
                     $error[] = ["file" => $file, "error" => join("\n", $current_error)];
 
-                if($return)
+                if(!$return)
                     $changes++;
 
                 return $file;
