@@ -115,7 +115,7 @@ trait AutoDeploy
             RewriteEngine On
             
             <Files .htaccess>
-            RewriteRule ^(.*)$ index.php [L,QSA]
+            RewriteRule ^(.*)$ index.php?brick=$1 [L,QSA]
             Order allow,deny
             Deny from all
             </Files>
