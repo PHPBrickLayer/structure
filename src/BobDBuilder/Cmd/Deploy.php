@@ -18,6 +18,7 @@ class Deploy implements CmdLayout
     private ?string $commit_msg;
     private ?string $ignore;
     private string $no_cache;
+    private bool $push_git = true;
 
     private function talk(string $message) : void
     {
@@ -40,6 +41,7 @@ class Deploy implements CmdLayout
             return;
 
         $this->commit_msg = $this->plug->extract_tags(["-m", "-g"], 0)[0] ?? null;
+        $this->push_git = $this->plug->extract_tags(["-ng", "--no-git"], false)[0] ?? $this->push_git;
 
         $ignore = $this->plug->extract_tags(["--ignore"], 0);
 
@@ -113,8 +115,8 @@ class Deploy implements CmdLayout
                 $output = $output_dir . DIRECTORY_SEPARATOR . $file;
                 $file = $parent_dir . DIRECTORY_SEPARATOR . $file;
                 $return = null;
-
                 $last_file = $file;
+
                 $this->plug->write_talk("*[x]* Current File: *$file*", [
                     "silent" => true,
                     "maintain_line" => true
@@ -124,10 +126,10 @@ class Deploy implements CmdLayout
                 // also we can make the quality of the photo 70
 
                 if($is_js($file))
-                    $return = exec("terser $file -c -m -o $output 2>&1",$current_error);
+                    $return = exec("terser $file -c -m -o $output > /dev/null &",$current_error);
 
                 if ($is_css($file))
-                    $return = exec("cleancss -s -o $output $file 2>&1", $current_error);
+                    $return = exec("cleancss -s -o $output $file > /dev/null &", $current_error);
 
                 if(!empty($current_error))
                     $error[] = ["file" => $file, "error" => join("\n", $current_error)];
@@ -152,13 +154,8 @@ class Deploy implements CmdLayout
         $changes = number_format($changes);
         $error_count = count($error);
 
-        $this->plug->write_talk(" *[x]* Last File: *$last_file*", [
-            "silent" => true,
-        ]);
-
         $this->talk(
-            "- *Operation Result [JS, CSS]*\n"
-            . " (-) *Changes:* $changes\n"
+            " (-) *Changes:* $changes\n"
             . " (-) *Errors:* $error_count"
         );
 
@@ -207,10 +204,7 @@ class Deploy implements CmdLayout
     {
         $lay = $this->plug->server->shared . "lay";
 
-        $this->talk(
-            "- Compressing files in *$lay* \n"
-            . "Please wait..."
-        );
+        $this->talk("- Compressing files in *$lay*");
 
         if(!is_dir($lay)) {
             $this->talk("- *$lay* doesn't exist, ignoring...");
@@ -232,10 +226,7 @@ class Deploy implements CmdLayout
         $dev = $static . DIRECTORY_SEPARATOR . "dev";
         $prod = $static . DIRECTORY_SEPARATOR . "prod";
 
-        $this->talk(
-            "- Compressing files in *$dev* \n"
-            . "Please wait..."
-        );
+        $this->talk("- Compressing files in *$dev*");
 
         if(!is_dir($dev)) {
             $this->plug->write_warn("- *$dev* doesn't exist, ignoring...");
@@ -259,10 +250,7 @@ class Deploy implements CmdLayout
             if($domain == "." || $domain == ".." || !is_dir($dev))
                 continue;
 
-            $this->talk(
-                "- Compressing files in *$dev*\n"
-                . "Please wait..."
-            );
+            $this->talk("- Compressing files in *$dev*");
 
             if(!is_dir($dev)) {
                 $this->plug->write_warn("- *$dev* doesn't exist, ignoring...");
@@ -278,6 +266,11 @@ class Deploy implements CmdLayout
 
     public function push_with_git() : void
     {
+        if(!$this->push_git) {
+            $this->talk("- *--no-git* flag detected, so ignoring git push...");
+            return;
+        }
+
         $msg = $this->commit_msg ?? "Updated project " . LayDate::date(format_index: 2);
 
         $root = $this->root;
