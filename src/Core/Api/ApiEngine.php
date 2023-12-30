@@ -7,7 +7,6 @@ use Closure;
 use BrickLayer\Lay\Core\Api\Enums\ApiRequestMethod;
 use BrickLayer\Lay\Core\Exception;
 
-// TODO: Implement Middleware Handler
 final class ApiEngine {
     public static function new() : self {
         return new self();
@@ -40,7 +39,7 @@ final class ApiEngine {
             self::exception(
                 "UnmatchedRequestMethod",
                 "Request method for api request [". self::$request_uri_raw ."]; don't match. 
-                Check if you have binded you route to a method, it could be using the method of the previous route"
+                Check if you have bound you route to a method, it could be using the method of the previous route"
             );
 
         return false;
@@ -268,8 +267,8 @@ final class ApiEngine {
         $x = json_encode(self::$method_return_value);
 
         if($print) {
-            print_r($x);
             header("Content-Type: application/json");
+            print_r($x);
             die;
         }
 
@@ -277,7 +276,7 @@ final class ApiEngine {
     }
 
     /**
-     * Get the mapped out arguments of a current `->for` case
+     * Get the mapped-out arguments of a current `->for` case
      * @return array
      */
     public function get_mapped_args() : array {

@@ -7,6 +7,7 @@ use stdClass;
 trait Init {
     private static string $dir;
     private static string $base;
+    private static string $proto;
     private static string $base_no_proto;
     private static string $base_no_proto_no_www;
     private static string $env_host;
@@ -25,6 +26,7 @@ trait Init {
     private static function set_web_root(&$options) : void
     {
         $options['base'] = self::$base;
+        $options['proto'] = self::$proto;
         $options['base_no_proto'] = self::$base_no_proto;
         $options['base_no_proto_no_www'] = self::$base_no_proto_no_www;
 
@@ -93,6 +95,7 @@ trait Init {
         if($http_host != "cli")
             self::$LAY_MODE = LayMode::HTTP;
 
+        self::$proto = $proto;
         self::$base = $proto . $http_host . $base_no_proto . "/";
         self::$base_no_proto  = $http_host . $base_no_proto;
         self::$base_no_proto_no_www  = str_replace("www.","", $base_no_proto);

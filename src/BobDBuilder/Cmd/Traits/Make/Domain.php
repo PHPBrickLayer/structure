@@ -89,6 +89,9 @@ trait Domain
         $this->talk("- Linking shared directory *{$this->plug->server->shared}*");
         new BobExec("link:dir web{$this->plug->s}shared web{$this->plug->s}domains{$this->plug->s}$domain{$this->plug->s}shared --silent");
 
+        $this->talk("- Linking Api domain to new domain *{$this->plug->server->domains}Api*");
+        new BobExec("link:dir web{$this->plug->s}domains{$this->plug->s}Api web{$this->plug->s}domains{$this->plug->s}$domain{$this->plug->s}api --silent");
+
         $this->talk("- Updating domains entry in *{$this->plug->server->web}index.php*");
         $this->update_general_domain_entry($domain, $domain_id, $pattern);
     }
