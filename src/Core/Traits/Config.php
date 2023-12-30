@@ -93,10 +93,10 @@ trait Config
     /**
      * @param array $allowed_origins String[] of allowed origins like "http://example.com"
      * @param bool $allow_all
-     * @param Closure|null $other_headers example function(){ header("Access-Control-Allow-Origin: Origin, X-Requested-With, Content-Type, Accept"); }
+     * @param Closure|null $fun example function(){ header("Access-Control-Allow-Origin: Origin, X-Requested-With, Content-Type, Accept"); }
      * @return bool
      */
-    public static function set_cors(array $allowed_origins, bool $allow_all = false, ?Closure $other_headers = null): bool
+    public static function set_cors(array $allowed_origins = [], bool $allow_all = false, ?Closure $fun = null): bool
     {
         $http_origin = rtrim($_SERVER['HTTP_ORIGIN'] ?? $_SERVER['HTTP_REFERER'] ?? "", "/");
 
@@ -127,8 +127,8 @@ trait Config
             exit(0);
         }
 
-        if ($other_headers !== null)
-            $other_headers("");
+        if ($fun !== null)
+            $fun("");
 
         return true;
 

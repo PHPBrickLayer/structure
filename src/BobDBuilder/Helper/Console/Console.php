@@ -36,12 +36,13 @@ class Console {
         if($style)
             $colored_string .= "\033[" . $style->value . "m";
 
+        $start = "\033[K";
         $newline = ($newline ? PHP_EOL : '');
 
         if($maintain_line)
-            $newline = "\r\033[K";
+            $newline = "\r";
 
-        echo $colored_string . $text . "\033[0m" . $newline;
+        echo $start . $colored_string . $text . "\033[0m" . $newline;
     }
 
     /**
