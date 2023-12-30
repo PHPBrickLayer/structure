@@ -18,7 +18,6 @@ final class Anchor {
 
     public function href(?string $link = "", ?string $domain_id = null) : self {
         $dom = DomainResource::get()->domain;
-
         $link = is_null($link) ? '' : $link;
         $link = ltrim($link, "/");
 
@@ -37,19 +36,18 @@ final class Anchor {
 
             if($dom->pattern != "*" && LayConfig::$ENV_IS_PROD) {
                 $x = explode(".", $base->domain_no_proto, 2);
-                $base_full = $base->proto . "://" . $dom->pattern . "." . end($x);
+                $base_full = $base->proto . $dom->pattern . "." . end($x);
                 $base_full = rtrim($base_full, "/") . "/";
                 $dom->pattern = "*";
             }
 
             if(!$same_domain && $dom->domain_type == DomainType::SUB) {
                 $x = explode(".", $base->domain_no_proto, 2);
-                $base_full = $base->proto . "://" . end($x) . "/";
+                $base_full = $base->proto . end($x) . "/";
                 $dom->pattern = "*";
             }
 
         }
-
 
         if(str_starts_with($link, "#"))
             $link = ViewBuilder::new()->request("route") . $link;
