@@ -55,21 +55,17 @@ trait AutoDeploy
             <?php
             use BrickLayer\Lay\Libs\LayCron;
             use BrickLayer\Lay\Core\Exception;
-            
-            const DOMAIN_SET = true;
 
-            include_once __DIR__ . DIRECTORY_SEPARATOR . ".." . DIRECTORY_SEPARATOR . ".." . DIRECTORY_SEPARATOR . "index.php";
+            include_once __DIR__ . DIRECTORY_SEPARATOR . ".." . DIRECTORY_SEPARATOR . ".." . DIRECTORY_SEPARATOR . ".." . DIRECTORY_SEPARATOR . "foundation.php";
 
-            // Replace [PRIMAY_DOMAIN] with your actual primary domain. 
+            // Replace [PRIMARY_DOMAIN] with your actual primary domain. 
             // Create a subdomain entry on your dns. 
             // Finally paste the link below to github or your CI platform
             // https://$pattern.[PRIMARY_DOMAIN]/$uuid
             // As you can see, we recommend using a subdomain as your webhook url. 
             
-            // If you insist on using a direct domain url, you can do something like this
-            // https://[PRIMARY_DOMAIN]/domains/$domain/$uuid
-            // Note that this will only work, if your server is reading the index.php file 
-            // on the root directory of the web directory, else, you have no choice but to use a subdomain 
+            // Alternatively, you can link:dir this domain directory to a particular domain and access through there
+            // https://[PRIMARY_DOMAIN]/$pattern/$uuid
             
             // Verify webhook from GitHub
             if(\$_SERVER['REQUEST_METHOD'] !== 'POST' or @\$_GET['brick'] !== "$uuid") {
