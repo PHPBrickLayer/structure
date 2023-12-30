@@ -87,6 +87,7 @@ trait Resources {
 
     #[ObjectShape([
         "base" => 'string',
+        "proto" => 'string',
         "base_no_proto" => 'string',
         "base_no_proto_no_www" => 'string',
         "domain" => 'string',
