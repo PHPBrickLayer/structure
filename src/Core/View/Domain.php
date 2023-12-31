@@ -153,7 +153,7 @@ class Domain {
         self::$current_route_details['pattern'] = $pattern;
         self::$current_route_details['domain_type'] = self::$domain_type;
         self::$current_route_details['domain_id'] = $id;
-        self::$current_route_details['domain_uri'] = $data->domain . $uri;
+        self::$current_route_details['domain_uri'] = str_replace("/web/", "/", $data->domain) . $uri;
         self::$current_route_details['domain_base'] = $data->domain . $domain_base;
         self::$current_route_details['domain_root'] = LayConfig::server_data()->root . implode(DIRECTORY_SEPARATOR, $file) . DIRECTORY_SEPARATOR;
 
