@@ -29,7 +29,6 @@
         "ext-json": "*",
         "ext-exif": "*",
         "ext-gd": "*",
-        "ext-sodium": "*",
         "ext-fileinfo": "*",
         "ext-dom": "*"
     },
