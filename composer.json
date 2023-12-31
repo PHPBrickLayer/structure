@@ -36,8 +36,10 @@
     "require-dev": {
         "phpunit/phpunit": "^10.3.2"
     },
+
     "minimum-stability": "stable",
     "prefer-stable": true,
+
     "extra": {
         "npm-packages": {
             "terser": "5.15.1",
