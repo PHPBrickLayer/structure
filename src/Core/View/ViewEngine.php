@@ -126,7 +126,7 @@ final class ViewEngine {
         $client = DomainResource::get();
         $page = $meta->{self::key_page};
 
-        $lay_api = $layConfig->get_global_api() ?? $site_data->domain . "api/";
+        $lay_api = $layConfig->get_global_api() ?? $client->domain->domain_uri . "api/";
         $img = ViewSrc::gen($page->img ?? $client->shared->img_default->meta ?? $client->shared->img_default->logo);
         $favicon = ViewSrc::gen($client->shared->img_default->favicon);
         $author = $page->author ?? $site_data->author;
