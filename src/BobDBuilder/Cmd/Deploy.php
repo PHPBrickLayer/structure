@@ -70,10 +70,7 @@ class Deploy implements CmdLayout
         $this->compress_static();
         $this->push_with_git();
 
-        $this->talk(
-            "- Duration: " . LayDate::elapsed($duration, append_ago: false),
-            ["silent" => false]
-        );
+        $this->talk("- Duration: " . LayDate::elapsed($duration, append_ago: false));
     }
 
     public function batch_minification(string $src_dir, string $output_dir): void
@@ -84,7 +81,6 @@ class Deploy implements CmdLayout
         $error = [];
         $changes = 0;
         $cache = LayCache::new()->cache_file("deploy_cache", invalidate: $this->no_cache);
-        $last_file = "No changes made";
 
         $track_changes = $cache->read("*") ?? [];
 
@@ -95,7 +91,7 @@ class Deploy implements CmdLayout
             $src_dir, $output_dir,
 
             // Check if the file was modified, else store last modified time
-            pre_copy: function($file, $src) use ($is_css,$is_js, $cache, &$track_changes) {
+            pre_copy: function($file, $src) use ($is_css, $is_js, $cache, &$track_changes) {
                 try{
                     $key = $src . DIRECTORY_SEPARATOR . $file;
                     $last_modified = filemtime($key);
@@ -111,11 +107,10 @@ class Deploy implements CmdLayout
             },
 
             // After the file has been copied, work on it if it meets our criteria
-            post_copy: function ($file,$parent_dir,$output_dir) use ($is_css,$is_js,&$last_file,&$error,&$changes) {
+            post_copy: function ($file,$parent_dir,$output_dir) use ($is_css, $is_js, &$error, &$changes) {
                 $output = $output_dir . DIRECTORY_SEPARATOR . $file;
                 $file = $parent_dir . DIRECTORY_SEPARATOR . $file;
                 $return = null;
-                $last_file = $file;
 
                 $this->plug->write_talk("*[x]* Current File: *$file*", [
                     "silent" => true,

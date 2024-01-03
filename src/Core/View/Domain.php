@@ -131,6 +131,14 @@ class Domain {
         $route = ltrim(end($route), "/");
         $route_as_array = explode("/", $route);
 
+        if(self::$domain_type == DomainType::LOCAL && $route_as_array[0] === "api") {
+            $dom = $this->get_domain_by_id("api-endpoint");
+
+            $id = $dom['id'];
+            $pattern = $dom['patterns'][0];
+            $builder = $dom['builder'];
+        }
+
         self::$domain_found = true;
         $this->cache_active_domain($id, $pattern);
 
