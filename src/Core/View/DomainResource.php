@@ -47,7 +47,7 @@ class DomainResource
         $obj->root =       $base;
         $obj->upload =     $base . "uploads/";
         $obj->static =     $base . "static/";
-        $obj->static_env =            $obj->static . $env_src . "/";
+        $obj->static_env = $obj->static . $env_src . "/";
 
         $obj->css =     $obj->static_env . "css/";
         $obj->img =     $obj->static_env . "images/";
@@ -58,6 +58,7 @@ class DomainResource
         $obj->shared = (object) [
             "root" =>   $shared,
             "static" => $shared         . "static/",
+            "env"    => $shared         . "static/" . $env_src,
             "css" =>    $shared         . "static/" . $env_src . "/css/",
             "img" =>    $shared         . "static/" . $env_src . "/images/",
             "js" =>     $shared         . "static/" . $env_src . "/js/",
@@ -99,7 +100,7 @@ class DomainResource
         'img' => 'string',
         'js' => 'string',
         'ui' => 'string',
-        'shared' => 'object [root, static, css, img, js, img_default [object [logo, favicon, icon, meta]]]',
+        'shared' => 'object [root, static, env, css, img, js, img_default [object [logo, favicon, icon, meta]]]',
         'domain' => 'object [domain_uri,route, route_as_array, domain_type, domain_id, domain_root, pattern, 0, 1 ...n]',
         'lay' => 'object [uri, root]',
     ])]

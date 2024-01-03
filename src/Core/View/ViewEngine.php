@@ -181,8 +181,10 @@ final class ViewEngine {
             <input type="hidden" id="LAY-API" value="$lay_api">
             <input type="hidden" id="LAY-UPLOAD" value="$client->upload">
             <input type="hidden" id="LAY-SHARED-IMG" value="{$client->shared->img}">
+            <input type="hidden" id="LAY-SHARED-ENV" value="{$client->shared->env}">
+            <input type="hidden" id="LAY-STATIC-IMG" value="$client->img">
+            <input type="hidden" id="LAY-STATIC-ENV" value="$client->static_env">
             <input type="hidden" id="LAY-SHARED-ROOT" value="{$client->shared->root}">
-            <input type="hidden" id="LAY-DOMAIN-IMG" value="$client->img">
             <input type="hidden" id="LAY-DOMAIN-ROOT" value="$client->root">
             <!--//END LAY CONSTANTS-->
             {$this->skeleton_body()}
