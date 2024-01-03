@@ -2,8 +2,7 @@
 
 namespace BrickLayer\Lay\BobDBuilder\Cmd\Traits\Make;
 
-use BrickLayer\Lay\Core\LayConfig;
-use BrickLayer\Lay\Libs\LayCopyDir;
+use BrickLayer\Lay\Libs\ID\Gen;
 use BrickLayer\Lay\Libs\LayUnlinkDir;
 
 
@@ -41,12 +40,12 @@ trait AutoDeploy
         mkdir($domain_dir, 0755, true);
 
         $this->talk("- Making default files");
-        $this->ad_default_files($domain, $pattern, $domain_dir);
+        $this->ad_default_files($pattern, $domain_dir);
     }
 
-    public function ad_default_files(string $domain, string $pattern, string $domain_dir): void
+    public function ad_default_files(string $pattern, string $domain_dir): void
     {
-        $uuid = LayConfig::connect()->uuid();
+        $uuid = Gen::uuid(32);
 
         // root index.php
         file_put_contents(
@@ -99,6 +98,15 @@ trait AutoDeploy
                 ->every_minute()
                 ->new_job("bob up_composer")['msg'];
             
+            FILE
+        );
+
+        // robots.txt
+        file_put_contents(
+            $domain_dir . $this->plug->s . "robots.txt",
+            <<<FILE
+            User-agent: *
+            Disallow: /
             FILE
         );
 
