@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace BrickLayer\Lay\Core\View\Tags;
 
+use BrickLayer\Lay\Core\Exception;
 use JetBrains\PhpStorm\ExpectedValues;
 
 use BrickLayer\Lay\Core\View\Domain;
@@ -25,7 +26,10 @@ final class Anchor {
         $base_full = $dom->domain_uri;
 
         if($domain_id) {
-            $pattern = Domain::new()->get_domain_by_id($domain_id)['patterns'][0];
+            $pattern = @Domain::new()->get_domain_by_id($domain_id)['patterns'][0];
+
+            if(!$pattern)
+                Exception::throw_exception("Domain with domain-id: [$domain_id] doesn't exist. Please check your domain list", "VoidDomainID");
 
             if($pattern == "*")
                 $pattern = "";
