@@ -30,7 +30,6 @@ class EnginePlug
     public string $active_cmd = "";
     public string $active_cmd_class;
     public array $cmd_classes;
-    public array $available_cmds = [];
 
     public readonly object $server;
     public readonly string $s;
@@ -186,7 +185,6 @@ class EnginePlug
      */
     public function add_arg(CmdLayout $cmd_layout, array $cmd, string $tag_key, int|bool ...$value_or_value_index): void
     {
-        $this->available_cmds[] = $cmd;
         $this->plugged_args[$tag_key] = ["cmd" => $cmd, "value" => $value_or_value_index, "class" => $cmd_layout::class];
     }
 

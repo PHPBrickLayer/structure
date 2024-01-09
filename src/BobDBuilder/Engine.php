@@ -41,8 +41,8 @@ class Engine
         );
 
         if ($this->plug->show_intro) {
-            $this->intro();
-            die;
+            $this->plug->show_help = true;
+            $this->help();
         }
 
         $this->help();
@@ -88,38 +88,35 @@ class Engine
         return $out;
     }
 
-    public function intro(bool $close_talk = true): void
+    public function help(): void
     {
+        if (!$this->plug->show_help)
+            return;
+
         $this->plug->write_info(
             "----------------------------------------------------------\n"
             . "-- Name:     \t  Bob The Builder                          \n"
             . "-- Author:   \t  Osahenrumwen Aigbogun                    \n"
             . "-- Created:  \t  14/12/2023;                              \n"
             . "----------------------------------------------------------",
-            [ "kill" => false, "close_talk" => $close_talk, "hide_current_cmd" => true ]
+            [ "kill" => false, "close_talk" => false, "hide_current_cmd" => true ]
         );
-    }
 
-    public function help(): void
-    {
-        if (!$this->plug->show_help)
-            return;
+        $this->plug->show_help = true;
 
-        $this->intro(false);
-
-        $ava_cmds = "";
+        $ava_cmd = "";
 
         $this->plug->write_info(
             "-- Bob is meant to help in building your application\n"
             . "-- Usage: php bob CMD --FLAGS\n"
-            . "$ava_cmds"
+            . "$ava_cmd"
             , [ "open_talk" => false]
         );
 
         print "----------- These are the current available commands ------------- \n";
 
-        foreach ($this->plug->available_cmds as $cmd) {
-            foreach ($cmd as $c){
+        foreach ($this->plug->plugged_args as $arg) {
+            foreach ($arg['cmd'] as $c){
                 $this->plug->write_talk(" [x] $c");
             }
         }
