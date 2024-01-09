@@ -5,6 +5,7 @@ $lay.page = {
     title : $id("LAY-PAGE-TITLE").content,
     title_full : $id("LAY-PAGE-TITLE-FULL").innerHTML,
     domain : $attr($id("LAY-DOMAIN-NAME"),"content"),
+    domain_id : $attr($id("LAY-DOMAIN-ID"),"content"),
     desc : $attr($id("LAY-PAGE-DESC"),"content"),
     url : $attr($id("LAY-PAGE-URL"),"content"),
     urlFull : $attr($id("LAY-PAGE-FULL-URL"),"content"),

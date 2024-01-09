@@ -152,7 +152,7 @@ class Domain {
 
         $data = LayConfig::site_data();
         $domain_base = $data->use_domain_file ? implode("/", $domain_file) . "/" : "";
-        $domain_base = str_replace("/Api/", $_SERVER['HTTP_LAY_DOMAIN'] ?? $domain_name, $domain_base, $is_api);
+        $domain_base = str_replace("/Api/", "/" . ($_SERVER['HTTP_LAY_DOMAIN'] ?? $domain_name) . "/", $domain_base, $is_api);
 
         $uri = ($pattern != '*' ? $pattern . '/' : '');
 
