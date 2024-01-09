@@ -148,6 +148,7 @@ class Domain {
         array_pop($file);
         $domain_file = $file;
         array_shift($domain_file);
+        $domain_name = $domain_file[1];
 
         $data = LayConfig::site_data();
         $domain_base = $data->use_domain_file ? implode("/", $domain_file) . "/" : "";
@@ -159,6 +160,7 @@ class Domain {
         self::$current_route_details['route'] = $route ?: "index";
         self::$current_route_details['route_as_array'] = $route_as_array;
         self::$current_route_details['pattern'] = $pattern;
+        self::$current_route_details['domain_name'] = $domain_name;
         self::$current_route_details['domain_type'] = self::$domain_type;
         self::$current_route_details['domain_id'] = $id;
         self::$current_route_details['domain_uri'] = str_replace("/web/", "/", $data->domain) . $uri;
@@ -403,6 +405,7 @@ class Domain {
         #[ExpectedValues([
             'route',
             'route_as_array',
+            'domain_name',
             'domain_type',
             'domain_id',
             'domain_uri',

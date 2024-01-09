@@ -160,6 +160,7 @@ final class ViewEngine {
             <!-- Framework Tags-->
             <meta property="lay:site_name_short" id="LAY-SITE-NAME-SHORT" content="{$site_data->name->short}">
             <meta property="lay:url" id="LAY-PAGE-URL" content="$page->route">
+            <meta property="lay:domain" id="LAY-DOMAIN-NAME" content="{$client->domain->domain_name}">
             <!-- // Framework Tags-->
             <meta property="og:title" id="LAY-PAGE-TITLE" content="$title_raw">
             <meta property="og:url" id="LAY-PAGE-FULL-URL" content="$page->url">

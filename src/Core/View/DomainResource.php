@@ -101,7 +101,7 @@ class DomainResource
         'js' => 'string',
         'ui' => 'string',
         'shared' => 'object [root, static, env, css, img, js, img_default [object [logo, favicon, icon, meta]]]',
-        'domain' => 'object [domain_uri,route, route_as_array, domain_type, domain_id, domain_root, pattern, 0, 1 ...n]',
+        'domain' => 'object [domain_uri, route, route_as_array, domain_type, domain_name, domain_id, domain_root, pattern, 0, 1 ...n]',
         'lay' => 'object [uri, root]',
     ])]
     public static function get() : object
