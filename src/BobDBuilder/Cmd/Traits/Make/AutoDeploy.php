@@ -54,12 +54,14 @@ trait AutoDeploy
             <?php
             use BrickLayer\Lay\Libs\LayCron;
             use BrickLayer\Lay\Core\Exception;
+            
+            const SAFE_TO_INIT_LAY = true;
 
             include_once __DIR__ . DIRECTORY_SEPARATOR . ".." . DIRECTORY_SEPARATOR . ".." . DIRECTORY_SEPARATOR . ".." . DIRECTORY_SEPARATOR . "foundation.php";
 
             // Replace [PRIMARY_DOMAIN] with your actual primary domain. 
             // Create a subdomain entry on your dns. 
-            // Finally paste the link below to github or your CI platform
+            // Finally, paste the link below to github or your CI platform
             // https://$pattern.[PRIMARY_DOMAIN]/$uuid
             // As you can see, we recommend using a subdomain as your webhook url. 
             
