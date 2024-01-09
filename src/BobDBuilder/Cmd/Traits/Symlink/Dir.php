@@ -2,6 +2,8 @@
 
 namespace BrickLayer\Lay\BobDBuilder\Cmd\Traits\Symlink;
 
+use BrickLayer\Lay\Libs\LayUnlinkDir;
+
 trait Dir
 {
     private function dir(): void
@@ -34,6 +36,9 @@ trait Dir
             );
 
         @unlink($dest);
+        if(is_dir($dest))
+            new LayUnlinkDir($dest);
+
         symlink($src, $dest);
         $this->track_link($link[0], $link[1], "dir");
 

@@ -691,6 +691,9 @@ const $preloader = (act = "show") => {
     let xhr = false, response;
     let credential = option.credential ?? false;
     let headers = option.headers ?? {};
+    headers['Lay-Domain'] = $lay.page.domain;
+    headers['Lay-Domain-ID'] = $lay.page.domain_id;
+
     let content = option.content ?? "text/plain";
     let method = option.method ?? "get";
     data = option.data ?? option.form ?? data ?? null;

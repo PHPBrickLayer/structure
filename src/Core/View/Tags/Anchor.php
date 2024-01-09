@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace BrickLayer\Lay\Core\View\Tags;
 
+use BrickLayer\Lay\Core\Exception;
 use JetBrains\PhpStorm\ExpectedValues;
 
 use BrickLayer\Lay\Core\View\Domain;
@@ -25,28 +26,24 @@ final class Anchor {
         $base_full = $dom->domain_uri;
 
         if($domain_id) {
-            $pattern = Domain::new()->get_domain_by_id($domain_id)['patterns'][0];
+            $pattern = @Domain::new()->get_domain_by_id($domain_id)['patterns'][0];
 
-            if($pattern == "*")
-                $pattern = "";
-
-            $base_full = str_replace($dom->pattern . "/", $pattern, $base_full);
+            if(!$pattern)
+                Exception::throw_exception("Domain with domain-id: [$domain_id] doesn't exist. Please check your domain list", "VoidDomainID");
 
             $same_domain = $domain_id == $dom->domain_id;
 
-            if($dom->pattern != "*" && LayConfig::$ENV_IS_PROD) {
-                $x = explode(".", $base->domain_no_proto, 2);
-                $base_full = $base->proto . $dom->pattern . "." . end($x);
-                $base_full = rtrim($base_full, "/") . "/";
-                $dom->pattern = "*";
+            if(!$same_domain && $dom->domain_type != DomainType::SUB) {
+                $pattern = $pattern == "*" ? "" : $pattern;
+                $base_full = explode($dom->pattern . "/", $base_full . $pattern, 2)[0];
             }
+
+            $base_full = rtrim($base_full, "/") . "/";
 
             if(!$same_domain && $dom->domain_type == DomainType::SUB) {
                 $x = explode(".", $base->domain_no_proto, 2);
                 $base_full = $base->proto . end($x) . "/";
-                $dom->pattern = "*";
             }
-
         }
 
         if(str_starts_with($link, "#"))

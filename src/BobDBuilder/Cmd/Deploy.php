@@ -239,6 +239,11 @@ class Deploy implements CmdLayout
         foreach (scandir($this->plug->server->domains) as $domain) {
             $static = $this->plug->server->domains . $domain . DIRECTORY_SEPARATOR . "static";
 
+            if(is_link($static)) {
+                $this->talk("- Symlinked static directory detected: *$dev* skipping directory");
+                continue;
+            }
+
             $dev = $static . DIRECTORY_SEPARATOR . "dev";
             $prod = $static . DIRECTORY_SEPARATOR . "prod";
 

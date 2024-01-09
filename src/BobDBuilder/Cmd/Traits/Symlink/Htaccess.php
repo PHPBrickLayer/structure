@@ -15,16 +15,8 @@ trait Htaccess
         $domain = rtrim(str_replace(".htaccess", "", $dest), "/") . $plug->s;
         $dest = $plug->server->domains . $domain;
 
-        if (!is_dir($dest)) {
-            if (!$plug->force)
-                $plug->write_fail(
-                    "Directory $dest does not exist! if you want the directory to be created automatically; "
-                    . "pass the flag --force",
-                );
-
-            umask(0);
-            mkdir($dest, 0777, true);
-        }
+        if (!is_dir($dest))
+            $plug->write_fail("Domain *$dest* does not exist! Please create domain before linking htaccess");
 
         $dest .= ".htaccess";
 
