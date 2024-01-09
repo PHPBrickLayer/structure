@@ -152,6 +152,8 @@ class Domain {
 
         $data = LayConfig::site_data();
         $domain_base = $data->use_domain_file ? implode("/", $domain_file) . "/" : "";
+        $domain_base = str_replace("/Api/", $_SERVER['HTTP_LAY_DOMAIN'] ?? $domain_name, $domain_base, $is_api);
+
         $uri = ($pattern != '*' ? $pattern . '/' : '');
 
         if(isset(self::$indexed_domain))
@@ -166,6 +168,9 @@ class Domain {
         self::$current_route_details['domain_uri'] = str_replace("/web/", "/", $data->domain) . $uri;
         self::$current_route_details['domain_base'] = $data->domain . $domain_base;
         self::$current_route_details['domain_root'] = LayConfig::server_data()->root . implode(DIRECTORY_SEPARATOR, $file) . DIRECTORY_SEPARATOR;
+
+        if($is_api > 0)
+            self::$current_route_details['domain_is_api'] = true;
 
         // Init domain resources before including the domain-level foundation file so the data can be manipulated
         DomainResource::init();
