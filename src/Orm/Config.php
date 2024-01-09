@@ -29,8 +29,6 @@ trait Config{
 
     private static function _init(mysqli|array|null $connection) : void {
 
-        CoreException::new()->set_env(LayConfig::$ENV_IS_PROD ? "PRODUCTION" : "DEVELOPMENT");
-
         self::new()->set_db($connection);
     }
 
@@ -41,7 +39,6 @@ trait Config{
     private function connect() : ?mysqli {
         extract(self::$DB_ARGS);
         $charset = $charset ?? self::$CHARSET;
-        CoreException::new()->set_env($env ?? $this->get_env());
         $cxn = $this->ping(true,null, true);
         $port = $port ?? null;
         $socket = $socket ?? null;
