@@ -15,8 +15,8 @@ trait Init {
 
     private static bool $INITIALIZED = false;
     private static bool $FIRST_CLASS_CITI_ACTIVE = false;
-    public static bool $ENV_IS_PROD = false;
-    public static bool $ENV_IS_DEV = true;
+    public static bool $ENV_IS_PROD = true;
+    public static bool $ENV_IS_DEV = false;
 
     private static function init_first_class() : void {
         if(!self::$FIRST_CLASS_CITI_ACTIVE)

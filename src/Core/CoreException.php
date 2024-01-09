@@ -13,7 +13,11 @@ class CoreException
 {
     use IsSingleton;
 
-    private static string $ENV = "DEVELOPMENT";
+    public static function new(): self
+    {
+        return self::instance();
+    }
+
     private static string $message;
     private static bool $already_caught = false;
 
@@ -49,15 +53,9 @@ class CoreException
         }, E_ALL|E_STRICT);
     }
 
-    public function set_env(string $ENV): void
-    {
-        $ENV = strtolower($ENV);
-        self::$ENV = strtoupper(($ENV == "dev" || $ENV == "development") ? "development" : "production");
-    }
-
     public function get_env(): string
     {
-        return self::$ENV;
+        return LayConfig::$ENV_IS_DEV ? "DEVELOPMENT" : "PRODUCTION";
     }
 
     /**
