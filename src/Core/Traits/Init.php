@@ -197,6 +197,8 @@ trait Init {
         if(isset(self::$LAY_MODE))
             return self::$LAY_MODE;
 
+        self::$LAY_MODE = LayMode::HTTP;
+
         if(empty($_SERVER['DOCUMENT_ROOT']) || !isset($_SERVER['HTTP_HOST']))
             self::$LAY_MODE = LayMode::CLI;
 
