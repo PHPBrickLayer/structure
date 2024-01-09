@@ -107,11 +107,27 @@ class Engine
 
         $this->intro(false);
 
+        $ava_cmds = "";
+
         $this->plug->write_info(
             "-- Bob is meant to help in building your application\n"
-            . "-- There are various commands you can you can use here"
-            , [ "open_talk" => false, "hide_current_cmd" => true ]
+            . "-- Usage: php bob CMD --FLAGS\n"
+            . "$ava_cmds"
+            , [ "open_talk" => false]
         );
+
+        print "----------- These are the current available commands ------------- \n";
+
+        foreach ($this->plug->available_cmds as $cmd) {
+            foreach ($cmd as $c){
+                $this->plug->write_talk(" [x] $c");
+            }
+        }
+
+        print "----------- END ------------- \n";
+
+        $this->plug->write_talk("-- Usage: php bob CMD --FLAGS");
+        die;
     }
 
 }
