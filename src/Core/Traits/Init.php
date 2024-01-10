@@ -98,7 +98,7 @@ trait Init {
         self::$proto = $proto;
         self::$base = $proto . $http_host . $base_no_proto . "/";
         self::$base_no_proto  = $http_host . $base_no_proto;
-        self::$base_no_proto_no_www  = str_replace("www.","", $base_no_proto);
+        self::$base_no_proto_no_www  = str_replace("www.","", self::$base_no_proto);
 
         $localhost = ["127.0.","192.168.","::1"];
 
