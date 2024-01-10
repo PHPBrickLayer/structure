@@ -227,6 +227,11 @@ trait Config
         return $this->switch("use_objects", false);
     }
 
+    public function use_domain_as_sub(): self
+    {
+        return $this->switch("use_domain_as_sub", true);
+    }
+
     /**
      * Prevents the data sent through the ViewHandler of a specific domain from being cached.
      * This only takes effect in development environment, if Lay detects the server is in production, it'll cache by default

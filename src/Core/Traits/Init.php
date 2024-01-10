@@ -139,7 +139,13 @@ trait Init {
             # Used by the Domain module to instruct the handler to cache all the listed domains in a session or cookie,
             # depending on the value sent by dev
             "cache_domains" => $options['switch']['cache_domains'] ?? true,
+            # If true, when linking to a domain using the Anchor tag class, on production server;
+            # example.com/blog will be converted to
+            # blog.example.com
+            "use_domain_as_sub" => $options['switch']['use_domain_as_sub'] ?? false,
+            # Internal option set by lay to tell dev that the /web/domain/ folder is where html is being served from
             "using_domain" => $options['header']['using_domain'] ?? null,
+            # Internal option set by lay to tell dev that the /web/ folder is where html is being served from
             "using_web" => $options['header']['using_web'] ?? null,
             "use_domain_file" => null, // this is updated when webroot is created after first class is init
             "name" => [
