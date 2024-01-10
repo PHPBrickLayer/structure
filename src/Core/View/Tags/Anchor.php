@@ -41,7 +41,7 @@ final class Anchor {
                     $base_full = explode($dom->pattern . "/", $base_full . $pattern, 2)[0];
 
                     if($use_subdomain && !empty($pattern) && LayConfig::$ENV_IS_PROD)
-                        $base_full = $base->proto . $pattern . "." . $base->domain_no_proto;
+                        $base_full = $base->proto . $pattern . "." . $base->domain_no_proto_no_www;
                 }
                 else {
                     $x = explode(".", $base->domain_no_proto, 2);
