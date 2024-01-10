@@ -47,6 +47,27 @@ trait AutoDeploy
     {
         $uuid = Gen::uuid(32);
 
+        // domain foundation file
+        file_put_contents(
+            $domain_dir . $this->plug->s . "foundation.php",
+            <<<FILE
+            <?php
+
+            use BrickLayer\Lay\Core\LayConfig;
+            
+            LayConfig::set_cors(
+                [
+                    "https://github.com",
+                ],
+                fun: function () {
+                    header("Access-Control-Allow-Credentials: true");
+                    header("Access-Control-Allow-Headers: *");
+                    header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
+                }
+            );
+            FILE
+        );
+
         // root index.php
         file_put_contents(
             $domain_dir . $this->plug->s . "index.php",
@@ -59,6 +80,8 @@ trait AutoDeploy
 
             include_once __DIR__ . DIRECTORY_SEPARATOR . ".." . DIRECTORY_SEPARATOR . ".." . DIRECTORY_SEPARATOR . ".." . DIRECTORY_SEPARATOR . "foundation.php";
 
+            include_once "foundation.php";
+            
             // Replace [PRIMARY_DOMAIN] with your actual primary domain. 
             // Create a subdomain entry on your dns. 
             // Finally, paste the link below to github or your CI platform

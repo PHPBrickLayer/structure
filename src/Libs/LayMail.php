@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace BrickLayer\Lay\Libs;
 
+use BrickLayer\Lay\Core\View\DomainResource;
 use JetBrains\PhpStorm\ArrayShape;
 use JetBrains\PhpStorm\ExpectedValues;
 use BrickLayer\Lay\Core\LayConfig;
@@ -267,7 +268,7 @@ abstract class LayMail {
 
     public function email_template(string $message) : string {
         $data = LayConfig::site_data();
-        $logo = $data->img->logo;
+        $logo = DomainResource::get()->shared->img_default->logo;
         $company_name = $data->name->short;
         $copyright = $data->copy;
         $text_color = "#000000";
