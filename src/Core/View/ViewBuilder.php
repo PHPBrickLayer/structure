@@ -14,7 +14,6 @@ use JetBrains\PhpStorm\ArrayShape;
 use JetBrains\PhpStorm\ExpectedValues;
 use JetBrains\PhpStorm\NoReturn;
 
-// TODO: Find a way to cache views
 final class ViewBuilder
 {
     use IsSingleton;
@@ -52,7 +51,7 @@ final class ViewBuilder
 
         if (!self::$href_set) {
             self::$href_set = true;
-            $this->local("href", fn(?string $href = "", ?string $domain_id = null) => Anchor::new()->href($href, $domain_id)->get_href());
+            $this->local("href", fn(?string $href = "", ?string $domain_id = null, ?bool $use_subdomain = null) => Anchor::new()->href($href, $domain_id, $use_subdomain)->get_href());
         }
 
         return $this;

@@ -17,10 +17,11 @@ final class Anchor {
 
     use Standard;
 
-    public function href(?string $link = "", ?string $domain_id = null) : self {
+    public function href(?string $link = "", ?string $domain_id = null, ?bool $use_subdomain = null) : self {
         $dom = DomainResource::get()->domain;
         $link = is_null($link) ? '' : $link;
         $link = ltrim($link, "/");
+        $use_subdomain = $use_subdomain !== null ? $use_subdomain : LayConfig::new()->use_domain_as_sub();
 
         $base = LayConfig::site_data();
         $base_full = $dom->domain_uri;
@@ -33,17 +34,25 @@ final class Anchor {
 
             $same_domain = $domain_id == $dom->domain_id;
 
-            if(!$same_domain && $dom->domain_type != DomainType::SUB) {
+            if(!$same_domain) {
                 $pattern = $pattern == "*" ? "" : $pattern;
-                $base_full = explode($dom->pattern . "/", $base_full . $pattern, 2)[0];
+
+                if($dom->domain_type != DomainType::SUB) {
+                    $base_full = explode($dom->pattern . "/", $base_full . $pattern, 2)[0];
+
+                    if($use_subdomain && !empty($pattern) && LayConfig::$ENV_IS_PROD)
+                        $base_full = $base->proto . $pattern . "." . $base->domain_no_proto;
+                }
+                else {
+                    $x = explode(".", $base->domain_no_proto, 2);
+                    $base_full = $base->proto . end($x);
+
+                    if($use_subdomain && !empty($pattern))
+                        $base_full = $base->proto . $pattern . "." . end($x);
+                }
             }
 
             $base_full = rtrim($base_full, "/") . "/";
-
-            if(!$same_domain && $dom->domain_type == DomainType::SUB) {
-                $x = explode(".", $base->domain_no_proto, 2);
-                $base_full = $base->proto . end($x) . "/";
-            }
         }
 
         if(str_starts_with($link, "#"))
