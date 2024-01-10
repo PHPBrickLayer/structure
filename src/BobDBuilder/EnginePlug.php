@@ -216,17 +216,17 @@ class EnginePlug
     }
 
     public function write_info(string $message, array $opts = []) : void {
-        $opts['hide_current_cmd'] = true;
+        $opts['hide_current_cmd'] = $opts['hide_current_cmd'] ?? true;
         $this->write($message, CmdOutType::INFO, $opts);
     }
 
     public function write_success(string $message, array $opts = []) : void {
-        $opts['hide_current_cmd'] = true;
+        $opts['hide_current_cmd'] = $opts['hide_current_cmd'] ?? true;
         $this->write($message, CmdOutType::SUCCESS, $opts);
     }
 
     public function write_fail(string $message, array $opts = []) : void {
-        $opts['hide_current_cmd'] = true;
+        $opts['hide_current_cmd'] = $opts['hide_current_cmd'] ?? true;
         $opts['close_talk'] = true;
         $opts['kill'] = true;
 
@@ -238,7 +238,7 @@ class EnginePlug
     }
 
     public function write_warn(string $message, array $opts = []) : void {
-        $opts['hide_current_cmd'] = true;
+        $opts['hide_current_cmd'] = $opts['hide_current_cmd'] ?? true;
         $opts['close_talk'] = true;
         $opts['kill'] = true;
 
