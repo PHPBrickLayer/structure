@@ -113,9 +113,9 @@ trait AutoDeploy
                 die;
             }
 
-            echo shell_exec("git checkout \$main_branch 2>&1");
-            echo shell_exec('git pull 2>&1');
-            echo shell_exec("git reset --hard origin/\$main_branch 2>&1");
+            echo shell_exec("git checkout \$main_branch 2>&1 &");
+            echo shell_exec('git fetch --all 2>&1 &');
+            echo shell_exec("git reset --hard origin/\$main_branch 2>&1 &");
             
             shell_exec("php bob link:refresh &");
             print "Symlinks are being refreshed\\n";
