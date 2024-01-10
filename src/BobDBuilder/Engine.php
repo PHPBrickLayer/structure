@@ -54,7 +54,7 @@ class Engine
             $this->plug->write_warn(
                 "-- Bob has determined that the current command is invalid\n"
                 . "-- Please use --help to see the list of available commands"
-                , ["current_cmd" => $this->plug->typed_cmd]
+                , ["current_cmd" => $this->plug->typed_cmd, "hide_current_cmd" => false ]
             );
 
         if(!$this->plug->silent)

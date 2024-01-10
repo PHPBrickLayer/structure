@@ -99,7 +99,7 @@ trait AutoDeploy
 
             \$main_branch = "main";
 
-            print "GitAD Responds With: \n";
+            print "GitAD Responds With: \\n";
 
             \$post = json_decode(\$_POST['payload']);
 
@@ -116,6 +116,9 @@ trait AutoDeploy
             echo shell_exec("git checkout \$main_branch 2>&1");
             echo shell_exec('git pull 2>&1');
             echo shell_exec("git reset --hard origin/\$main_branch 2>&1");
+            
+            shell_exec("php bob link:refresh &");
+            print "Symlinks are being refreshed\\n";
 
             // push composer deployment for later execution to avoid 504 (timeout error)
             echo LayCron::new()

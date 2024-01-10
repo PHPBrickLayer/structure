@@ -33,6 +33,7 @@ class Symlink implements CmdLayout
         $plug->add_arg($this, ["link:uploads"], 'link_uploads', 0);
         $plug->add_arg($this, ["link:dir"], 'link_dir', 0, 1);
         $plug->add_arg($this, ["link:file"], 'link_file', 0, 1);
+        $plug->add_arg($this, ["link:refresh"], 'link_refresh', true);
     }
 
     public function _spin(): void
@@ -43,6 +44,9 @@ class Symlink implements CmdLayout
         $this->uploads();
         $this->dir();
         $this->file();
+
+        if($this->plug->tags['link_refresh'])
+            $this->refresh_link();
     }
 
     private function init_db() : void
