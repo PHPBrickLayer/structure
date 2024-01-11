@@ -271,13 +271,15 @@ class Deploy implements CmdLayout
             return;
         }
 
+        $this->talk("- Attempting git deployment");
+
         $msg = $this->commit_msg ?? "Updated project " . LayDate::date(format_index: 2);
 
         $root = $this->root;
 
         $is_repo = exec(<<<CMD
             cd $root && 
-            git config --get remote.origin.url
+            git config --get remote.origin.url 2>&1
             2>&1
         CMD);
 
@@ -286,14 +288,20 @@ class Deploy implements CmdLayout
 
         exec(<<<CMD
             cd $root && 
-            git add . &&
-            git commit -m "$msg" &&
-            git pull && git push
-            2>&1
+            git add . 2>&1 &&
+            git commit -m "$msg" 2>&1 &&
+            git pull 2>&1
         CMD, $output);
 
-        $this->talk("- *Git output:*");
-        $this->plug->write_talk(" " . implode("\n ", $output), ["silent" => true]);
+        exec("cd $root && git push 2>&1", $output);
+
+        $this->talk(
+            " (-) *Git Says*"
+        );
+
+        foreach ($output as $out){
+            print "     " . $out . "\n";
+        }
     }
 
 }

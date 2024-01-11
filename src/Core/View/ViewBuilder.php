@@ -216,7 +216,7 @@ final class ViewBuilder
         return self::$current_route_data[$key] ?? '';
     }
 
-    #[NoReturn] public function redirect(string $route, ViewCast $builderStarter): void
+    #[NoReturn] public function redirect(string $route, ViewCast $viewCast): void
     {
         if (self::$view_found)
             Exception::throw_exception(
@@ -225,13 +225,13 @@ final class ViewBuilder
             );
 
         if ($route == self::DEFAULT_ROUTE)
-            $this->invoke(fn() => $builderStarter->default());
+            $this->invoke(fn() => $viewCast->default());
 
         self::$redirecting = true;
         self::$route = $route;
 
         $this->rebuild_route();
-        $builderStarter->pages();
+        $viewCast->pages();
 
         die;
     }
