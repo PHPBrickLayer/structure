@@ -6,7 +6,8 @@ abstract class ViewCast
 {
     public readonly ViewBuilder $builder;
 
-    public function __construct() {
+    public function __construct()
+    {
         if(!isset($this->builder))
             $this->builder = ViewBuilder::new();
     }
