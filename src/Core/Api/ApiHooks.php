@@ -4,7 +4,6 @@ namespace BrickLayer\Lay\Core\Api;
 
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
-use BrickLayer\Lay\Core\View\Domain;
 
 abstract class ApiHooks
 {
@@ -36,7 +35,7 @@ abstract class ApiHooks
         $this->request->print_as_json();
     }
 
-    public final function load_brick_hooks(string ...$namespaces) : void
+    public final function load_brick_hooks(string ...$class_to_ignore) : void
     {
         $bricks_root = LayConfig::server_data()->bricks;
 
@@ -50,10 +49,11 @@ abstract class ApiHooks
 
             $cmd_class = "bricks\\$brick\\Api\\Hook";
 
-            if(in_array($cmd_class, $namespaces, true))
+            if(class_exists($cmd_class))
                 continue;
 
-            $cmd_class = "\\$cmd_class";
+            if(in_array($cmd_class, $class_to_ignore, true))
+                continue;
 
             try{
                 $brick = new \ReflectionClass($cmd_class);

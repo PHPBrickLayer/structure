@@ -16,7 +16,7 @@ trait Brick
         $brick = $this->tags['make_brick'][0] ?? null;
         $singleton = $this->tags['make_brick'][1] ?? true;
 
-        $talk = fn($msg) => $this->plug->write_talk($msg);
+        $talk = fn($msg) => $this->plug->write_talk($msg, ['silent' => true]);
 
         if (!$brick)
             $this->plug->write_fail("No brick specified");
@@ -160,7 +160,7 @@ trait Brick
          */
 
         // delete placeholder file
-        unlink($brick_dir . $this->plug->s . "model" . $this->plug->s . "controller.php");
+        unlink($brick_dir . $this->plug->s . "controller" . $this->plug->s . "controller.php");
 
         // make brick default controller
         file_put_contents(
