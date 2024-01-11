@@ -53,27 +53,35 @@ abstract class ViewCast
                 ->body_attr("default-home")
                 ->local("current_page", "error")
                 ->local("section", "error")
-                ->body(function () {
-                    $meta = DomainResource::plaster()
-                    ?>
-                    <style>
-                        .return{
-                            color: #000;
-                            font-weight: 600;
-                            text-decoration: none;
-                            background: transparent;
-                            border: solid 1px #000;
-                            padding: 10px;
-                            border-radius: 30px;
-                            transition: all ease-in-out .3s;
-                        }
-                        .return:hover{
-                            background: #fff;
-                            border-color: #fff;
-                            color: #000;
-                        }
-                    </style>
-                    <h1><?= $meta->page->title ?></h1>
+                ->head(fn() => <<<ST
+                <style>
+                    body{
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: center;
+                        align-items: center;
+                        height: 100vh;
+                        padding: 0;
+                    }
+                    .return{
+                        color: #000;
+                        font-weight: 600;
+                        text-decoration: none;
+                        background: transparent;
+                        border: solid 1px #000;
+                        padding: 10px;
+                        border-radius: 30px;
+                        transition: all ease-in-out .3s;
+                    }
+                    .return:hover{
+                        background: #fff;
+                        border-color: #fff;
+                        color: #000;
+                    }
+                </style>
+                ST)
+                ->body(function () { ?>
+                    <h1><?= DomainResource::plaster()->page->title ?></h1>
                     <p>This is the default error page of Lay Framework</p>
                     <a class="return" href="<?= DomainResource::get()->domain->domain_uri ?>">Return Home</a>
                 <?php });
