@@ -105,7 +105,8 @@ final class LayCron {
 
         $this->exec_output = [
             "exec" => $exec,
-            "msg" => !empty($out) ? implode("\n", $out) : "Cron job added successfully"
+            "msg" => (!empty($out) ? implode("\n", $out) : "Cron job added successfully") . "\n"
+                . "Date: " . LayDate::date(format_index: 2)
         ];
 
         return $exec;
