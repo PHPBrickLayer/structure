@@ -293,13 +293,16 @@ class Deploy implements CmdLayout
             CMD, $output);
 
             exec("cd $root | git pull 2>&1", $output);
+
+            $dont_commit = true;
         }
 
-        exec(<<<CMD
-            git add . 2>&1 && 
-            git commit -m "$msg" 2>&1 && 
-            git push 2>&1
-        CMD, $output);
+        if(!isset($dont_commit)) {
+            exec("git add . 2>&1", $output);
+            exec("git commit -m \"$msg\" 2>&1", $out);
+        }
+
+        exec("git push 2>&1", $output);
 
         $this->talk(" (-) *Git Says*");
 
