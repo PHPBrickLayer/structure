@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace BrickLayer\Lay\Orm\Traits;
 
+use BrickLayer\Lay\Core\Exception;
 use Closure;
 use JetBrains\PhpStorm\ExpectedValues;
 use BrickLayer\Lay\Orm\SQL;
@@ -219,7 +220,7 @@ trait SelectorOOP
 
     private function oop_exception(string $message): void
     {
-        $this->use_exception("SQL_OOP::ERR", $message);
+        Exception::new()->use_exception("SQL_OOP::ERR", $message);
     }
 
 }
