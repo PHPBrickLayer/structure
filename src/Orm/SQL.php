@@ -6,6 +6,7 @@ namespace BrickLayer\Lay\Orm;
 use BrickLayer\Lay\Core\CoreException;
 use BrickLayer\Lay\Core\Traits\IsSingleton;
 use BrickLayer\Lay\Orm\Traits\Controller;
+use Exception;
 use mysqli;
 use mysqli_result;
 
@@ -36,9 +37,9 @@ class SQL
         return mysqli_select_db(self::$link, $name);
     }
 
-    public function exception(string $title, string $message, array $opts = []) : CoreException
+    public function exception(string $title, string $message, array $opts = []) : void
     {
-        return CoreException::new()->use_exception(
+        CoreException::new()->use_exception(
             "OrmExp_" . $title,
             $message,
             opts: $opts
@@ -50,7 +51,7 @@ class SQL
      * @param string $query
      * @param array $option Adjust the function to fit your use case;
      * @return int|bool|array|null|mysqli_result
-     * @throws \Exception
+     * @throws Exception
      */
     final public function query(string $query, array $option = []): int|bool|array|null|mysqli_result
     {
@@ -74,11 +75,6 @@ class SQL
             $query_type = $query_type == "COUNT" ? $query_type : strtoupper($qr[0]);
         }
 
-        // prepare to show a query for review if the correct parameter is passed
-        $option['debug'] = [];
-        $option['debug'][0] = $query;
-        $option['debug'][1] = $query_type;
-
         if ($debug)
             $this->exception(
                 "QueryReview",
@@ -91,7 +87,7 @@ class SQL
         $has_error = false;
         try {
             $exec = mysqli_query(self::$link, $query);
-        } catch (\Exception) {
+        } catch (Exception) {
             $has_error = true;
             if ($exec === false && $catch_error === 0)
                 $this->exception(
@@ -163,7 +159,7 @@ class SQL
     }
 
     /**
-     * Turns any number of dimensions of an array to a single dimension array.
+     * Flattens multiple dimensions of an array to a single dimension array.
      * The latest values will replace arrays with the same keys
      * @param array $array
      * @return array
