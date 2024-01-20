@@ -70,6 +70,7 @@ class CoreException
             $line = $exception->getLine();
 
             $body = <<<BDY
+            $body
             <div style="font-weight: bold; color: cyan">$file ($line)</div>
             <div style="color: lightcyan">$file_all:<b>$line</b></div>
             BDY;
