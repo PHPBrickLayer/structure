@@ -68,8 +68,10 @@ class CoreException
             $file = explode(DIRECTORY_SEPARATOR, $file_all);
             $file = end($file);
             $line = $exception->getLine();
+            $body = $body ?: $exception->getMessage();
 
             $body = <<<BDY
+            $body
             <div style="font-weight: bold; color: cyan">$file ($line)</div>
             <div style="color: lightcyan">$file_all:<b>$line</b></div>
             BDY;
