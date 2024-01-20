@@ -56,7 +56,7 @@ abstract class LayMail {
             self::$mail_link->Username   = self::$credentials['username'];
             self::$mail_link->Password   = self::$credentials['password'];
         }catch (\Exception $e){
-            \BrickLayer\Lay\Core\Exception::throw_exception("SMTP Credentials has not been setup. " . $e->getMessage(),"SMTPCredentialsError", stack_track: $e->getTrace());
+            \BrickLayer\Lay\Core\Exception::throw_exception("SMTP Credentials has not been setup. " . $e->getMessage(),"SMTPCredentialsError", stack_track: $e->getTrace(), exception: $e);
         }
 
     }
@@ -250,8 +250,8 @@ abstract class LayMail {
 
             return true;
 
-        } catch (\Exception) {
-            \BrickLayer\Lay\Core\Exception::throw_exception(htmlspecialchars($recipient['to']) . ' LayMail.php' . self::$mail_link->ErrorInfo, "MailerError", false);
+        } catch (\Exception $e) {
+            \BrickLayer\Lay\Core\Exception::throw_exception(htmlspecialchars($recipient['to']) . ' LayMail.php' . self::$mail_link->ErrorInfo, "MailerError", false, exception: $e);
             // Reset the connection to abort sending this message
             // If Loop the loop will continue trying to send to the rest of the list
             self::$mail_link->getSMTPInstance()->reset();

@@ -37,12 +37,13 @@ class SQL
         return mysqli_select_db(self::$link, $name);
     }
 
-    public function exception(string $title, string $message, array $opts = []) : void
+    public function exception(string $title, string $message, array $opts = [], $exception = null) : void
     {
         CoreException::new()->use_exception(
             "OrmExp_" . $title,
             $message,
-            opts: $opts
+            opts: $opts,
+            exception: $exception
         );
     }
 

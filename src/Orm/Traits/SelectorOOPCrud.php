@@ -79,7 +79,7 @@ trait SelectorOOPCrud
                     $cols .= $c == null ? "`$k`=NULL," : "`$k`=$c,";
                 }
             }catch (\Exception $e){
-                $this->oop_exception("Error occurred when trying to insert into a DB: $e");
+                $this->oop_exception("Error occurred when trying to insert into a DB: " . $e->getMessage(), $e);
             }
             $column_and_values = rtrim($cols,",");
         }
@@ -141,7 +141,7 @@ trait SelectorOOPCrud
                     $cols .= $c == null ? "`$k`=NULL," : "`$k`='$c',";
                 }
             }catch (\Exception $e){
-                $this->oop_exception("Error occurred when trying to update a DB: $e");
+                $this->oop_exception("Error occurred when trying to update a DB:" . $e->getMessage(), $e);
             }
             $values = rtrim($cols,",");
         }

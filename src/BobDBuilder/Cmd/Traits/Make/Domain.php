@@ -274,7 +274,7 @@ trait Domain
             $file->rewind();
             $file->fwrite(implode("\n", $page));
         } catch (\Exception $e) {
-            Exception::throw_exception($e->getMessage(), "MakeDomain");
+            Exception::throw_exception($e->getMessage(), "MakeDomain", exception: $e);
 
             new LayUnlinkDir($domain_dir);
             unlink($lock_file);

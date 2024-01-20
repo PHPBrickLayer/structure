@@ -61,8 +61,22 @@ class CoreException
     /**
      * @throws \Exception
      */
-    public function use_exception(string $title, string $body, bool $kill = true, array $trace = [], array $raw = [], bool $use_lay_error = true, array $opts = []): void
+    public function use_exception(string $title, string $body, bool $kill = true, array $trace = [], array $raw = [], bool $use_lay_error = true, array $opts = [], $exception = null): void
     {
+        if($exception) {
+            $file_all = $exception->getFile();
+            $file = explode(DIRECTORY_SEPARATOR, $file_all);
+            $file = end($file);
+            $line = $exception->getLine();
+
+            $body = <<<BDY
+            <div style="font-weight: bold; color: cyan">$file ($line)</div>
+            <div style="color: lightcyan">$file_all:<b>$line</b></div>
+            BDY;
+
+            $trace = $exception->getTrace();
+        }
+
         $this->show_exception([
                 "title" => $title,
                 "body_includes" => $body,
@@ -70,7 +84,8 @@ class CoreException
                 "trace" => $trace,
                 "raw" => $raw,
                 "use_lay_error" => $use_lay_error,
-                "exception_type" => $opts['type'] ?? 'error'
+                "exception_type" => $opts['type'] ?? 'error',
+                "exception_object" => $exception
             ]
         );
     }
@@ -120,8 +135,8 @@ class CoreException
                 continue;
 
             $k++;
-            $last_file = explode("/", $v['file']);
-            $last_file = $v['class'] ?? end($last_file);
+            $last_file = explode(DIRECTORY_SEPARATOR, $v['file']);
+            $last_file = end($last_file);
             $stack .= <<<STACK
                 <div style="color: #fff; padding-left: 20px">
                     <div>#$k: {$v['function']}(...)</div>
@@ -143,7 +158,7 @@ class CoreException
         if ($display) {
             $display = <<<DEBUG
             <div style="min-height: 300px; background:#1d2124;padding:10px;color:#fffffa;overflow:auto;">
-                <h3 style='text-transform: uppercase; color: $title_color; margin: 2px 0'> $title </h3>
+                <h3 style='color: $title_color; margin: 2px 0'> $title </h3>
                 <div style='color: $body_color; font-weight: bold; margin: 5px 0;'> $body </div><br>
                 <div><b style="color: #dea303">$env ENVIRONMENT</b></div>
                 <div>$stack</div>
@@ -209,7 +224,8 @@ class CoreException
             return;
 
         $use_lay_error = $opt['use_lay_error'] ?? true;
-        $trace = [...$opt['trace'] ?? [], ...debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS)];
+        $trace = empty($opt['trace']) ? debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS) : $opt['trace'];
+
         $type = $opt['exception_type'];
 
         if (!$use_lay_error) {

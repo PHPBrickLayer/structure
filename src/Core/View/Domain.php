@@ -187,16 +187,17 @@ class Domain {
         try{
             $builder = new ReflectionClass($builder);
         } catch (ReflectionException $e){
-            Exception::throw_exception($e->getMessage(), "DomainException");
+            Exception::throw_exception($e->getMessage(), "DomainException", exception: $e);
         }
 
         try {
             $builder = $builder->newInstance();
-        } catch (ReflectionException) {
+        } catch (ReflectionException $e) {
             Exception::throw_exception(
                 " $builder_class constructor class is private. \n"
                 . " All builder classes must expose their __construct function to clear this error",
-                "ConstructPrivate"
+                "ConstructPrivate",
+                exception: $e
             );
         }
 

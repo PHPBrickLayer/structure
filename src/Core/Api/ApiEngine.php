@@ -24,9 +24,10 @@ final class ApiEngine {
     private static ?string $group;
     private static string $request_method;
 
-    private static function exception(string $title, string $message, array $stack_trace = []) : void {
+    private static function exception(string $title, string $message, $exception = null) : void {
         http_response_code(500);
-        Exception::throw_exception($message, $title, true, self::$use_lay_exception, $stack_trace);
+        $stack_trace = $exception ? $exception->getTrace() : [];
+        Exception::throw_exception($message, $title, true, self::$use_lay_exception, $stack_trace, exception: $exception);
     }
 
     private function correct_request_method(bool $throw_exception = true) : bool {
@@ -106,8 +107,8 @@ final class ApiEngine {
                     try {
                         settype(self::$request_uri[$i], $data_type);
                     }
-                    catch (\ValueError){
-                        self::exception("InvalidDataType", "`@$data_type` is not a valid datatype, In [" . rtrim($uri_text, ", ") . "];");
+                    catch (\ValueError $e){
+                        self::exception("InvalidDataType", "`@$data_type` is not a valid datatype, In [" . rtrim($uri_text, ", ") . "];", $e);
                     }
                 }
 
@@ -228,13 +229,10 @@ final class ApiEngine {
             self::$request_complete = true;
         }
         catch (\TypeError $e){
-            self::exception("MethodTypeError", "Check the bind function of your route: [". self::$request_uri_raw ."]; <br>" . $e->getMessage(), $e->getTrace());
+            self::exception("ApiEngineMethodError", "Check the bind function of your route: [". self::$request_uri_raw ."]; <br>" . $e->getMessage(), $e);
         }
-        catch (\Error $e){
-            self::exception("ErrorEncountered", $e->getMessage(), $e->getTrace());
-        }
-        catch (\Exception $e) {
-            self::exception("MethodExecutionError", $e->getMessage(), $e->getTrace());
+        catch (\Error|\Exception $e){
+            self::exception("ApiEngineError", $e->getMessage(), $e);
         }
 
         return $this;
@@ -247,7 +245,7 @@ final class ApiEngine {
         try {
             return self::$method_return_value;
         } catch (\Error $e) {
-            self::exception("PrematureGetResult", $e->getMessage() . "; You simply called get result and no specified route was hit, so there's nothing to 'get'");
+            self::exception("PrematureGetResult", $e->getMessage() . "; You simply called get result and no specified route was hit, so there's nothing to 'get'", $e);
         }
 
         return null;

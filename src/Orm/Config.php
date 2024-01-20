@@ -158,7 +158,8 @@ trait Config{
             if(!$silent_error)
                 $this->exception(
                     "ConnErr",
-                    "<div style='color: #e00; font-weight: bold; margin: 5px 1px;'>Failed to close connection. No pre-existing DB connection</div>"
+                    "<div style='color: #e00; font-weight: bold; margin: 5px 1px;'>Failed to close connection. No pre-existing DB connection</div>",
+                    exception: $e
                 );
         }
 
