@@ -218,9 +218,9 @@ trait SelectorOOP
 
     use SelectorOOPCrud;
 
-    private function oop_exception(string $message): void
+    private function oop_exception(string $message, $exception = null): void
     {
-        Exception::new()->use_exception("SQL_OOP::ERR", $message);
+        Exception::new()->use_exception("SQL_OOP::ERR", $message, exception: $exception);
     }
 
 }

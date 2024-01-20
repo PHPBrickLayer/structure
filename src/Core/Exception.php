@@ -6,9 +6,9 @@ abstract class Exception {
     /**
      * @throws \Exception
      */
-    public static function throw_exception(string $message, string $title = "Generic", bool $kill = true, bool $use_lay_error = true, array $stack_track = []) : void
+    public static function throw_exception(string $message, string $title = "Generic", bool $kill = true, bool $use_lay_error = true, array $stack_track = [], $exception = null) : void
     {
-        self::new()->use_exception("LayExp_$title", $message, $kill, trace: $stack_track, use_lay_error: $use_lay_error);
+        self::new()->use_exception("LayExp_$title", $message, $kill, trace: $stack_track, use_lay_error: $use_lay_error, exception: $exception);
     }
 
     public static function new() : \BrickLayer\Lay\Core\CoreException

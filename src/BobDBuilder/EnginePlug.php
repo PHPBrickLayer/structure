@@ -76,7 +76,8 @@ class EnginePlug
                     $e->getMessage() . "\n"
                     . $e->getFile() . ":" . $e->getLine()
                     , "BobError " . $cmd_class::class,
-                    stack_track: $e->getTrace()
+                    stack_track: $e->getTrace(),
+                    exception: $e
                 );
             }
             if($cmd_class::class == $this->active_cmd_class)
@@ -103,7 +104,7 @@ class EnginePlug
             try{
                 $class = new ReflectionClass($cmd_class);
             } catch (ReflectionException $e){
-                Exception::throw_exception($e->getMessage(), "ReflectionException");
+                Exception::throw_exception($e->getMessage(), "ReflectionException", exception: $e);
             }
 
             try {
@@ -112,7 +113,8 @@ class EnginePlug
                 Exception::throw_exception(
                     " $cmd_class constructor class is private. \n"
                     . " All Cmd classes must expose their __construct function to clear this error",
-                    "ConstructPrivate"
+                    "ConstructPrivate",
+                    exception: $e
                 );
             }
 
@@ -121,7 +123,7 @@ class EnginePlug
             try {
                 $class->_init($this);
             } catch (Error|\Exception $e) {
-                Exception::throw_exception($e->getMessage(), "BobError");
+                Exception::throw_exception($e->getMessage(), "BobError", exception: $e);
             }
         }
     }
