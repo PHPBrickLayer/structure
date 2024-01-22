@@ -53,6 +53,7 @@ class EnginePlug
     {
         $spun_correct_class = false;
 
+        LayConfig::$ENV_IS_DEV = true;
         Exception::new()->capture_errors(true);
 
         // This property is active when the command sent matches any on the existing Cmd classes
