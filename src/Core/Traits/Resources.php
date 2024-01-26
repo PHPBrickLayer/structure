@@ -154,9 +154,11 @@ trait Resources {
     }
 
     public static function mk_tmp_dir (?string $temp_dir = null) : string {
-        if($temp_dir && !is_dir($temp_dir)) {
-            umask(0);
-            mkdir($temp_dir, 0755, true);
+        if($temp_dir) {
+            if(!is_dir($temp_dir)) {
+                umask(0);
+                mkdir($temp_dir, 0755, true);
+            }
 
             return $temp_dir;
         }
