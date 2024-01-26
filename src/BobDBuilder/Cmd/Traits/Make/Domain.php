@@ -182,7 +182,7 @@ trait Domain
     {
         $pattern = "";
         foreach (explode(",", $patterns) as $p) {
-            $pattern .= '"' . trim($p) . '",';
+            $pattern .= '"' . strtolower(trim($p)) . '",';
         }
 
         $pattern = rtrim($pattern, ",");

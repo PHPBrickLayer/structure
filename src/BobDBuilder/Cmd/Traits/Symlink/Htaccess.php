@@ -22,7 +22,7 @@ trait Htaccess
 
         if (file_exists($dest) && !$plug->force)
             $plug->write_warn(
-                "htaccess exists already at: $dest"
+                "htaccess exists already at: *$dest*\n"
                 . "If you want to REPLACE!! it, pass the flag --force\n"
                 . "***### Take Note:: You will be deleting the former htaccess if you decide to pass the flag --force"
             );
@@ -31,6 +31,6 @@ trait Htaccess
         symlink($plug->server->web . ".htaccess", $dest);
         $this->track_link("", $domain, "htaccess");
 
-        $plug->write_success("htaccess successfully linked to: $dest");
+        $plug->write_success("htaccess successfully linked to: *$dest*");
     }
 }

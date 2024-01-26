@@ -3,9 +3,11 @@
 namespace BrickLayer\Lay\BobDBuilder\Cmd;
 
 use BrickLayer\Lay\BobDBuilder\BobExec;
+use BrickLayer\Lay\BobDBuilder\Cmd\Traits\Symlink\Api;
 use BrickLayer\Lay\BobDBuilder\Cmd\Traits\Symlink\Dir;
 use BrickLayer\Lay\BobDBuilder\Cmd\Traits\Symlink\File;
 use BrickLayer\Lay\BobDBuilder\Cmd\Traits\Symlink\Htaccess;
+use BrickLayer\Lay\BobDBuilder\Cmd\Traits\Symlink\Shared;
 use BrickLayer\Lay\BobDBuilder\Cmd\Traits\Symlink\Uploads;
 use BrickLayer\Lay\BobDBuilder\EnginePlug;
 use BrickLayer\Lay\BobDBuilder\Interface\CmdLayout;
@@ -30,6 +32,8 @@ class Symlink implements CmdLayout
         $this->plug = $plug;
 
         $plug->add_arg($this, ["link:htaccess"], 'link_htaccess', 0);
+        $plug->add_arg($this, ["link:api"], 'link_api', 0);
+        $plug->add_arg($this, ["link:shared"], 'link_shared', 0);
         $plug->add_arg($this, ["link:uploads"], 'link_uploads', 0);
         $plug->add_arg($this, ["link:dir"], 'link_dir', 0, 1);
         $plug->add_arg($this, ["link:file"], 'link_file', 0, 1);
@@ -44,6 +48,8 @@ class Symlink implements CmdLayout
         $this->uploads();
         $this->dir();
         $this->file();
+        $this->shared();
+        $this->api();
 
         if($this->plug->tags['link_refresh'])
             $this->refresh_link();
@@ -98,5 +104,7 @@ class Symlink implements CmdLayout
     use Dir;
     use File;
     use Uploads;
+    use Shared;
+    use Api;
 
 }

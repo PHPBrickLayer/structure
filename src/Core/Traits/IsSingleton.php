@@ -6,7 +6,7 @@ namespace BrickLayer\Lay\Core\Traits;
 trait IsSingleton {
     protected static self $instance;
 
-    private final function __construct(){}
+    private function __construct(){}
     private function __clone(){}
 
     private  static function SINGLETON() : self
