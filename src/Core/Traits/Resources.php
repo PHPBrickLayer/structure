@@ -34,6 +34,8 @@ trait Resources {
         $obj->uploads           =   $dir  .   "web"       .   $slash .    "uploads" . $slash;
         $obj->uploads_no_root   =   "uploads" . $slash;
 
+        self::mk_tmp_dir($obj->temp);
+
         self::$server = $obj;
     }
     protected static function set_internal_site_data(array $options) : void {
@@ -151,7 +153,14 @@ trait Resources {
         return self::$CLIENT_VALUES;
     }
 
-    public static function mk_tmp_dir () : string {
+    public static function mk_tmp_dir (?string $temp_dir = null) : string {
+        if($temp_dir && !is_dir($temp_dir)) {
+            umask(0);
+            mkdir($temp_dir, 0755, true);
+
+            return $temp_dir;
+        }
+
         $dir = self::server_data()->temp;
 
         if(!is_dir($dir)) {
