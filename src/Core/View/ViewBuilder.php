@@ -178,7 +178,10 @@ final class ViewBuilder
         if (empty($data['route_as_array'][0]))
             $data['route_as_array'][0] = 'index';
 
-        foreach ([self::$route, ...self::$route_aliases] as $route) {
+        $found = false;
+        $route_and_alias = [self::$route, ...self::$route_aliases];
+
+        foreach ($route_and_alias as $route_index => $route) {
             self::$route = $route;
             $uri = explode("/", self::$route);
             $uri_size = count($uri);
@@ -186,15 +189,21 @@ final class ViewBuilder
             if (count($data['route_as_array']) == $uri_size) {
                 foreach ($uri as $i => $u) {
                     $current_uri = $data['route_as_array'][$i];
+                    $found = true;
 
                     if (str_starts_with($u, "{")) {
                         $data['route_as_array'][$i] = $u;
                         continue;
                     }
 
-                    if ($current_uri != $u)
+                    if ($current_uri != $u) {
+                        $found = false;
                         break;
+                    }
                 }
+
+                if(!$found && count($route_and_alias) != ($route_index))
+                    continue;
 
                 $data['route'] = implode("/", $data['route_as_array']);
                 break;
