@@ -169,7 +169,7 @@ trait Brick
             <?php
             declare(strict_types=1);
             
-            namespace bricks\\$brick\model;
+            namespace bricks\\$brick\controller;
             
             use JetBrains\PhpStorm\ArrayShape;
             use BrickLayer\Lay\Orm\SQL;
