@@ -49,9 +49,6 @@ abstract class ApiHooks
 
             $cmd_class = "bricks\\$brick\\Api\\Hook";
 
-            if(class_exists($cmd_class))
-                continue;
-
             if(in_array($cmd_class, $class_to_ignore, true))
                 continue;
 

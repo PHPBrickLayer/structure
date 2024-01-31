@@ -13,6 +13,7 @@ final class ApiEngine {
     }
 
     private static string $request_uri_raw;
+    private static array $registered_uris = [];
     private static array $request_uri = [];
     private static array $request_header;
     private static array $method_arguments;
@@ -69,6 +70,8 @@ final class ApiEngine {
 
         if(isset(self::$prefix))
             $request_uri = [self::$prefix, ...$request_uri];
+
+        self::$registered_uris[] = implode("/",$request_uri);
 
         if(count(self::$request_uri) !== count($request_uri))
             return $this;
@@ -236,6 +239,11 @@ final class ApiEngine {
         }
 
         return $this;
+    }
+
+    public function get_registered_uris() : array
+    {
+        return self::$registered_uris;
     }
 
     public function get_result() : mixed {
