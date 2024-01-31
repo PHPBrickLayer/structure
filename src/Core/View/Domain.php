@@ -271,7 +271,9 @@ class Domain {
         return [
             "sub" => [
                 "value" => $sub_domain[0],
-                "found" => !($sub_domain[0] == "www") && count($sub_domain) > 2,
+                "found" => !($sub_domain[0] == "www")
+                    && !(is_numeric($sub_domain[0]) && is_numeric($sub_domain[1]))
+                    && count($sub_domain) > 2,
             ],
             "local" => [
                 "value" => $local_dir[0],
