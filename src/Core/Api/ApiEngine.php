@@ -71,7 +71,10 @@ final class ApiEngine {
         if(isset(self::$prefix))
             $request_uri = [self::$prefix, ...$request_uri];
 
-        self::$registered_uris[] = implode("/",$request_uri);
+        self::$registered_uris[] = [
+            "uri" => implode("/",$request_uri),
+            "method" => self::$request_method,
+        ];
 
         if(count(self::$request_uri) !== count($request_uri))
             return $this;
