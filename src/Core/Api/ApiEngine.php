@@ -57,11 +57,12 @@ final class ApiEngine {
      * @example `post/user/index/25`; translates to => `'post','user','index','{@int id}'`
      * @return $this
      */
-    private function map_request(string $request_uri) : self {
+    private function map_request(string $request_uri, ApiReturnType $return_type) : self {
         if(self::$request_found || self::$request_complete || !$this->correct_request_method(false))
             return $this;
 
         self::$method_arguments = [];
+        self::$method_return_type = $return_type;
         $uri_text = "";
         $request_uri = trim($request_uri, "/");
         $request_uri = explode("/", $request_uri);
@@ -76,7 +77,7 @@ final class ApiEngine {
         self::$registered_uris[] = [
             "uri" => implode("/",$request_uri),
             "method" => self::$request_method,
-            "return_type" => self::$method_return_type->value,
+            "return_type" => self::$method_return_type,
         ];
 
         if(count(self::$request_uri) !== count($request_uri))
@@ -196,37 +197,32 @@ final class ApiEngine {
 
     public function post(string $request_uri, ApiReturnType $return_type = ApiReturnType::JSON) : self {
         self::$request_method = ApiRequestMethod::POST->value;
-        self::$method_return_type = $return_type;
 
-        return $this->map_request($request_uri);
+        return $this->map_request($request_uri, $return_type);
     }
 
     public function get(string $request_uri, ApiReturnType $return_type = ApiReturnType::JSON) : self {
         self::$request_method = ApiRequestMethod::GET->value;
-        self::$method_return_type = $return_type;
 
-        return $this->map_request($request_uri);
+        return $this->map_request($request_uri, $return_type);
     }
 
     public function put(string $request_uri, ApiReturnType $return_type = ApiReturnType::JSON) : self {
         self::$request_method = ApiRequestMethod::PUT->value;
-        self::$method_return_type = $return_type;
 
-        return $this->map_request($request_uri);
+        return $this->map_request($request_uri, $return_type);
     }
 
     public function head(string $request_uri, ApiReturnType $return_type = ApiReturnType::JSON) : self {
         self::$request_method = ApiRequestMethod::HEAD->value;
-        self::$method_return_type = $return_type;
 
-        return $this->map_request($request_uri);
+        return $this->map_request($request_uri, $return_type);
     }
 
     public function delete(string $request_uri, ApiReturnType $return_type = ApiReturnType::JSON) : self {
         self::$request_method = ApiRequestMethod::DELETE->value;
-        self::$method_return_type = $return_type;
 
-        return $this->map_request($request_uri);
+        return $this->map_request($request_uri, $return_type);
     }
 
     /**
@@ -289,12 +285,13 @@ final class ApiEngine {
      * @return string|bool|null Returns `null` when no api was hit; Returns `false` on error; Returns json encoded string or html on success,
      * depending on what was selected as `$return_type`
      */
-    public function print_as(ApiReturnType $return_type = ApiReturnType::JSON, bool $print = true) : string|bool|null {
+    public function print_as(?ApiReturnType $return_type = null, bool $print = true) : string|bool|null {
         if(!isset(self::$method_return_value))
             return null;
 
         // Clear the prefix, because this method marks the end of a set of api routes
         self::$prefix = null;
+        $return_type ??= self::$method_return_type;
 
         $x = $return_type == ApiReturnType::JSON ? json_encode(self::$method_return_value) : self::$method_return_value;
 
