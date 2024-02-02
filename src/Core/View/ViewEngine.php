@@ -93,9 +93,9 @@ final class ViewEngine {
         if(empty(self::$constant_attributes))
             self::constants([]);
 
+
         $layConfig = LayConfig::new();
         $data = $layConfig::site_data();
-
 
         $const = array_replace_recursive(self::$constant_attributes, $page_data);;
 
@@ -115,7 +115,11 @@ final class ViewEngine {
         unset($const[self::key_assets]);
 
         self::$meta_data = LayObject::new()->to_object($const);
-        $this->create_html_page();
+
+        if($const[self::key_core]['skeleton'])
+            $this->create_html_page();
+        else
+            echo $this->skeleton_body();
     }
 
     private function create_html_page() : void {
@@ -212,8 +216,8 @@ final class ViewEngine {
     private function skeleton_body() : string
     {
         ob_start();
-
         $this->add_view_section(self::key_body);
+
         echo $this->core_script();
         $this->add_view_section(self::key_script);
 
@@ -247,6 +251,13 @@ final class ViewEngine {
         // That is: body.inc for `body section`, head.inc for `head section`.
         if($meta->{self::key_core}->skeleton === true)
             $this->insert_view($view_section, "inc", false);
+
+        // The echos the body value without the skeleton of Lay.
+        // This only works with the `body` method, it doesn't work with `head` or `script` method
+        else {
+            DomainResource::make_plaster(self::$meta_data);
+            echo self::$meta_data->{$view_section};
+        }
     }
 
     private function insert_view(?string $file, string $type, bool $as_string) : ?string
