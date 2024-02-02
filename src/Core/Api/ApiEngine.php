@@ -300,8 +300,11 @@ final class ApiEngine {
                 case ApiReturnType::JSON:
                     header("Content-Type: application/json");
                     break;
-                default:
+                case ApiReturnType::HTML:
                     header("Content-Type: text/html");
+                    break;
+                default:
+                    header("Content-Type: text/plain");
                     break;
             }
 
