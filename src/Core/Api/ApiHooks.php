@@ -32,7 +32,7 @@ abstract class ApiHooks
     {
         $this->request::fetch();
         $this->load_brick_hooks();
-        $this->request->print_as_json();
+        $this->request->print_as();
     }
 
     public final function load_brick_hooks(string ...$class_to_ignore) : void
