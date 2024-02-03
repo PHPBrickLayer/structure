@@ -110,16 +110,16 @@ trait Brick
          * Default model file
          */
         // delete placeholder file
-        unlink($brick_dir . $this->plug->s . "model" . $this->plug->s . "model.php");
+        unlink($brick_dir . $this->plug->s . "Model" . $this->plug->s . "model.php");
 
         // make brick default model file
         file_put_contents(
-            $brick_dir . $this->plug->s . "model" . $this->plug->s . "$brick.php",
+            $brick_dir . $this->plug->s . "Model" . $this->plug->s . "$brick.php",
             <<<FILE
             <?php
             declare(strict_types=1);
             
-            namespace bricks\\$brick\model;
+            namespace bricks\\$brick\Model;
             
             use JetBrains\PhpStorm\ArrayShape;
             use BrickLayer\Lay\Orm\SQL;
@@ -160,22 +160,22 @@ trait Brick
          */
 
         // delete placeholder file
-        unlink($brick_dir . $this->plug->s . "controller" . $this->plug->s . "controller.php");
+        unlink($brick_dir . $this->plug->s . "Controller" . $this->plug->s . "controller.php");
 
         // make brick default controller
         file_put_contents(
-            $brick_dir . $this->plug->s . "controller" . $this->plug->s . "$brick_plural.php",
+            $brick_dir . $this->plug->s . "Controller" . $this->plug->s . "$brick_plural.php",
             <<<FILE
             <?php
             declare(strict_types=1);
             
-            namespace bricks\\$brick\model;
+            namespace bricks\\$brick\Controller;
             
             use JetBrains\PhpStorm\ArrayShape;
             use BrickLayer\Lay\Orm\SQL;
             $import
             
-            use bricks\\$brick\model\\$brick;
+            use bricks\\$brick\Model\\$brick;
             
             class $brick_plural
             {

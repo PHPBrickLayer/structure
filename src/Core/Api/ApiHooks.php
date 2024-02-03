@@ -32,7 +32,7 @@ abstract class ApiHooks
     {
         $this->request::fetch();
         $this->load_brick_hooks();
-        $this->request->print_as_json();
+        $this->request->print_as();
     }
 
     public final function load_brick_hooks(string ...$class_to_ignore) : void
@@ -48,9 +48,6 @@ abstract class ApiHooks
                 continue;
 
             $cmd_class = "bricks\\$brick\\Api\\Hook";
-
-            if(class_exists($cmd_class))
-                continue;
 
             if(in_array($cmd_class, $class_to_ignore, true))
                 continue;

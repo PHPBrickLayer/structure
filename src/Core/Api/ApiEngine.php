@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace BrickLayer\Lay\Core\Api;
 
+use BrickLayer\Lay\Core\Api\Enums\ApiReturnType;
 use BrickLayer\Lay\Core\View\ViewBuilder;
 use Closure;
 use BrickLayer\Lay\Core\Api\Enums\ApiRequestMethod;
@@ -13,10 +14,12 @@ final class ApiEngine {
     }
 
     private static string $request_uri_raw;
+    private static array $registered_uris = [];
     private static array $request_uri = [];
     private static array $request_header;
     private static array $method_arguments;
     private static mixed $method_return_value;
+    private static ApiReturnType $method_return_type = ApiReturnType::JSON;
     private static bool $use_lay_exception = true;
     private static bool $request_found = false;
     private static bool $request_complete = false;
@@ -54,11 +57,12 @@ final class ApiEngine {
      * @example `post/user/index/25`; translates to => `'post','user','index','{@int id}'`
      * @return $this
      */
-    private function map_request(string $request_uri) : self {
+    private function map_request(string $request_uri, ApiReturnType $return_type) : self {
         if(self::$request_found || self::$request_complete || !$this->correct_request_method(false))
             return $this;
 
         self::$method_arguments = [];
+        self::$method_return_type = $return_type;
         $uri_text = "";
         $request_uri = trim($request_uri, "/");
         $request_uri = explode("/", $request_uri);
@@ -69,6 +73,12 @@ final class ApiEngine {
 
         if(isset(self::$prefix))
             $request_uri = [self::$prefix, ...$request_uri];
+
+        self::$registered_uris[] = [
+            "uri" => implode("/",$request_uri),
+            "method" => self::$request_method,
+            "return_type" => self::$method_return_type,
+        ];
 
         if(count(self::$request_uri) !== count($request_uri))
             return $this;
@@ -185,29 +195,34 @@ final class ApiEngine {
         return $this;
     }
 
-    public function post(string $request_uri) : self {
+    public function post(string $request_uri, ApiReturnType $return_type = ApiReturnType::JSON) : self {
         self::$request_method = ApiRequestMethod::POST->value;
-        return $this->map_request($request_uri);
+
+        return $this->map_request($request_uri, $return_type);
     }
 
-    public function get(string $request_uri) : self {
+    public function get(string $request_uri, ApiReturnType $return_type = ApiReturnType::JSON) : self {
         self::$request_method = ApiRequestMethod::GET->value;
-        return $this->map_request($request_uri);
+
+        return $this->map_request($request_uri, $return_type);
     }
 
-    public function put(string $request_uri) : self {
+    public function put(string $request_uri, ApiReturnType $return_type = ApiReturnType::JSON) : self {
         self::$request_method = ApiRequestMethod::PUT->value;
-        return $this->map_request($request_uri);
+
+        return $this->map_request($request_uri, $return_type);
     }
 
-    public function head(string $request_uri) : self {
+    public function head(string $request_uri, ApiReturnType $return_type = ApiReturnType::JSON) : self {
         self::$request_method = ApiRequestMethod::HEAD->value;
-        return $this->map_request($request_uri);
+
+        return $this->map_request($request_uri, $return_type);
     }
 
-    public function delete(string $request_uri) : self {
+    public function delete(string $request_uri, ApiReturnType $return_type = ApiReturnType::JSON) : self {
         self::$request_method = ApiRequestMethod::DELETE->value;
-        return $this->map_request($request_uri);
+
+        return $this->map_request($request_uri, $return_type);
     }
 
     /**
@@ -229,13 +244,18 @@ final class ApiEngine {
             self::$request_complete = true;
         }
         catch (\TypeError $e){
-            self::exception("ApiEngineMethodError", "Check the bind function of your route: [". self::$request_uri_raw ."]; <br>" . $e->getMessage(), $e);
+            self::exception("ApiEngineMethodError", "Check the bind function of your route: [" . self::$request_uri_raw . "]; <br>" . $e->getMessage(), $e);
         }
         catch (\Error|\Exception $e){
             self::exception("ApiEngineError", $e->getMessage(), $e);
         }
 
         return $this;
+    }
+
+    public function get_registered_uris() : array
+    {
+        return self::$registered_uris;
     }
 
     public function get_result() : mixed {
@@ -256,16 +276,38 @@ final class ApiEngine {
      * @return string|bool|null Returns `null` when no api was his; Returns `false` on error; Returns json encoded string on success
      */
     public function print_as_json(bool $print = true) : string|bool|null {
+        return $this->print_as(self::$method_return_type ?? ApiReturnType::JSON, $print);
+    }
+
+    /**
+     * @param ApiReturnType $return_type
+     * @param bool $print
+     * @return string|bool|null Returns `null` when no api was hit; Returns `false` on error; Returns json encoded string or html on success,
+     * depending on what was selected as `$return_type`
+     */
+    public function print_as(?ApiReturnType $return_type = null, bool $print = true) : string|bool|null {
         if(!isset(self::$method_return_value))
             return null;
 
         // Clear the prefix, because this method marks the end of a set of api routes
         self::$prefix = null;
+        $return_type ??= self::$method_return_type;
 
-        $x = json_encode(self::$method_return_value);
+        $x = $return_type == ApiReturnType::JSON ? json_encode(self::$method_return_value) : self::$method_return_value;
 
         if($print) {
-            header("Content-Type: application/json");
+            switch ($return_type){
+                case ApiReturnType::JSON:
+                    header("Content-Type: application/json");
+                    break;
+                case ApiReturnType::HTML:
+                    header("Content-Type: text/html");
+                    break;
+                default:
+                    header("Content-Type: text/plain");
+                    break;
+            }
+
             print_r($x);
             die;
         }
