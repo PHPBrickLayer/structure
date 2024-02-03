@@ -159,7 +159,7 @@ final class ViewBuilder
 
             self::$view_found = true;
 
-            if (isset($current_page['page']['title']) || $current_page['core']['skeleton'] === false)
+            if (isset($current_page['page']['title']) || @$current_page['core']['skeleton'] === false)
                 ViewEngine::new()->paint($current_page);
         }
 
