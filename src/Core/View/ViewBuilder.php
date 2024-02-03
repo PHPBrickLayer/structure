@@ -225,6 +225,12 @@ final class ViewBuilder
         return self::$current_route_data[$key] ?? '';
     }
 
+    #[NoReturn] public function relocate(string $url, ?string $domain_id = null): void
+    {
+        header("location: " . Anchor::new()->href($url, $domain_id)->get_href());
+        die;
+    }
+
     #[NoReturn] public function redirect(string $route, ViewCast $viewCast): void
     {
         if (self::$view_found)
