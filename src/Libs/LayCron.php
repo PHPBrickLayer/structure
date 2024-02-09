@@ -72,7 +72,7 @@ final class LayCron {
     }
 
     private function db_job_exists(string $job) : array {
-        return LayArraySearch::run($job, $this->db_job_all());
+        return LayArray::search($job, $this->db_job_all());
     }
 
     private function db_email_exists(?string $email = null) : ?string {

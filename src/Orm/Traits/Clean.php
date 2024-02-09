@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace BrickLayer\Lay\Orm\Traits;
 
 use BrickLayer\Lay\Core\Exception;
+use BrickLayer\Lay\Libs\LayArray;
 use BrickLayer\Lay\Orm\SQL;
 
 trait Clean {
@@ -36,7 +37,7 @@ trait Clean {
         $core = SQL::new();
         $link = $core->get_link();
 
-        $options = $core->array_flatten($options);
+        $options = LayArray::flatten($options);
         $flags = $options['flag'] ?? $options['flags'] ?? ENT_QUOTES;
         $allowedTags = $options['allowed'] ?? $options['tags'] ?? $options['allowed_tags'] ?? "";
         // this condition is meant for the $find variable when handling url_beautify
@@ -131,7 +132,7 @@ trait Clean {
     }
     public function add_escape_string(...$escape_string) : void {
         if(count(self::$escape_string) == 0) self::$escape_string = self::$stock_escape_string;
-        self::$escape_string = array_merge(self::$escape_string, SQL::new()->array_flatten($escape_string));
+        self::$escape_string = array_merge(self::$escape_string, LayArray::flatten($escape_string));
     }
     public function get_escape_string() : array { return self::$escape_string; }
     public function reset_escape_string() : self
