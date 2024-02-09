@@ -10,6 +10,8 @@ use BrickLayer\Lay\Orm\SQL;
 
 trait SelectorOOP
 {
+    use SelectorOOPCrud;
+
     private static int $current_index = 0;
     private array $cached_options = [];
 
@@ -215,8 +217,6 @@ trait SelectorOOP
 
         return $r;
     }
-
-    use SelectorOOPCrud;
 
     private function oop_exception(string $message, $exception = null): void
     {

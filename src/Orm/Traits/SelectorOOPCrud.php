@@ -258,6 +258,11 @@ trait SelectorOOPCrud
         );
     }
 
+    final public function count(?string $WHERE = null) : int
+    {
+        return $this->count_row(WHERE: $WHERE);
+    }
+
     final public function delete(?string $WHERE = null) : bool {
         $d = $this->get_vars();
         $d['clause'] = $WHERE ? "WHERE $WHERE" : $d['clause'];
