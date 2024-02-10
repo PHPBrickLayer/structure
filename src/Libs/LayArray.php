@@ -12,13 +12,14 @@ class LayArray
      * @param array $__RESULT_INDEX__ ***Do not modify this option, it is readonly to the developer***
      * @return string[] <p>Returns the first occurrence of the value in an array that contains the value
      * as interpreted by the function and the keys based on the total dimension it took to find the value.</p>
-     * <code>::run("2", ["ss", [[2]], '2'], true) </code>
+     * <code>::search("2", ["ss", [[2]], '2'], true) </code>
      * <code>== ['value' => '2', index => [1,2]]</code>
      *
-     * <code>::run("2", ["ss", [[2]], '2']) </code>
+     * <code>::search("2", ["ss", [[2]], '2']) </code>
      * <code>== ['value' => '2', index => [1,0,0]]</code>
      */
-    final public static function search(mixed $needle, array $haystack, bool $strict = false, array $__RESULT_INDEX__ = []) : array {
+    final public static function search(mixed $needle, array $haystack, bool $strict = false, array $__RESULT_INDEX__ = []) : array
+    {
         $result = [
             "value" => "LAY_NULL",
             "index" => $__RESULT_INDEX__,
@@ -27,7 +28,9 @@ class LayArray
 
         foreach ($haystack as $i => $d) {
             if(is_array($d)) {
+                array_shift($result['index']);
                 $result['index'][] = $i;
+
                 $search = self::search($needle, $d, $strict, $result['index']);
 
                 if($search['value'] !== "LAY_NULL") {
