@@ -37,12 +37,12 @@ trait SelectorOOP
      */
     private function _store_vars_temporarily(array $vars, callable $temporary_fn) : mixed
     {
-        self::$current_index = -969;
+        self::$current_index = 969;
         $this->cached_options[self::$current_index] = $vars;
 
         $data = $temporary_fn();
 
-        unset($this->cached_options[-969]);
+        unset($this->cached_options[969]);
 
         return $data;
     }
