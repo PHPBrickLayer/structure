@@ -5,6 +5,10 @@ namespace BrickLayer\Lay\Core\View\Tags\Traits;
 
 
 use BrickLayer\Lay\Core\Enums\CustomContinueBreak;
+use BrickLayer\Lay\Core\View\Tags\Anchor;
+use BrickLayer\Lay\Core\View\Tags\Img;
+use BrickLayer\Lay\Core\View\Tags\Link;
+use BrickLayer\Lay\Core\View\Tags\Script;
 
 trait Standard {
     private static self $me;
@@ -25,7 +29,17 @@ trait Standard {
         $this->attr[$key] = $value;
         return $this;
     }
-    
+
+    /**
+     * @param string ...$rules CSS Styles
+     * @return self
+     */
+    public function style(string ...$rules) : self
+    {
+        $this->attr["style"] = implode(";", $rules);
+        return $this;
+    }
+
     private function get_attr(?\Closure $callback = null) : string {
         $attr = "";
         
