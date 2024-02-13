@@ -10,12 +10,10 @@ use BrickLayer\Lay\Orm\SQL;
 
 trait SelectorOOP
 {
-    use SelectorOOPCrud;
-
     private static int $current_index = 0;
     private array $cached_options = [];
 
-    final function open(string $table): self
+    final public function open(string $table): self
     {
         self::$current_index++;
 
@@ -28,6 +26,25 @@ trait SelectorOOP
     final public function table(string $table): self
     {
         return $this->store_vars('table', $table);
+    }
+
+    /**
+     * Temporarily load `$this->cached_options` for a quick operation, unload data and free the memory on done.
+     * This method is used by `$this->select()` when `->limit()` is sent
+     * @param array $vars
+     * @param callable $temporary_fn
+     * @return mixed
+     */
+    private function _store_vars_temporarily(array $vars, callable $temporary_fn) : mixed
+    {
+        self::$current_index = -969;
+        $this->cached_options[self::$current_index] = $vars;
+
+        $data = $temporary_fn();
+
+        unset($this->cached_options[-969]);
+
+        return $data;
     }
 
     private function store_vars(string $key, mixed $value, $id1 = null, $id2 = null): self
@@ -217,6 +234,8 @@ trait SelectorOOP
 
         return $r;
     }
+
+    use SelectorOOPCrud;
 
     private function oop_exception(string $message, $exception = null): void
     {
