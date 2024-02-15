@@ -171,8 +171,6 @@ trait Brick
             
             namespace bricks\\$brick\Controller;
             
-            use JetBrains\PhpStorm\ArrayShape;
-            use BrickLayer\Lay\Orm\SQL;
             $import
             
             use bricks\\$brick\Model\\$brick;
