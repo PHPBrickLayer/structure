@@ -127,7 +127,7 @@ class Bucket
         return $promise->wait();
     }
 
-    public function list(string $directory, bool $src_only = true) : array
+    public function list(string $directory, bool $src_only = true, ?callable $callback = null) : array
     {
         $files = [];
 
@@ -139,11 +139,19 @@ class Bucket
 
             foreach ($contents['Contents'] as $content) {
                 if($src_only) {
+                    if($callback)
+                        $content['Key'] = $callback($content['Key']);
+
                     $files[] = $content['Key'];
+
                     continue;
                 }
 
+                if($callback)
+                    $content = $callback($content);
+
                 $files[] = $content;
+
             }
 
         } catch (\Exception $e){
