@@ -127,4 +127,30 @@ class Bucket
         return $promise->wait();
     }
 
+    public function list(string $directory, bool $src_only = true) : array
+    {
+        $files = [];
+
+        try {
+            $contents = self::$client->listObjectsV2([
+                'Bucket' => $this->bucket,
+                'Prefix' => $directory,
+            ]);
+
+            foreach ($contents['Contents'] as $content) {
+                if($src_only) {
+                    $files[] = $content['Key'];
+                    continue;
+                }
+
+                $files[] = $content;
+            }
+
+        } catch (\Exception $e){
+            \BrickLayer\Lay\Core\Exception::throw_exception($e->getMessage(), exception: $e);
+        }
+
+        return $files;
+    }
+
 }
