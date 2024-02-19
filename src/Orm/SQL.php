@@ -5,6 +5,7 @@ namespace BrickLayer\Lay\Orm;
 
 use BrickLayer\Lay\Core\CoreException;
 use BrickLayer\Lay\Core\Traits\IsSingleton;
+use BrickLayer\Lay\Libs\LayArray;
 use BrickLayer\Lay\Orm\Traits\Controller;
 use Exception;
 use mysqli;
@@ -62,7 +63,7 @@ class SQL
                 "No connection detected: <h5>Connection might be closed!</h5>",
             );
 
-        $option = $this->array_flatten($option);
+        $option = LayArray::flatten($option);
         $debug = $option['debug'] ?? 0;
         $catch_error = $option['catch'] ?? 0;
         $return_as = $option['return_as'] ?? "result"; // exec|result
@@ -157,33 +158,5 @@ class SQL
         }
 
         return $exec;
-    }
-
-    /**
-     * Flattens multiple dimensions of an array to a single dimension array.
-     * The latest values will replace arrays with the same keys
-     * @param array $array
-     * @return array
-     */
-    final public function array_flatten(array $array): array
-    {
-        $arr = $array;
-        if (count(array_filter($array, "is_array")) > 0) {
-            $arr = [];
-            foreach ($array as $i => $v) {
-                if (is_array($v)) {
-                    array_walk($v, function ($entry, $key) use (&$arr, &$v) {
-                        if (is_array($entry))
-                            $arr = array_merge($arr, $entry);
-                        elseif (!is_int($key))
-                            $arr[$key] = $entry;
-                        else
-                            $arr[] = $entry;
-                    });
-                } else
-                    $arr[$i] = $v;
-            }
-        }
-        return $arr;
     }
 }

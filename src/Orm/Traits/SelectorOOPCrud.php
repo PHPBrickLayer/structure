@@ -35,6 +35,30 @@ trait SelectorOOPCrud
         return $this->saved_result;
     }
 
+    private function _join(array $d) : string
+    {
+        if(!isset($d['join']))
+            return "";
+
+        $join_query = "";
+
+        foreach ($d['join'] as $k => $joint){
+            $on = $d['on'][$k];
+            $join = [
+                "table" => $joint['table'],
+                "type" => match (strtolower($joint['type'] ?? "")) {
+                    "left", "inner", "right" => strtoupper($joint['type']),
+                    default => "",
+                },
+                "on" => [$on['child_table'],$on['parent_table']],
+            ];
+
+            $join_query .= "{$join['type']} JOIN {$join['table']} ON {$join['on'][0]} = {$join['on'][1]} ";
+        }
+
+        return $join_query;
+    }
+
     final public function get_result() : mixed {
         return $this->saved_result ?? null;
     }
@@ -204,8 +228,13 @@ trait SelectorOOPCrud
             $current_queue = $limit['index'];
             $result_per_queue = $limit['max_result'];
 
+            $count = $this->_store_vars_temporarily(
+                $d,
+                fn() => ceil($this->count_row("*") / $result_per_queue)
+            );
+
             // cut off request if we've gotten to the last record set
-            if($current_queue > ceil($this->open($table)->clause($clause)->count_row("*") / $result_per_queue))
+            if($current_queue > $count)
                 return @$d['can_be_null'] ? null : [];
 
             $current_result = (max($current_queue, 1) - 1) * $result_per_queue;
@@ -218,23 +247,7 @@ trait SelectorOOPCrud
                 [$this->query("SELECT $cols FROM $table $clause", $d), $d]
             );
 
-        $join_query = "";
-
-        foreach ($d['join'] as $k => $joint){
-            $on = $d['on'][$k];
-            $join = [
-                "table" => $joint['table'],
-                "type" => match (strtolower($joint['type'] ?? "")) {
-                    "left", "inner", "right" => strtoupper($joint['type']),
-                    default => "",
-                },
-                "on" => [$on['child_table'],$on['parent_table']],
-            ];
-
-            $join_query .= "{$join['type']} JOIN {$join['table']} ON {$join['on'][0]} = {$join['on'][1]} ";
-        }
-
-        $clause = $join_query . $clause;
+        $clause = $this->_join($d) . $clause;
 
         return $this->capture_result(
             [$this->query("SELECT $cols FROM $table $clause", $d), $d]
@@ -243,14 +256,17 @@ trait SelectorOOPCrud
 
     final public function count_row(?string $column = null, ?string $WHERE = null) : int {
         $d = $this->get_vars();
-        $col = $column ?? $d['values'] ?? $d['columns'] ?? "*";
+        $col = "*";
+
         $WHERE = $WHERE ? "WHERE $WHERE" : ($d['clause'] ?? null);
         $table = $d['table'] ?? null;
 
         if(empty($table))
             $this->oop_exception("You did not initialize the `table`. Use the `->table(String)` method like this: `->value('your_table_name')`");
-        
+
         $d['query_type'] = "COUNT";
+
+        $WHERE = $this->_join($d) . $WHERE;
 
         return $this->capture_result(
             [$this->query("SELECT COUNT($col) FROM $table $WHERE", $d), $d],

@@ -2,6 +2,8 @@
 
 namespace BrickLayer\Lay\BobDBuilder\Cmd\Traits\Symlink;
 
+use BrickLayer\Lay\Libs\LayUnlinkDir;
+
 trait Uploads
 {
     private function uploads(): void
@@ -31,12 +33,12 @@ trait Uploads
 
         if (file_exists($dest) && !$plug->force)
             $plug->write_warn(
-                "*$dest* exists already at: $dest"
+                "*$dest* exists already at: \n*$dest*\n"
                 . "If you want to REPLACE!! it, pass the flag --force\n"
                 . "Take Note:: You will be replacing the former *$dest* if you decide to pass the flag --force"
             );
 
-        @unlink($dest);
+        new LayUnlinkDir($dest);
         symlink($source, $dest);
         $this->track_link("", $domain, "uploads");
 

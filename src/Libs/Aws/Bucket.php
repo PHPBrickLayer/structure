@@ -127,4 +127,38 @@ class Bucket
         return $promise->wait();
     }
 
+    public function list(string $directory, bool $src_only = true, ?callable $callback = null) : array
+    {
+        $files = [];
+
+        try {
+            $contents = self::$client->listObjectsV2([
+                'Bucket' => $this->bucket,
+                'Prefix' => $directory,
+            ]);
+
+            foreach ($contents['Contents'] as $content) {
+                if($src_only) {
+                    if($callback)
+                        $content['Key'] = $callback($content['Key']);
+
+                    $files[] = $content['Key'];
+
+                    continue;
+                }
+
+                if($callback)
+                    $content = $callback($content);
+
+                $files[] = $content;
+
+            }
+
+        } catch (\Exception $e){
+            \BrickLayer\Lay\Core\Exception::throw_exception($e->getMessage(), exception: $e);
+        }
+
+        return $files;
+    }
+
 }

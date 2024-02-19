@@ -11,29 +11,6 @@ final class LayImage{
     use IsSingleton;
 
     /**
-     * @param string $tmpImage location to temporary file or file to be handled
-     * @param string $newImage location to new image file
-     * @param int $width resample image width
-     * @param int $height resample image height
-     * @param int $w_orig original image width
-     * @param int $h_orig original image height
-     * @param int $quality image result quality [max value = 100 && min value = 0]
-     * @return LayImage
-     */
-    private function create(string $tmpImage, string $newImage, int $width, int $height, int $w_orig, int $h_orig, int $quality) : self {
-        $ext = image_type_to_extension(exif_imagetype($tmpImage),false);
-        $img = call_user_func("imagecreatefrom$ext", $tmpImage);
-
-        imagealphablending($img, TRUE);
-        imagesavealpha($img, true);
-
-        imagewebp($img, $newImage, $quality);
-        imagedestroy($img);
-
-        return $this;
-    }
-
-    /**
      * Check image width and height size
      * @param $imageFile string file to be checked for size
      * @return array [width,height]
@@ -48,42 +25,28 @@ final class LayImage{
     }
 
     /**
-     * Resize Image
-     * @param int $width resample image width
-     * @param int $height resample image height
      * @param string $tmpImage location to temporary file or file to be handled
      * @param string $newImage location to new image file
      * @param int $quality image result quality [max value = 100 && min value = 0]
+     * @param bool $resize default: false
+     * @param int|null $width resize image width
+     * @param int|null $height resize image height
      * @return LayImage
      */
-    public function resize(int $width, int $height, string $tmpImage, string $newImage, int $quality = 80) : self {
-        $quality = min($quality, 100);
-        $quality = max($quality, 0);
+    public function create(string $tmpImage, string $newImage, int $quality = 80, bool $resize = false, ?int $width = null, ?int $height = null,) : self {
+        $ext = image_type_to_extension(exif_imagetype($tmpImage),false);
+        $img = call_user_func("imagecreatefrom$ext", $tmpImage);
 
-        $x = $this->get_size($tmpImage);
-        $w_orig = $x['width'];
-        $h_orig = $x['height'];
+        if($resize)
+            $img = imagescale($img, $width);
 
-        $scale_ratio = $w_orig/$h_orig;
+        imagealphablending($img, TRUE);
+        imagesavealpha($img, true);
 
-        if(($width/$height) > $scale_ratio)
-            $width = (int) ceil($height * $scale_ratio);
-        else
-            $height = (int) ceil($width / $scale_ratio);
+        imagewebp($img, $newImage, $quality);
+        imagedestroy($img);
 
-        return $this->create($tmpImage, $newImage, $width, $height, $w_orig, $h_orig, $quality);
-    }
-
-    /**
-     * @param string $tmpImage location to temporary file or file to be handled
-     * @param string $newImage location to new image file
-     * @param int $quality image result quality [max value = 100 && min value = 0]
-     * @return LayImage
-     */
-    public function convert(string $tmpImage,string $newImage, int $quality = 84) : self {
-        $x = $this->get_size($tmpImage);
-        $w_orig = $x['width']; $h_orig = $x['height'];
-        return $this->create($tmpImage, $newImage, $w_orig, $h_orig, $w_orig, $h_orig, $quality);
+        return $this;
     }
 
     /**
@@ -143,10 +106,10 @@ final class LayImage{
             if(!$copy_tmp_file && @!move_uploaded_file($tmp_name, $tmpImg))
                 $this->exception("Could not create temporary image from; (\$_FILES['$post_name']) in location: ($tmpFolder), ensure location exists or check permission");
 
-            $this->convert($tmpImg, $directory);
-
             if($dimension)
-                $this->resize($dimension[0], $dimension[1], $tmpImg, $directory, $quality);
+                $this->create($tmpImg, $directory, $quality, true, $dimension[0], $dimension[1]);
+            else
+                $this->create($tmpImg, $directory, $quality);
 
             unlink($tmpImg);
             return $file_name;

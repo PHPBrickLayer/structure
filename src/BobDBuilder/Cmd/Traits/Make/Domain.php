@@ -4,6 +4,7 @@ namespace BrickLayer\Lay\BobDBuilder\Cmd\Traits\Make;
 
 use BrickLayer\Lay\BobDBuilder\BobExec;
 use BrickLayer\Lay\Core\Exception;
+use BrickLayer\Lay\Libs\LayArray;
 use BrickLayer\Lay\Libs\LayCopyDir;
 use BrickLayer\Lay\Libs\LayUnlinkDir;
 use BrickLayer\Lay\Orm\SQL;
@@ -259,7 +260,7 @@ trait Domain
             $default_domain = [''];
         }
 
-        $domains = SQL::new()->array_flatten($domains);
+        $domains = LayArray::flatten($domains);
 
         $new_domain = [
             'Domain::new()->create(',
