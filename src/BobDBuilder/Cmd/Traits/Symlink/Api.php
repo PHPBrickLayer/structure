@@ -40,6 +40,7 @@ trait Api
                 . "***### Take Note:: You will be deleting the former *api directory/symlink* if you decide to pass the flag --force"
             );
 
+        @unlink($dest);
         new LayUnlinkDir($dest);
 
         symlink($src, $dest);

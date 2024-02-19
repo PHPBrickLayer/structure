@@ -38,6 +38,7 @@ trait Uploads
                 . "Take Note:: You will be replacing the former *$dest* if you decide to pass the flag --force"
             );
 
+        @unlink($dest);
         new LayUnlinkDir($dest);
         symlink($source, $dest);
         $this->track_link("", $domain, "uploads");
