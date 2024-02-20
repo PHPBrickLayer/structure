@@ -343,7 +343,12 @@ class Domain {
             return true;
 
         if(isset(self::$indexed_domain)) {
-            foreach ($this->get_domain_by_id(self::$indexed_domain)['patterns'] as $pattern) {
+            $current_domain_pattern = @$this->get_domain_by_id(self::$indexed_domain)['patterns'];
+
+            if(empty($current_domain_pattern))
+                Exception::throw_exception("Domain id: [" . self::$indexed_domain . "] is invalid", "DomainException");
+
+            foreach ($current_domain_pattern as $pattern) {
                 $this->test_pattern(self::$indexed_domain, $pattern);
 
                 $this->activate_domain(
