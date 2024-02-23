@@ -13,6 +13,7 @@ class SrcFilter
                 "@shared_js/",          "@js/",             "@static_env/",
                 "@shared_img/",         "@img/",            "@ui/",
                 "@shared_css/",         "@css/",
+                "@shared_plugins/",     "@plugins/",
             ],
             [
                 $client->shared->root,  $client->root,      $client->static,
