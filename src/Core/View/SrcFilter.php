@@ -16,11 +16,11 @@ class SrcFilter
                 "@shared_plugins/",     "@plugins/",
             ],
             [
-                $client->shared->root,  $client->root,      $client->static,
-                $client->shared->js,    $client->js,        $client->static_env,
-                $client->shared->img,   $client->img,       $client->ui,
-                $client->shared->css,   $client->css,
-                $client->shared->plugins,$client->plugins,
+                $client->shared->root,      $client->root,      $client->static,
+                $client->shared->js,        $client->js,        $client->static_env,
+                $client->shared->img,       $client->img,       $client->ui,
+                $client->shared->css,       $client->css,
+                $client->shared->plugins,   $client->plugins,
             ],
             $src
         );

@@ -1,4 +1,4 @@
-const captchaImgSrc = $lay.src.static_env + "js/captcha/img.php"
+const captchaImgSrc = $lay.src.static_env + "plugins/captcha/img.php"
 
 function reloadCaptcha(){
     $loop($sela(".captcha-holder"), captcha => {
