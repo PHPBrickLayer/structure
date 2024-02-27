@@ -137,7 +137,7 @@ final class LayCron {
             $job .= " >> " . $this->output_file;
         }
 
-        $out = $schedule . $job . PHP_EOL;
+        $out = $schedule . " " . $job . PHP_EOL;
 
         if($this->just_once_set) {
             if(!isset($this->job_id))
