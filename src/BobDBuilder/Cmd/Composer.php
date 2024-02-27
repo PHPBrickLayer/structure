@@ -35,9 +35,6 @@ class Composer implements CmdLayout
         exec("export HOME=$root && cd $root && composer $command --no-dev --optimize-autoloader 2>&1", $out);
 
         file_put_contents($temp . "deploy_composer_output.txt", implode("\n", $out));
-
-        // unset cron job after updating composer packages
-        LayCron::new()->unset("update-composer-pkgs");
     }
 
 }
