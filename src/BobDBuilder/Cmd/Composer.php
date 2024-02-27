@@ -4,7 +4,7 @@ namespace BrickLayer\Lay\BobDBuilder\Cmd;
 
 use BrickLayer\Lay\BobDBuilder\EnginePlug;
 use BrickLayer\Lay\BobDBuilder\Interface\CmdLayout;
-use BrickLayer\Lay\Libs\LayCron;
+use BrickLayer\Lay\Libs\Cron\LayCron;
 
 class Composer implements CmdLayout
 {

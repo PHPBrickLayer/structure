@@ -73,8 +73,9 @@ trait AutoDeploy
             $domain_dir . $this->plug->s . "index.php",
             <<<FILE
             <?php
-            use BrickLayer\Lay\Libs\LayCron;
+            use BrickLayer\Lay\Libs\Cron\LayCron;
             use BrickLayer\Lay\Core\Exception;
+            use BrickLayer\Lay\Core\LayConfig;
             
             const SAFE_TO_INIT_LAY = true;
 
@@ -117,13 +118,15 @@ trait AutoDeploy
             echo shell_exec('git fetch --all 2>&1 &');
             echo shell_exec("git reset --hard origin/\$main_branch 2>&1 &");
             
-            shell_exec("php bob link:refresh &");
-            print "Symlinks are being refreshed\\n";
+            print "Symlinks are being refreshed\n";
+            \$bob = LayConfig::server_data()->root . "bob";
+            shell_exec("php \$bob link:refresh 2>&1 &");
 
             // push composer deployment for later execution to avoid 504 (timeout error)
             echo LayCron::new()
                 ->job_id("update-composer-pkgs")
                 ->every_minute()
+                ->just_once()
                 ->new_job("bob up_composer")['msg'];
             
             FILE
