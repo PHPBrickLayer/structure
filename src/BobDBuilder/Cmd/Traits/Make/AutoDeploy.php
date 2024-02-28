@@ -3,7 +3,7 @@
 namespace BrickLayer\Lay\BobDBuilder\Cmd\Traits\Make;
 
 use BrickLayer\Lay\Libs\ID\Gen;
-use BrickLayer\Lay\Libs\LayUnlinkDir;
+use BrickLayer\Lay\Libs\LayDir;
 
 
 trait AutoDeploy
@@ -32,7 +32,7 @@ trait AutoDeploy
                 . "- Deleting existing *$domain_dir*"
             );
 
-            new LayUnlinkDir($domain_dir);
+            new LayDir($domain_dir);
         }
 
         $this->talk("- Creating new Domain directory in *$domain_dir*");

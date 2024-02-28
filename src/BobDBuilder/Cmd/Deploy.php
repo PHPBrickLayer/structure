@@ -8,7 +8,7 @@ use BrickLayer\Lay\Core\Enums\CustomContinueBreak;
 use BrickLayer\Lay\Libs\LayCache;
 use BrickLayer\Lay\Libs\LayCopyDir;
 use BrickLayer\Lay\Libs\LayDate;
-use BrickLayer\Lay\Libs\LayUnlinkDir;
+use BrickLayer\Lay\Libs\LayDir;
 use Exception;
 
 class Deploy implements CmdLayout
@@ -229,7 +229,7 @@ class Deploy implements CmdLayout
         }
 
         if($this->no_cache)
-            new LayUnlinkDir($prod);
+            new LayDir($prod);
 
         $this->batch_minification($dev, $prod);
     }
@@ -258,7 +258,7 @@ class Deploy implements CmdLayout
             }
 
             if($this->no_cache)
-                new LayUnlinkDir($prod);
+                new LayDir($prod);
 
             $this->batch_minification($dev, $prod);
         }

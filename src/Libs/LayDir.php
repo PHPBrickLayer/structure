@@ -2,13 +2,13 @@
 declare(strict_types=1);
 namespace BrickLayer\Lay\Libs;
 
-class LayUnlinkDir {
+class LayDir {
     public static bool $result;
 
     /**
      * @param string $dir Directory to be deleted
      */
-    public function __construct(string $dir)
+    public static function unlink(string $dir) : void
     {
         if (!is_dir($dir)) {
             self::$result = false;
@@ -34,7 +34,7 @@ class LayUnlinkDir {
             }
 
 
-            new self($dir . "/" . $object);
+            self::unlink($dir . "/" . $object);
 
         }
 

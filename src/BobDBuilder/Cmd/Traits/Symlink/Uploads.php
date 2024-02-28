@@ -2,7 +2,9 @@
 
 namespace BrickLayer\Lay\BobDBuilder\Cmd\Traits\Symlink;
 
-use BrickLayer\Lay\Libs\LayUnlinkDir;
+use BrickLayer\Lay\Libs\LayDir;
+use BrickLayer\Lay\Libs\Symlink\LaySymlink;
+use BrickLayer\Lay\Libs\Symlink\SymlinkTypes;
 
 trait Uploads
 {
@@ -38,9 +40,9 @@ trait Uploads
                 . "Take Note:: You will be replacing the former *$dest* if you decide to pass the flag --force"
             );
 
-        @unlink($dest);
-        new LayUnlinkDir($dest);
-        symlink($source, $dest);
+        LayDir::unlink($dest);
+        LaySymlink::make($source, $dest, SymlinkTypes::JUNCTION);
+
         $this->track_link("", $domain, "uploads");
 
         $plug->write_success("Uploads folder successfully linked to: *$dest*");

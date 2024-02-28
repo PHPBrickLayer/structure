@@ -4,6 +4,7 @@ namespace BrickLayer\Lay\BobDBuilder\Cmd;
 
 use BrickLayer\Lay\BobDBuilder\EnginePlug;
 use BrickLayer\Lay\BobDBuilder\Interface\CmdLayout;
+use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Libs\Cron\LayCron;
 
 class Composer implements CmdLayout
@@ -32,7 +33,13 @@ class Composer implements CmdLayout
 
         $command = file_exists($root . "composer.lock") ? "update" : "install";
 
-        exec("export HOME=$root && cd $root && composer $command --no-dev --optimize-autoloader 2>&1", $out);
+        $composer = match (LayConfig::new()->get_os()){
+            "MAC" => "/opt/homebrew/bin/composer",
+            "WINDOWS" => "composer",
+            default => "/usr/local/bin/composer"
+        };
+
+        exec("export HOME=$root && cd $root && $composer $command --no-dev --optimize-autoloader 2>&1", $out);
 
         file_put_contents($temp . "deploy_composer_output.txt", implode("\n", $out));
     }

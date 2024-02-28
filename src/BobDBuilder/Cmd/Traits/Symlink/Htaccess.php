@@ -2,6 +2,10 @@
 
 namespace BrickLayer\Lay\BobDBuilder\Cmd\Traits\Symlink;
 
+use BrickLayer\Lay\Libs\LayDir;
+use BrickLayer\Lay\Libs\Symlink\LaySymlink;
+use BrickLayer\Lay\Libs\Symlink\SymlinkTypes;
+
 trait Htaccess
 {
     private function htaccess(): void
@@ -27,8 +31,9 @@ trait Htaccess
                 . "***### Take Note:: You will be deleting the former htaccess if you decide to pass the flag --force"
             );
 
-        @unlink($dest);
-        symlink($plug->server->web . ".htaccess", $dest);
+        LayDir::unlink($dest);
+        LaySymlink::make($plug->server->web . ".htaccess", $dest, SymlinkTypes::HARD);
+
         $this->track_link("", $domain, "htaccess");
 
         $plug->write_success("htaccess successfully linked to: *$dest*");

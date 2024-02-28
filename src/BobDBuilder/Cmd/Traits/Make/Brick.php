@@ -3,7 +3,7 @@
 namespace BrickLayer\Lay\BobDBuilder\Cmd\Traits\Make;
 
 use BrickLayer\Lay\Libs\LayCopyDir;
-use BrickLayer\Lay\Libs\LayUnlinkDir;
+use BrickLayer\Lay\Libs\LayDir;
 use BrickLayer\Lay\Libs\String\Pluralize;
 
 trait Brick
@@ -47,7 +47,7 @@ trait Brick
                 . "- Deleting existing *$brick_dir*"
             );
 
-            new LayUnlinkDir($brick_dir);
+            new LayDir($brick_dir);
         }
 
         $talk("- Creating new Brick directory in *$brick_dir*");
