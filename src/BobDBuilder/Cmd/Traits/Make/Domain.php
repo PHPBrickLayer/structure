@@ -6,7 +6,7 @@ use BrickLayer\Lay\BobDBuilder\BobExec;
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Libs\LayArray;
 use BrickLayer\Lay\Libs\LayCopyDir;
-use BrickLayer\Lay\Libs\LayUnlinkDir;
+use BrickLayer\Lay\Libs\LayDir;
 use BrickLayer\Lay\Orm\SQL;
 use SplFileObject;
 
@@ -75,7 +75,7 @@ trait Domain
                 . "- Deleting existing *$domain_dir*"
             );
 
-            new LayUnlinkDir($domain_dir);
+            new LayDir($domain_dir);
         }
 
         $this->talk("- Creating new Domain directory in *$domain_dir*");
@@ -277,7 +277,7 @@ trait Domain
         } catch (\Exception $e) {
             Exception::throw_exception($e->getMessage(), "MakeDomain", exception: $e);
 
-            new LayUnlinkDir($domain_dir);
+            new LayDir($domain_dir);
             unlink($lock_file);
         }
 

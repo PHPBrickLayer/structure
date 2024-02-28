@@ -293,6 +293,19 @@ trait Config
         return (bool)strpos(strtolower($_SERVER['HTTP_USER_AGENT'] ?? "cli"), "mobile");
     }
 
+    public function get_os(): string
+    {
+        $OS = strtoupper(PHP_OS);
+
+        if(str_starts_with($OS, "MAC"))
+            return "MAC";
+
+        if(str_starts_with($OS, "WIN"))
+            return "WINDOWS";
+
+        return $OS;
+    }
+
     public function geo_data(): bool|object
     {
         $data = false;

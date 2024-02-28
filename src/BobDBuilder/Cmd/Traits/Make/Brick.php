@@ -3,7 +3,7 @@
 namespace BrickLayer\Lay\BobDBuilder\Cmd\Traits\Make;
 
 use BrickLayer\Lay\Libs\LayCopyDir;
-use BrickLayer\Lay\Libs\LayUnlinkDir;
+use BrickLayer\Lay\Libs\LayDir;
 use BrickLayer\Lay\Libs\String\Pluralize;
 
 trait Brick
@@ -30,7 +30,7 @@ trait Brick
 
         $talk("- If your brick is written in plural form, it'll be converted to singular form");
 
-        $brick = Pluralize::to_singular(ucwords($brick));
+        $brick = str_replace("_", "", ucwords(Pluralize::to_singular($brick)));
         $brick_dir = $this->plug->server->bricks . $brick;
         $exists = is_dir($brick_dir);
 
@@ -47,7 +47,7 @@ trait Brick
                 . "- Deleting existing *$brick_dir*"
             );
 
-            new LayUnlinkDir($brick_dir);
+            new LayDir($brick_dir);
         }
 
         $talk("- Creating new Brick directory in *$brick_dir*");
@@ -64,6 +64,7 @@ trait Brick
         // convert uppercase to _ and lowercase for the tables
         $brick_words = preg_split('/\B(?=[A-Z])/s', $brick_plural);
         $brick_table = strtolower(implode("_", $brick_words));
+        $brick_plural = ucwords(implode("", $brick_words));
 
         $import = "";
         $body = "";

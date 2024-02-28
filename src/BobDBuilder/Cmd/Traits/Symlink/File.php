@@ -2,6 +2,10 @@
 
 namespace BrickLayer\Lay\BobDBuilder\Cmd\Traits\Symlink;
 
+use BrickLayer\Lay\Libs\LayDir;
+use BrickLayer\Lay\Libs\Symlink\LaySymlink;
+use BrickLayer\Lay\Libs\Symlink\SymlinkTypes;
+
 trait File
 {
     private function file(): void
@@ -30,8 +34,9 @@ trait File
                 . "***### Take Note::  You will be deleting the former file if you decide to pass the flag --force"
             );
 
-        @unlink($dest);
-        symlink($src, $dest);
+        LayDir::unlink($dest);
+        LaySymlink::make($src, $dest, SymlinkTypes::HARD);
+
         $this->track_link($link[0], $link[1], "file");
 
         $this->plug->write_success(

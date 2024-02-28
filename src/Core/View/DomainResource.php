@@ -53,6 +53,7 @@ class DomainResource
         $obj->img =     $obj->static_env . "images/";
         $obj->js =      $obj->static_env . "js/";
         $obj->ui =      $obj->static_env . "ui/";
+        $obj->plugins = $obj->static_env . "plugins/";
 
         $shared = $obj->root . "shared/";
         $obj->shared = (object) [
@@ -62,6 +63,7 @@ class DomainResource
             "css" =>    $shared         . "static/" . $env_src . "/css/",
             "img" =>    $shared         . "static/" . $env_src . "/images/",
             "js" =>     $shared         . "static/" . $env_src . "/js/",
+            "plugins" =>$shared         . "static/" . $env_src . "/plugins/",
             "img_default" => (object) [
                 "logo" =>       $shared . "static/" . $env_src . "/images/logo.png",
                 "favicon" =>    $shared . "static/" . $env_src . "/images/favicon.png",
@@ -99,8 +101,9 @@ class DomainResource
         'css' => 'string',
         'img' => 'string',
         'js' => 'string',
+        'plugins' => 'string',
         'ui' => 'string',
-        'shared' => 'object [root, static, env, css, img, js, img_default [object [logo, favicon, icon, meta]]]',
+        'shared' => 'object [root, static, env, css, img, js, plugins, img_default [object [logo, favicon, icon, meta]]]',
         'domain' => 'object [domain_uri, route, route_as_array, domain_type, domain_name, domain_id, domain_root, pattern, 0, 1 ...n]',
         'lay' => 'object [uri, root]',
     ])]

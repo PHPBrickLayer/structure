@@ -1,12 +1,14 @@
 <?php
 
-namespace BrickLayer\Lay\Libs;
+namespace BrickLayer\Lay\Libs\Cron;
 
-use JetBrains\PhpStorm\ExpectedValues;
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Libs\LayArray;
+use BrickLayer\Lay\Libs\LayDate;
 
 final class LayCron {
+    public const PHP_BIN = PHP_BINARY ?: "/usr/bin/php";
     private const CRON_FILE = "/tmp/crontab.txt";
     private const DB_SCHEMA = [
         "mailto" => "",
@@ -14,6 +16,8 @@ final class LayCron {
     ];
 
     private string $output_file;
+    private string $job_script;
+    private bool $just_once_set = false;
     private array $exec_output = [
         "exec" => true,
         "msg" => "Execution successful"
@@ -125,7 +129,7 @@ final class LayCron {
 
         $job_plain = $job;
         $job = $server->root . $job_plain;
-        $job = " /usr/bin/php $job";
+        $job = self::PHP_BIN . " $job";
 
         if($this->save_job_output) {
             $job = ' out="$(' . $job . ')";';
@@ -133,7 +137,17 @@ final class LayCron {
             $job .= " >> " . $this->output_file;
         }
 
-        return $schedule . $job . PHP_EOL;
+        $out = $schedule . " " . $job . PHP_EOL;
+
+        if($this->just_once_set) {
+            if(!isset($this->job_id))
+                Exception::throw_exception("If using `just_once`, then `job_id` must be set");
+
+            $out = JustOnce::yes($schedule, $job, $this->job_id);
+            $this->just_once_set = false;
+        }
+
+        return $out;
     }
 
     private function add_job(string $job) : void {
@@ -224,8 +238,8 @@ final class LayCron {
         echo $this->make_job($job) . '<br/>';
     }
 
-    public function exec(string $command) : array {
-        $this->add_job($command . PHP_EOL);
+    public function exec(string $command, bool $add_eol = true) : array {
+        $this->add_job($command . ($add_eol ? PHP_EOL : ''));
         return $this->exec_output;
     }
 
@@ -253,15 +267,38 @@ final class LayCron {
         return $this->delete_job_by_id($uid_or_job) || $this->delete_job_by_job($uid_or_job);
     }
 
-    public function unset_report_email() : void {
+    public function unset_report_email() : void
+    {
         $this->report_email = "";
         $this->commit();
     }
 
-    public function clear_all() : void {
+    public function clear_all() : void
+    {
         $this->db_data_clear_all();
     }
 
+    /**
+     * Use this to create a cron job that executes only once.
+     * Note that `job_id` is required when using this method
+     * @return $this
+     */
+    public function just_once() : self
+    {
+        $this->just_once_set = true;
+        return $this;
+    }
+
+    /**
+     * Use the link below to see examples of how to schedule your cron job
+     * @param string|null $minute
+     * @param string|null $hour
+     * @param string|null $day_of_the_month
+     * @param string|null $month
+     * @param string|null $day_of_the_week
+     * @link https://crontab.guru/examples.html for examples
+     * @return $this
+     */
     public function raw_schedule(?string $minute = null, ?string $hour = null, ?string $day_of_the_month = null, ?string $month = null, ?string $day_of_the_week = null) : self {
         $this->minute = $minute ?? $this->minute;
         $this->hour = $hour ?? $this->hour;
@@ -276,6 +313,7 @@ final class LayCron {
      * Schedules jobs for every number of minutes indicated.
      * @param int $minute
      * @example `5` minutes = every `5` minutes. i.e 5, 10, 15...n
+     * @see raw_schedule
      * @return $this
      */
     public function every_minute(int $minute = 1) : self {
@@ -287,6 +325,7 @@ final class LayCron {
      * Schedules jobs for every number of hours indicated.
      * @param int $hour
      * @example `2` hour = every `2` hours. i.e 2, 4, 6, 8...n
+     * @see raw_schedule
      * @return $this
      */
     public function every_hour(int $hour = 1) : self {
@@ -303,6 +342,7 @@ final class LayCron {
      * @param int $minute
      * @param bool $am
      * @return $this
+     * @see raw_schedule
      */
     public function daily(int $hour = 12, int $minute = 0, bool $am = true) : self {
         $am = $am ? "am" : "pm";
@@ -316,6 +356,7 @@ final class LayCron {
      * To tweak the time, you need to call the appropriate methods when building your job.
      * @param string $day_of_the_week accepts: mon, monday, Monday;
      * it could be a range or comma-separated values.
+     * @see raw_schedule
      * @return $this
      * @example `->weekly('mon - fri, sun')`
      */
@@ -329,6 +370,7 @@ final class LayCron {
      * To tweak the day and time, you need to call the appropriate methods when building your job.
      * @param string|int $days_of_the_month accepts: 1 - 31;
      * it could be an int, a range or comma-separated values.
+     * @see raw_schedule
      * @return $this
      * @throws \Exception
      */
@@ -353,6 +395,7 @@ final class LayCron {
      * To tweak the day, month, and time, you need to call the appropriate methods when building your job.
      * @param string $months accepts: Jan, jan, January
      * it could be a range or comma-separated values.
+     * @see raw_schedule
      * @return $this
      */
     public function yearly(string $months) : self {

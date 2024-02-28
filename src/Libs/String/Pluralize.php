@@ -29,7 +29,7 @@
  * This work is based on the above PHP class made, with an intention of starting with some small changes
  * And add many corrections and enhancements later on.
  * Please feel free to contribute by adding words and/or functionlity to the script, or perhaps suggestions.
- * Author: Rachid Aachich 
+ * Author: Rachid Aachich
  * Email: r.aachich@gmail.com
  */
 
@@ -59,7 +59,7 @@ class Pluralize
         '/s$/i'                    => "s",
         '/$/'                      => "s"
     ];
-    
+
     public static array $singular = [
         '/(quiz)zes$/i'             => "$1",
         '/(matr)ices$/i'            => "$1ix",
@@ -88,9 +88,10 @@ class Pluralize
         '/(h|bl)ouses$/i'           => "$1ouse",
         '/(corpse)s$/i'             => "$1",
         '/(us)es$/i'                => "$1",
+        '/us$/i'                    => "$1i",
         '/s$/i'                     => ""
     ];
-    
+
     public static array $irregular = [
         'move'          => 'moves',
         'foot'          => 'feet',
@@ -104,16 +105,10 @@ class Pluralize
         'memorandum'    => 'memoranda',
         'criterion'     => 'criteria',
         'phenomenon'    => 'phenomena',
-        'nucleus'       => 'nuclei',
-        'fungus'        => 'fungi',
-        'cactus'        => 'cacti',
-        'alumnus'       => 'alumni',
         'die'           => 'dice',
-        'abacus'        => 'abaci',
-        'hippopotamus'  => 'hippopotami',
         'automaton'     => 'automata'
     ];
-    
+
     /**
      * All the unchangeable words after pluralization, including uncountable words.
      */
@@ -121,33 +116,32 @@ class Pluralize
     {
         return json_decode(file_get_contents(__DIR__ . DIRECTORY_SEPARATOR . 'unchangeable.json'), true);
     }
-    
+
     public static function to_plural(string $string ) : string
     {
         // save some time in the case that singular and plural are the same
         if ( in_array( strtolower( $string ), self::unchangeable() ) )
             return $string;
-            
-    
+
         // check for irregular singular forms
         foreach ( self::$irregular as $pattern => $result )
         {
             $pattern = '/' . $pattern . '$/i';
-            
+
             if ( preg_match( $pattern, $string ) )
                 return preg_replace( $pattern, $result, $string);
         }
-        
+
         // check for matches using regular expressions
         foreach ( self::$plural as $pattern => $result )
         {
             if ( preg_match( $pattern, $string ) )
                 return preg_replace( $pattern, $result, $string );
         }
-        
+
         return $string;
     }
-    
+
     public static function to_singular(string $string) : string
     {
         // save some time in the case that singular and plural are the same
@@ -169,7 +163,7 @@ class Pluralize
             if ( preg_match( $pattern, $string ) )
                 return preg_replace( $pattern, $result, $string );
         }
-        
+
         return $string;
     }
 }

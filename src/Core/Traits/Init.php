@@ -65,17 +65,17 @@ trait Init {
         }
 
         $slash          = DIRECTORY_SEPARATOR;
-        $base           = str_replace($slash, "/", $_SERVER['DOCUMENT_ROOT']);
+        $base           = str_replace("/", $slash, $_SERVER['DOCUMENT_ROOT']);
 
         $pin = $base;
         $string = self::$dir;
 
-        if(count_chars($base) > count_chars(self::$dir)) {
+        if(strlen($pin) > strlen($string)) {
             $pin = self::$dir;
             $string = $base;
         }
 
-        $pin = rtrim($pin, "/");
+        $pin            = rtrim($pin, "/");
         $base           = explode($pin, $string);
 
         $options['using_web'] = str_starts_with($base[1], "/web");
@@ -87,10 +87,11 @@ trait Init {
         self::$layConfigOptions['header']['using_domain'] = $options['using_domain'];
         self::$layConfigOptions['header']['using_web'] = $options['using_web'];
 
+        $base           = str_replace($slash, "/", end($base));
         $http_host      = $_SERVER['HTTP_HOST'] ?? "cli";
         $env_host       = $_SERVER['REMOTE_ADDR'] ?? "cli";
         $proto          = ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? $_SERVER['REQUEST_SCHEME']) . "://";
-        $base_no_proto  = rtrim(str_replace($slash,"/", end($base)),"/");
+        $base_no_proto  = rtrim(str_replace($slash,"/", $base),"/");
 
         if($http_host != "cli")
             self::$LAY_MODE = LayMode::HTTP;

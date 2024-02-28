@@ -2,7 +2,9 @@
 
 namespace BrickLayer\Lay\BobDBuilder\Cmd\Traits\Symlink;
 
-use BrickLayer\Lay\Libs\LayUnlinkDir;
+use BrickLayer\Lay\Libs\LayDir;
+use BrickLayer\Lay\Libs\Symlink\LaySymlink;
+use BrickLayer\Lay\Libs\Symlink\SymlinkTypes;
 
 trait Shared
 {
@@ -40,12 +42,8 @@ trait Shared
                 . "***### Take Note:: You will be deleting the former *shared directory/symlink* if you decide to pass the flag --force"
             );
 
-        @unlink($dest);
-
-        if(is_dir($dest))
-            new LayUnlinkDir($dest);
-
-        symlink($src, $dest);
+        LayDir::unlink($dest);
+        LaySymlink::make($src, $dest, SymlinkTypes::JUNCTION);
 
         $this->track_link("", $domain, "shared");
 
