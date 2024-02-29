@@ -31,7 +31,6 @@ class Cron implements CmdLayout
 
         $job = $tags[0] ?? null;
         $id = $tags[1] ?? null;
-        $dont_schedule = @$tags[2] == '--now';
 
         if(empty($id) || empty($job))
             $this->plug->write_warn(
@@ -39,12 +38,13 @@ class Cron implements CmdLayout
                 "Example: php bob cron:once \"x/1 x x x x /usr/bin/php bob --help\" --id new-one-job"
             );
 
-        if($dont_schedule)
-            shell_exec($job); // execute the job instantly
-        else
-            LayCron::new()->job_id($id)->exec($job); // Execute raw cron job based on the schedule passed
+        // Unset the cronjob that triggered this function before executing
+        LayCron::new()->unset($id);
 
-        LayCron::new()->unset($id); // unset cron job after executing, if the id is saved
+        exec($job . " 2>&1 &", $out);
+
+        echo implode("\n", $out);
+
     }
 
 }

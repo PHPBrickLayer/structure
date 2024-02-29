@@ -75,7 +75,7 @@ trait Domain
                 . "- Deleting existing *$domain_dir*"
             );
 
-            new LayDir($domain_dir);
+            LayDir::unlink($domain_dir);
         }
 
         $this->talk("- Creating new Domain directory in *$domain_dir*");
@@ -277,7 +277,7 @@ trait Domain
         } catch (\Exception $e) {
             Exception::throw_exception($e->getMessage(), "MakeDomain", exception: $e);
 
-            new LayDir($domain_dir);
+            LayDir::unlink($domain_dir);
             unlink($lock_file);
         }
 

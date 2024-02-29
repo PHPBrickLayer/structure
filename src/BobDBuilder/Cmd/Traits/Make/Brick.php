@@ -47,7 +47,7 @@ trait Brick
                 . "- Deleting existing *$brick_dir*"
             );
 
-            new LayDir($brick_dir);
+            LayDir::unlink($brick_dir);
         }
 
         $talk("- Creating new Brick directory in *$brick_dir*");

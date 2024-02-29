@@ -40,6 +40,9 @@ trait Uploads
                 . "Take Note:: You will be replacing the former *$dest* if you decide to pass the flag --force"
             );
 
+        $source = str_replace("/", DIRECTORY_SEPARATOR, $source);
+        $dest = str_replace("/", DIRECTORY_SEPARATOR, $dest);
+
         LayDir::unlink($dest);
         LaySymlink::make($source, $dest, SymlinkTypes::JUNCTION);
 

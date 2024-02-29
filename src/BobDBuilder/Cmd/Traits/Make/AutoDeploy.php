@@ -32,7 +32,7 @@ trait AutoDeploy
                 . "- Deleting existing *$domain_dir*"
             );
 
-            new LayDir($domain_dir);
+            LayDir::unlink($domain_dir);
         }
 
         $this->talk("- Creating new Domain directory in *$domain_dir*");

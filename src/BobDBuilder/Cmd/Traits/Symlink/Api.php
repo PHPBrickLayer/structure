@@ -42,6 +42,9 @@ trait Api
                 . "***### Take Note:: You will be deleting the former *api directory/symlink* if you decide to pass the flag --force"
             );
 
+        $src = str_replace("/", DIRECTORY_SEPARATOR, $src);
+        $dest = str_replace("/", DIRECTORY_SEPARATOR, $dest);
+
         LayDir::unlink($dest);
 
         LaySymlink::make($src, $dest, SymlinkTypes::HARD);

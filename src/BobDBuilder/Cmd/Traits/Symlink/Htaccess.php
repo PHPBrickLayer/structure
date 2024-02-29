@@ -31,8 +31,13 @@ trait Htaccess
                 . "***### Take Note:: You will be deleting the former htaccess if you decide to pass the flag --force"
             );
 
+        $src = $plug->server->web . ".htaccess";
+
+        $src = str_replace("/", DIRECTORY_SEPARATOR, $src);
+        $dest = str_replace("/", DIRECTORY_SEPARATOR, $dest);
+
         LayDir::unlink($dest);
-        LaySymlink::make($plug->server->web . ".htaccess", $dest, SymlinkTypes::HARD);
+        LaySymlink::make($src, $dest, SymlinkTypes::HARD);
 
         $this->track_link("", $domain, "htaccess");
 
