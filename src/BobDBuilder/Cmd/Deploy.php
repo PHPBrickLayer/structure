@@ -229,7 +229,7 @@ class Deploy implements CmdLayout
         }
 
         if($this->no_cache)
-            new LayDir($prod);
+            LayDir::unlink($prod);
 
         $this->batch_minification($dev, $prod);
     }
@@ -258,7 +258,7 @@ class Deploy implements CmdLayout
             }
 
             if($this->no_cache)
-                new LayDir($prod);
+                LayDir::unlink($prod);
 
             $this->batch_minification($dev, $prod);
         }
