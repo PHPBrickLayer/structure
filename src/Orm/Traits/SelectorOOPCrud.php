@@ -8,11 +8,14 @@ trait SelectorOOPCrud
 {
     private mixed $saved_result;
 
-    private function match_type(string $return_type, bool $last_index = false) : mixed
+    private function match_type(string $return_type, bool $last_index, bool $catch_error) : mixed
     {
         $test_type = call_user_func("is_$return_type", $this->saved_result);
 
-        if($test_type || (!$test_type && !$last_index))
+        if($test_type)
+            return "__MATCHED__";
+
+        if(!$last_index)
             return "__IGNORE__";
 
         $type = gettype($this->saved_result);
@@ -22,7 +25,7 @@ trait SelectorOOPCrud
 
         $return_type = strtoupper($return_type);
 
-        if(!@$opt['catch'])
+        if(!$catch_error)
             $this->oop_exception("invalid return type received from query. Got [<b>$type</b>] instead of [<b>$return_type</b>]");
 
         return match($return_type) {
@@ -35,17 +38,20 @@ trait SelectorOOPCrud
     }
 
     private function capture_result(array $result_and_opt, string $return_type = 'array') : mixed {
-        $opt = $result_and_opt[1];
+        $catch_error = $result_and_opt[1]['catch'] ?? false;
 
         $this->saved_result = $result_and_opt[0];
         $types = explode("|", $return_type);
         $last_index = count($types) - 1;
 
         foreach ($types as $i => $type) {
-            $x = $this->match_type($type, $i == $last_index);
+            $x = $this->match_type($type, $i == $last_index, $catch_error);
 
             if ($x == "__IGNORE__")
                 continue;
+
+            if ($x == "__MATCHED__")
+                break;
 
             return $x;
         }
