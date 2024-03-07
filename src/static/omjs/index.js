@@ -352,12 +352,8 @@ const $media = ({srcElement: srcElement, previewElement: previewElement, then: t
 };
 
 const $exceeds = (element, size) => {
-    if(element.type !== "file")
-        return false;
-	
-	if(element.files.length === 0)
-        return false;
-
+    if (element.type !== "file") return;
+    if (element.files.length === 0) return false;
     return element.files[0].size > size;
 };
 
@@ -691,9 +687,8 @@ const $preloader = (act = "show") => {
     let xhr = false, response;
     let credential = option.credential ?? false;
     let headers = option.headers ?? {};
-    headers['Lay-Domain'] = $lay.page.domain;
-    headers['Lay-Domain-ID'] = $lay.page.domain_id;
-
+    headers["Lay-Domain"] = $lay.page.domain;
+    headers["Lay-Domain-ID"] = $lay.page.domain_id;
     let content = option.content ?? "text/plain";
     let method = option.method ?? "get";
     data = option.data ?? option.form ?? data ?? null;
@@ -963,9 +958,7 @@ const $freeze = (element, operation, attr = true) => {
                     closeHandler();
                 }
             }), "on");
-			
-			$drag(BOX, BOX_HEADER);
-			
+            $drag(BOX, BOX_HEADER);
             if (then) then();
         };
         const BOX_FLUSH = (where = "*") => {
@@ -1148,19 +1141,25 @@ const $freeze = (element, operation, attr = true) => {
                 adjustEntries(entrySibling, entrySibling.nextElementSibling);
             };
             let removeEntry = (entry, useDuration = true, closeEntry = false) => {
+                const remove = duration => setTimeout((() => {
+                    if (useDuration) {
+                        setTimeout((() => $class(entry, "del", "osai-notifier__display")), duration);
+                        duration = duration + 50;
+                    }
+                    adjustEntries(entry, entry.nextElementSibling, true);
+                    setTimeout((() => entry.remove()), 100);
+                }), duration);
                 if (closeEntry) {
                     adjustEntries(entry, entry.nextElementSibling, true);
                     setTimeout((() => entry.remove()), 100);
                 }
-                if (duration === "pin" || duration === "fixed" || duration === -1) return;
-                if (useDuration) {
-                    setTimeout((() => $class(entry, "del", "osai-notifier__display")), duration);
-                    duration = duration + 50;
-                }
-                setTimeout((() => {
-                    adjustEntries(entry, entry.nextElementSibling, true);
-                    setTimeout((() => entry.remove()), 100);
-                }), duration);
+                if (duration === "pin" || duration === "fixed" || duration === -1 || duration === false) return;
+                let removeNote = remove(duration);
+                $on(entry, "mouseover", (() => clearTimeout(removeNote)));
+                $on(entry, "mouseout", (() => {
+                    clearTimeout(removeNote);
+                    removeNote = remove(duration);
+                }));
             };
             let placeNewEntry = (entry, oldEntryHeight, useThisHeight = null) => {
                 $on($sel(".osai-notifier__close", entry), "click", (e => {
