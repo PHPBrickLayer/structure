@@ -7,6 +7,9 @@ use BrickLayer\Lay\Core\View\ViewBuilder;
 use Closure;
 use BrickLayer\Lay\Core\Api\Enums\ApiRequestMethod;
 use BrickLayer\Lay\Core\Exception;
+use Error;
+use TypeError;
+use ValueError as ValueErrorAlias;
 
 final class ApiEngine {
     public static function new() : self {
@@ -52,10 +55,11 @@ final class ApiEngine {
     /**
      * Accepts `/` separated URI as arguments.
      * @param string $request_uri
+     * @param ApiReturnType $return_type
+     * @return $this
      * @example `get/user/list`; translates to => `'get','user','list'`
      * @example `post/user/index/15`; translates to => `'post','user','index','{id}'`
      * @example `post/user/index/25`; translates to => `'post','user','index','{@int id}'`
-     * @return $this
      */
     private function map_request(string $request_uri, ApiReturnType $return_type) : self {
         if(self::$request_found || self::$request_complete || !$this->correct_request_method(false))
@@ -68,11 +72,15 @@ final class ApiEngine {
         $request_uri = explode("/", $request_uri);
         $last_item = end($request_uri);
 
-        if(isset(self::$group))
-            $request_uri = [self::$group, ...$request_uri];
+        if(isset(self::$group)) {
+            $group = explode("/", self::$group);
+            $request_uri = [...$group, ...$request_uri];
+        }
 
-        if(isset(self::$prefix))
-            $request_uri = [self::$prefix, ...$request_uri];
+        if(isset(self::$prefix)) {
+            $prefix = explode("/", self::$prefix);
+            $request_uri = [...$prefix, ...$request_uri];
+        }
 
         self::$registered_uris[] = [
             "uri" => implode("/",$request_uri),
@@ -117,7 +125,7 @@ final class ApiEngine {
                     try {
                         settype(self::$request_uri[$i], $data_type);
                     }
-                    catch (\ValueError $e){
+                    catch (ValueErrorAlias $e){
                         self::exception("InvalidDataType", "`@$data_type` is not a valid datatype, In [" . rtrim($uri_text, ", ") . "];", $e);
                     }
                 }
@@ -142,7 +150,7 @@ final class ApiEngine {
      * @return $this
      */
     public function prefix(string $prefix) : self {
-        self::$prefix = $prefix;
+        self::$prefix = trim($prefix, "/");
         return $this;
     }
 
@@ -163,11 +171,11 @@ final class ApiEngine {
     ->post("login")->bind(fn() => SystemUsers::new()->login());
     })`
      */
-    public function group(string $name, \Closure $grouped_requests) : self {
+    public function group(string $name, Closure $grouped_requests) : self {
         if(self::$request_complete)
             return $this;
 
-        self::$group = $name;
+        self::$group = trim($name, "/");
         $grouped_requests($this);
 
         // Clear prefix and group when done
@@ -181,7 +189,7 @@ final class ApiEngine {
      * @param Closure ...$grouped_requests A series of grouped requests that don't have group names
      * @return $this
      */
-    public function groups(\Closure ...$grouped_requests) : self {
+    public function groups(Closure ...$grouped_requests) : self {
         if(self::$request_complete)
             return $this;
 
@@ -226,6 +234,89 @@ final class ApiEngine {
     }
 
     /**
+     * When used, this method runs when a single route is hit, before getting to the bound method.
+     * The callback should return an array.
+     * The array should have the key "code" => 200;
+     * If it doesn't return 200, the bound method will not run.
+     *
+     * @param callable $middleware_callback
+     * @return self
+     * @example
+    `ApiEngine::new()->request->post('client/transactions/buy')
+    ->middleware(fn() => validate_session())
+    ->bind(fn() => Transactions::new()->buy());
+    `
+     */
+    public function middleware(callable $middleware_callback) : self
+    {
+        if(!self::$request_found)
+            return $this;
+
+        $arguments = self::get_mapped_args();
+        $return = $middleware_callback(...$arguments);
+
+        if(!isset($return['code']))
+            self::exception(
+                "MiddlewareError",
+                "You middleware must return an array with a key called \"code\", and its value should be 200 if the middlewares' condition is met"
+            );
+
+        if($return['code'] == 200)
+            return $this;
+
+        self::$method_return_value = $return;
+        self::$request_found = true;
+        self::$request_complete = true;
+
+        return $this;
+    }
+
+    /**
+     * This method runs for a series grouped routes.
+     * Routes are grouped either by using the `grouped` method or `prefix` method.
+     * When this method detects the group, it fires.
+     *
+     * You can group with just `prefix` or just the `group` method, or the both of them
+     *
+     * @param callable $middleware_callback
+     * @return self
+     * @example
+    `ApiEngine::new()->request->group('client/transactions', function (ApiEngine $req) {
+    ->group_middleware(fn() => validate_session())
+
+    $req->post('buy')->bind(fn() => Transactions::new()->buy());
+    $req->post('sell')->bind(fn() => Transactions::new()->sell());
+    $req->post('history')->bind(fn() => Transactions::new()->history()
+    );`
+     * @see middleware
+     */
+    public function group_middleware(callable $middleware_callback) : self
+    {
+        $use_middleware = false;
+        $uri_beginning = [];
+
+        if(@!empty(self::$prefix)) {
+            $prefix = explode("/", self::$prefix);
+            $uri_beginning = array_merge($uri_beginning, $prefix);
+        }
+
+        if(@!empty(self::$group)) {
+            $group = explode("/", self::$group);
+            $uri_beginning = array_merge($uri_beginning, $group);
+        }
+
+        foreach ($uri_beginning as $i => $begin){
+            $use_middleware = $begin == self::$request_uri[$i];
+        }
+
+        if(!$use_middleware)
+            return $this;
+
+        return $this->middleware($middleware_callback);
+    }
+
+
+    /**
      * @param Closure $callback_of_controller_method method name of the set controller.
      * If you wish to retrieve the value of the method, ensure to return it;
      */
@@ -243,10 +334,10 @@ final class ApiEngine {
             self::$method_return_value = $callback_of_controller_method(...$arguments);
             self::$request_complete = true;
         }
-        catch (\TypeError $e){
+        catch (TypeError $e){
             self::exception("ApiEngineMethodError", "Check the bind function of your route: [" . self::$request_uri_raw . "]; <br>" . $e->getMessage(), $e);
         }
-        catch (\Error|\Exception $e){
+        catch (Error|\Exception $e){
             self::exception("ApiEngineError", $e->getMessage(), $e);
         }
 
@@ -264,7 +355,7 @@ final class ApiEngine {
 
         try {
             return self::$method_return_value;
-        } catch (\Error $e) {
+        } catch (Error $e) {
             self::exception("PrematureGetResult", $e->getMessage() . "; You simply called get result and no specified route was hit, so there's nothing to 'get'", $e);
         }
 
@@ -280,7 +371,7 @@ final class ApiEngine {
     }
 
     /**
-     * @param ApiReturnType $return_type
+     * @param ApiReturnType|null $return_type
      * @param bool $print
      * @return string|bool|null Returns `null` when no api was hit; Returns `false` on error; Returns json encoded string or html on success,
      * depending on what was selected as `$return_type`
@@ -374,8 +465,25 @@ final class ApiEngine {
     public static function end(bool $print_existing_result = true) : ?string {
         $uri = self::$request_uri_raw ?? "";
 
-        if(self::$request_found === false)
-            self::exception("NoRequestExecuted", "No valid handler for request [$uri]. If you are sure a handler exists, then confirm if the sent [REQUEST_METHOD] matches the defined RESPONSE [REQUEST_METHOD]");
+        if(self::$request_found === false) {
+            $prefix_active = isset(self::$prefix) ? "<h3>Prefix is active: " . self::$prefix . "</h3>" : null;
+            $uris = "<br>" . PHP_EOL;
+            $method = self::$request_method;
+
+            foreach(self::$registered_uris as $reg_uri){
+                $uris .= "URI == " . $reg_uri['uri'] . "<br>" . PHP_EOL;
+                $uris .= "METHOD == " . $reg_uri['method'] . "<br>" . PHP_EOL;
+                $uris .= "RETURN TYPE == " . $reg_uri['return_type']->name . "<br>" . PHP_EOL;
+                $uris .= "<br>" . PHP_EOL;
+            }
+
+            self::exception(
+                "NoRequestExecuted",
+                "No valid handler for request [$uri] with method [$method]. $prefix_active
+                <h3 style='color: cyan; margin-bottom: 0'>Here are the registered requests with $method method: </h3>
+                <div style='color: #F3F9FA'>$uris</div>"
+            );
+        }
 
         if($print_existing_result)
             self::new()->print_as_json();
