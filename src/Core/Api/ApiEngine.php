@@ -7,9 +7,6 @@ use BrickLayer\Lay\Core\View\ViewBuilder;
 use Closure;
 use BrickLayer\Lay\Core\Api\Enums\ApiRequestMethod;
 use BrickLayer\Lay\Core\Exception;
-use Error;
-use TypeError;
-use ValueError as ValueErrorAlias;
 
 final class ApiEngine {
     public static function new() : self {
@@ -55,11 +52,10 @@ final class ApiEngine {
     /**
      * Accepts `/` separated URI as arguments.
      * @param string $request_uri
-     * @param ApiReturnType $return_type
-     * @return $this
      * @example `get/user/list`; translates to => `'get','user','list'`
      * @example `post/user/index/15`; translates to => `'post','user','index','{id}'`
      * @example `post/user/index/25`; translates to => `'post','user','index','{@int id}'`
+     * @return $this
      */
     private function map_request(string $request_uri, ApiReturnType $return_type) : self {
         if(self::$request_found || self::$request_complete || !$this->correct_request_method(false))
@@ -125,7 +121,7 @@ final class ApiEngine {
                     try {
                         settype(self::$request_uri[$i], $data_type);
                     }
-                    catch (ValueErrorAlias $e){
+                    catch (\ValueError $e){
                         self::exception("InvalidDataType", "`@$data_type` is not a valid datatype, In [" . rtrim($uri_text, ", ") . "];", $e);
                     }
                 }
@@ -171,7 +167,7 @@ final class ApiEngine {
     ->post("login")->bind(fn() => SystemUsers::new()->login());
     })`
      */
-    public function group(string $name, Closure $grouped_requests) : self {
+    public function group(string $name, \Closure $grouped_requests) : self {
         if(self::$request_complete)
             return $this;
 
@@ -189,7 +185,7 @@ final class ApiEngine {
      * @param Closure ...$grouped_requests A series of grouped requests that don't have group names
      * @return $this
      */
-    public function groups(Closure ...$grouped_requests) : self {
+    public function groups(\Closure ...$grouped_requests) : self {
         if(self::$request_complete)
             return $this;
 
@@ -234,10 +230,10 @@ final class ApiEngine {
     }
 
     /**
-     * When used, this method runs when a single route is hit, before getting to the bound method.
+     * When used, this method runs when a single route is hit, before getting to the binded method.
      * The callback should return an array.
-     * The array should have the key "code" => 200;
-     * If it doesn't return 200, the bound method will not run.
+     * The array should have be "code" => 200;
+     * If it doesn't return 200, the binded method will not run.
      *
      * @param callable $middleware_callback
      * @return self
@@ -258,7 +254,7 @@ final class ApiEngine {
         if(!isset($return['code']))
             self::exception(
                 "MiddlewareError",
-                "You middleware must return an array with a key called \"code\", and its value should be 200 if the middlewares' condition is met"
+                "You middleware must return an array with a key called \"code\", and its value should be 200 if the middleware's condition is met"
             );
 
         if($return['code'] == 200)
@@ -334,10 +330,10 @@ final class ApiEngine {
             self::$method_return_value = $callback_of_controller_method(...$arguments);
             self::$request_complete = true;
         }
-        catch (TypeError $e){
+        catch (\TypeError $e){
             self::exception("ApiEngineMethodError", "Check the bind function of your route: [" . self::$request_uri_raw . "]; <br>" . $e->getMessage(), $e);
         }
-        catch (Error|\Exception $e){
+        catch (\Error|\Exception $e){
             self::exception("ApiEngineError", $e->getMessage(), $e);
         }
 
@@ -355,7 +351,7 @@ final class ApiEngine {
 
         try {
             return self::$method_return_value;
-        } catch (Error $e) {
+        } catch (\Error $e) {
             self::exception("PrematureGetResult", $e->getMessage() . "; You simply called get result and no specified route was hit, so there's nothing to 'get'", $e);
         }
 
@@ -371,7 +367,7 @@ final class ApiEngine {
     }
 
     /**
-     * @param ApiReturnType|null $return_type
+     * @param ApiReturnType $return_type
      * @param bool $print
      * @return string|bool|null Returns `null` when no api was hit; Returns `false` on error; Returns json encoded string or html on success,
      * depending on what was selected as `$return_type`
@@ -453,8 +449,10 @@ final class ApiEngine {
         self::$request_uri_raw = $endpoint;
         self::$request_uri = $req['route_as_array'];
 
-        if(self::$request_uri[0] == "api")
+        if(self::$request_uri[0] == "api") {
             array_shift(self::$request_uri);
+            self::$request_uri_raw = implode("/", self::$request_uri);
+        }
 
         if(empty(self::$request_uri[0]))
             self::exception("InvalidAPIRequest", "Invalid api request sent. Malformed URI received. You can't access this script like this!");
@@ -470,7 +468,7 @@ final class ApiEngine {
             $uris = "<br>" . PHP_EOL;
             $method = self::$request_method;
 
-            foreach(self::$registered_uris as $reg_uri){
+            foreach(self::$registered_uris as $i => $reg_uri){
                 $uris .= "URI == " . $reg_uri['uri'] . "<br>" . PHP_EOL;
                 $uris .= "METHOD == " . $reg_uri['method'] . "<br>" . PHP_EOL;
                 $uris .= "RETURN TYPE == " . $reg_uri['return_type']->name . "<br>" . PHP_EOL;
