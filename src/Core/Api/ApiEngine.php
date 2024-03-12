@@ -26,6 +26,7 @@ final class ApiEngine {
     private static ?string $prefix;
     private static ?string $group;
     private static string $request_method;
+    private static string $current_request_method;
 
     private static function exception(string $title, string $message, $exception = null) : void {
         http_response_code(500);
@@ -36,8 +37,10 @@ final class ApiEngine {
     private function correct_request_method(bool $throw_exception = true) : bool {
         $match = strtoupper($_SERVER['REQUEST_METHOD']) === self::$request_method;
 
-        if($match)
+        if($match) {
+            self::$current_request_method = self::$request_method;
             return true;
+        }
 
         if($throw_exception)
             self::exception(
@@ -466,9 +469,9 @@ final class ApiEngine {
         if(self::$request_found === false) {
             $prefix_active = isset(self::$prefix) ? "<h3>Prefix is active: " . self::$prefix . "</h3>" : null;
             $uris = "<br>" . PHP_EOL;
-            $method = self::$request_method;
+            $method = self::$current_request_method;
 
-            foreach(self::$registered_uris as $i => $reg_uri){
+            foreach(self::$registered_uris as $reg_uri){
                 $uris .= "URI == " . $reg_uri['uri'] . "<br>" . PHP_EOL;
                 $uris .= "METHOD == " . $reg_uri['method'] . "<br>" . PHP_EOL;
                 $uris .= "RETURN TYPE == " . $reg_uri['return_type']->name . "<br>" . PHP_EOL;
