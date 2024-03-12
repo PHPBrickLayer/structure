@@ -8,28 +8,52 @@ trait SelectorOOPCrud
 {
     private mixed $saved_result;
 
+    private function match_type(string $return_type, bool $last_index, bool $catch_error) : mixed
+    {
+        $test_type = call_user_func("is_$return_type", $this->saved_result);
+
+        if($test_type)
+            return "__MATCHED__";
+
+        if(!$last_index)
+            return "__IGNORE__";
+
+        $type = gettype($this->saved_result);
+
+        if($type == "object")
+            $type = "mysqli_object";
+
+        $return_type = strtoupper($return_type);
+
+        if(!$catch_error)
+            $this->oop_exception("invalid return type received from query. Got [<b>$type</b>] instead of [<b>$return_type</b>]");
+
+        return match($return_type) {
+            default => [],
+            'STRING' => '',
+            'BOOL' => false,
+            'INT' => 0,
+            'NULL' => null,
+        };
+    }
+
     private function capture_result(array $result_and_opt, string $return_type = 'array') : mixed {
-        $opt = $result_and_opt[1];
+        $catch_error = $result_and_opt[1]['catch'] ?? false;
 
         $this->saved_result = $result_and_opt[0];
+        $types = explode("|", $return_type);
+        $last_index = count($types) - 1;
 
-        if(!call_user_func("is_$return_type", $this->saved_result)) {
-            $type = gettype($this->saved_result);
+        foreach ($types as $i => $type) {
+            $x = $this->match_type($type, $i == $last_index, $catch_error);
 
-            if($type == "object")
-                $type = "mysqli_object";
+            if ($x == "__IGNORE__")
+                continue;
 
-            $return_type = strtoupper($return_type);
+            if ($x == "__MATCHED__")
+                break;
 
-            if(!@$opt['catch'])
-                $this->oop_exception("invalid return type received from query. Got [<b>$type</b>] instead of [<b>$return_type</b>]");
-
-            return match($return_type) {
-                default => [],
-                'STRING' => '',
-                'BOOL' => false,
-                'INT' => 0,
-            };
+            return $x;
         }
 
         return $this->saved_result;
@@ -210,6 +234,8 @@ trait SelectorOOPCrud
         $cols = $d['values'] ?? $d['columns'] ?? "*";
         $d['query_type'] = "SELECT";
         $d['fetch_as'] ??= "assoc";
+        $can_be_null = $d['can_be_null'] ?? true;
+        $return_type = $can_be_null ? "array|null" : "array";
 
         if(empty($table))
             $this->oop_exception("You did not initialize the `table`. Use the `->table(String)` method like this: `->value('your_table_name')`");
@@ -244,13 +270,15 @@ trait SelectorOOPCrud
 
         if(!isset($d['join']))
             return $this->capture_result(
-                [$this->query("SELECT $cols FROM $table $clause", $d), $d]
+                [$this->query("SELECT $cols FROM $table $clause", $d), $d],
+                $return_type
             );
 
         $clause = $this->_join($d) . $clause;
 
         return $this->capture_result(
-            [$this->query("SELECT $cols FROM $table $clause", $d), $d]
+            [$this->query("SELECT $cols FROM $table $clause", $d), $d],
+            $return_type
         );
     }
 

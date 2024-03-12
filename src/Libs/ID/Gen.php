@@ -45,6 +45,11 @@ class Gen
         return $this;
     }
 
+    public function length(int $length) : self
+    {
+        return $this->digit($length);
+    }
+
     public function prepend(?string $string = null) : self {
         self::$prepend = $string;
         return $this;
@@ -83,6 +88,7 @@ class Gen
 
         if($table && $column && self::count($table,$column,$rand))
             return $this->digit($length)->prepend($pre)->append($end)->db_confirm($table, $column)->gen();
+
         return $rand . "";
     }
 
@@ -101,7 +107,7 @@ class Gen
         $rand = substr($rand,0,$length);
 
         if($table && $column && self::count($table,$column,$rand))
-            return $this->gen_str(...$remove_chars);
+            return $this->string(...$remove_chars);
 
         return $rand;
     }

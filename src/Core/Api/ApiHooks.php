@@ -61,12 +61,14 @@ abstract class ApiHooks
             try {
                 $brick = $brick->newInstance();
             } catch (\ReflectionException $e) {
+                $brick = $brick::class ?? "ApiHooks";
                 Exception::throw_exception($e->getMessage(), "$brick::ApiError", exception: $e);
             }
 
             try {
                 $brick->hooks();
             } catch (\Error|\Exception $e) {
+                $brick = $brick::class;
                 Exception::throw_exception($e->getMessage(), "$brick::HookError", exception: $e);
             }
         }

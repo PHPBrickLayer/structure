@@ -155,4 +155,24 @@ class LayDate {
         $string = array_slice($string, 0, $depth);
         return $string ? implode(', ', $string) . ($append_ago ? ' ago' : '') : 'just now';
     }
+
+    public static function diff(string|int $datetime_earlier, string|int $datetime_latest = "now", bool $absolute = false) : int
+    {
+        $datetime_earlier = self::date($datetime_earlier, figure: true);
+        $datetime_latest = self::date($datetime_latest, figure: true);
+
+        if($absolute)
+            return abs($datetime_latest - $datetime_earlier);
+
+        return $datetime_latest - $datetime_earlier;
+    }
+
+    public static function greater(string|int $datetime_earlier, string|int $datetime_latest = "now", bool $invert = false) : bool
+    {
+        if($invert)
+            return self::date($datetime_latest, figure: true) < self::date($datetime_earlier, figure: true);
+
+        return self::date($datetime_latest, figure: true) > self::date($datetime_earlier, figure: true);
+    }
+
 }
