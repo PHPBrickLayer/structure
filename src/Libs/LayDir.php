@@ -13,7 +13,7 @@ class LayDir {
         if (!is_dir($dir)) {
             self::$result = false;
 
-            if(file_exists($dir))
+            if(file_exists($dir) || is_link($dir))
                 self::$result = unlink($dir);
 
             return;
@@ -33,9 +33,7 @@ class LayDir {
                 continue;
             }
 
-
             self::unlink($dir . "/" . $object);
-
         }
 
         self::$result = rmdir($dir);

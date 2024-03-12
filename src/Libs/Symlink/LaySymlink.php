@@ -14,7 +14,7 @@ class LaySymlink {
             exec("mklink " . $type->value . " $dest $src");
             return;
         }
-
+        
         symlink($src, $dest);
     }
 }
