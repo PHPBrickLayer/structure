@@ -99,8 +99,8 @@ $lay.fn = {
             })
         })
     },
-    currency : (num,currency = "USD",locale = "en-US") => {
-        return new Intl.NumberFormat(locale,{
+    currency : (num, currency = "USD",locale = "en-US") => {
+        return new Intl.NumberFormat(locale,!currency ? {} : {
             style: "currency",
             currency: currency,
         }).format(num)
