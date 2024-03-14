@@ -91,12 +91,12 @@ class Deploy implements CmdLayout
             $src_dir, $output_dir,
 
             // Check if the file was modified, else store last modified time
-            pre_copy: function($file, $src) use ($is_css, $is_js, $cache, &$track_changes) {
+            pre_copy: function($file, $src_dir) use ($is_css, $is_js, $cache, &$track_changes) {
                 try{
-                    $key = $src . DIRECTORY_SEPARATOR . $file;
+                    $key = $src_dir . DIRECTORY_SEPARATOR . $file;
                     $last_modified = filemtime($key);
 
-                    if(@$track_changes[$key] === $last_modified)
+                    if(@$track_changes[$key] == $last_modified)
                         return CustomContinueBreak::CONTINUE;
 
                     $track_changes[$key] = $last_modified;
