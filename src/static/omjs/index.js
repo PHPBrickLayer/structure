@@ -1267,7 +1267,11 @@ function pMsg(message = "Prompt Box", operation = (inputValue => inputValue), cu
     align: null,
     onClose: () => null
 }) {
-    CusWind.insert("head", "Prompt Box").insert("body", "<div style='margin-bottom: 5px'>" + message + "</div>").insert("body+", custom.body || "<textarea class='osai-prompt-input-box' style='width: 100%; height: 50px; text-align: center' placeholder='Type in...'></textarea>").insert("foot", `<button type="button" class="success osai-modal__btn osai-confirm-success"><i class="gg-check"></i></button>\n\t\t<button type="button" class="fail osai-close-box osai-modal__btn"><i class="gg-close"></i></button>`).render(custom.closeOnBlur, custom.size, custom.align, custom.onClose);
+    CusWind.insert("head", message)
+        .insert("body", custom.body || "<textarea class='osai-prompt-input-box form-control' style='width: 100%; height: 50px; text-align: center' placeholder='Type in...'></textarea>")
+        .insert("foot", `<button type="button" class="success osai-modal__btn osai-confirm-success"><i class="gg-check"></i></button><button type="button" class="fail osai-close-box osai-modal__btn"><i class="gg-close"></i></button>`)
+        .render(custom.closeOnBlur, custom.size, custom.align, custom.onClose);
+
     $on($sel(".osai-confirm-success"), "click", (e => {
         e.preventDefault();
         if ($sel(".osai-prompt-input-box")) {
