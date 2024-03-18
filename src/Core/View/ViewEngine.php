@@ -140,7 +140,8 @@ final class ViewEngine {
         $charset = $page->charset;
         $desc = $page->desc;
         $color = $site_data->color->pry;
-        $route = json_encode($client->domain->route_as_array);
+        $route = $client->domain->route;
+        $route_array = json_encode($client->domain->route_as_array);
         $canonical = <<<LINK
             <link rel="canonical" href="$page->canonical" />
         LINK;
@@ -193,7 +194,8 @@ final class ViewEngine {
             <input type="hidden" id="LAY-STATIC-ENV" value="$client->static_env">
             <input type="hidden" id="LAY-SHARED-ROOT" value="{$client->shared->root}">
             <input type="hidden" id="LAY-DOMAIN-ROOT" value="$client->root">
-            <div style="display: none" id="LAY-ROUTE-AS-ARRAY">$route</div>
+            <input type="hidden" id="LAY-ROUTE" value="$route">
+            <div style="display: none" id="LAY-ROUTE-AS-ARRAY">$route_array</div>
             <!--//END LAY CONSTANTS-->
             {$this->skeleton_body()}
         </body></html>

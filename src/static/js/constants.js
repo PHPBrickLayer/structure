@@ -12,11 +12,12 @@ $lay.page = {
     img : $attr($id("LAY-PAGE-IMG"),"content"),
     site_name : $attr($id("LAY-SITE-NAME-SHORT"),"content"),
     site_name_full : $attr($id("LAY-SITE-NAME"),"content"),
-    routeObj : JSON.parse($id("LAY-ROUTE-AS-ARRAY").innerText),
+    route : $id("LAY-ROUTE").value,
+    routeArray : JSON.parse($id("LAY-ROUTE-AS-ARRAY").innerText),
 }
 $lay.src = {
     base : $id("LAY-PAGE-BASE").href,
-    api : $id('LAY-API').value + "?c=",
+    api : $id('LAY-API').value,
     serve : $id('LAY-API').value,
     shared_root : $id('LAY-SHARED-ROOT').value,
     shared_img : $id('LAY-SHARED-IMG').value,
