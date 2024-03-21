@@ -95,6 +95,23 @@ $lay.fn = {
 
                             return new Function('',`return ${fn}()`).call(this)
                         },
+                        closure: (...args) => {
+                            let fn = $data(btn, "closure")?.trim()
+
+                            if(!fn)
+                                return null
+
+                            if(args.length > 0) {
+                                fn = fn.split("(")[0]
+                                let allArgs = "";
+
+                                $loop(args, arg => allArgs += arg + ",")
+
+                                return new Function('', `return ${fn}(${allArgs})`).call(this)
+                            }
+
+                            return new Function('', `return ${fn}`).call(this)
+                        },
                         info: !$sel(".entry-row-info", parentElement) ? "" : JSON.parse($html($sel(".entry-row-info", parentElement)))
                     })
                 }
