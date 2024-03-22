@@ -27,6 +27,7 @@ final class ApiEngine {
     private static ?string $group;
     private static string $request_method;
     private static string $current_request_method;
+    private static ?\Closure $current_middleware = null;
 
     private static function exception(string $title, string $message, $exception = null) : void {
         http_response_code(500);
@@ -260,8 +261,15 @@ final class ApiEngine {
                 "You middleware must return an array with a key called \"code\", and its value should be 200 if the middleware's condition is met"
             );
 
-        if($return['code'] == 200)
+        // This means the request can go to the server
+        if($return['code'] == 200) {
+            if(isset(self::$current_middleware))
+                self::$current_middleware = null;
+
             return $this;
+        }
+
+        // If it gets here, it means the middleware has deemed the request invalid
 
         self::$method_return_value = $return;
         self::$request_found = true;
@@ -311,6 +319,8 @@ final class ApiEngine {
         if(!$use_middleware)
             return $this;
 
+        self::$current_middleware = $middleware_callback;
+
         return $this->middleware($middleware_callback);
     }
 
@@ -327,6 +337,13 @@ final class ApiEngine {
             self::exception("RequestMethodNotFound", "No request method found. You are probably accessing this page illegally!");
 
         $this->correct_request_method();
+
+        if(self::$current_middleware) {
+            $this->middleware(self::$current_middleware);
+
+            if(isset(self::$method_return_value))
+                return $this;
+        }
 
         try {
             $arguments = self::get_mapped_args();
