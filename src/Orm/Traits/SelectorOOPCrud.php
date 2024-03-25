@@ -117,11 +117,12 @@ trait SelectorOOPCrud
 
         if(is_array($column_and_values)){
             $cols = "";
+
             try {
                 foreach ($column_and_values as $k => $c){
                     $c = SQL::instance()->clean($c, 11, 'PREVENT_SQL_INJECTION');
 
-                    if(!str_ends_with($c . "",")") && $c !== null)
+                    if(!preg_match("/^[a-zA-Z]+\([^)]*\)$/", $c) && $c !== null)
                         $c = "'$c'";
 
                     $cols .= $c == null ? "`$k`=NULL," : "`$k`=$c,";

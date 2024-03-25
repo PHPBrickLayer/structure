@@ -3,7 +3,7 @@
  * @author Osahenrumwen Aigbogun
  * @version 2.0.0
  * @since 23/11/2019
- * @modified 18/01/2022
+ * @modified 25/03/2024
  * @license
  * Copyright (c) 2019 Osai LLC | osaitech.dev/about.
  *
@@ -37,29 +37,23 @@ const $omjsError = (component, error, throwError = false, ...others) => {
     if (throwError) throw Error("OMJ$ ERR Thrown");
 };
 
-const $id = (elementID, parent = $doc) => {
-    try {
-        return parent.getElementById(elementID);
-    } catch (e) {
-        $omjsError("$id", e, true);
-    }
-};
-
-const $sel = (elementSelector, parent = $doc) => {
-    try {
-        return parent.querySelector(elementSelector);
-    } catch (e) {
-        $omjsError("$sel", e, true);
-    }
+const $omjsElSub = (element, fnContext) => {
+    if ($type(element) === "String") element = $sel(element);
+    if (element === null) $omjsError(fnContext, "You are trying to access a null element", true);
+    return element;
 };
 
 const $sela = (elementSelector, parent = $doc) => {
     try {
         return parent.querySelectorAll(elementSelector);
     } catch (e) {
-        $omjsError("$sela", e, true);
+        $omjsError("$sela", "Selector: [" + elementSelector + "] is invalid.\nDetails: " + e, true);
     }
 };
+
+const $sel = (elementSelector, parent = $doc) => $sela(elementSelector, parent)[0];
+
+const $id = (elementSelector, parent = $doc) => $sela("#" + elementSelector, parent)[0];
 
 const $tag = (elementTag, parent = $doc) => {
     try {
@@ -77,15 +71,8 @@ const $name = (elementName, parent = $doc) => {
     }
 };
 
-const $cls = (elementClass, parent = $doc) => {
-    try {
-        return parent.getElementsByClassName(elementClass);
-    } catch (e) {
-        $omjsError("$cls", e, true);
-    }
-};
-
 const $on = (element, event, listener, ...options) => {
+    element = $omjsElSub(element, "$on");
     const option = options[0] ?? "on";
     const multipleElement = element.length && !(element.type === "select-one" || element.type === "select-multiple");
     try {
@@ -93,14 +80,17 @@ const $on = (element, event, listener, ...options) => {
             let listenerFn = e => listener(e, multipleElement ? element[index] : element, index, ...options);
             if (option === "on") {
                 let eventList = event.split(",");
-                if (eventList.length > 1) eventList.forEach((listen => listenerElement["on" + listen] = listenerFn)); else listenerElement["on" + event] = listenerFn;
-            } else if (option === "remove" || option === "del") {
+                if (eventList.length > 1) return $loop(eventList, (listen => listenerElement["on" + listen] = listenerFn));
+                return listenerElement["on" + event] = listenerFn;
+            }
+            if (option === "remove" || option === "del") {
                 listenerElement.removeEventListener(event, listenerFn, false);
                 listenerElement["on" + event] = () => null;
-            } else {
-                let eventList = event.split(",");
-                if (eventList.length > 1) eventList.forEach((listen => listenerElement.addEventListener(listen, listenerFn, option))); else listenerElement.addEventListener(event, listenerFn, option);
+                return;
             }
+            let eventList = event.split(",");
+            if (eventList.length > 1) return $loop(eventList, (listen => listenerElement.addEventListener(listen, listenerFn, option)));
+            listenerElement.addEventListener(event, listenerFn, option);
         };
         if (multipleElement) return $loop(element, ((ele, i) => addListener(ele, i)));
         addListener(element);
@@ -114,6 +104,7 @@ const $set = listener => $on($doc, "DOMContentLoaded", listener);
 const $load = listener => $on($win, "load", listener);
 
 const $attr = (element, attributeName, attributeValue = null) => {
+    element = $omjsElSub(element, "$attr");
     try {
         if (attributeValue) {
             if (attributeValue === "remove" || attributeValue === "del") return element.removeAttribute(attributeName); else return element.setAttribute(attributeName, attributeValue);
@@ -125,36 +116,39 @@ const $attr = (element, attributeName, attributeValue = null) => {
 };
 
 const $data = (element, dataName, value) => {
+    element = $omjsElSub(element, "$data");
     if (value) return $attr(element, "data-" + dataName, value);
     return $attr(element, "data-" + dataName);
 };
 
 const $class = (element, action = null, ...className) => {
-    if (!action) return element.classList; else if (action === "contains" || action === "contain" || action === "has") return element.classList.contains(className); else if (action === "index" || action === "key") {
-        if (element) {
-            let rtn = 0;
-            $sela("." + element.classList.toString().replace(" ", ".")).forEach(((v, i) => {
-                if (v === element) return rtn = i;
-            }));
-            return rtn;
-        }
-        return 0;
+    element = $omjsElSub(element, "$class");
+    if (!action) return element.classList;
+    if (action === "contains" || action === "contain" || action === "has") return element.classList.contains(className);
+    if (action === "index" || action === "key") {
+        let rtn = 0;
+        $loop($sela("." + element.classList.toString().replace(" ", ".")), ((v, i) => {
+            if (v === element) {
+                rtn = i;
+                return "break";
+            }
+        }));
+        return rtn;
     }
-    return className.forEach((classValue => {
-        if (action === "add") {
-            element.classList.add(classValue);
-            return element;
-        } else if (action === "remove" || action === "del") {
-            element.classList.remove(classValue);
-            return element;
-        } else {
-            element.classList.toggle(classValue);
-            return element;
-        }
-    }));
+    if (action === "add") {
+        element.classList.add(...className);
+        return element;
+    }
+    if (action === "remove" || action === "del") {
+        element.classList.remove(...className);
+        return element;
+    }
+    element.classList.toggle(className, action);
+    return element;
 };
 
 const $style = (element, cssProperties = null, pseudoElement = null) => {
+    element = $omjsElSub(element, "$style");
     try {
         if (cssProperties === "css") return $win.getComputedStyle(element, pseudoElement);
         if (cssProperties !== null) return $attr(element, "style", cssProperties);
@@ -165,32 +159,46 @@ const $style = (element, cssProperties = null, pseudoElement = null) => {
 };
 
 const $html = (element, where = null, code__moveTo = null) => {
+    element = $omjsElSub(element, "$html");
     if (where === "inner" || where === "in") {
         try {
             return element.innerHTML = code__moveTo;
         } catch (e) {
             $omjsError("$html", e, true, "%cThe selected element doesn't exist", "color:#e0a800");
         }
-    } else if (where === "del" || where === "remove") {
+        return;
+    }
+    if (where === "del" || where === "remove") {
         try {
             return element.innerHTML = "";
         } catch (e) {
             $omjsError("$html", e, true, "%cThe selected element doesn't exist", "color:#e0a800");
         }
-    } else if (where === "move") {
+        return;
+    }
+    if (where === "move") {
         try {
             return code__moveTo.appendChild(element);
         } catch (e) {
             $omjsError("$html", e, true, "%cEnsure `param 1` === Element being moved to `param 3`\nEnsure `param 3` === Parent Element receiving `param 1`", "color:#e0a800");
         }
-    } else if (where === "wrap") {
+        return;
+    }
+    if (where === "wrap") {
         try {
             element.parentNode.insertBefore($doc.createElement(code__moveTo), element);
             return element.previousElementSibling.appendChild(element).parentElement;
         } catch (e) {
             $omjsError("$html", e, true, "%cEnsure the first parameter is a valid node\nEnsure a valid tag name was supplied to the third parameter` === Parent Element receiving `param 1`", "color: #e0a800");
         }
-    } else if (!code__moveTo && !where) return element.innerHTML; else return element.insertAdjacentHTML(where, code__moveTo);
+        return;
+    }
+    if (!code__moveTo && !where) return element.innerHTML;
+    try {
+        return element.insertAdjacentHTML(where, code__moveTo);
+    } catch (e) {
+        $omjsError("$html", e, true);
+    }
 };
 
 const $type = (element, silent = true) => {
@@ -239,14 +247,72 @@ const $loop = (obj, operation = (() => null)) => {
     return prop;
 };
 
+Object.defineProperties(HTMLElement.prototype, {
+    $sela: {
+        value: function(selector) {
+            return $sela(selector, this);
+        }
+    },
+    $sel: {
+        value: function(selector) {
+            return $sel(selector, this);
+        }
+    },
+    $html: {
+        value: function(position = null, html = null) {
+            return $html(this, position, html);
+        }
+    },
+    $on: {
+        value: function(event, listener, opt = {}) {
+            return $on(this, event, listener, opt);
+        }
+    },
+    $attr: {
+        value: function(datasetName = null, value = null) {
+            return $attr(this, datasetName, value);
+        }
+    },
+    $data: {
+        value: function(datasetName = null, value = null) {
+            return $data(this, datasetName, value);
+        }
+    },
+    $class: {
+        value: function(action = null, ...classNames) {
+            return $class(this, action, ...classNames);
+        }
+    },
+    $style: {
+        value: function(cssRules = null, pseudoElement = null) {
+            return $style(this, cssRules, pseudoElement);
+        }
+    },
+    $type: {
+        value: function(consoleLogType = false) {
+            return $type(this, consoleLogType);
+        }
+    }
+});
+
+$loop([ NodeList.prototype, HTMLCollection.prototype ], (element => {
+    Object.defineProperties(element, {
+        $loop: {
+            value: function(callback) {
+                return $loop(this, callback);
+            }
+        }
+    });
+}));
+
 /**!
- * @fileOverview Helpful Plugins Developed With OMJ$
- * @author Osahenrumwen Aigbogun
- * @version 2.0.3
- * @since 23/11/2019
- * @modified 09/01/2022
- * @license Copyright (c) 2019 Osai LLC | loshq.net/about.
- */
+* @fileOverview Helpful Plugins Developed With OMJ$
+* @author Osahenrumwen Aigbogun
+* @version 2.0.3
+* @since 23/11/2019
+* @modified 09/01/2022
+* @license Copyright (c) 2019 Osai LLC | loshq.net/about.
+*/
 const $in = (element, parent__selector = $doc, mode = "down") => {
     if (mode === "parent" || mode === "top") {
         if (parent === $doc) return false;
@@ -273,22 +339,22 @@ const $get = (name, query = true) => {
     let urlComplete = origin + path;
     path = path.replace("/" + urlFileName, "");
     switch (name) {
-      case "origin":
-        return origin;
+        case "origin":
+            return origin;
 
-      case "path":
-      case "directory":
-        return path;
+            case "path":
+                case "directory":
+                    return path;
 
-      case "file":
-      case "script":
-        return urlFileName;
+                    case "file":
+                        case "script":
+                            return urlFileName;
 
-      case "hash":
-        return hash;
+                            case "hash":
+                                return hash;
 
-      default:
-        return urlComplete;
+                                default:
+                                    return urlComplete;
     }
 };
 
@@ -323,21 +389,21 @@ const $media = ({srcElement: srcElement, previewElement: previewElement, then: t
     let previewMedia = srcElement => {
         let srcProcessed = [];
         switch (srcElement.type) {
-          default:
-            previewElement.src = srcElement.value !== "" ? srcElement.value : currentMediaSrc;
-            break;
+            default:
+                previewElement.src = srcElement.value !== "" ? srcElement.value : currentMediaSrc;
+                break;
 
-          case "file":
-            if (useReader) {
-                const reader = new FileReader;
-                $on(reader, "load", (() => {
-                    if (srcElement.value === "") return previewElement.src = currentMediaSrc;
-                    previewElement.src = reader.result;
-                    then && then(reader.result);
-                }), "on");
-                if (srcElement.files[0]) return reader.readAsDataURL(srcElement.files[0]);
-                previewElement.src = currentMediaSrc;
-            }
+                case "file":
+                    if (useReader) {
+                        const reader = new FileReader;
+                        $on(reader, "load", (() => {
+                            if (srcElement.value === "") return previewElement.src = currentMediaSrc;
+                            previewElement.src = reader.result;
+                            then && then(reader.result);
+                        }), "on");
+                        if (srcElement.files[0]) return reader.readAsDataURL(srcElement.files[0]);
+                        previewElement.src = currentMediaSrc;
+                    }
             if (srcElement.multiple) return osNote("Media preview doesn't support preview for multiple files");
             if (srcElement.value === "") return previewElement.src = currentMediaSrc;
             srcProcessed = URL.createObjectURL(srcElement.files[0]);
@@ -446,17 +512,17 @@ const $overflow = element => element.scrollHeight > element.clientHeight || elem
 const $check = (value, type) => {
     if ($type(value) !== "String") return false;
     switch (type) {
-      case "name":
-        return !!new RegExp("^[a-z ,.'-]+/i$", value);
+        case "name":
+            return !!new RegExp("^[a-z ,.'-]+/i$", value);
 
-      case "username":
-        return !!new RegExp("^w+$", value);
+            case "username":
+                return !!new RegExp("^w+$", value);
 
-      case "mail":
-        return /^([a-zA-Z0-9_.\-+])+@(([a-zA-Z0-9\-])+\.)+([a-zA-Z0-9]{2,4})+$/.test(value);
+                case "mail":
+                    return /^([a-zA-Z0-9_.\-+])+@(([a-zA-Z0-9\-])+\.)+([a-zA-Z0-9]{2,4})+$/.test(value);
 
-      default:
-        return true;
+                    default:
+                        return true;
     }
 };
 
@@ -481,14 +547,14 @@ const $cookie = (name = "*", value = null, expire = null, path = "", domain = ""
 };
 
 /**!
- * This Function validates form, it doesn't get the form data (serialize), that's done by $getForm
- * @param element {HTMLElement|HTMLFormElement} Element to trigger form check or the form element itself
- * @param option {Object} Element to trigger form check or the form element itself
- * {string|function} option.errorDisplay manner in which the error message should be displayed [default=popUp]
- *      @value {errorDisplay} === "popUp"[default] || "create"[create error message after field] || function(){}
- * {string} option.errorMessage error text to return to user (not necessary if using function for {errorDisplay})
- * @return {boolean} [false] if field(s) is|are empty || [true] if field(s) is|are not empty
- */ const $form = (element, option = {}) => {
+* This Function validates form, it doesn't get the form data (serialize), that's done by $getForm
+* @param element {HTMLElement|HTMLFormElement} Element to trigger form check or the form element itself
+* @param option {Object} Element to trigger form check or the form element itself
+* {string|function} option.errorDisplay manner in which the error message should be displayed [default=popUp]
+*      @value {errorDisplay} === "popUp"[default] || "create"[create error message after field] || function(){}
+* {string} option.errorMessage error text to return to user (not necessary if using function for {errorDisplay})
+* @return {boolean} [false] if field(s) is|are empty || [true] if field(s) is|are not empty
+*/ const $form = (element, option = {}) => {
     let errorDisplay = option.display ?? "popUp";
     let errorMessage = option.message ?? "Please fill all required fields!";
     if (!(element.nodeName === "FORM")) element = element.closest("FORM");
@@ -547,12 +613,12 @@ const $cookie = (name = "*", value = null, expire = null, path = "", domain = ""
 };
 
 /**!
- * Acquire form data as string, object or FormData
- * @param {HTMLFormElement|HTMLElement}  form = Form to be fetched or an existing element within the form
- * @param {boolean} validate = if to validate form automatically [default = false]
- * @return {Object}
- * @example $getForm(formElement).string || $getForm(formElement).object || $getForm(formElement).file
- */ const $getForm = (form, validate = false) => {
+* Acquire form data as string, object or FormData
+* @param {HTMLFormElement|HTMLElement}  form = Form to be fetched or an existing element within the form
+* @param {boolean} validate = if to validate form automatically [default = false]
+* @return {Object}
+* @example $getForm(formElement).string || $getForm(formElement).object || $getForm(formElement).file
+*/ const $getForm = (form, validate = false) => {
     let formFieldsString = "";
     let formFieldsObject = {};
     let hasFile = false;
@@ -645,30 +711,30 @@ const $preloader = (act = "show") => {
 "use strict";
 
 /**!
- * CURL (AJAX) built with OMJ$
- * @author Osahenrumwen Aigbogun
- * @version 2.0.1
- * @copyright (c) 2019 Osai LLC | loshq.net/about.
- * @since 05/01/2021
- * @modified 25/12/2021
- * @param url {string|Object} = url of request being sent or an object containing the url and options of the request
- * url should be passed using "action" as the key
- * @param option {Object}
- *  `option.credential` {boolean} = send request with credentials when working with CORS
- *  `option.content` {string} = XMLHTTPRequest [default = text/plain] only necessary when user wants to set custom dataType aside json,xml and native formData
- *  `option.method` {string} = method of request [default = GET]
- *  `option.data` {any} [use data or form] = data sending [only necessary for post method]. It could be HTMLElement inside the form, like button, etc
- *  `option.type` {string} = type of data to be sent/returned [default = text]
- *  `option.alert` {bool} = to use js default alert or OMJ$ default alert notifier [default=false]
- *  `option.strict` {bool} = [default=false] when true, automatic JSON.parse for resolve that comes as JSON text will be stopped
- *  `option.preload` {function} = function to carryout before response is received
- *  `option.progress` {function} = function to execute, while upload is in progress [one arg (response)]
- *  `option.error` {function} = it executes for all kinds of error, it's like the finally of errors
- *  `option.loaded` {function} = optional callback function that should be executed when the request is successful, either this or a promise
- *  `option.abort` {function} = function to execute on upload abort
- * @param data {any} same as `option.data`, only comes in play when three parameter wants to be used
- * @return {Promise}
- */ const $curl = (url, option = {}, data = null) => new Promise(((resolve, reject) => {
+* CURL (AJAX) built with OMJ$
+* @author Osahenrumwen Aigbogun
+* @version 2.0.1
+* @copyright (c) 2019 Osai LLC | loshq.net/about.
+* @since 05/01/2021
+* @modified 25/12/2021
+* @param url {string|Object} = url of request being sent or an object containing the url and options of the request
+* url should be passed using "action" as the key
+* @param option {Object}
+*  `option.credential` {boolean} = send request with credentials when working with CORS
+*  `option.content` {string} = XMLHTTPRequest [default = text/plain] only necessary when user wants to set custom dataType aside json,xml and native formData
+*  `option.method` {string} = method of request [default = GET]
+*  `option.data` {any} [use data or form] = data sending [only necessary for post method]. It could be HTMLElement inside the form, like button, etc
+*  `option.type` {string} = type of data to be sent/returned [default = text]
+*  `option.alert` {bool} = to use js default alert or OMJ$ default alert notifier [default=false]
+*  `option.strict` {bool} = [default=false] when true, automatic JSON.parse for resolve that comes as JSON text will be stopped
+*  `option.preload` {function} = function to carryout before response is received
+*  `option.progress` {function} = function to execute, while upload is in progress [one arg (response)]
+*  `option.error` {function} = it executes for all kinds of error, it's like the finally of errors
+*  `option.loaded` {function} = optional callback function that should be executed when the request is successful, either this or a promise
+*  `option.abort` {function} = function to execute on upload abort
+* @param data {any} same as `option.data`, only comes in play when three parameter wants to be used
+* @return {Promise}
+*/ const $curl = (url, option = {}, data = null) => new Promise(((resolve, reject) => {
     if ($type(url) === "Object") {
         option = url;
         url = option.action;
@@ -742,88 +808,88 @@ const $preloader = (act = "show") => {
         if (xhr.readyState === 4) {
             type = returnType ?? "json";
             switch (status) {
-              case 0:
-                if (timer !== xhr.timeout / 1e3) errRoutine(`Failed, ensure you have steady connection and try again, server request might be too heavy for your current network`, xhr);
-                break;
+                case 0:
+                    if (timer !== xhr.timeout / 1e3) errRoutine(`Failed, ensure you have steady connection and try again, server request might be too heavy for your current network`, xhr);
+                    break;
 
-              case 200:
-                response = method === "HEAD" ? xhr : xhr.responseText ?? xhr.response;
-                if (method !== "HEAD") {
-                    if (type !== "json" && (response.trim().substring(0, 1) === "{" || response.trim().substring(0, 1) === "[")) type = "json";
-                    if (type === "xml") response = xhr.responseXML;
-                    if (type === "json") {
-                        try {
-                            response = JSON.parse(xhr.response);
-                        } catch (e) {
-                            xhr["e"] = e;
-                            errRoutine("Server-side error, please contact support if problem persists", xhr);
+                    case 200:
+                        response = method === "HEAD" ? xhr : xhr.responseText ?? xhr.response;
+                        if (method !== "HEAD") {
+                            if (type !== "json" && (response.trim().substring(0, 1) === "{" || response.trim().substring(0, 1) === "[")) type = "json";
+                            if (type === "xml") response = xhr.responseXML;
+                            if (type === "json") {
+                                try {
+                                    response = JSON.parse(xhr.response);
+                                } catch (e) {
+                                    xhr["e"] = e;
+                                    errRoutine("Server-side error, please contact support if problem persists", xhr);
+                                }
+                            }
                         }
-                    }
-                }
                 if (loaded !== "loaded") loaded(response, xhr, event);
                 resolve(response, xhr, event);
                 break;
 
-              default:
-                errRoutine(`Request Failed! Code: ${status}; Message: ${xhr.statusText}`, xhr);
-                break;
+                default:
+                    errRoutine(`Request Failed! Code: ${status}; Message: ${xhr.statusText}`, xhr);
+                    break;
             }
         }
     }));
     if (data) {
         switch ($type(data)) {
-          case "String":
-          case "Object":
-          case "FormData":
-            break;
+            case "String":
+                case "Object":
+                    case "FormData":
+                        break;
 
-          case "File":
-            type = "file";
-            let x = data;
-            data = new FormData;
-            data.append("file", x);
-            break;
+                        case "File":
+                            type = "file";
+                            let x = data;
+                            data = new FormData;
+                            data.append("file", x);
+                            break;
 
-          default:
-            data = $getForm(data, true);
-            if (data.hasFile) {
-                data = data.file;
-                type = "file";
-            } else data = type === "json" ? data.object : data.string;
-            break;
+                            default:
+                                data = $getForm(data, true);
+                                if (data.hasFile) {
+                                    data = data.file;
+                                    type = "file";
+                                } else data = type === "json" ? data.object : data.string;
+                                break;
         }
     }
     if (option.xhrSetup) option.xhrSetup(xhr);
     let requestHeader = "application/x-www-form-urlencoded";
     switch (type) {
-      default:
-        break;
+        default:
+            break;
 
-      case "file":
-        requestHeader = null;
-        break;
+            case "file":
+                requestHeader = null;
+                break;
 
-      case "json":
-        requestHeader = method === "get" ? requestHeader : "application/json";
-        data = JSON.stringify(data);
-        break;
+                case "json":
+                    requestHeader = method === "get" ? requestHeader : "application/json";
+                    data = JSON.stringify(data);
+                    break;
 
-      case "text":
-        let x = data;
-        if ($type(data) === "Object") {
-            x = "";
-            $loop(data, ((value, name) => x += name + "=" + value + "&"));
-        }
+                    case "text":
+                        let x = data;
+                        if ($type(data) === "Object") {
+                            x = "";
+                            $loop(data, ((value, name) => x += name + "=" + value + "&"));
+                        }
         data = x?.replace(/&+$/, "");
-        break;
+                        break;
 
-      case "xml":
-        requestHeader = method !== "GET" ? "text/xml" : requestHeader;
-        break;
+                        case "xml":
+                            requestHeader = method !== "GET" ? "text/xml" : requestHeader;
+                            break;
 
-      case "custom":
-        requestHeader = method !== "GET" ? content : requestHeader;
-        break;
+                            case "custom":
+                                requestHeader = method !== "GET" ? content : requestHeader;
+                                break;
     }
     requestHeader && xhr.setRequestHeader("Content-Type", requestHeader);
     $loop(headers, ((value, key) => xhr.setRequestHeader(key, value)));
@@ -855,12 +921,12 @@ const $freeze = (element, operation, attr = true) => {
 "use strict";
 
 /**!
- * Osai Custom Box buils with OMJ$
- * @author Osahenrumwen Aigbogun
- * @version 1.4
- * @copyright (c) 2019 Osai Technologies LLC.
- * @modified 18/09/2022
- */ const $osaiBox = (boxToDraw = "all") => {
+* Osai Custom Box buils with OMJ$
+* @author Osahenrumwen Aigbogun
+* @version 1.4
+* @copyright (c) 2019 Osai Technologies LLC.
+* @modified 18/09/2022
+*/ const $osaiBox = (boxToDraw = "all") => {
     const dialogZindex = 9990;
     const colorVariant = `\n\t\t/*normal variant*/\n\t\t--text: #fffffa;\n\t\t--bg: #1d2124;\n\t\t--link: #009edc;\n\t\t--info: #445ede;\n\t\t--warn: #ffde5c;\n\t\t--fail: #f40204;\n\t\t--fade: #e2e2e2;\n\t\t--success: #0ead69;\n\t\t/*dark variant*/\n\t\t--dark-text: #f5f7fb;\n\t\t--dark-link: #00506e;\n\t\t--dark-info: #3247ac;\n\t\t--dark-warn: #626200;\n\t\t--dark-fail: #a20002;\n\t\t--dark-success: #104e00;\n\t`;
     const ggIcon = `.gg-bell,.gg-bell::before{border-top-left-radius:100px;border-top-right-radius:100px}.gg-bell{box-sizing:border-box;position:relative;display:block;transform:scale(var(--ggs,1));border:2px solid;border-bottom:0;width:14px;height:14px}.gg-bell::after,.gg-bell::before{content:"";display:block;box-sizing:border-box;position:absolute}.gg-bell::before{background:currentColor;width:4px;height:4px;top:-4px;left:3px}.gg-bell::after{border-radius:3px;width:16px;height:10px;border:6px solid transparent;border-top:1px solid transparent;box-shadow:inset 0 0 0 4px,0 -2px 0 0;top:14px;left:-3px;border-bottom-left-radius:100px;border-bottom-right-radius:100px}.gg-check{box-sizing:border-box;position:relative;display:block;transform:scale(var(--ggs,1));width:22px;height:22px;border:2px solid transparent;border-radius:100px}.gg-check::after{content:"";display:block;box-sizing:border-box;position:absolute;left:3px;top:-1px;width:6px;height:10px;border-width:0 2px 2px 0;border-style:solid;transform-origin:bottom left;transform:rotate(45deg)}.gg-check-o{box-sizing:border-box;position:relative;display:block;transform:scale(var(--ggs,1));width:22px;height:22px;border:2px solid;border-radius:100px}.gg-check-o::after{content:"";display:block;box-sizing:border-box;position:absolute;left:3px;top:-1px;width:6px;height:10px;border-color:currentColor;border-width:0 2px 2px 0;border-style:solid;transform-origin:bottom left;transform:rotate(45deg)}.gg-bulb{box-sizing:border-box;position:relative;display:block;transform:scale(var(--ggs,1));width:16px;height:16px;border:2px solid;border-bottom-color:transparent;border-radius:100px}.gg-bulb::after,.gg-bulb::before{content:"";display:block;box-sizing:border-box;position:absolute}.gg-bulb::before{border-top:0;border-bottom-left-radius:18px;border-bottom-right-radius:18px;top:10px;border-bottom:2px solid transparent;box-shadow:0 5px 0 -2px,inset 2px 0 0 0,inset -2px 0 0 0,inset 0 -4px 0 -2px;width:8px;height:8px;left:2px}.gg-bulb::after{width:12px;height:2px;border-left:3px solid;border-right:3px solid;border-radius:2px;bottom:0;left:0}.gg-danger{box-sizing:border-box;position:relative;display:block;transform:scale(var(--ggs,1));width:20px;height:20px;border:2px solid;border-radius:40px}.gg-danger::after,.gg-danger::before{content:"";display:block;box-sizing:border-box;position:absolute;border-radius:3px;width:2px;background:currentColor;left:7px}.gg-danger::after{top:2px;height:8px}.gg-danger::before{height:2px;bottom:2px}.gg-dark-mode{box-sizing:border-box;position:relative;display:block;transform:scale(var(--ggs,1));border:2px solid;border-radius:100px;width:20px;height:20px}\n\t.gg-close-o{box-sizing:border-box;position:relative;display:block;transform:scale(var(--ggs,.9));width:22px;height:22px;border:2px solid;border-radius:40px}.gg-close-o::after,.gg-close-o::before{content:"";display:block;box-sizing:border-box;position:absolute;width:12px;height:2px;background:currentColor;transform:rotate(45deg);border-radius:5px;top:8px;left:3px}.gg-close-o::after{transform:rotate(-45deg)}\n\t.gg-close{box-sizing:border-box;position:relative;display:block;transform:scale(var(--ggs,1));width:22px;height:22px;border:2px solid transparent;border-radius:40px}.gg-close::after,.gg-close::before{content:"";display:block;box-sizing:border-box;position:absolute;width:16px;height:2px;background:currentColor;transform:rotate(45deg);border-radius:5px;top:8px;left:1px}.gg-close::after{transform:rotate(-45deg)}.gg-add-r{box-sizing:border-box;position:relative;display:block;width:22px;height:22px;border:2px solid;transform:scale(var(--ggs,1));border-radius:4px}.gg-add-r::after,.gg-add-r::before{content:"";display:block;box-sizing:border-box;position:absolute;width:10px;height:2px;background:currentColor;border-radius:5px;top:8px;left:4px}.gg-add-r::after{width:2px;height:10px;top:4px;left:8px}.gg-add{box-sizing:border-box;position:relative;display:block;width:22px;height:22px;border:2px solid;transform:scale(var(--ggs,1));border-radius:22px}.gg-add::after,.gg-add::before{content:"";display:block;box-sizing:border-box;position:absolute;width:10px;height:2px;background:currentColor;border-radius:5px;top:8px;left:4px}.gg-add::after{width:2px;height:10px;top:4px;left:8px}.gg-adidas{position:relative;box-sizing:border-box;display:block;width:23px;height:15px;transform:scale(var(--ggs,1));overflow:hidden}\n\t`;
@@ -868,7 +934,7 @@ const $freeze = (element, operation, attr = true) => {
     let dialog = {}, notifier = {};
     if (boxToDraw === "all" || boxToDraw === "dialog" || boxToDraw === "modal") {
         if (!$in($sel(".osai-dialogbox__present"))) $html($sel("body"), "beforeend", `\n\t\t\t\t<div class="osai-dialogbox"><span style="display: none" class="osai-dialogbox__present"></span><div class="osai-dialogbox__overlay"></div><div class="osai-dialogbox__wrapper">\n                    <div class="osai-dialogbox__header"><button class="osai-dialogbox__close-btn"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"><rect opacity="0.5" x="6" y="17.3137" width="16" height="2" rx="1" transform="rotate(-45 6 17.3137)" fill="currentColor"></rect><rect x="7.41422" y="6" width="16" height="2" rx="1" transform="rotate(45 7.41422 6)" fill="currentColor"></rect></svg></button></div>\n                    <div class="osai-dialogbox__head"></div>\n                    <div class="osai-dialogbox__inner-wrapper"><div class="osai-dialogbox__body"></div></div>\n                    <div class="osai-dialogbox__foot"></div>\n                </div></div>`);
-        if (!$in($sel(".osai-dialogbox__stylesheet"))) $html($sel("head"), "beforeend", `<style class="osai-dialogbox__stylesheet" rel="stylesheet" media="all">\n.osai-dialogbox{\nposition: fixed;\nright: 0; left: 0; top: 0; bottom: 0;\ndisplay: block;\nvisibility: hidden;\nopacity: 0;\nz-index: -${dialogZindex};\n}\n.osai-dialogbox__appear{\n\tvisibility: visible;\n\tz-index: ${dialogZindex};\n\topacity: 1;\n}\n.osai-dialogbox__overlay{\n\topacity: .5;\n\tposition: fixed;\n\ttop: 0;bottom: 0;left: 0;right: 0;\n\tbackground: var(--bg);\n\tz-index: 1;\n}\n.osai-dialogbox__wrapper{\n\tdisplay: flex;\n\topacity: 0;\n\tjustify-content: center;\n\talign-items: center;\n\tmax-width: 97vw;\n\tmax-height: 97vh;\n\ttransform: translate(-50%,0);\n\ttop: 50%; left: 50%;\n\tposition: absolute;\n\tz-index: 2;\n\tmargin: auto;\n    background: var(--dark-text);\n\tcolor: var(--bg);\n\tborder-radius: 10px;\n\tflex-flow: column;\n\ttransition: ease-in-out .8s all;\n\tpadding: 1.5rem;\n\tpadding-top: 0;\n\toverflow: hidden;\n}\n.osai-dialogbox__header{cursor: move;\n\tdisplay: flex;\n\talign-items: center;\n\tjustify-content: space-between;\n\twidth: 100%;\n\tpadding: 0;\n\tpadding-top: 1.5rem;\n}\n.osai-dialogbox__close-btn{\n\tbackground: transparent;\n\tborder: none;\n\tcolor: var(--dark-info);\n\tfont-weight: 500;\n\tcursor: pointer;\n\toutline: none;\n\tmargin-left: auto;\n    position: relative;\n    z-index: 5;\n}\n.osai-dialogbox__close-btn:hover{\n\tcolor: var(--fail);\n}\n.osai-dialogbox__head{\n\tfont-size: 1.15rem;\n\tline-height: 1.15rem;\n\tpadding: 0;\n\tmargin-bottom: 1rem;\n\tfont-weight: 600;\n\twidth: 100%;\n}\n.osai-dialogbox__inner-wrapper{\n\toverflow: auto;\n\tmax-width: 100vw;\n\tpadding: 1.75rem 0;\n}\n.osai-dialogbox__body{\n\tfont-size: 1rem;\n}\n.osai-dialogbox__foot{\n    padding: 0;\n}\n.osai-dialogbox__foot button.success{\n\tbackground: var(--success);\n\tcolor: var(--bg);\n} .osai-dialogbox__foot button.success:hover{\n\tbackground: var(--dark-success);\n\tcolor: var(--dark-text);}\n.osai-dialogbox__foot button.fail{\n\tbackground: var(--fail);\n\tcolor: var(--text);\n}.osai-dialogbox__foot button.fail:hover{\n\tbackground: var(--dark-fail);\n\tcolor: var(--text);}\n.osai-dialogbox__foot button.warn{\n\tbackground: var(--warn);\n\tcolor: var(--text);\n} .osai-dialogbox__foot button.warn:hover{\n\tbackground: var(--dark-warn);\n\tcolor: var(--text);}\n.osai-dialogbox__foot button.info{\n\tbackground: var(--info);\n\tcolor: var(--dark-text);\n} .osai-dialogbox__foot button.info:hover{\n\tbackground: var(--dark-info);\n\tcolor: var(--text);}\n.osai-dialogbox__foot button.link{\n\tbackground: var(--link);\n\tcolor: var(--dark-text);\n} .osai-dialogbox__foot button.link:hover{\n\tbackground: var(--dark-link);\n\tcolor: var(--text);}\n\t.osai-dialogbox__foot button.success i,.osai-dialogbox__foot button.fail i, .osai-dialogbox__foot button.warn i, .osai-dialogbox__foot button.info i,.osai-dialogbox__foot button.link i{\n    color: var(--dark-text)\n}\n/* disable scrolling when modal is opened */\n.osai-modal__open{\n\toverflow-y: hidden;\n\tscroll-behavior: smooth;\n}\n.osai-modal__appear{\n\topacity: 1;\n\ttransform: translate(-50%,-50%);\n}\n.osai-modal__btn{\n\tborder-radius: .755rem;\n\tborder: solid 1px transparent;\n\tpadding: 0.65rem 1.73rem;\n\tcursor: pointer;\n\toutline: none;\n\ttransition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;\n\tbackground-color: var(--bg);\n\tcolor: var(--text);\n\tdisplay: inline-flex;\n\tjustify-content: center;\n\talign-items: center;\n}\n@media screen and (max-width: 600px){\n\t.osai-dialogbox__wrapper{\n\t\tmin-width: 90vw;\n\t\tmax-width: 95vw;\n\t\tmax-height: 90vh;\n\t}\n}\n</style>`);
+        if (!$in($sel(".osai-dialogbox__stylesheet"))) $html($sel("head"), "beforeend", `<style class="osai-dialogbox__stylesheet" rel="stylesheet" media="all">\n.osai-dialogbox{\nposition: fixed;\nright: 0; left: 0; top: 0; bottom: 0;\ndisplay: block;\nvisibility: hidden;\nopacity: 0;\nz-index: -${dialogZindex};\n}\n.osai-dialogbox__appear{\n\tvisibility: visible;\n\tz-index: ${dialogZindex};\n\topacity: 1;\n}\n.osai-dialogbox__overlay{\n\topacity: .5;\n\tposition: fixed;\n\ttop: 0;bottom: 0;left: 0;right: 0;\n\tbackground: var(--bg);\n\tz-index: 1;\n}\n.osai-dialogbox__wrapper{\n\tdisplay: flex;\n\topacity: 0;\n\tjustify-content: center;\n\talign-items: center;\n\tmax-width: 97vw;\n\tmax-height: 97vh;\n\ttransform: translate(-50%,0);\n\ttop: 50%; left: 50%;\n\tposition: absolute;\n\tz-index: 2;\n\tmargin: auto;\n    background: var(--dark-text);\n\tcolor: var(--bg);\n\tborder-radius: 10px;\n\tflex-flow: column;\n\ttransition: ease-in-out .8s all;\n\tpadding: 1.5rem;\n\tpadding-top: 0;\n\toverflow: hidden;\n}\n.osai-dialogbox__header{\n\tdisplay: flex;\n\talign-items: center;\n\tjustify-content: space-between;\n\twidth: 100%;\n\tpadding: 0;\n\tpadding-top: 1.5rem;\n\tcursor: move;\n}\n.osai-dialogbox__close-btn{\n\tbackground: transparent;\n\tborder: none;\n\tcolor: var(--dark-info);\n\tfont-weight: 500;\n\tcursor: pointer;\n\toutline: none;\n\tmargin-left: auto;\n    position: relative;\n    z-index: 5;\n}\n.osai-dialogbox__close-btn:hover{\n\tcolor: var(--fail);\n}\n.osai-dialogbox__head{\n\tfont-size: 1.15rem;\n\tline-height: 1.15rem;\n\tpadding: 0;\n\tmargin-bottom: 1rem;\n\tfont-weight: 600;\n\twidth: 100%;\n}\n.osai-dialogbox__inner-wrapper{\n\toverflow: auto;\n\tmax-width: 100vw;\n\tpadding: 1.75rem 0;\n}\n.osai-dialogbox__body{\n\tfont-size: 1rem;\n}\n.osai-dialogbox__foot{\n    padding: 0;\n}\n.osai-dialogbox__foot button.success{\n\tbackground: var(--success);\n\tcolor: var(--bg);\n} .osai-dialogbox__foot button.success:hover{\n\tbackground: var(--dark-success);\n\tcolor: var(--dark-text);}\n.osai-dialogbox__foot button.fail{\n\tbackground: var(--fail);\n\tcolor: var(--text);\n}.osai-dialogbox__foot button.fail:hover{\n\tbackground: var(--dark-fail);\n\tcolor: var(--text);}\n.osai-dialogbox__foot button.warn{\n\tbackground: var(--warn);\n\tcolor: var(--text);\n} .osai-dialogbox__foot button.warn:hover{\n\tbackground: var(--dark-warn);\n\tcolor: var(--text);}\n.osai-dialogbox__foot button.info{\n\tbackground: var(--info);\n\tcolor: var(--dark-text);\n} .osai-dialogbox__foot button.info:hover{\n\tbackground: var(--dark-info);\n\tcolor: var(--text);}\n.osai-dialogbox__foot button.link{\n\tbackground: var(--link);\n\tcolor: var(--dark-text);\n} .osai-dialogbox__foot button.link:hover{\n\tbackground: var(--dark-link);\n\tcolor: var(--text);}\n\t.osai-dialogbox__foot button.success i,.osai-dialogbox__foot button.fail i, .osai-dialogbox__foot button.warn i, .osai-dialogbox__foot button.info i,.osai-dialogbox__foot button.link i{\n    color: var(--dark-text)\n}\n/* disable scrolling when modal is opened */\n.osai-modal__open{\n\toverflow-y: hidden;\n\tscroll-behavior: smooth;\n}\n.osai-modal__appear{\n\topacity: 1;\n\ttransform: translate(-50%,-50%);\n}\n.osai-modal__btn{\n\tborder-radius: .755rem;\n\tborder: solid 1px transparent;\n\tpadding: 0.65rem 1.73rem;\n\tcursor: pointer;\n\toutline: none;\n\ttransition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;\n\tbackground-color: var(--bg);\n\tcolor: var(--text);\n\tdisplay: inline-flex;\n\tjustify-content: center;\n\talign-items: center;\n}\n@media screen and (max-width: 600px){\n\t.osai-dialogbox__wrapper{\n\t\tmin-width: 90vw;\n\t\tmax-width: 95vw;\n\t\tmax-height: 90vh;\n\t}\n}\n</style>`);
         const BOX = $sel(".osai-dialogbox");
         const BOX_OVERLAY = $sel(".osai-dialogbox__overlay");
         const BOX_WRAPPER = $sel(".osai-dialogbox__wrapper");
@@ -895,34 +961,34 @@ const $freeze = (element, operation, attr = true) => {
         };
         const BOX_SIZE = size => {
             switch (size) {
-              case "xs":
-                BOX_INNER_WRAPPER.style.minWidth = "30vw";
-                break;
+                case "xs":
+                    BOX_INNER_WRAPPER.style.minWidth = "30vw";
+                    break;
 
-              case "sm":
-                BOX_INNER_WRAPPER.style.minWidth = "45vw";
-                break;
+                    case "sm":
+                        BOX_INNER_WRAPPER.style.minWidth = "45vw";
+                        break;
 
-              case "md":
-                BOX_INNER_WRAPPER.style.minWidth = "60vw";
-                break;
+                        case "md":
+                            BOX_INNER_WRAPPER.style.minWidth = "60vw";
+                            break;
 
-              case "lg":
-                BOX_INNER_WRAPPER.style.minWidth = "75vw";
-                break;
+                            case "lg":
+                                BOX_INNER_WRAPPER.style.minWidth = "75vw";
+                                break;
 
-              case "xl":
-                BOX_INNER_WRAPPER.style.minWidth = "90vw";
-                break;
+                                case "xl":
+                                    BOX_INNER_WRAPPER.style.minWidth = "90vw";
+                                    break;
 
-              case "xxl":
-                BOX_INNER_WRAPPER.style.minWidth = "99vw";
-                break;
+                                    case "xxl":
+                                        BOX_INNER_WRAPPER.style.minWidth = "99vw";
+                                        break;
 
-              default:
-                let configSelector = config => $sel("input[data-config='" + config + "'].osai-dialogbox__config");
-                if (configSelector("box-size") && $data(configSelector("box-size"), "value") !== "undefined") BOX_SIZE($data(configSelector("box-size"), "value")); else BOX_INNER_WRAPPER.style.minWidth = "60vw";
-                break;
+                                        default:
+                                            let configSelector = config => $sel("input[data-config='" + config + "'].osai-dialogbox__config");
+                                            if (configSelector("box-size") && $data(configSelector("box-size"), "value") !== "undefined") BOX_SIZE($data(configSelector("box-size"), "value")); else BOX_INNER_WRAPPER.style.minWidth = "60vw";
+                                            break;
             }
         };
         const BOX_RENDER = (closeOnBlur, size, align, onClose, then) => {
@@ -946,8 +1012,8 @@ const $freeze = (element, operation, attr = true) => {
             if ($html(BOX_HEAD).trim() === "") $style(BOX_HEAD, "display:none");
             if (closeOnBlur === false) $on(BOX_OVERLAY, "click", closeHandler, "del"); else $on(BOX_OVERLAY, "click", closeHandler);
             $on(BOX_CLOSE_BTN, "click", closeHandler, "on");
-            $on(BOX_WRAPPER, "click", (e => {
-                if ($class(e.target, "has", "osai-close-box") || $class(e.target.parentNode, "has", "osai-close-box")) {
+            $on(BOX_WRAPPER, "click", ((e, wrap) => {
+                if ($class(e.target, "has", "osai-close-box") || $class(e.target?.parentNode, "has", "osai-close-box")) {
                     e.preventDefault();
                     closeHandler();
                 }
@@ -964,67 +1030,67 @@ const $freeze = (element, operation, attr = true) => {
         const BOX_FLUSH = (where = "*") => {
             $style(BOX_HEADER, "del");
             switch (where) {
-              case "head":
-                $html(BOX_HEAD, "in", "");
-                $style(BOX_HEAD, "del");
-                break;
+                case "head":
+                    $html(BOX_HEAD, "in", "");
+                    $style(BOX_HEAD, "del");
+                    break;
 
-              case "body":
-                $html(BOX_BODY, "in", "");
-                $style(BOX_BODY, "del");
-                break;
+                    case "body":
+                        $html(BOX_BODY, "in", "");
+                        $style(BOX_BODY, "del");
+                        break;
 
-              case "foot":
-                $html(BOX_FOOT, "in", "");
-                $style(BOX_FOOT, "del");
-                break;
+                        case "foot":
+                            $html(BOX_FOOT, "in", "");
+                            $style(BOX_FOOT, "del");
+                            break;
 
-              default:
-                $html(BOX_HEAD, "in", "");
-                $html(BOX_BODY, "in", "");
-                $html(BOX_FOOT, "in", "");
-                $style(BOX_WRAPPER, "del");
-                $style(BOX_HEAD, "del");
-                $style(BOX_HEADER, "del");
-                $style(BOX_BODY, "del");
-                $style(BOX_FOOT, "del");
-                break;
+                            default:
+                                $html(BOX_HEAD, "in", "");
+                                $html(BOX_BODY, "in", "");
+                                $html(BOX_FOOT, "in", "");
+                                $style(BOX_WRAPPER, "del");
+                                $style(BOX_HEAD, "del");
+                                $style(BOX_HEADER, "del");
+                                $style(BOX_BODY, "del");
+                                $style(BOX_FOOT, "del");
+                                break;
             }
             return this;
         };
         const BOX_INSERT = (where, text = "") => {
             switch (where) {
-              case "head":
-                where = BOX_HEAD;
-                $style(BOX_HEAD, "del");
-                break;
+                case "head":
+                    where = BOX_HEAD;
+                    $style(BOX_HEAD, "del");
+                    break;
 
-              case "body":
-                where = BOX_BODY;
-                break;
+                    case "body":
+                        where = BOX_BODY;
+                        break;
 
-              case "foot":
-                where = BOX_FOOT;
-                break;
+                        case "foot":
+                            where = BOX_FOOT;
+                            break;
 
-              case "head+":
-                where = BOX_HEAD;
-                $style(BOX_HEAD, "del");
-                text = $html(BOX_HEAD) + text;
-                break;
+                            case "head+":
+                                where = BOX_HEAD;
+                                $style(BOX_HEAD, "del");
+                                text = $html(BOX_HEAD) + text;
+                                break;
 
-              case "body+":
-                where = BOX_BODY;
-                text = $html(BOX_BODY) + text;
-                break;
+                                case "body+":
+                                    where = BOX_BODY;
+                                    text = $html(BOX_BODY) + text;
+                                    break;
 
-              case "foot+":
-                where = BOX_FOOT;
-                text = $html(BOX_FOOT) + text;
-                break;
+                                    case "foot+":
+                                        where = BOX_FOOT;
+                                        text = $html(BOX_FOOT) + text;
+                                        break;
 
-              default:
-                return;
+                                        default:
+                                            return;
             }
             $html(where, "in", text);
         };
@@ -1042,11 +1108,11 @@ const $freeze = (element, operation, attr = true) => {
             render: (...args) => {
                 BOX_RENDER(...args);
                 return dialog;
-            },
+                },
             flush: (where = "*") => {
                 BOX_FLUSH(where);
                 return dialog;
-            },
+                },
             get: {
                 box: BOX,
                 head: BOX_HEAD,
@@ -1071,15 +1137,15 @@ const $freeze = (element, operation, attr = true) => {
                 if (close) addConfig("close", close);
                 if (zIndex) addConfig("box-z-index", zIndex);
                 if ($type(closeOnBlur) === "String" || $type(closeOnBlur) === "Boolean") addConfig("close-on-blur", closeOnBlur);
-            },
+                },
             insert: (where, text = "") => {
                 BOX_INSERT(where, text);
                 return dialog;
-            },
+                },
             closeBox: (onClose = (() => null)) => {
                 BOX_CLOSE(onClose);
                 return dialog;
-            },
+                },
             action: (operation, closeOnDone = true) => BOX_ACTION(operation, closeOnDone)
         };
     }
@@ -1177,25 +1243,25 @@ const $freeze = (element, operation, attr = true) => {
             if (position === "center") postStyle = "osai-notifier__display-center";
             if ($sel(sideCardSelector)) previousEntryHeight = getNextEntryTop();
             switch (theme) {
-              case "success":
-              case "good":
-                styleClass = "success";
-                break;
+                case "success":
+                    case "good":
+                        styleClass = "success";
+                        break;
 
-              case "fail":
-              case "danger":
-              case "error":
-                styleClass = "fail";
-                break;
+                        case "fail":
+                            case "danger":
+                                case "error":
+                                    styleClass = "fail";
+                                    break;
 
-              case "info":
-                styleClass = "info";
-                break;
+                                    case "info":
+                                        styleClass = "info";
+                                        break;
 
-              case "warn":
-              case "warning":
-                styleClass = "warn";
-                break;
+                                        case "warn":
+                                            case "warning":
+                                                styleClass = "warn";
+                                                break;
             }
             $html($sel(presenceSelector), "beforeend", `<div class="osai-notifier osai-notifier-entry ${postStyle} ${styleClass}" ${uniqueId}><div class="osai-notifier__body">${dialog}</div><div class="osai-notifier__close"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"><rect opacity="0.5" x="6" y="17.3137" width="16" height="2" rx="1" transform="rotate(-45 6 17.3137)" fill="currentColor"></rect><rect x="7.41422" y="6" width="16" height="2" rx="1" transform="rotate(45 7.41422 6)" fill="currentColor"></rect></svg></div></div>`);
             let notifyEntry = $sela(".osai-notifier-entry");
@@ -1267,7 +1333,7 @@ function pMsg(message = "Prompt Box", operation = (inputValue => inputValue), cu
     align: null,
     onClose: () => null
 }) {
-    CusWind.insert("head", "Prompt Box").insert("body", "<div style='margin-bottom: 5px'>" + message + "</div>").insert("body+", custom.body || "<textarea class='osai-prompt-input-box' style='width: 100%; height: 50px; text-align: center' placeholder='Type in...'></textarea>").insert("foot", `<button type="button" class="success osai-modal__btn osai-confirm-success"><i class="gg-check"></i></button>\n\t\t<button type="button" class="fail osai-close-box osai-modal__btn"><i class="gg-close"></i></button>`).render(custom.closeOnBlur, custom.size, custom.align, custom.onClose);
+    CusWind.insert("head", message).insert("body", custom.body || "<textarea class='osai-prompt-input-box form-control' style='width: 100%; height: 50px; text-align: center' placeholder='Type in...'></textarea>").insert("foot", `<button type="button" class="success osai-modal__btn osai-confirm-success"><i class="gg-check"></i></button><button type="button" class="fail osai-close-box osai-modal__btn"><i class="gg-close"></i></button>`).render(custom.closeOnBlur, custom.size, custom.align, custom.onClose);
     $on($sel(".osai-confirm-success"), "click", (e => {
         e.preventDefault();
         if ($sel(".osai-prompt-input-box")) {

@@ -12,10 +12,12 @@ $lay.page = {
     img : $attr($id("LAY-PAGE-IMG"),"content"),
     site_name : $attr($id("LAY-SITE-NAME-SHORT"),"content"),
     site_name_full : $attr($id("LAY-SITE-NAME"),"content"),
+    route : $id("LAY-ROUTE").value,
+    routeArray : JSON.parse($id("LAY-ROUTE-AS-ARRAY").innerText),
 }
 $lay.src = {
     base : $id("LAY-PAGE-BASE").href,
-    api : $id('LAY-API').value + "?c=",
+    api : $id('LAY-API').value,
     serve : $id('LAY-API').value,
     shared_root : $id('LAY-SHARED-ROOT').value,
     shared_img : $id('LAY-SHARED-IMG').value,
@@ -93,14 +95,31 @@ $lay.fn = {
 
                             return new Function('',`return ${fn}()`).call(this)
                         },
+                        closure: (...args) => {
+                            let fn = $data(btn, "closure")?.trim()
+
+                            if(!fn)
+                                return null
+
+                            if(args.length > 0) {
+                                fn = fn.split("(")[0]
+                                let allArgs = "";
+
+                                $loop(args, arg => allArgs += arg + ",")
+
+                                return new Function('', `return ${fn}(${allArgs})`).call(this)
+                            }
+
+                            return new Function('', `return ${fn}`).call(this)
+                        },
                         info: !$sel(".entry-row-info", parentElement) ? "" : JSON.parse($html($sel(".entry-row-info", parentElement)))
                     })
                 }
             })
         })
     },
-    currency : (num,currency = "USD",locale = "en-US") => {
-        return new Intl.NumberFormat(locale,{
+    currency : (num, currency = "USD",locale = "en-US") => {
+        return new Intl.NumberFormat(locale,!currency ? {} : {
             style: "currency",
             currency: currency,
         }).format(num)
