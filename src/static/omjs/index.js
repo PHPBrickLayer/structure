@@ -3,7 +3,7 @@
  * @author Osahenrumwen Aigbogun
  * @version 2.0.0
  * @since 23/11/2019
- * @modified 22/03/2024
+ * @modified 25/03/2024
  * @license
  * Copyright (c) 2019 Osai LLC | osaitech.dev/about.
  *
@@ -43,29 +43,17 @@ const $omjsElSub = (element, fnContext) => {
     return element;
 };
 
-const $id = (elementID, parent = $doc) => {
-    try {
-        return parent.getElementById(elementID);
-    } catch (e) {
-        $omjsError("$id", e, true);
-    }
-};
-
-const $sel = (elementSelector, parent = $doc) => {
-    try {
-        return parent.querySelector(elementSelector);
-    } catch (e) {
-        $omjsError("$sel", e, true);
-    }
-};
-
 const $sela = (elementSelector, parent = $doc) => {
     try {
         return parent.querySelectorAll(elementSelector);
     } catch (e) {
-        $omjsError("$sela", e, true);
+        $omjsError("$sela", "Selector: [" + elementSelector + "] is invalid.\nDetails: " + e, true);
     }
 };
+
+const $sel = (elementSelector, parent = $doc) => $sela(elementSelector, parent)[0];
+
+const $id = (elementSelector, parent = $doc) => $sela("#" + elementSelector, parent)[0];
 
 const $tag = (elementTag, parent = $doc) => {
     try {
@@ -80,14 +68,6 @@ const $name = (elementName, parent = $doc) => {
         return parent.getElementsByName(elementName);
     } catch (e) {
         $omjsError("$name", e, true);
-    }
-};
-
-const $cls = (elementClass, parent = $doc) => {
-    try {
-        return parent.getElementsByClassName(elementClass);
-    } catch (e) {
-        $omjsError("$cls", e, true);
     }
 };
 
@@ -266,6 +246,64 @@ const $loop = (obj, operation = (() => null)) => {
     }
     return prop;
 };
+
+Object.defineProperties(HTMLElement.prototype, {
+    $sela: {
+        value: function(selector) {
+            return $sela(selector, this);
+        }
+    },
+    $sel: {
+        value: function(selector) {
+            return $sel(selector, this);
+        }
+    },
+    $html: {
+        value: function(position = null, html = null) {
+            return $html(this, position, html);
+        }
+    },
+    $on: {
+        value: function(event, listener, opt = {}) {
+            return $on(this, event, listener, opt);
+        }
+    },
+    $attr: {
+        value: function(datasetName = null, value = null) {
+            return $attr(this, datasetName, value);
+        }
+    },
+    $data: {
+        value: function(datasetName = null, value = null) {
+            return $data(this, datasetName, value);
+        }
+    },
+    $class: {
+        value: function(action = null, ...classNames) {
+            return $class(this, action, ...classNames);
+        }
+    },
+    $style: {
+        value: function(cssRules = null, pseudoElement = null) {
+            return $style(this, cssRules, pseudoElement);
+        }
+    },
+    $type: {
+        value: function(consoleLogType = false) {
+            return $type(this, consoleLogType);
+        }
+    }
+});
+
+$loop([ NodeList.prototype, HTMLCollection.prototype ], (element => {
+    Object.defineProperties(element, {
+        $loop: {
+            value: function(callback) {
+                return $loop(this, callback);
+            }
+        }
+    });
+}));
 
 /**!
 * @fileOverview Helpful Plugins Developed With OMJ$
