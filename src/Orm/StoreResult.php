@@ -4,63 +4,65 @@ declare(strict_types=1);
 namespace BrickLayer\Lay\Orm;
 
 use BrickLayer\Lay\Core\CoreException;
+use BrickLayer\Lay\Orm\Enums\OrmReturnType;
 use Closure;
+use Generator;
 use mysqli_result;
 
 class StoreResult extends CoreException
 {
     /**
      * @param $exec mysqli_result
-     * @param int|null $return_loop int|bool to activate loop or not
-     * @param string|null $fetch_as string how result should be returned [assoc|row] default = both
+     * @param bool $return_loop int|bool to activate loop or not
+     * @param OrmReturnType $fetch_as string how result should be returned [assoc|row] default = both
      * @param string $except
      * @param Closure|null $fun a function that should execute at the end of a given row storage
      * @param int $store_dimension 1 | 2. Return stored result as 1D or 2D array. Default [2D].
-     * @return array|null of result that can be accessed as assoc or row
+     * @return Generator of result that can be accessed as assoc or row
      */
-    public static function store(mysqli_result $exec, ?int $return_loop, ?string $fetch_as = "both", string $except = "", Closure $fun = null, int $store_dimension = 2) : ?array
+    public static function store(mysqli_result $exec, bool $return_loop, OrmReturnType $fetch_as = OrmReturnType::BOTH, string $except = "", Closure $fun = null, int $store_dimension = 2) : Generator
     {
         $num_rows = $exec->num_rows;
-        $result = null;
 
         $fetch = match ($fetch_as) {
             default => MYSQLI_BOTH,
-            "assoc" => MYSQLI_ASSOC,
-            "row" => MYSQLI_NUM,
+            OrmReturnType::ASSOC => MYSQLI_ASSOC,
+            OrmReturnType::NUM => MYSQLI_NUM,
         };
 
-        if ($return_loop === 1) {
-            for ($k = 0; $k < $num_rows; $k++) {
+        if(!$return_loop) {
+            $result = mysqli_fetch_array($exec, $fetch);
 
-                if ($store_dimension == 1) {
-                    foreach (mysqli_fetch_array($exec, MYSQLI_NUM) as $row) {
-                        $result[] = $row;
-                    }
+            if (!empty($except))
+                $result = self::exempt_column($result, $except);
 
-                    continue;
-                }
-
-                $result[$k] = mysqli_fetch_array($exec, $fetch);
-
-                if (!empty($except))
-                    $result[$k] = self::exempt_column($result[$k], $except);
-
-                if ($fun && $result[$k])
-                    $result[$k] = $fun($result[$k], $k);
-            }
+            if ($fun && $result)
+                $result = $fun($result);
 
             return $result;
         }
 
-        $result = mysqli_fetch_array($exec, $fetch);
+        for ($k = 0; $k < $num_rows; $k++) {
 
-        if (!empty($except))
-            $result = self::exempt_column($result, $except);
+            if ($store_dimension == 1) {
+                foreach (mysqli_fetch_array($exec, MYSQLI_NUM) as $row) {
+                    yield $row;
+                }
 
-        if ($fun && $result)
-            $result = $fun($result);
+                continue;
+            }
 
-        return $result;
+            $result = mysqli_fetch_array($exec, $fetch);
+
+            if (!empty($except))
+                $result = self::exempt_column($result, $except);
+
+            if ($fun && $result)
+                $result = $fun($result, $k);
+
+            yield $result;
+        }
+
     }
 
     private static function exempt_column(?array $entry, ?string $columns): array

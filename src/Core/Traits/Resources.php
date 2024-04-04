@@ -109,35 +109,6 @@ trait Resources {
         return self::$site;
     }
 
-    /**
-     * @param object $resource
-     * @param string $index
-     * @param array $accepted_index
-     * @return void
-     * @throws \Exception
-     */
-    private static function set_res(object &$resource, array $accepted_index = [], ...$index) : void
-    {
-        if(!empty($accepted_index) && !in_array($index[0],$accepted_index,true))
-            Exception::throw_exception(
-                "The index [$index[0]] being accessed may not exist or is forbidden.
-                You can only access these index: " . implode(", ",$accepted_index),"Invalid Index"
-            );
-
-        $value = end($index);
-        array_pop($index);
-
-        foreach ($index as $key) {
-            $resource->{$key} = $value;
-        }
-    }
-
-    public static function add_site_data(string $data_index, mixed ...$chain_and_value) : void {
-        self::is_init();
-
-        self::set_res(self::$site, [], $data_index, ...$chain_and_value);
-    }
-
     public function send_to_client(array $values) : string {
         self::is_init();
 

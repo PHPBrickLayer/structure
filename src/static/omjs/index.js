@@ -158,9 +158,25 @@ const $style = (element, cssProperties = null, pseudoElement = null) => {
     }
 };
 
-const $html = (element, where = null, code__moveTo = null) => {
+const $html = (element, whereOrHtml = null, code__moveTo = null) => {
     element = $omjsElSub(element, "$html");
-    if (where === "inner" || where === "in") {
+
+    if(
+        (whereOrHtml && !code__moveTo)
+        && whereOrHtml !== "in"
+        && whereOrHtml !== "del"
+        && whereOrHtml !== "move"
+        && whereOrHtml !== "wrap"
+    )
+    {
+        code__moveTo = whereOrHtml
+        whereOrHtml = "in"
+    }
+
+    if(!whereOrHtml)
+        return element.innerHTML
+
+    if (whereOrHtml === "inner" || whereOrHtml === "in") {
         try {
             return element.innerHTML = code__moveTo;
         } catch (e) {
@@ -168,15 +184,8 @@ const $html = (element, where = null, code__moveTo = null) => {
         }
         return;
     }
-    if (where === "del" || where === "remove") {
-        try {
-            return element.innerHTML = "";
-        } catch (e) {
-            $omjsError("$html", e, true, "%cThe selected element doesn't exist", "color:#e0a800");
-        }
-        return;
-    }
-    if (where === "move") {
+
+    if (whereOrHtml === "move") {
         try {
             return code__moveTo.appendChild(element);
         } catch (e) {
@@ -184,7 +193,8 @@ const $html = (element, where = null, code__moveTo = null) => {
         }
         return;
     }
-    if (where === "wrap") {
+
+    if (whereOrHtml === "wrap") {
         try {
             element.parentNode.insertBefore($doc.createElement(code__moveTo), element);
             return element.previousElementSibling.appendChild(element).parentElement;
@@ -193,9 +203,9 @@ const $html = (element, where = null, code__moveTo = null) => {
         }
         return;
     }
-    if (!code__moveTo && !where) return element.innerHTML;
+
     try {
-        return element.insertAdjacentHTML(where, code__moveTo);
+        return element.insertAdjacentHTML(whereOrHtml, code__moveTo);
     } catch (e) {
         $omjsError("$html", e, true);
     }
@@ -259,8 +269,8 @@ Object.defineProperties(HTMLElement.prototype, {
         }
     },
     $html: {
-        value: function(position = null, html = null) {
-            return $html(this, position, html);
+        value: function(positionOrHtml = null, html = null) {
+            return $html(this, positionOrHtml, html);
         }
     },
     $on: {

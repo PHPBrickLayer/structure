@@ -38,7 +38,33 @@ class LayCache
         return !($cache === false);
     }
 
-    public function read(string $key): mixed
+    public function update(array $key_chain, mixed $value): bool
+    {
+        try{
+            $data = json_decode(file_get_contents($this->cache_store), true);
+        } catch (\Exception $e){
+            $this->cache_store ??= "";
+            Exception::throw_exception("Cache storage [$this->cache_store] does not exist!", "CacheStoreNotFound", exception: $e);
+        }
+
+        $new_data = $data;
+        $depth = &$new_data;
+
+        foreach ($key_chain as $key) {
+            $depth = &$depth[$key];
+        }
+
+        $depth = $value;
+
+        $new_data = json_encode($new_data);
+
+        if ($new_data === false)
+            Exception::throw_exception("Could not store data in cache, please check your data", "MalformedCacheData");
+
+        return (bool) file_put_contents($this->cache_store, $new_data);
+    }
+
+    public function read(string $key, bool $associative = true): mixed
     {
         if (!isset($this->cache_store))
             $this->cache_file(self::default_path_to_cache);
@@ -46,24 +72,15 @@ class LayCache
         if (!file_exists($this->cache_store))
             return null;
 
-        $data = json_decode(file_get_contents($this->cache_store), true);
+        $data = json_decode(file_get_contents($this->cache_store), $associative);
 
         if ($key === "*")
             return $data;
 
-        $keys = explode(",", $key);
+        if($associative)
+            return $data[$key] ?? null;
 
-        if (count($keys) > 1) {
-            $assoc = [];
-
-            foreach ($keys as $k) {
-                $assoc[$k] = $data[$k] ?? null;
-            }
-
-            return $assoc;
-        }
-
-        return $data[$key] ?? null;
+        return @$data?->{$key};
     }
 
     public function cache_file(string $path_to_cache = "./", bool $use_lay_temp_dir = true, bool $invalidate = false): self
@@ -73,7 +90,22 @@ class LayCache
         $this->cache_store = $use_lay_temp_dir ? LayConfig::mk_tmp_dir() : $server->root;
         $this->cache_store = $this->cache_store . $path_to_cache;
 
-        if($invalidate)
+        if(str_contains($path_to_cache, "/")) {
+            $path = str_replace(["/", DIRECTORY_SEPARATOR], DIRECTORY_SEPARATOR, $this->cache_store);
+
+            $x = explode(DIRECTORY_SEPARATOR, $path);
+
+            array_pop($x);
+
+            $x = implode(DIRECTORY_SEPARATOR, $x);
+
+            if(!is_dir($x)) {
+                umask(0);
+                mkdir($x, 0755, true);
+            }
+        }
+
+        if(!file_exists($this->cache_store) || $invalidate)
             file_put_contents($this->cache_store, "");
 
         return $this;

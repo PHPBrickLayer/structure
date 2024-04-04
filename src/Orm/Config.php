@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
 namespace BrickLayer\Lay\Orm;
-use BrickLayer\Lay\Core\CoreException;
-use BrickLayer\Lay\Core\LayConfig;
+
+use Exception;
 use mysqli;
 
 trait Config{
@@ -67,7 +67,7 @@ trait Config{
 
 
                 $this->set_link($mysqli);
-            }catch (\Exception $e){}
+            }catch (Exception){}
 
             if(!$mysqli){
                 if (filter_var($silent,FILTER_VALIDATE_BOOL))
@@ -154,7 +154,7 @@ trait Config{
     public function close(?mysqli $link = null, bool $silent_error = false) : bool {
         try {
             return mysqli_close($link ?? $this->get_link());
-        }catch (\Exception $e){
+        }catch (Exception $e){
             if(!$silent_error)
                 $this->exception(
                     "ConnErr",

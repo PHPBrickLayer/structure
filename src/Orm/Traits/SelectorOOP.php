@@ -4,9 +4,11 @@ declare(strict_types=1);
 namespace BrickLayer\Lay\Orm\Traits;
 
 use BrickLayer\Lay\Core\Exception;
-use Closure;
-use JetBrains\PhpStorm\ExpectedValues;
+use BrickLayer\Lay\Orm\Enums\OrmReturnType;
 use BrickLayer\Lay\Orm\SQL;
+use Closure;
+use Generator;
+use JetBrains\PhpStorm\ExpectedValues;
 
 trait SelectorOOP
 {
@@ -26,28 +28,6 @@ trait SelectorOOP
     final public function table(string $table): self
     {
         return $this->store_vars('table', $table);
-    }
-
-    /**
-     * Temporarily load `$this->cached_options` for a quick operation, unload data and free the memory on done.
-     * This method is used by `$this->select()` when `->limit()` is sent
-     * @param array $vars
-     * @param callable $temporary_fn
-     * @return mixed
-     */
-    private function _store_vars_temporarily(array $vars, callable $temporary_fn) : mixed
-    {
-        if(@$vars['debug'] == 1)
-            unset($vars['debug']);
-
-        self::$current_index = 969;
-        $this->cached_options[self::$current_index] = $vars;
-
-        $data = $temporary_fn();
-
-        unset($this->cached_options[969]);
-
-        return $data;
     }
 
     private function store_vars(string $key, mixed $value, $id1 = null, $id2 = null): self
@@ -126,7 +106,7 @@ trait SelectorOOP
 
     final public function just_exec(): self
     {
-        return $this->store_vars('return_as', 'exec');
+        return $this->store_vars('return_as', OrmReturnType::EXEC);
     }
 
     final public function sort(string $sort, #[ExpectedValues(['ASC', 'asc', 'DESC', 'desc'])] string $order = "ASC"): self
@@ -161,6 +141,11 @@ trait SelectorOOP
         return $this->store_vars('can_be_false', false);
     }
 
+    final public function use_generator(): self
+    {
+        return $this->store_vars('return_as', OrmReturnType::GENERATOR);
+    }
+
     final public function loop_assoc(?string $clause = null): ?array
     {
         if ($clause) $this->clause($clause);
@@ -171,12 +156,12 @@ trait SelectorOOP
 
     final public function loop(): self
     {
-        return $this->store_vars('loop', 1);
+        return $this->store_vars('loop', true);
     }
 
     final public function assoc(): self
     {
-        return $this->store_vars('fetch_as', 'assoc');
+        return $this->store_vars('fetch_as', OrmReturnType::ASSOC);
     }
 
     final public function loop_row(?string $clause = null): ?array
@@ -189,10 +174,10 @@ trait SelectorOOP
 
     final public function row(): self
     {
-        return $this->store_vars('fetch_as', 'row');
+        return $this->store_vars('fetch_as', OrmReturnType::NUM);
     }
 
-    final public function result_dimension(#[ExpectedValues([1,2])] int $dimension): self
+    final public function result_dimension(#[ExpectedValues([1, 2])] int $dimension): self
     {
         return $this->store_vars('result_dimension', $dimension);
     }
@@ -216,7 +201,7 @@ trait SelectorOOP
         return $this->edit();
     }
 
-    final public function then_select(?string $clause = null): array
+    final public function then_select(?string $clause = null): array|Generator
     {
         if ($clause)
             $this->clause($clause);
@@ -224,6 +209,28 @@ trait SelectorOOP
         $this->no_null();
         $this->assoc();
         return $this->select();
+    }
+
+    /**
+     * Temporarily load `$this->cached_options` for a quick operation, unload data and free the memory on done.
+     * This method is used by `$this->select()` when `->limit()` is sent
+     * @param array $vars
+     * @param callable $temporary_fn
+     * @return mixed
+     */
+    private function _store_vars_temporarily(array $vars, callable $temporary_fn): mixed
+    {
+        if (@$vars['debug'] == 1)
+            unset($vars['debug']);
+
+        self::$current_index = 969;
+        $this->cached_options[self::$current_index] = $vars;
+
+        $data = $temporary_fn();
+
+        unset($this->cached_options[969]);
+
+        return $data;
     }
 
     private function get_vars(): array
