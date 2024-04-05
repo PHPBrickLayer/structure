@@ -163,6 +163,7 @@ class Domain {
         self::$current_route_details['route_as_array'] = $route_as_array;
         self::$current_route_details['pattern'] = $pattern;
         self::$current_route_details['domain_name'] = $domain_name;
+        self::$current_route_details['domain_referrer'] = $_SERVER['HTTP_LAY_DOMAIN'] ?? $domain_name;
         self::$current_route_details['domain_type'] = self::$domain_type;
         self::$current_route_details['domain_id'] = $id;
         self::$current_route_details['domain_uri'] = str_replace("/web/", "/", $data->domain) . $uri;

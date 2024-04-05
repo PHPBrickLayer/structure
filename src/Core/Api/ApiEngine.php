@@ -244,7 +244,7 @@ final class ApiEngine {
         if(!self::$request_found)
             return $this;
 
-        $cache = LayCache::new()->cache_file(self::RATE_LIMIT_CACHE_FILE . DomainResource::get()->domain->domain_name . ".json");
+        $cache = LayCache::new()->cache_file(self::RATE_LIMIT_CACHE_FILE . DomainResource::get()->domain->domain_referrer . ".json");
         $key = str_replace([".", " "], "_", LayConfig::get_ip() . (self::$request_uri_name ?? self::$request_uri_raw));
         $limit = $cache->read($key, false);
 
@@ -600,6 +600,7 @@ final class ApiEngine {
 
             foreach(self::$registered_uris as $reg_uri){
                 $uris .= "URI == " . $reg_uri['uri'] . "<br>" . PHP_EOL;
+                $uris .= "URI NAME == " . $reg_uri['uri_name'] . "<br>" . PHP_EOL;
                 $uris .= "METHOD == " . $reg_uri['method'] . "<br>" . PHP_EOL;
                 $uris .= "RETURN TYPE == " . $reg_uri['return_type']->name . "<br>" . PHP_EOL;
                 $uris .= "<br>" . PHP_EOL;
