@@ -1,8 +1,10 @@
 <?php
 declare(strict_types=1);
 namespace BrickLayer\Lay\Orm;
-
-use Exception;
+use BrickLayer\Lay\Core\CoreException;
+use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Orm\Enums\OrmQueryType;
+use BrickLayer\Lay\Orm\Enums\OrmReturnType;
 use mysqli;
 
 trait Config{
@@ -67,7 +69,7 @@ trait Config{
 
 
                 $this->set_link($mysqli);
-            }catch (Exception){}
+            }catch (\Exception $e){}
 
             if(!$mysqli){
                 if (filter_var($silent,FILTER_VALIDATE_BOOL))
@@ -114,9 +116,8 @@ trait Config{
             if(isset($this->get_link()->host_info)) {
                 if (@mysqli_ping($cxn)) {
                     $x = $this->query(
-                        "SELECT SUBSTRING_INDEX(host, ':', 1) AS host_short,
-                                USER AS users, db FROM information_schema.processlist",
-                        ["fetch_as" => "assoc", "query_type" => "select"]
+                        "SELECT SUBSTRING_INDEX(host, ':', 1) AS host_short, USER AS users, db FROM information_schema.processlist",
+                        ["fetch_as" => OrmReturnType::ASSOC, "query_type" => OrmQueryType::SELECT,]
                     );
 
                     $db = $x['db'];
@@ -154,7 +155,7 @@ trait Config{
     public function close(?mysqli $link = null, bool $silent_error = false) : bool {
         try {
             return mysqli_close($link ?? $this->get_link());
-        }catch (Exception $e){
+        }catch (\Exception $e){
             if(!$silent_error)
                 $this->exception(
                     "ConnErr",
