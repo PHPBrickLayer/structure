@@ -11,7 +11,6 @@ use BrickLayer\Lay\Orm\Enums\OrmReturnType;
 use BrickLayer\Lay\Orm\Traits\Controller;
 use BrickLayer\Lay\Orm\Enums\OrmExecStatus;
 use Exception;
-use Generator;
 use mysqli;
 use mysqli_result;
 
@@ -56,9 +55,9 @@ class SQL
      * Query Engine
      * @param string $query
      * @param array $option Adjust the function to fit your use case;
-     * @return int|bool|array|mysqli_result|Generator|null
+     * @return int|bool|array|mysqli_result|\Generator|null
      */
-    final public function query(string $query, array $option = []): int|bool|array|null|mysqli_result|Generator
+    final public function query(string $query, array $option = []): int|bool|array|null|mysqli_result|\Generator
     {
         if (!isset(self::$link))
             $this->exception(
@@ -78,6 +77,7 @@ class SQL
             $qr = explode(" ", trim($query), 2);
             $query_type = strtoupper(substr($qr[1], 0, 5));
             $query_type = $query_type == OrmQueryType::COUNT->name ? $query_type : strtoupper($qr[0]);
+            $query_type = LayArray::some(OrmQueryType::cases(), fn($v) => $v->name === $query_type)[0] ?? $query_type;
         }
 
         if ($debug)
@@ -158,7 +158,7 @@ class SQL
             $exec = StoreResult::store(
                 $exec,
                 $loop,
-                $option['fetch_as'] ?? null,
+                $option['fetch_as'] ?? OrmReturnType::BOTH,
                 $option['except'] ?? "",
                 $option['fun'] ?? null,
                 $option['result_dimension'] ?? 2

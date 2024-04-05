@@ -331,7 +331,7 @@ final class ApiEngine {
 
     private static function set_return_value(?array $return_array = null) : void
     {
-        self::$method_return_value = $return_array ?? self::$method_return_value;
+        self::$method_return_value = $return_array ?? self::$method_return_value ?? null;
         self::$request_found = true;
         self::$request_complete = true;
     }
