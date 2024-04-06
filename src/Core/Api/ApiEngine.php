@@ -3,7 +3,11 @@ declare(strict_types=1);
 namespace BrickLayer\Lay\Core\Api;
 
 use BrickLayer\Lay\Core\Api\Enums\ApiReturnType;
+use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Core\View\DomainResource;
 use BrickLayer\Lay\Core\View\ViewBuilder;
+use BrickLayer\Lay\Libs\LayCache;
+use BrickLayer\Lay\Libs\LayDate;
 use Closure;
 use BrickLayer\Lay\Core\Api\Enums\ApiRequestMethod;
 use BrickLayer\Lay\Core\Exception;
@@ -13,9 +17,13 @@ final class ApiEngine {
         return new self();
     }
 
+    private const RATE_LIMIT_CACHE_FILE = 'rate_limiter/';
+
+    private static ?string $request_uri_name;
     private static string $request_uri_raw;
     private static array $registered_uris = [];
     private static array $request_uri = [];
+    private static array $current_request_uri = [];
     private static array $request_header;
     private static array $method_arguments;
     private static mixed $method_return_value;
@@ -23,19 +31,46 @@ final class ApiEngine {
     private static bool $use_lay_exception = true;
     private static bool $request_found = false;
     private static bool $request_complete = false;
+    private static bool $skip_process_on_false = true;
     private static ?string $prefix;
     private static ?string $group;
     private static string $request_method;
     private static string $current_request_method;
     private static ?\Closure $current_middleware = null;
+    private static bool $using_group_middleware = false;
+    private static bool $using_route_middleware = false;
+    private static bool $using_route_limiter = false;
+    private static bool $using_group_limiter = false;
+
+    private static function set_response_header(int $code, string $message, ApiReturnType $return_type) : void
+    {
+        header("HTTP/1.1 $code $message");
+
+        switch ($return_type) {
+            case ApiReturnType::JSON:
+                header("Content-Type: application/json");
+                break;
+            case ApiReturnType::HTML:
+                header("Content-Type: text/html");
+                break;
+            default:
+                header("Content-Type: text/plain");
+                break;
+        }
+
+        self::new()->set_return_value();
+    }
 
     private static function exception(string $title, string $message, $exception = null) : void {
-        http_response_code(500);
+        self::set_response_header(500, 'Internal Server Error', ApiReturnType::HTML);
         $stack_trace = $exception ? $exception->getTrace() : [];
         Exception::throw_exception($message, $title, true, self::$use_lay_exception, $stack_trace, exception: $exception);
     }
 
     private function correct_request_method(bool $throw_exception = true) : bool {
+        if(!isset($_SERVER['REQUEST_METHOD']))
+            self::exception("RequestMethodNotFound", "No request method found. You are probably accessing this page illegally!");
+
         $match = strtoupper($_SERVER['REQUEST_METHOD']) === self::$request_method;
 
         if($match) {
@@ -56,43 +91,44 @@ final class ApiEngine {
     /**
      * Accepts `/` separated URI as arguments.
      * @param string $request_uri
-     * @example `get/user/list`; translates to => `'get','user','list'`
-     * @example `post/user/index/15`; translates to => `'post','user','index','{id}'`
-     * @example `post/user/index/25`; translates to => `'post','user','index','{@int id}'`
+     * @param ApiReturnType $return_type
      * @return $this
+     * @example `get/user/list`; is interpreted as => `'get/user/list'`
+     * @example `post/user/index/15`; is interpreted as => `'post/user/index/{id}'`
+     * @example `post/user/index/25`; is interpreted as => `'post/user/index/{@int id}'`
      */
     private function map_request(string $request_uri, ApiReturnType $return_type) : self {
+        self::$request_uri_name = null;
+
         if(self::$request_found || self::$request_complete || !$this->correct_request_method(false))
             return $this;
 
         self::$method_arguments = [];
         self::$method_return_type = $return_type;
+
         $uri_text = "";
         $request_uri = trim($request_uri, "/");
-        $request_uri = explode("/", $request_uri);
-        $last_item = end($request_uri);
+        self::$current_request_uri = explode("/", $request_uri);
+        $last_item = end(self::$current_request_uri);
 
         if(isset(self::$group)) {
             $group = explode("/", self::$group);
-            $request_uri = [...$group, ...$request_uri];
+            self::$current_request_uri = [...$group, ...self::$current_request_uri];
         }
 
         if(isset(self::$prefix)) {
             $prefix = explode("/", self::$prefix);
-            $request_uri = [...$prefix, ...$request_uri];
+            self::$current_request_uri = [...$prefix, ...self::$current_request_uri];
         }
 
-        self::$registered_uris[] = [
-            "uri" => implode("/",$request_uri),
-            "method" => self::$request_method,
-            "return_type" => self::$method_return_type,
-        ];
-
-        if(count(self::$request_uri) !== count($request_uri))
+        if(count(self::$request_uri) !== count(self::$current_request_uri))
             return $this;
 
-        foreach ($request_uri as $i => $query) {
-            $uri_text .= "$query, ";
+        if($this->skip_process())
+            return $this;
+
+        foreach (self::$current_request_uri as $i => $query) {
+            $uri_text .= "$query/";
 
             if (self::$request_uri[$i] !== $query && !str_starts_with($query, "{"))
                 break;
@@ -114,7 +150,7 @@ final class ApiEngine {
                  * Then get the data type if specified from the placeholder and cast it to that.
                  *
                  * Example: Using the request `users/profile/36373` \
-                 * The `->map_request('users','profile','{@int 1}')` \
+                 * The `->map_request('users/profile/{@int 1}')` \
                  * Value will be stored as `"users.profile.has_args" => (int) 36373`
                  */
                 $stripped = explode(" ", trim($query, "{}"));
@@ -126,7 +162,7 @@ final class ApiEngine {
                         settype(self::$request_uri[$i], $data_type);
                     }
                     catch (\ValueError $e){
-                        self::exception("InvalidDataType", "`@$data_type` is not a valid datatype, In [" . rtrim($uri_text, ", ") . "];", $e);
+                        self::exception("InvalidDataType", "`@$data_type` is not a valid datatype, In [" . rtrim($uri_text, "/") . "];", $e);
                     }
                 }
 
@@ -203,6 +239,43 @@ final class ApiEngine {
         return $this;
     }
 
+    public function limit(int $requests, string $interval) : self
+    {
+        if(!self::$request_found)
+            return $this;
+
+        $cache = LayCache::new()->cache_file(self::RATE_LIMIT_CACHE_FILE . DomainResource::get()->domain->domain_referrer . ".json");
+        $key = str_replace([".", " "], "_", LayConfig::get_ip() . (self::$request_uri_name ?? self::$request_uri_raw));
+        $limit = $cache->read($key, false);
+
+        $request_count = (int) $limit?->request_count;
+        $expire = $limit?->expire ?? null;
+        $timestamp = LayDate::date($interval, figure: true);
+        $now = LayDate::date(figure: true);
+
+        if($expire == null or $expire < $now) {
+            $cache->store($key, [
+                "request_count" => 1,
+                "expire" => $timestamp,
+            ]);
+
+            return $this;
+        }
+
+        $cache->update([$key, "request_count"], $request_count + 1);
+
+        if($request_count > $requests)
+            self::set_response_header(429, "Request limit exceeded!", ApiReturnType::JSON);
+
+        return $this;
+    }
+
+    public function name(string $uri_name) : self
+    {
+        self::$request_uri_name = $uri_name;
+        return $this;
+    }
+
     public function post(string $request_uri, ApiReturnType $return_type = ApiReturnType::JSON) : self {
         self::$request_method = ApiRequestMethod::POST->value;
 
@@ -233,6 +306,36 @@ final class ApiEngine {
         return $this->map_request($request_uri, $return_type);
     }
 
+    public static function dont_skip_process() : void
+    {
+        self::$skip_process_on_false = false;
+    }
+
+    private function skip_process() : bool
+    {
+        if(!self::$skip_process_on_false)
+            return false;
+
+        if(empty(self::$current_request_uri))
+            return true;
+
+        return self::$request_uri[0] !== self::$current_request_uri[0];
+    }
+
+    private function reset_engine() : void
+    {
+        self::$prefix = null;
+        self::$group = null;
+        self::$request_uri_name = null;
+    }
+
+    private static function set_return_value(?array $return_array = null) : void
+    {
+        self::$method_return_value = $return_array ?? self::$method_return_value ?? null;
+        self::$request_found = true;
+        self::$request_complete = true;
+    }
+
     /**
      * When used, this method runs when a single route is hit, before getting to the binded method.
      * The callback should return an array.
@@ -240,17 +343,22 @@ final class ApiEngine {
      * If it doesn't return 200, the binded method will not run.
      *
      * @param callable $middleware_callback
+     * @param bool $_from_group
      * @return self
      * @example
-    `ApiEngine::new()->request->post('client/transactions/buy')
-    ->middleware(fn() => validate_session())
-    ->bind(fn() => Transactions::new()->buy());
-    `
+     * `ApiEngine::new()->request->post('client/transactions/buy')
+     * ->middleware(fn() => validate_session())
+     * ->bind(fn() => Transactions::new()->buy());
+     * `
      */
-    public function middleware(callable $middleware_callback) : self
+    public function middleware(callable $middleware_callback, bool $_from_group = false) : self
     {
+        self::$using_route_middleware = false;
+
         if(!self::$request_found)
             return $this;
+
+        self::$using_route_middleware = !$_from_group;
 
         $arguments = self::get_mapped_args();
         $return = $middleware_callback(...$arguments);
@@ -270,10 +378,7 @@ final class ApiEngine {
         }
 
         // If it gets here, it means the middleware has deemed the request invalid
-
-        self::$method_return_value = $return;
-        self::$request_found = true;
-        self::$request_complete = true;
+        self::set_return_value($return);
 
         return $this;
     }
@@ -299,6 +404,7 @@ final class ApiEngine {
      */
     public function group_middleware(callable $middleware_callback) : self
     {
+        self::$using_group_middleware = false;
         $use_middleware = false;
         $uri_beginning = [];
 
@@ -319,9 +425,10 @@ final class ApiEngine {
         if(!$use_middleware)
             return $this;
 
+        self::$using_group_middleware = true;
         self::$current_middleware = $middleware_callback;
 
-        return $this->middleware($middleware_callback);
+        return $this->middleware($middleware_callback, true);
     }
 
 
@@ -330,11 +437,27 @@ final class ApiEngine {
      * If you wish to retrieve the value of the method, ensure to return it;
      */
     public function bind(Closure $callback_of_controller_method) : self {
-        if(!self::$request_found || self::$request_complete)
+        if($this->skip_process())
             return $this;
 
-        if(!isset($_SERVER['REQUEST_METHOD']))
-            self::exception("RequestMethodNotFound", "No request method found. You are probably accessing this page illegally!");
+        if($this->correct_request_method(false))
+            self::$registered_uris[] = [
+                "uri" => implode("/",self::$current_request_uri),
+                "uri_name" => self::$request_uri_name ?? "",
+                "method" => self::$request_method,
+                "return_type" => self::$method_return_type,
+                "using_limit" => [
+                    "group" => self::$using_group_limiter,
+                    "route" => self::$using_route_limiter,
+                ],
+                "using_middleware" => [
+                    "group" => self::$using_group_middleware,
+                    "route" => self::$using_route_middleware,
+                ],
+            ];
+
+        if(!self::$request_found || self::$request_complete)
+            return $this;
 
         $this->correct_request_method();
 
@@ -347,8 +470,7 @@ final class ApiEngine {
 
         try {
             $arguments = self::get_mapped_args();
-            self::$method_return_value = $callback_of_controller_method(...$arguments);
-            self::$request_complete = true;
+            self::set_return_value($callback_of_controller_method(...$arguments));
         }
         catch (\TypeError $e){
             self::exception("ApiEngineMethodError", "Check the bind function of your route: [" . self::$request_uri_raw . "]; <br>" . $e->getMessage(), $e);
@@ -366,8 +488,7 @@ final class ApiEngine {
     }
 
     public function get_result() : mixed {
-        // Clear the prefix, because this method marks the end of a set of api routes
-        self::$prefix = null;
+        $this->reset_engine();
 
         try {
             return self::$method_return_value;
@@ -387,7 +508,7 @@ final class ApiEngine {
     }
 
     /**
-     * @param ApiReturnType $return_type
+     * @param ApiReturnType|null $return_type
      * @param bool $print
      * @return string|bool|null Returns `null` when no api was hit; Returns `false` on error; Returns json encoded string or html on success,
      * depending on what was selected as `$return_type`
@@ -403,18 +524,7 @@ final class ApiEngine {
         $x = $return_type == ApiReturnType::JSON ? json_encode(self::$method_return_value) : self::$method_return_value;
 
         if($print) {
-            switch ($return_type){
-                case ApiReturnType::JSON:
-                    header("Content-Type: application/json");
-                    break;
-                case ApiReturnType::HTML:
-                    header("Content-Type: text/html");
-                    break;
-                default:
-                    header("Content-Type: text/plain");
-                    break;
-            }
-
+            self::set_response_header(200, "Ok", $return_type);
             print_r($x);
             die;
         }
@@ -490,6 +600,7 @@ final class ApiEngine {
 
             foreach(self::$registered_uris as $reg_uri){
                 $uris .= "URI == " . $reg_uri['uri'] . "<br>" . PHP_EOL;
+                $uris .= "URI NAME == " . $reg_uri['uri_name'] . "<br>" . PHP_EOL;
                 $uris .= "METHOD == " . $reg_uri['method'] . "<br>" . PHP_EOL;
                 $uris .= "RETURN TYPE == " . $reg_uri['return_type']->name . "<br>" . PHP_EOL;
                 $uris .= "<br>" . PHP_EOL;

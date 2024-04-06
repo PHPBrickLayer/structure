@@ -16,16 +16,6 @@ class DomainResource
     private static object $resource;
     private static object $plaster;
 
-    #[ObjectShape([
-        'route' => 'string',
-        'route_as_array' => 'array',
-        'domain_type' => DomainType::class,
-        'domain_id' => 'string',
-        'domain_uri' => 'string',
-        'domain_root' => 'string',
-        'pattern' => 'string',
-        0, 1, 2, 3, 4, 5, 6, 7, 8
-    ])]
     private static function domain () : object
     {
         $data = Domain::current_route_data("*");
@@ -104,7 +94,20 @@ class DomainResource
         'plugins' => 'string',
         'ui' => 'string',
         'shared' => 'object [root, static, env, css, img, js, plugins, img_default [object [logo, favicon, icon, meta]]]',
-        'domain' => 'object [domain_uri, route, route_as_array, domain_type, domain_name, domain_id, domain_root, pattern, 0, 1 ...n]',
+        'domain' => 'object [
+            domain_uri, 
+            route, 
+            route_as_array, 
+            domain_type, 
+            domain_name, 
+            domain_referrer,
+            domain_id, 
+            domain_root, 
+            pattern, 
+            plaster, 
+            layout, 
+            0...n
+        ]',
         'lay' => 'object [uri, root]',
     ])]
     public static function get() : object
