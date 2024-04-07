@@ -744,7 +744,7 @@ const $preloader = (act = "show") => {
 *  `option.abort` {function} = function to execute on upload abort
 * @param data {any} same as `option.data`, only comes in play when three parameter wants to be used
 * @return {Promise}
-*/ const $curl = (url, option = {}, data = null) => new Promise(((resolve, reject) => {
+*/ const $curl = (url, option = {}, data = null) => new Promise((resolve, reject) => {
     if ($type(url) === "Object") {
         option = url;
         url = option.action;
@@ -795,8 +795,14 @@ const $preloader = (act = "show") => {
                     duration: -1
                 });
             }
+
+            reject({
+                statusText: Error(xhr.e ?? xhr.statusText),
+                xhr: xhr,
+                status: xhr.status
+            });
+
             $omjsError("$curl", xhr.e ?? xhr.statusText);
-            reject(Error(xhr.e ?? xhr.statusText), xhr);
         }
     };
     method = method.toUpperCase();
@@ -905,7 +911,7 @@ const $preloader = (act = "show") => {
     $loop(headers, ((value, key) => xhr.setRequestHeader(key, value)));
     xhr.send(data);
     preload();
-}));
+});
 
 const $ajax = $curl;
 
