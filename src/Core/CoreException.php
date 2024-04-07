@@ -225,6 +225,9 @@ class CoreException
         if(self::$already_caught)
             return;
 
+        if(@LayConfig::get_mode() === LayMode::HTTP)
+            header("HTTP/1.1 500 Internal Server Error");
+
         $use_lay_error = $opt['use_lay_error'] ?? true;
         $trace = empty($opt['trace']) ? debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS) : $opt['trace'];
 
@@ -256,8 +259,6 @@ class CoreException
             ]
         );
 
-        if(LayConfig::get_mode() === LayMode::HTTP)
-            @http_response_code(500);
 
         if ($act == "kill") {
             self::$already_caught = true;
