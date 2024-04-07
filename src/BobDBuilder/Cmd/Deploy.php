@@ -76,7 +76,7 @@ class Deploy implements CmdLayout
     public function batch_minification(string $src_dir, string $output_dir): void
     {
         $ignore = $this->ignore ? explode(",", $this->ignore) : [];
-        $core_ignore = ["node_modules"];
+        $core_ignore = ["node_modules", "scss"];
 
         $error = [];
         $changes = 0;
@@ -121,10 +121,10 @@ class Deploy implements CmdLayout
                 // also we can make the quality of the photo 70
 
                 if($is_js($file))
-                    $return = exec("terser $file -c -m -o $output > /dev/null &",$current_error);
+                    $return = exec("terser $file -c -m -o $output 2>&1 &",$current_error);
 
                 if ($is_css($file))
-                    $return = exec("cleancss -s -o $output $file > /dev/null &", $current_error);
+                    $return = exec("uglifycss $file --output $output 2>&1 &", $current_error);
 
                 if(!empty($current_error))
                     $error[] = ["file" => $file, "error" => join("\n", $current_error)];
@@ -155,23 +155,25 @@ class Deploy implements CmdLayout
         );
 
         if($error_count > 0) {
-            $this->plug->write_warn("- #*Messages*:#", ["kill" => false]);
-            foreach ($error as $e){
-                $this->plug->write_warn(
-                    "  -- *File:* " . $e['file'] . " \n"
-                    . "  -- *Err:* " . $e['error'] . " \n",
-                    ["kill" => false]
+            $this->talk(" (-) *Error Messages:*");
+
+            foreach ($error as $e) {
+                $this->talk(
+                    "      File: *{$e['file']}* \n" .
+                    "      Error: \n{$e['error']}"
                 );
             }
+
+            print "--- --- END --- ---\n";
         }
     }
 
     public function check_dependencies() : void {
-        $this->talk("- Checking feature dependencies [*npm, terser & cleancss*]");
+        $this->talk("- Checking feature dependencies [*npm, terser & uglifycss*]");
 
         $npm = shell_exec("cd $this->root && npm --version 2>&1");
         $terser = shell_exec("cd $this->root && terser --version 2>&1");
-        $cleancss = shell_exec("cd $this->root && cleancss --version 2>&1");
+        $uglifycss = shell_exec("cd $this->root && uglifycss --version 2>&1");
 
         if(!$npm || str_contains($npm, "not found"))
             $this->plug->write_fail(
@@ -185,9 +187,9 @@ class Deploy implements CmdLayout
                 . "Please run *npm install* on the root folder of your project to install all the js dependencies"
             );
 
-        if(!$cleancss || str_contains($cleancss, "not found"))
+        if(!$uglifycss || str_contains($uglifycss, "not found"))
             $this->plug->write_fail(
-                "*cleancss* is not installed on your machine, this feature depends on it. \n"
+                "*uglifycss* is not installed on your machine, this feature depends on it. \n"
                 . "Please run *npm install* on the root folder of your project to install all the js dependencies"
             );
 
