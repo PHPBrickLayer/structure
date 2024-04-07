@@ -305,7 +305,7 @@ class Deploy implements CmdLayout
         }
 
         exec("git push &", $output);
-        exec("cd $root | git add . && git commit -m \"$msg\" && git push 2>&1 &");
+        exec("cd $root | git add . && git commit -m \"$msg\" && git push > /dev/null &");
 
         $this->talk(" (-) *Git Says*");
 
