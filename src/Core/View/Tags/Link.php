@@ -39,18 +39,21 @@ final class Link {
             $this->rel("stylesheet");
 
         $media = $this->attr['media'] ?? "all";
+        $as = $this->attr['as'] ?? "style";
         $rel = $this->attr['rel'] ?? "stylesheet";
         $type = $this->attr['type'] ?? "text/css";
+        $lazy_type = $this->attr['lazy'] ?? "prefetch"; // 'preload' || 'prefetch';
         $attr = $this->get_attr();
 
         $link = "<link href=\"$href\" $attr />";
 
         if($lazy) {
             $attr = <<<ATTR
-            media="print" onload="this.media='$media'" rel="$rel" href="$href" type="$type" $attr 
+            media="print" onload="this.rel='$rel';this.media='$media'" rel="$lazy_type" href="$href" type="$type" as="$as"  $attr 
             ATTR;
 
-            $link = "<link $attr />";
+            $link = "<link $attr >
+            <noscript><link rel=\"$rel\" href=\"$href\" ></noscript>";
         }
 
         if($print)
