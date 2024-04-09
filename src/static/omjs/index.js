@@ -1132,7 +1132,7 @@ const $freeze = (element, operation, attr = true) => {
             get: {
                 box: BOX,
                 head: BOX_HEAD,
-                close: BOX_CLOSE.$sel("svg"),
+                close: BOX_CLOSE_BTN,
                 header: BOX_HEADER,
                 foot: BOX_FOOT,
                 wrapper: BOX_INNER_WRAPPER,
