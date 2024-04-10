@@ -7,22 +7,22 @@ use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Libs\LayArray;
 use BrickLayer\Lay\Libs\LayDate;
 
-final class LayCron {
-    public const PHP_BIN = PHP_BINARY ?: "/usr/bin/php";
+final class LayCron
+{
     private const CRON_FILE = "/tmp/crontab.txt";
     private const DB_SCHEMA = [
         "mailto" => "",
         "jobs" => [],
     ];
 
+    private static string $PHP_BIN;
     private string $output_file;
-    private string $job_script;
     private bool $just_once_set = false;
     private array $exec_output = [
         "exec" => true,
-        "msg" => "Execution successful"
+        "msg" => "Job exists, using old schedule!"
     ];
-    private bool $save_job_output = false;
+
     private array $jobs_list;
     private string $report_email;
     private string $job_id;
@@ -31,6 +31,20 @@ final class LayCron {
     private string $day_of_the_month = "*"; // (1 - 31)
     private string $month = "*"; // (1 - 12)
     private string $day_of_the_week = "*"; // (0 - 6) (Sunday=0 or 7)
+
+    public static function php_bin(): string
+    {
+        if(isset(self::$PHP_BIN))
+            return self::$PHP_BIN;
+
+        if(PHP_BINARY)
+            return self::$PHP_BIN = PHP_BINARY;
+
+        if($bin = shell_exec("which php"))
+            return self::$PHP_BIN = trim($bin);
+
+        return self::$PHP_BIN = "/usr/bin/php";
+    }
 
     private function cron_db() : string {
         $dir = LayConfig::mk_tmp_dir();
@@ -79,9 +93,8 @@ final class LayCron {
         return LayArray::search($job, $this->db_job_all());
     }
 
-    private function db_email_exists(?string $email = null) : ?string {
-        $email = $email ?? $this->report_email;
-        return $email == $this->db_get_email();
+    private function db_email_exists() : ?string {
+        return $this->report_email == $this->db_get_email();
     }
 
     private function db_get_email() : ?string {
@@ -104,13 +117,12 @@ final class LayCron {
 
         file_put_contents(self::CRON_FILE, $mailto . $cron_jobs);
 
-        $install = exec("crontab " . self::CRON_FILE . " 2>&1", $out);
-        $exec = !str_contains($install, "errors in crontab file, can't install");
+        exec("crontab " . self::CRON_FILE . " 2>&1", $out);
+        $exec = empty($out);
 
         $this->exec_output = [
             "exec" => $exec,
-            "msg" => (!empty($out) ? implode("\n", $out) : "Cron job added successfully") . "\n"
-                . "Date: " . LayDate::date(format_index: 2)
+            "msg" => !$exec ? implode("\n", $out) : "Cron job added successfully. Date: " . LayDate::date(format_index: 2)
         ];
 
         return $exec;
@@ -129,13 +141,7 @@ final class LayCron {
 
         $job_plain = $job;
         $job = $server->root . $job_plain;
-        $job = self::PHP_BIN . " $job";
-
-        if($this->save_job_output) {
-            $job = ' out="$(' . $job . ')";';
-            $job .= ' echo "' . $job_plain . ': $out "';
-            $job .= " >> " . $this->output_file;
-        }
+        $job = self::php_bin() . " $job";
 
         $out = $schedule . " " . $job . PHP_EOL;
 
@@ -224,9 +230,9 @@ final class LayCron {
         return $this;
     }
 
-    public function log_output() : self {
-        $this->save_job_output = true;
-        return $this;
+    public function log_output(string $output) : void
+    {
+        file_put_contents($this->output_file, $output . PHP_EOL, FILE_APPEND);
     }
 
     public function new_job(string $job) : array {
@@ -317,7 +323,7 @@ final class LayCron {
      * @return $this
      */
     public function every_minute(int $minute = 1) : self {
-        $this->raw_schedule(minute: "*/$minute",);
+        $this->raw_schedule(minute: "*/$minute");
         return $this;
     }
 
@@ -346,7 +352,7 @@ final class LayCron {
      */
     public function daily(int $hour = 12, int $minute = 0, bool $am = true) : self {
         $am = $am ? "am" : "pm";
-        $date = explode(" ", date("G i", strtotime("$hour:$minute{$am}")));
+        $date = explode(" ", date("G i", strtotime("$hour:$minute$am")));
         $this->raw_schedule(minute: $date[1], hour: $date[0]);
         return $this;
     }
