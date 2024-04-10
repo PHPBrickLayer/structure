@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace BrickLayer\Lay\Core\View\Tags;
 
+use BrickLayer\Lay\Core\Enums\CustomContinueBreak;
 use BrickLayer\Lay\Core\View\ViewSrc;
 
 final class Link {
@@ -13,7 +14,7 @@ final class Link {
     ];
 
     use \BrickLayer\Lay\Core\View\Tags\Traits\Standard;
-    
+
     public function rel(string $rel) : self {
         $this->rel_set = true;
         return $this->attr('rel', $rel);
@@ -43,7 +44,12 @@ final class Link {
         $rel = $this->attr['rel'] ?? "stylesheet";
         $type = $this->attr['type'] ?? "text/css";
         $lazy_type = $this->attr['lazy'] ?? "prefetch"; // 'preload' || 'prefetch';
-        $attr = $this->get_attr();
+        $attr = $this->get_attr(function ($v, $k) use ($lazy) {
+            if(($lazy && $k == "rel") || $k == "src")
+                return CustomContinueBreak::CONTINUE;
+
+            return $v;
+        });
 
         $link = "<link href=\"$href\" $attr />";
 
@@ -52,7 +58,7 @@ final class Link {
             media="print" onload="this.rel='$rel';this.media='$media'" rel="$lazy_type" href="$href" type="$type" as="$as"  $attr 
             ATTR;
 
-            $link = "<link $attr >
+            $link = "<link $attr>
             <noscript><link rel=\"$rel\" href=\"$href\" ></noscript>";
         }
 
