@@ -43,8 +43,6 @@ class Cron implements CmdLayout
 
         exec($job . " 2>&1 &", $out);
 
-        echo implode("\n", $out);
-
+        LayCron::new()->log_output(implode("\n", $out));
     }
-
 }
