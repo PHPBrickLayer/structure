@@ -16,6 +16,7 @@ final class LayCron
     ];
 
     private static string $PHP_BIN;
+    private static string $time_zone  = "Africa/Lagos";
     private string $output_file;
     private bool $just_once_set = false;
     private array $exec_output = [
@@ -222,6 +223,8 @@ final class LayCron
     }
 
     public static function new () : self {
+        date_default_timezone_set(self::$time_zone);
+
         return new self();
     }
 
@@ -247,6 +250,12 @@ final class LayCron
     public function exec(string $command, bool $add_eol = true) : array {
         $this->add_job($command . ($add_eol ? PHP_EOL : ''));
         return $this->exec_output;
+    }
+
+    public function time_zone(string $time_zone) : self
+    {
+        self::$time_zone = $time_zone;
+        return $this;
     }
 
     public function report_email(string $email) : self {
