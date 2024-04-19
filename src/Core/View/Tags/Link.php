@@ -20,20 +20,20 @@ final class Link {
         return $this->attr('rel', $rel);
     }
 
-    public static function clear() : void {
+public static function clear() : void {
         self::$me->rel_set = false;
         self::$me->attr = self::ATTRIBUTES ?? [];
     }
 
-    public function media(string $media) : self {
+public function media(string $media) : self {
         return $this->attr('media', $media);
     }
 
-    public function type(string $type) : self {
+public function type(string $type) : self {
         return $this->attr('type', $type);
     }
 
-    public function href(string $href, bool $print = true, bool $lazy = false) : string {
+public function href(string $href, bool $print = true, bool $lazy = false) : string {
         $href = ViewSrc::gen($href);
 
         if(!$this->rel_set)
@@ -51,15 +51,14 @@ final class Link {
             return $v;
         });
 
-        $link = "<link href=\"$href\" $attr />";
+        $link = "\n\t<link href=\"$href\" $attr />";
 
         if($lazy) {
             $attr = <<<ATTR
             media="print" onload="this.rel='$rel';this.media='$media'" rel="$lazy_type" href="$href" type="$type" as="$as"  $attr 
             ATTR;
 
-            $link = "<link $attr>
-            <noscript><link rel=\"$rel\" href=\"$href\" ></noscript>";
+            $link = "\n\t<link $attr>\n\t<noscript><link rel=\"$rel\" href=\"$href\" ></noscript>";
         }
 
         if($print)

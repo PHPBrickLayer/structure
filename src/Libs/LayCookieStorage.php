@@ -17,6 +17,7 @@ use Wolfcast\BrowserDetection;
  */
 abstract class LayCookieStorage
 {
+    private const SESSION_KEY = "LAY_COOKIE_STORAGE";
     private static string $session_user_cookie;
     private static string $table = "lay_cookie_storages";
 
@@ -41,6 +42,8 @@ abstract class LayCookieStorage
         if (!isset(self::$session_user_cookie))
             self::$session_user_cookie = "lay_cok_" . self::orm()->clean(self::lay()::site_data()->name->short, 6);
 
+        $_SESSION[self::SESSION_KEY]  = $_SESSION[self::SESSION_KEY]  ?? [];
+
         self::create_table();
     }
 
@@ -51,14 +54,24 @@ abstract class LayCookieStorage
 
     private static function create_table(): void
     {
+        if(@$_SESSION[self::SESSION_KEY]['table_exists'] || @$_SESSION[self::SESSION_KEY]['has_error'])
+            return;
+
         $table = self::$table;
 
         // check if table exists, but catch the error
-        self::orm()->open(self::$table)->catch()->clause("LIMIT 1")->select();
+        $exists = self::orm()->open(self::$table)->catch()->clause("LIMIT 1")->just_exec()->select();
 
         // Check if the above query had an error. If no error, table exists, else table doesn't exist
-        if (self::orm()->query_info['has_error'] === false)
+        if (self::orm()->query_info['has_error'] === false) {
+            $_SESSION[self::SESSION_KEY]["has_error"] = true;
             return;
+        }
+
+        if($exists->field_count > 0) {
+            $_SESSION[self::SESSION_KEY]["table_exists"] = true;
+            return;
+        }
 
         self::orm()->query("CREATE TABLE IF NOT EXISTS `$table` (
                 `id` varchar(36) UNIQUE PRIMARY KEY,
@@ -72,6 +85,8 @@ abstract class LayCookieStorage
                 `expire` datetime
             )
         ");
+
+        $_SESSION[self::SESSION_KEY]["table_exists"] = true;
     }
 
     private static function delete_expired_tokens(): void

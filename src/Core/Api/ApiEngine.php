@@ -316,8 +316,12 @@ final class ApiEngine {
         if(!self::$skip_process_on_false)
             return false;
 
-        if(empty(self::$current_request_uri))
-            return true;
+        $current_uri = !empty(self::$registered_uris) ? end(self::$registered_uris)['uri'] : null;
+
+        if(
+            empty(self::$current_request_uri) ||
+            ( self::$request_found && $current_uri === self::$request_uri_raw)
+        ) return true;
 
         return self::$request_uri[0] !== self::$current_request_uri[0];
     }
