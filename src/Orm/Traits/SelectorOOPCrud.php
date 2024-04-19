@@ -112,10 +112,15 @@ trait SelectorOOPCrud
                 foreach ($column_and_values as $k => $c) {
                     $c = SQL::instance()->clean($c, 11, 'PREVENT_SQL_INJECTION');
 
+                    if($c == null) {
+                        $cols .= "`$k`=NULL,";
+                        continue;
+                    }
+
                     if (!preg_match("/^[a-zA-Z]+\([^)]*\)$/", $c) && $c !== null)
                         $c = "'$c'";
 
-                    $cols .= $c == null ? "`$k`=NULL," : "`$k`=$c,";
+                    $cols .= "`$k`=$c,";
                 }
             } catch (Exception $e) {
                 $this->oop_exception("Error occurred when trying to insert into a DB: " . $e->getMessage(), $e);
@@ -218,7 +223,7 @@ trait SelectorOOPCrud
         );
     }
 
-    final public function select(): array|null|Generator
+    final public function select(): array|null|Generator|\mysqli_result
     {
         $d = $this->get_vars();
         $table = $d['table'] ?? null;
@@ -244,14 +249,15 @@ trait SelectorOOPCrud
             $clause .= " ORDER BY " . rtrim($str, ", ");
         }
 
-        if ($limit) {
+        if ($limit && !isset($d['debug'])) {
             $current_queue = $limit['index'];
             $result_per_queue = $limit['max_result'];
 
             $count = $this->_store_vars_temporarily(
                 $d,
-                fn() => ceil($this->count_row("*") / $result_per_queue)
+                fn() => ceil(($this->count_row("*") / $result_per_queue))
             );
+
 
             // cut off request if we've gotten to the last record set
             if ($current_queue > $count)
@@ -279,7 +285,7 @@ trait SelectorOOPCrud
     final public function count_row(?string $column = null, ?string $WHERE = null): int
     {
         $d = $this->get_vars();
-        $col = "*";
+        $col = $column ?? "*";
 
         $WHERE = $WHERE ? "WHERE $WHERE" : ($d['clause'] ?? null);
         $table = $d['table'] ?? null;

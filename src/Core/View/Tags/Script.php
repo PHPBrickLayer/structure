@@ -17,16 +17,16 @@ final class Script {
     public function type(string $type) : self {
         return $this->attr('type', $type);
     }
-    
-    public function defer(bool $choice) : self {
+
+public function defer(bool $choice) : self {
         return $this->attr('defer', (string) $choice);
     }
-    
-    public function async(bool $choice) : self {
+
+public function async(bool $choice) : self {
         return $this->attr('async', (string) $choice);
     }
 
-    public function src(string $src, bool $print = true) : string {
+public function src(string $src, bool $print = true) : string {
         $src = ViewSrc::gen($src);
 
         if(!isset($this->attr['defer']))
@@ -43,10 +43,7 @@ final class Script {
             return CustomContinueBreak::FLOW;
         });
 
-
-        $link = <<<LNK
-            <script src="$src" $attr></script>
-        LNK;
+        $link = "\n\t<script src=\"$src\" $attr></script>";
 
         if($print)
             echo $link;

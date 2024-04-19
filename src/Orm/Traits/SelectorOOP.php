@@ -220,9 +220,6 @@ trait SelectorOOP
      */
     private function _store_vars_temporarily(array $vars, callable $temporary_fn): mixed
     {
-        if (@$vars['debug'] == 1)
-            unset($vars['debug']);
-
         self::$current_index = 969;
         $this->cached_options[self::$current_index] = $vars;
 

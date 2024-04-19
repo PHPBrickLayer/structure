@@ -116,6 +116,9 @@ class SQL
             "has_error" => $has_error
         ];
 
+        if($return_as == OrmReturnType::EXEC)
+            return $exec;
+
         if ($query_type == OrmQueryType::COUNT)
             return $this->query_info['data'] = (int)mysqli_fetch_row($exec)[0];
 
@@ -149,10 +152,7 @@ class SQL
             return $this->query_info['data'] = !$can_be_null ? [] : null;
         }
 
-        if (
-            ($query_type == OrmQueryType::SELECT || $query_type == OrmQueryType::LAST_INSERTED)
-            && ($return_as == OrmReturnType::RESULT || $return_as == OrmReturnType::GENERATOR)
-        ) {
+        if ($query_type == OrmQueryType::SELECT || $query_type == OrmQueryType::LAST_INSERTED) {
             $loop = (bool) ($option['loop'] ?? false);
 
             $exec = StoreResult::store(
