@@ -2,7 +2,7 @@
 
 namespace BrickLayer\Lay\Libs;
 
-class LayArray
+final class LayArray
 {
     /**
      * Enhanced array search, this will search for values even in multiple dimensions of arrays.
@@ -18,7 +18,7 @@ class LayArray
      * <code>::search("2", ["ss", [[2]], '2']) </code>
      * <code>== ['value' => '2', index => [1,0,0]]</code>
      */
-    final public static function search(mixed $needle, array $haystack, bool $strict = false, array $__RESULT_INDEX__ = []) : array
+    public static function search(mixed $needle, array $haystack, bool $strict = false, array $__RESULT_INDEX__ = []) : array
     {
         $result = [
             "value" => "LAY_NULL",
@@ -65,7 +65,7 @@ class LayArray
      * @param bool $preserve_key
      * @return array
      */
-    final public static function some(array $array, callable $callback, bool $preserve_key = false) : array
+    public static function some(array $array, callable $callback, bool $preserve_key = false) : array
     {
         $rtn = [];
 
@@ -90,7 +90,7 @@ class LayArray
      * @param array $array
      * @return array
      */
-    final public static function flatten(array $array): array
+    public static function flatten(array $array): array
     {
         $arr = $array;
         if(!count(array_filter($array, "is_array")) > 0)
@@ -115,5 +115,81 @@ class LayArray
         }
 
         return $arr;
+    }
+
+    public static function to_object($array) {
+        if (is_object($array))
+            return $array;
+
+        $obj = new \stdClass();
+
+        foreach ($array as $k => $v) {
+            if (is_array($v)) {
+                $obj->{$k} = self::to_object($v);
+                continue;
+            }
+
+            $obj->{$k} = $v;
+        }
+
+        return $obj;
+    }
+
+    public static function to_array(array|object $array): array
+    {
+        if (is_array($array))
+            return $array;
+
+        $obj = [];
+
+        foreach ($array as $k => $v) {
+            if (is_object($v)) {
+                $obj[$k] = self::to_array($v);
+                continue;
+            }
+
+            $obj[$k] = $v;
+        }
+
+        return $obj;
+    }
+
+    /**
+     * Merges the elements of one or more arrays or objects together (if the input arrays have the same string keys, then the later value for that key will overwrite the previous one; if the arrays contain numeric keys, the later value will be appended)
+     * @param array|object $object1
+     * @param array|object $object2
+     * @param bool $return_object
+     * @return array|object
+     */
+    public static function merge(array|object $object1, array|object $object2, bool $return_object = false) : array|object
+    {
+        $is_1_object = is_object($object1);
+
+        if($return_object && !$is_1_object) {
+            $object1 = self::to_object($object1);
+            $is_1_object = true;
+        }
+
+        if(!$return_object && $is_1_object){
+            $object1 = self::to_array($object1);
+            $is_1_object = false;
+        }
+
+        foreach ($object2 as $k => $v) {
+            if(is_array($v) && $return_object) {
+                $v = self::to_object($v);
+            }
+
+            if(is_object($v) && !$return_object) {
+                $v = self::to_array($v);
+            }
+
+            if($is_1_object)
+                $object1->{$k} = $v;
+            else
+                $object1[$k] = $v;
+        }
+
+        return $object1;
     }
 }

@@ -3,9 +3,8 @@ declare(strict_types=1);
 
 namespace BrickLayer\Lay\Libs;
 
+use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\Traits\IsSingleton;
-use BrickLayer\Lay\Orm\SQL;
-use stdClass;
 
 class LayObject
 {
@@ -29,34 +28,12 @@ class LayObject
         }
 
         if ($strict && empty($x) && empty($post))
-            SQL::instance()->use_exception(
-                "ObjectHandler::ERR::get_json",
-                "<div style='color: #eeb300; font-weight: bold; margin: 5px 1px;'>$msg</div>"
+            Exception::throw_exception(
+                "<div style='color: #eeb300; font-weight: bold; margin: 5px 1px;'>$msg</div>",
+                "LayObject::get_json"
             );
 
         return json_decode($x, $return_array) ?? $post;
-    }
-
-    /**
-     * @param array|object $array array to be converted
-     * @return object
-     */
-    public function to_object(array|object $array): object
-    {
-        if (is_object($array))
-            return $array;
-
-        $obj = new stdClass();
-
-        foreach ($array as $k => $v) {
-            if (is_array($v)) {
-                $obj->{$k} = $this->to_object($v);
-                continue;
-            }
-            $obj->{$k} = $v;
-        }
-
-        return $obj;
     }
 
     /**

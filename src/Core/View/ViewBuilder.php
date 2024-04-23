@@ -8,6 +8,7 @@ use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\Traits\IsSingleton;
 use BrickLayer\Lay\Core\View\Enums\DomainType;
 use BrickLayer\Lay\Core\View\Tags\Anchor;
+use BrickLayer\Lay\Libs\LayArray;
 use BrickLayer\Lay\Libs\LayObject;
 use Closure;
 use JetBrains\PhpStorm\ArrayShape;
@@ -102,7 +103,7 @@ final class ViewBuilder
 
     public function constants(): object
     {
-        return LayObject::new()->to_object($this->get_route_details(self::view_constants));
+        return LayArray::to_object($this->get_route_details(self::view_constants));
     }
 
     public function get_route_details(string $route): ?array
