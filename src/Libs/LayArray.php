@@ -155,7 +155,8 @@ final class LayArray
     }
 
     /**
-     * Merges the elements of one or more arrays or objects together (if the input arrays have the same string keys, then the later value for that key will overwrite the previous one; if the arrays contain numeric keys, the later value will be appended)
+     * Merges the elements of one or more arrays or objects together (if the input arrays have the same string keys, then the later value for that key will overwrite the previous one; if the arrays contain numeric keys, the later value will be appended).
+     * It can merge an array and an stdClass, and return a common datatype.
      * @param array|object $object1
      * @param array|object $object2
      * @param bool $return_object
