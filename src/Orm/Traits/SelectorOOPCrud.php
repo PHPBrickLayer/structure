@@ -101,6 +101,7 @@ trait SelectorOOPCrud
         $d = $this->get_vars();
         $column_and_values = $column_and_values ?? $d['values'] ?? $d['columns'];
         $table = $d['table'] ?? null;
+        $clause = $d['clause'] ?? null;
 
         if (empty($table))
             $this->oop_exception("You did not initialize the `table`. Use the `->table(String)` method like this: `->value('your_table_name')`");
@@ -131,7 +132,7 @@ trait SelectorOOPCrud
         $d['query_type'] = OrmQueryType::INSERT;
 
         return $this->capture_result(
-            [$this->query("INSERT INTO `$table` SET $column_and_values", $d) ?? false, $d],
+            [$this->query("INSERT INTO `$table` SET $column_and_values $clause", $d) ?? false, $d],
             'bool',
         );
     }

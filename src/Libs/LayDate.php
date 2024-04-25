@@ -122,6 +122,30 @@ class LayDate {
         return date($format, $strtotime);
     }
 
+    public static function week_of_month($date) : int
+    {
+        $first_day_of_month = strtotime(date("Y-m-01", $date));
+
+        //Apply above formula.
+        return self::week_of_year($date) - self::week_of_year($first_day_of_month) + 1;
+    }
+
+    public static function week_of_year($date) : int
+    {
+        $week_of_year = intval(date("W", $date));
+
+        // It's the last week of the previous year.
+        if (date('n', $date) == "1" && $week_of_year > 51)
+            return 0;
+
+        // It's the first week of the next year.
+        if (date('n', $date) == "12" && $week_of_year == 1)
+            return 53;
+
+        // It's a "normal" week.
+        return $week_of_year;
+    }
+
     public static function elapsed(string $current_time, int $depth = 1, string $format = "M d, o", bool $append_ago = true): string
     {
         $now = new DateTime;
