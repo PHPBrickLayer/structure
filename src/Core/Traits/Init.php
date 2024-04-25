@@ -162,7 +162,8 @@ trait Init {
             ],
             "mail" => $options['meta']['mail'] ?? [],
             "tel" => $options['meta']['tel'] ?? [],
-            "others" => $options['others'] ?? []
+            "others" => $options['others'] ?? [],
+            "ext_ignore_list" => $options['ext_ignore_list'] ?? [],
         ];
 
         self::$COMPRESS_HTML = $options['compress_html'];

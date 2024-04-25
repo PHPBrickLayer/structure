@@ -218,6 +218,9 @@ class Domain {
         $ext = explode("?", strtolower((string) end($x)))[0];
 
         if(count($x) > 1 && in_array($ext,$ext_array,true)) {
+            if(in_array($ext, LayConfig::site_data()->ext_ignore_list,true))
+                return $view;
+
             header("Content-Type: application/json");
             http_response_code(404);
 

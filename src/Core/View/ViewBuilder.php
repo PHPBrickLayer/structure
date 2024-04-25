@@ -8,7 +8,6 @@ use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\Traits\IsSingleton;
 use BrickLayer\Lay\Core\View\Enums\DomainType;
 use BrickLayer\Lay\Core\View\Tags\Anchor;
-use BrickLayer\Lay\Libs\LayArray;
 use BrickLayer\Lay\Libs\LayObject;
 use Closure;
 use JetBrains\PhpStorm\ArrayShape;
@@ -103,7 +102,7 @@ final class ViewBuilder
 
     public function constants(): object
     {
-        return LayArray::to_object($this->get_route_details(self::view_constants));
+        return LayObject::new()->to_object($this->get_route_details(self::view_constants));
     }
 
     public function get_route_details(string $route): ?array
@@ -285,13 +284,13 @@ final class ViewBuilder
      */
     public function core(
         #[ExpectedValues([
-            "close_connection" => "bool [true]",
-            "use_lay_script" => "bool [true]",
-            "skeleton" => "bool [true]",
-            "append_site_name" => "bool [true]",
+            "close_connection",
+            "use_lay_script",
+            "skeleton",
+            "append_site_name",
         ])]
         string $key,
-        bool   $value
+        bool $value
     ): self
     {
         return $this->store_page_data(ViewEngine::key_core, $key, $value);
@@ -305,15 +304,15 @@ final class ViewBuilder
      */
     public function page(
         #[ExpectedValues([
-            "charset" => "string [UTF-8]",
-            "base" => "string",
-            "route" => "string",
-            "url" => "string",
-            "canonical" => "string",
-            "title" => "string",
-            "desc" => "string",
-            "img" => "string",
-            "author" => "string",
+            "charset",
+            "base",
+            "route",
+            "url",
+            "canonical",
+            "title",
+            "desc",
+            "img",
+            "author",
         ])] string $key,
         ?string    $value
     ): self
@@ -327,13 +326,7 @@ final class ViewBuilder
      * @param string|null $attribute Other attributes for the body tag
      * @return self
      */
-    public function body_attr(
-        #[ExpectedValues([
-            "class" => "string",
-            "attr" => "string",
-        ])] ?string $class = null,
-        ?string $attribute = null
-    ): self
+    public function body_attr( ?string $class = null, ?string $attribute = null): self
     {
         return $this->store_page_data(ViewEngine::key_body_attr, value: ["class" => $class, "attr" => $attribute]);
     }

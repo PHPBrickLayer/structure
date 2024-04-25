@@ -212,6 +212,12 @@ trait Config
         Exception::new()->capture_errors();
     }
 
+    public function ignore_file_extensions(string ...$extensions) : self
+    {
+        self::$layConfigOptions['ext_ignore_list'] = $extensions;
+        return self::$instance;
+    }
+
     public function dont_compress_html(): self
     {
         return $this->switch("compress_html", false);
