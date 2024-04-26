@@ -179,11 +179,11 @@ class Domain {
         // Include domain-level foundation file
         $web_root = LayConfig::server_data()->web;
 
-        if(file_exists(self::$current_route_details['domain_root'] . "foundation.php"))
-            include_once self::$current_route_details['domain_root'] . "foundation.php";
-
         if(file_exists($web_root . "foundation.php"))
             include_once $web_root . "foundation.php";
+
+        if(file_exists(self::$current_route_details['domain_root'] . "foundation.php"))
+            include_once self::$current_route_details['domain_root'] . "foundation.php";
 
         try{
             $builder = new ReflectionClass($builder);
@@ -229,11 +229,12 @@ class Domain {
             // text files
             "csv","txt",
         ];
+
         $x = explode(".",$view);
         $ext = explode("?", strtolower((string) end($x)))[0];
 
         if(count($x) > 1 && in_array($ext,$ext_array,true)) {
-            if(in_array($ext, LayConfig::site_data()->ext_ignore_list,true))
+            if(in_array($ext, self::$site_data->ext_ignore_list,true))
                 return $view;
 
             header("Content-Type: application/json");

@@ -8,7 +8,7 @@ use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\Traits\IsSingleton;
 use BrickLayer\Lay\Core\View\Enums\DomainType;
 use BrickLayer\Lay\Core\View\Tags\Anchor;
-use BrickLayer\Lay\Libs\LayObject;
+use BrickLayer\Lay\Libs\LayArray;
 use Closure;
 use JetBrains\PhpStorm\ArrayShape;
 use JetBrains\PhpStorm\ExpectedValues;
@@ -21,6 +21,8 @@ final class ViewBuilder
     const DEFAULT_ROUTE = "*";
     const route_storage_key = "__LAY_VIEWS__";
     const view_constants = "__LAY_VIEW_PRELUDE__";
+
+    public bool $is_404 = false;
 
     private static bool $in_init = false;
     private static bool $redirecting = false;
@@ -102,7 +104,7 @@ final class ViewBuilder
 
     public function constants(): object
     {
-        return LayObject::new()->to_object($this->get_route_details(self::view_constants));
+        return LayArray::to_object($this->get_route_details(self::view_constants));
     }
 
     public function get_route_details(string $route): ?array
@@ -115,6 +117,7 @@ final class ViewBuilder
         if (self::$view_found)
             return;
 
+        $this->is_404 = true;
         ViewEngine::new()->paint($this->get_route_details(self::DEFAULT_ROUTE));
     }
 
