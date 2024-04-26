@@ -213,7 +213,22 @@ class Domain {
      * @return string
      */
     private function check_route_is_static_file(string $view) : string {
-        $ext_array = ["js","css","map","jpeg","jpg","png","gif","jiff","webp","svg","json","xml","yaml","ttf","woff2","woff","csv"];
+        $ext_array = [
+            // programming files
+            "js","css","map",
+
+            // images
+            "jpeg","jpg","png","gif","jiff","webp","svg",
+
+            // config files
+            "json","xml","yaml",
+
+            // fonts
+            "ttf","woff2","woff",
+
+            // text files
+            "csv","txt",
+        ];
         $x = explode(".",$view);
         $ext = explode("?", strtolower((string) end($x)))[0];
 
