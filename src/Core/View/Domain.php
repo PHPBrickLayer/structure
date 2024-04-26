@@ -224,8 +224,7 @@ class Domain {
             header("Content-Type: application/json");
             http_response_code(404);
 
-            echo "{error: 404, response: 'resource not found'}";
-            die;
+            exit('{"error": 404, "response": "resource not found"}');
         }
 
         return $view;
