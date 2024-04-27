@@ -36,6 +36,18 @@ trait Config
         return self::$instance;
     }
 
+    /**
+     * File Extention that should be ignore by the ViewEngine. example: xml, json.
+     * Please don't add dot (.), simply use the file extension directly.
+     * @param string ...$extensions
+     * @return LayConfig|Config
+     */
+    public function ignore_file_extensions(string ...$extensions) : self
+    {
+        self::$layConfigOptions['ext_ignore_list'] = $extensions;
+        return self::$instance;
+    }
+
     public function init_others(array $other_data): self
     {
         self::$layConfigOptions['others'] = $other_data;
@@ -210,12 +222,6 @@ trait Config
             Exception::throw_exception("This script cannot be accessed this way, please return home", "BadRequest");
 
         Exception::new()->capture_errors();
-    }
-
-    public function ignore_file_extensions(string ...$extensions) : self
-    {
-        self::$layConfigOptions['ext_ignore_list'] = $extensions;
-        return self::$instance;
     }
 
     public function dont_compress_html(): self
