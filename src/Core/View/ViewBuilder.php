@@ -22,8 +22,7 @@ final class ViewBuilder
     const route_storage_key = "__LAY_VIEWS__";
     const view_constants = "__LAY_VIEW_PRELUDE__";
 
-    public bool $is_404 = false;
-
+    private static bool $is_404 = false;
     private static bool $in_init = false;
     private static bool $redirecting = false;
     private static bool $invoking = false;
@@ -35,6 +34,7 @@ final class ViewBuilder
     private static array $route_aliases;
     private static array $route_container;
     private static bool $view_found = false;
+    private static Closure $default_handler;
 
     public function get_all_routes(): array
     {
@@ -117,7 +117,11 @@ final class ViewBuilder
         if (self::$view_found)
             return;
 
-        $this->is_404 = true;
+        self::$is_404 = true;
+        self::$route = self::DEFAULT_ROUTE;
+
+        // push default handler to self::$route_container, so it can be accessed by the ViewEngine
+        (self::$default_handler)($this);
         ViewEngine::new()->paint($this->get_route_details(self::DEFAULT_ROUTE));
     }
 
@@ -139,7 +143,7 @@ final class ViewBuilder
     {
         // Cache default page
         if (self::$route == self::DEFAULT_ROUTE)
-            $handler($this);
+            self::$default_handler = $handler;
 
         if (self::$view_found)
             return $this;
@@ -172,6 +176,11 @@ final class ViewBuilder
     public function is_invoked(): bool
     {
         return self::$invoking;
+    }
+
+    public function is_404(): bool
+    {
+        return self::$is_404;
     }
 
     private function bind_uri(): string
@@ -242,8 +251,10 @@ final class ViewBuilder
                 "ViewSentAlready"
             );
 
-        if ($route == self::DEFAULT_ROUTE)
+        if ($route == self::DEFAULT_ROUTE) {
+            self::$is_404 = true;
             $this->invoke(fn() => $viewCast->default());
+        }
 
         self::$redirecting = true;
         self::$route = $route;
@@ -257,6 +268,9 @@ final class ViewBuilder
     public function invoke(Closure $handler, bool $kill_on_done = true): void
     {
         self::$invoking = true;
+
+        if(self::$route == self::DEFAULT_ROUTE)
+            self::$is_404 = true;
 
         $handler($this, self::$route, self::$route_aliases);
 
