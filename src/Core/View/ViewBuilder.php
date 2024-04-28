@@ -183,6 +183,11 @@ final class ViewBuilder
         return self::$is_404;
     }
 
+    public function is_found(): bool
+    {
+        return self::$view_found;
+    }
+
     private function bind_uri(): string
     {
         $data = $this->request('*');
