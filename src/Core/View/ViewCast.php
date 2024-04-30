@@ -49,6 +49,8 @@ abstract class ViewCast
     public function default(): void
     {
         $this->builder->route($this->builder::DEFAULT_ROUTE)->bind(function (ViewBuilder $builder) {
+            http_response_code(404);
+
             $builder
                 ->page("title", $builder->request('route') . " - Page not found")
                 ->body_attr("default-home")
