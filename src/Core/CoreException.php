@@ -20,6 +20,7 @@ class CoreException
 
     private static string $message;
     private static bool $already_caught = false;
+    private bool $throw_500 = true;
 
     public function capture_errors(bool $turn_warning_to_errors = false) : void
     {
@@ -61,7 +62,7 @@ class CoreException
     /**
      * @throws \Exception
      */
-    public function use_exception(string $title, string $body, bool $kill = true, array $trace = [], array $raw = [], bool $use_lay_error = true, array $opts = [], $exception = null): void
+    public function use_exception(string $title, string $body, bool $kill = true, array $trace = [], array $raw = [], bool $use_lay_error = true, array $opts = [], $exception = null, bool $throw_500 = true): void
     {
         if($exception) {
             $file_all = $exception->getFile();
@@ -78,6 +79,8 @@ class CoreException
 
             $trace = $exception->getTrace();
         }
+
+        $this->throw_500 = $throw_500;
 
         $this->show_exception([
                 "title" => $title,
@@ -225,7 +228,7 @@ class CoreException
         if(self::$already_caught)
             return;
 
-        if(@LayConfig::get_mode() === LayMode::HTTP)
+        if(@LayConfig::get_mode() === LayMode::HTTP && $this->throw_500)
             header("HTTP/1.1 500 Internal Server Error");
 
         $use_lay_error = $opt['use_lay_error'] ?? true;

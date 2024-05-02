@@ -61,10 +61,11 @@ final class ApiEngine {
         self::new()->set_return_value();
     }
 
-    private static function exception(string $title, string $message, $exception = null) : void {
-        self::set_response_header(500, 'Internal Server Error', ApiReturnType::HTML);
+    private static function exception(string $title, string $message, $exception = null, array $header = ["code" => 500, "msg" => "Internal Server Error", "throw_header" => true]) : void {
+        self::set_response_header($header['code'], $header['msg'], ApiReturnType::HTML);
+
         $stack_trace = $exception ? $exception->getTrace() : [];
-        Exception::throw_exception($message, $title, true, self::$use_lay_exception, $stack_trace, exception: $exception);
+        Exception::throw_exception($message, $title, true, self::$use_lay_exception, $stack_trace, exception: $exception, thow_500: $header['throw_header']);
     }
 
     private function correct_request_method(bool $throw_exception = true) : bool {
@@ -602,7 +603,7 @@ final class ApiEngine {
             $uris = "<br>" . PHP_EOL;
             $method = self::$current_request_method;
 
-            foreach(self::$registered_uris as $reg_uri){
+            foreach(self::$registered_uris as $reg_uri) {
                 $uris .= "URI == " . $reg_uri['uri'] . "<br>" . PHP_EOL;
                 $uris .= "URI NAME == " . $reg_uri['uri_name'] . "<br>" . PHP_EOL;
                 $uris .= "METHOD == " . $reg_uri['method'] . "<br>" . PHP_EOL;
@@ -614,7 +615,12 @@ final class ApiEngine {
                 "NoRequestExecuted",
                 "No valid handler for request [$uri] with method [$method]. $prefix_active
                 <h3 style='color: cyan; margin-bottom: 0'>Here are the registered requests with $method method: </h3>
-                <div style='color: #F3F9FA'>$uris</div>"
+                <div style='color: #F3F9FA'>$uris</div>",
+                header: [
+                    "code" => 404,
+                    "msg" => "API Route not found",
+                    "throw_header" => false
+                ]
             );
         }
 
