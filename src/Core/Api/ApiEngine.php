@@ -243,13 +243,13 @@ final class ApiEngine {
         return $this;
     }
 
-    public function limit(int $requests, string $interval) : self
+    public function limit(int $requests, string $interval, ?string $key = null) : self
     {
         if(!self::$request_found)
             return $this;
 
         $cache = LayCache::new()->cache_file(self::RATE_LIMIT_CACHE_FILE . DomainResource::get()->domain->domain_referrer . ".json");
-        $key = str_replace([".", " "], "_", LayConfig::get_ip() . (self::$request_uri_name ?? self::$request_uri_raw));
+        $key = $key ?? str_replace([".", " "], "_", LayConfig::get_ip() . (self::$request_uri_name ?? self::$request_uri_raw));
         $limit = $cache->read($key, false);
 
         $request_count = (int) $limit?->request_count;
