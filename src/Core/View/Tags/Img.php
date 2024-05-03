@@ -37,13 +37,13 @@ final class Img {
         return $this->attr('alt', $alt_text);
     }
 
-    public function src(string $src, bool $lazy_load = true) : string {
-        $src = ViewSrc::gen($src);
+    public function src(string $src, bool $lazy_load = true, bool $prepend_domain = true) : string {
+        $src = ViewSrc::gen($src, $prepend_domain);
         $lazy_load = $lazy_load ? 'lazy' : 'eager';
         $attr = $this->get_attr();
 
         return <<<LNK
-            <img src="$src" loading="$lazy_load" $attr />
+            <img src="$src" loading="$lazy_load" $attr>
         LNK;
     }
 

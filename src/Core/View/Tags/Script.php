@@ -26,8 +26,8 @@ public function async(bool $choice) : self {
         return $this->attr('async', (string) $choice);
     }
 
-public function src(string $src, bool $print = true) : string {
-        $src = ViewSrc::gen($src);
+public function src(string $src, bool $print = true, bool $prepend_domain = true) : string {
+        $src = ViewSrc::gen($src, $prepend_domain);
 
         if(!isset($this->attr['defer']))
             $this->defer(true);

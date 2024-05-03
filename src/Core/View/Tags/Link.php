@@ -33,8 +33,8 @@ public function type(string $type) : self {
         return $this->attr('type', $type);
     }
 
-public function href(string $href, bool $print = true, bool $lazy = false) : string {
-        $href = ViewSrc::gen($href);
+public function href(string $href, bool $print = true, bool $lazy = false, bool $prepend_domain = true) : string {
+        $href = ViewSrc::gen($href, $prepend_domain);
 
         if(!$this->rel_set)
             $this->rel("stylesheet");
