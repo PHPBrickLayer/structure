@@ -15,6 +15,8 @@ final class Img {
 
     use \BrickLayer\Lay\Core\View\Tags\Traits\Standard;
 
+    private bool $prepend_domain_on_src = true;
+
     public function class(string $class_name) : self {
         return $this->attr('class', $class_name);
     }
@@ -37,8 +39,14 @@ final class Img {
         return $this->attr('alt', $alt_text);
     }
 
-    public function src(string $src, bool $lazy_load = true, bool $prepend_domain = true) : string {
-        $src = ViewSrc::gen($src, $prepend_domain);
+    public function dont_prepend() : self
+    {
+        $this->prepend_domain_on_src = false;
+        return $this;
+    }
+
+    public function src(string $src, bool $lazy_load = true) : string {
+        $src = ViewSrc::gen($src, $this->prepend_domain_on_src);
         $lazy_load = $lazy_load ? 'lazy' : 'eager';
         $attr = $this->get_attr();
 
