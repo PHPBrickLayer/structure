@@ -809,7 +809,7 @@ const $preloader = (act = "show") => {
     type = type.toLowerCase();
     xhr = new XMLHttpRequest;
     if (!xhr) return;
-    method = data ? "post" : method;
+    method = method === 'GET' && data ? "POST" : method;
     xhr.withCredentials = credential;
     xhr.timeout = timeout.value;
     let timer = 0;
