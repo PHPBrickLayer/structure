@@ -21,9 +21,10 @@ final class ApiEngine {
 
     private static ?string $request_uri_name;
     private static string $request_uri_raw;
+    private static string $current_route;
+    private static array $current_request_uri = [];
     private static array $registered_uris = [];
     private static array $request_uri = [];
-    private static array $current_request_uri = [];
     private static array $request_header;
     private static array $method_arguments;
     private static mixed $method_return_value;
@@ -121,6 +122,8 @@ final class ApiEngine {
             $prefix = explode("/", self::$prefix);
             self::$current_request_uri = [...$prefix, ...self::$current_request_uri];
         }
+
+        self::$current_route = implode("/", self::$current_request_uri);
 
         if(count(self::$request_uri) !== count(self::$current_request_uri))
             return $this;
@@ -358,6 +361,10 @@ final class ApiEngine {
      */
     public function middleware(callable $middleware_callback, bool $_from_group = false) : self
     {
+
+        if(self::$request_complete)
+            return $this;
+
         self::$using_route_middleware = false;
 
         if(!self::$request_found)
@@ -409,6 +416,9 @@ final class ApiEngine {
      */
     public function group_middleware(callable $middleware_callback) : self
     {
+        if(self::$request_complete)
+            return $this;
+
         self::$using_group_middleware = false;
         $use_middleware = false;
         $uri_beginning = [];
@@ -485,6 +495,25 @@ final class ApiEngine {
         }
 
         return $this;
+    }
+
+    public function found() : array
+    {
+        return [
+            "found" => self::$request_found,
+            "request" => self::$request_uri_raw,
+            "route" => self::$current_route,
+            "route_name" => self::$request_uri_name,
+            "method" => self::$current_request_method,
+            "using_limit" => [
+                "group" => self::$using_group_limiter,
+                "route" => self::$using_route_limiter,
+            ],
+            "using_middleware" => [
+                "group" => self::$using_group_middleware,
+                "route" => self::$using_route_middleware,
+            ],
+        ];
     }
 
     public function get_registered_uris() : array
