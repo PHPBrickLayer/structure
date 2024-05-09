@@ -337,7 +337,7 @@ final class ApiEngine {
         self::$request_uri_name = null;
     }
 
-    private static function set_return_value(?array $return_array = null) : void
+    private static function set_return_value(mixed $return_array = null) : void
     {
         self::$method_return_value = $return_array ?? self::$method_return_value ?? null;
         self::$request_found = true;
