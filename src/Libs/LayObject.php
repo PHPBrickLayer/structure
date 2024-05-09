@@ -50,7 +50,7 @@ class LayObject
                 "LayObject::ERR",
             );
 
-        return json_decode($x, $return_array) ?? $post;
+        return json_decode($data, $return_array) ?? $post;
     }
 
     /**
