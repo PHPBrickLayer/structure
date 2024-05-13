@@ -29,6 +29,8 @@ trait Includes {
         $file = str_replace($type, "", $file);
         $file = $type_root . $file . $type;
 
+        // Ordinarily, `DomainResource::plaster()->local` is empty, except when used after
+        // DomainResource has been initialized by the `Plaster` class or any `View` related class
         DomainResource::make_plaster_local(
             LayArray::merge(
                 DomainResource::plaster()->local ?? [],
