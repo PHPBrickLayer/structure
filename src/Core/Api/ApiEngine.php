@@ -558,7 +558,7 @@ final class ApiEngine {
         $x = $return_type == ApiReturnType::JSON ? json_encode(self::$method_return_value) : self::$method_return_value;
 
         if($print) {
-            self::set_response_header(200, "Ok", $return_type);
+            self::set_response_header(http_response_code(), "Ok", $return_type);
             print_r($x);
             die;
         }
