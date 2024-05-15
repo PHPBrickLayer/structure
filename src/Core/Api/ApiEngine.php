@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace BrickLayer\Lay\Core\Api;
 
 use BrickLayer\Lay\Core\Api\Enums\ApiReturnType;
+use BrickLayer\Lay\Core\Api\Enums\ApiStatus;
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\View\DomainResource;
 use BrickLayer\Lay\Core\View\ViewBuilder;
@@ -43,9 +44,9 @@ final class ApiEngine {
     private static bool $using_route_limiter = false;
     private static bool $using_group_limiter = false;
 
-    private static function set_response_header(int $code, string $message, ApiReturnType $return_type) : void
+    private static function set_response_header(int|ApiStatus $code, ApiReturnType $return_type, ?string $message = null) : void
     {
-        header("HTTP/1.1 $code $message");
+        header($_SERVER['SERVER_PROTOCOL'] . " " . ApiStatus::extract_status($code, $message));
 
         switch ($return_type) {
             case ApiReturnType::JSON:
@@ -63,7 +64,7 @@ final class ApiEngine {
     }
 
     private static function exception(string $title, string $message, $exception = null, array $header = ["code" => 500, "msg" => "Internal Server Error", "throw_header" => true]) : void {
-        self::set_response_header($header['code'], $header['msg'], ApiReturnType::HTML);
+        self::set_response_header($header['code'], ApiReturnType::HTML, $header['msg']);
 
         $stack_trace = $exception ? $exception->getTrace() : [];
         Exception::throw_exception($message, $title, true, self::$use_lay_exception, $stack_trace, exception: $exception, thow_500: $header['throw_header']);
@@ -269,7 +270,7 @@ final class ApiEngine {
         $cache->update([$key, "request_count"], $request_count + 1);
 
         if($request_count > $requests)
-            self::set_response_header(429, "Request limit exceeded!", ApiReturnType::JSON);
+            self::set_response_header(ApiStatus::TOO_MANY_REQUESTS, ApiReturnType::JSON);
 
         return $this;
     }
@@ -558,7 +559,7 @@ final class ApiEngine {
         $x = $return_type == ApiReturnType::JSON ? json_encode(self::$method_return_value) : self::$method_return_value;
 
         if($print) {
-            self::set_response_header(http_response_code(), "Ok", $return_type);
+            self::set_response_header(http_response_code(), $return_type, "Ok");
             print_r($x);
             die;
         }

@@ -828,26 +828,25 @@ const $preloader = (act = "show") => {
                     if (timer !== xhr.timeout / 1e3) errRoutine(`Failed, ensure you have steady connection and try again, server request might be too heavy for your current network`, xhr);
                     break;
 
-                    case 200:
-                        response = method === "HEAD" ? xhr : xhr.responseText ?? xhr.response;
-                        if (method !== "HEAD") {
-                            if (type !== "json" && (response.trim().substring(0, 1) === "{" || response.trim().substring(0, 1) === "[")) type = "json";
-                            if (type === "xml") response = xhr.responseXML;
-                            if (type === "json") {
-                                try {
-                                    response = JSON.parse(xhr.response);
-                                } catch (e) {
-                                    xhr["e"] = e;
-                                    errRoutine("Server-side error, please contact support if problem persists", xhr);
-                                }
+                default:
+                    if(!(status > 199 && status < 300))
+                        return errRoutine(`Request Failed! Code: ${status}; Message: ${xhr.statusText}`, xhr);
+
+                    response = method === "HEAD" ? xhr : xhr.responseText ?? xhr.response;
+                    if (method !== "HEAD") {
+                        if (type !== "json" && (response.trim().substring(0, 1) === "{" || response.trim().substring(0, 1) === "[")) type = "json";
+                        if (type === "xml") response = xhr.responseXML;
+                        if (type === "json") {
+                            try {
+                                response = JSON.parse(xhr.response);
+                            } catch (e) {
+                                xhr["e"] = e;
+                                errRoutine("Server-side error, please contact support if problem persists", xhr);
                             }
                         }
-                if (loaded !== "loaded") loaded(response, xhr, event);
-                resolve(response, xhr, event);
-                break;
-
-                default:
-                    errRoutine(`Request Failed! Code: ${status}; Message: ${xhr.statusText}`, xhr);
+                    }
+                    if (loaded !== "loaded") loaded(response, xhr, event);
+                    resolve(response, xhr, event);
                     break;
             }
         }
