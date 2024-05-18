@@ -7,22 +7,30 @@ use BrickLayer\Lay\Libs\LayArray;
 use BrickLayer\Lay\Libs\LayObject;
 
 trait Includes {
-    public function inc_file(?string $file, string $type = "inc", bool $once = true, bool $as_string = false, ?array $local = []) : ?string
+    public function inc_file(?string $file, string $type = "inc", bool $once = true, bool $as_string = false, ?array $local = [], bool $use_refering_domain = true) : ?string
     {
         self::is_init();
+
+        $domain = DomainResource::get()->domain;
+
+        $replace = fn($src) => !$use_refering_domain ? $src : str_replace(
+            DIRECTORY_SEPARATOR . $domain->domain_name . DIRECTORY_SEPARATOR,
+            DIRECTORY_SEPARATOR . $domain->domain_referrer . DIRECTORY_SEPARATOR,
+            $src
+        );
 
         switch ($type) {
             default:
                 $type = "";
-                $type_root = DomainResource::get()->domain->domain_root;
+                $type_root = $replace($domain->domain_root);
                 break;
             case "inc":
                 $type = ".inc";
-                $type_root = DomainResource::get()->domain->layout;
+                $type_root = $replace($domain->layout);
                 break;
             case "view":
                 $type = ".view";
-                $type_root = DomainResource::get()->domain->plaster;
+                $type_root = $replace($domain->plaster);
                 break;
         }
 
