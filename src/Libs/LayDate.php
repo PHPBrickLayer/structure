@@ -164,7 +164,7 @@ class LayDate {
             's' => 'second',
         ];
 
-        if($week > 1)
+        if($week > 0)
             return self::date($current_time, $format);
 
         foreach ($string as $k => &$v) {

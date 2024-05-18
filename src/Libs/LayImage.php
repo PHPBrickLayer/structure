@@ -33,8 +33,16 @@ final class LayImage{
      * @param int|null $height resize image height
      * @return LayImage
      */
-    public function create(string $tmpImage, string $newImage, int $quality = 80, bool $resize = false, ?int $width = null, ?int $height = null,) : self {
+    public function create(string $tmpImage, string $newImage, int $quality = 80, bool $resize = false, ?int $width = null, ?int $height = null) : string {
         $ext = image_type_to_extension(exif_imagetype($tmpImage),false);
+        $newImage .= $ext == "gif" ? ".$ext" : ".webp";
+        $filename = pathinfo($newImage, PATHINFO_FILENAME) . ($ext == "gif" ? ".$ext" : ".webp");
+
+        if($ext == "gif" && !$resize) {
+            copy($tmpImage, $newImage);
+            return $filename;
+        }
+
         $img = call_user_func("imagecreatefrom$ext", $tmpImage);
 
         if($resize)
@@ -43,10 +51,14 @@ final class LayImage{
         imagealphablending($img, TRUE);
         imagesavealpha($img, true);
 
-        imagewebp($img, $newImage, $quality);
+        if($ext == "gif")
+            imagegif($img, $newImage);
+        else
+            imagewebp($img, $newImage, $quality);
+
         imagedestroy($img);
 
-        return $this;
+        return $filename;
     }
 
     /**
@@ -89,13 +101,12 @@ final class LayImage{
         $directory = rtrim($directory,DIRECTORY_SEPARATOR);
 
         $operation = function ($imgName, $tmp_name) use ($directory, $post_name, $new_name, $dimension, $copy_tmp_file, $quality){
-            $lay = LayConfig::instance();
+            $lay = LayConfig::new();
 
             $tmpFolder = $lay::mk_tmp_dir();
-            $file_name = $lay::get_orm()->clean($new_name,6) . ".webp";
 
-            $tmpImg = $tmpFolder . DIRECTORY_SEPARATOR . "temp.tmp";
-            $directory = $directory . DIRECTORY_SEPARATOR . $file_name;
+            $tmpImg = $tmpFolder . "temp-file";
+            $directory = $directory . DIRECTORY_SEPARATOR . $lay::get_orm()->clean($new_name,6);
 
             if (!extension_loaded("gd"))
                 $this->exception("GD Library not installed, please install php-gd extension and try again");
@@ -103,15 +114,14 @@ final class LayImage{
             if($copy_tmp_file && !copy($tmp_name,$tmpImg))
                 $this->exception("Failed to copy temporary image <b>FROM</b; $tmp_name <b>TO</b> $tmpImg <b>USING</b> (\$_FILES['$post_name']), ensure location exists, or you have permission");
 
-            if(!$copy_tmp_file && @!move_uploaded_file($tmp_name, $tmpImg))
-                $this->exception("Could not create temporary image from; (\$_FILES['$post_name']) in location: ($tmpFolder), ensure location exists or check permission");
+            if(!$copy_tmp_file)
+                $tmpImg = $tmp_name;
 
-            if($dimension)
-                $this->create($tmpImg, $directory, $quality, true, $dimension[0], $dimension[1]);
-            else
+            $file_name = $dimension ?
+                $this->create($tmpImg, $directory, $quality, true, $dimension[0], $dimension[1]) :
                 $this->create($tmpImg, $directory, $quality);
 
-            unlink($tmpImg);
+            @unlink($tmpImg);
             return $file_name;
         };
 
