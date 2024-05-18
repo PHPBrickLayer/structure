@@ -120,6 +120,16 @@ class DomainResource
         self::$plaster = $values;
     }
 
+    public static function make_plaster_local(mixed $values) : void
+    {
+        if(isset(self::$plaster->local))
+            self::$plaster->local = $values;
+        else {
+            self::$plaster = new \stdClass();
+            self::$plaster->local = $values;
+        }
+    }
+
     /**
      * You are getting everything you sent through the `ViewCast` aka `Plaster` class
      * from this method, in the exact same way
@@ -134,7 +144,7 @@ class DomainResource
     ])]
     public static function plaster() : object
     {
-        return self::$plaster;
+        return self::$plaster ?? new \stdClass();
     }
 
 }

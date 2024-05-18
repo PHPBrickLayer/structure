@@ -3,8 +3,8 @@ declare(strict_types=1);
 
 namespace BrickLayer\Lay\Libs;
 
+use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\Traits\IsSingleton;
-use BrickLayer\Lay\Orm\SQL;
 use stdClass;
 
 class LayObject
@@ -19,44 +19,38 @@ class LayObject
      */
     public function get_json(bool $strict = true, bool $return_array = false): mixed
     {
-        $x = file_get_contents("php://input");
-        $msg = "No values found in request; check if you actually sent your values as \$_POST";
-        $post = $return_array ? $_POST : (object)$_POST;
+        if($_SERVER['REQUEST_METHOD'] != "POST") {
+            parse_str(file_get_contents("php://input"), $data);
 
-        if (!empty($x) && !str_starts_with($x, "{")) {
+            if(!$data)
+                Exception::throw_exception(
+                    "Trying to access post data for a " . $_SERVER['REQUEST_METHOD'] . " method request",
+                    "LayObject::ERR",
+                );
+
+            if($return_array)
+                return $data;
+
+            return (object) $data;
+        }
+
+        $data = file_get_contents("php://input");
+
+        $msg = "No values found in request; check if you actually sent your values as \$_POST";
+        $post = $return_array ? $_POST : (object) $_POST;
+
+        if (!empty($data) && !str_starts_with($data, "{")) {
             $x = "";
             $msg = "JSON formatted \$_POST needed; but invalid JSON format was found";
         }
 
-        if ($strict && empty($x) && empty($post))
-            SQL::instance()->use_exception(
-                "ObjectHandler::ERR::get_json",
-                "<div style='color: #eeb300; font-weight: bold; margin: 5px 1px;'>$msg</div>"
+        if ($strict && empty($data) && empty($post))
+            Exception::throw_exception(
+                $msg,
+                "LayObject::ERR",
             );
 
-        return json_decode($x, $return_array) ?? $post;
-    }
-
-    /**
-     * @param array|object $array array to be converted
-     * @return object
-     */
-    public function to_object(array|object $array): object
-    {
-        if (is_object($array))
-            return $array;
-
-        $obj = new stdClass();
-
-        foreach ($array as $k => $v) {
-            if (is_array($v)) {
-                $obj->{$k} = $this->to_object($v);
-                continue;
-            }
-            $obj->{$k} = $v;
-        }
-
-        return $obj;
+        return json_decode($data, $return_array) ?? $post;
     }
 
     /**

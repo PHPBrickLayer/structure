@@ -8,7 +8,7 @@ use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\Traits\IsSingleton;
 use BrickLayer\Lay\Core\View\Enums\DomainType;
 use BrickLayer\Lay\Core\View\Tags\Anchor;
-use BrickLayer\Lay\Libs\LayObject;
+use BrickLayer\Lay\Libs\LayArray;
 use Closure;
 use JetBrains\PhpStorm\ArrayShape;
 use JetBrains\PhpStorm\ExpectedValues;
@@ -22,6 +22,7 @@ final class ViewBuilder
     const route_storage_key = "__LAY_VIEWS__";
     const view_constants = "__LAY_VIEW_PRELUDE__";
 
+    private static bool $is_404 = false;
     private static bool $in_init = false;
     private static bool $redirecting = false;
     private static bool $invoking = false;
@@ -33,6 +34,7 @@ final class ViewBuilder
     private static array $route_aliases;
     private static array $route_container;
     private static bool $view_found = false;
+    private static Closure $default_handler;
 
     public function get_all_routes(): array
     {
@@ -102,7 +104,7 @@ final class ViewBuilder
 
     public function constants(): object
     {
-        return LayObject::new()->to_object($this->get_route_details(self::view_constants));
+        return LayArray::to_object($this->get_route_details(self::view_constants));
     }
 
     public function get_route_details(string $route): ?array
@@ -115,6 +117,11 @@ final class ViewBuilder
         if (self::$view_found)
             return;
 
+        self::$is_404 = true;
+        self::$route = self::DEFAULT_ROUTE;
+
+        // push default handler to self::$route_container, so it can be accessed by the ViewEngine
+        (self::$default_handler)($this);
         ViewEngine::new()->paint($this->get_route_details(self::DEFAULT_ROUTE));
     }
 
@@ -136,7 +143,7 @@ final class ViewBuilder
     {
         // Cache default page
         if (self::$route == self::DEFAULT_ROUTE)
-            $handler($this);
+            self::$default_handler = $handler;
 
         if (self::$view_found)
             return $this;
@@ -169,6 +176,16 @@ final class ViewBuilder
     public function is_invoked(): bool
     {
         return self::$invoking;
+    }
+
+    public function is_404(): bool
+    {
+        return self::$is_404;
+    }
+
+    public function is_found(): bool
+    {
+        return self::$view_found;
     }
 
     private function bind_uri(): string
@@ -239,8 +256,10 @@ final class ViewBuilder
                 "ViewSentAlready"
             );
 
-        if ($route == self::DEFAULT_ROUTE)
+        if ($route == self::DEFAULT_ROUTE) {
+            self::$is_404 = true;
             $this->invoke(fn() => $viewCast->default());
+        }
 
         self::$redirecting = true;
         self::$route = $route;
@@ -254,6 +273,9 @@ final class ViewBuilder
     public function invoke(Closure $handler, bool $kill_on_done = true): void
     {
         self::$invoking = true;
+
+        if(self::$route == self::DEFAULT_ROUTE)
+            self::$is_404 = true;
 
         $handler($this, self::$route, self::$route_aliases);
 
@@ -284,13 +306,13 @@ final class ViewBuilder
      */
     public function core(
         #[ExpectedValues([
-            "close_connection" => "bool [true]",
-            "use_lay_script" => "bool [true]",
-            "skeleton" => "bool [true]",
-            "append_site_name" => "bool [true]",
+            "close_connection",
+            "use_lay_script",
+            "skeleton",
+            "append_site_name",
         ])]
         string $key,
-        bool   $value
+        bool $value
     ): self
     {
         return $this->store_page_data(ViewEngine::key_core, $key, $value);
@@ -304,15 +326,15 @@ final class ViewBuilder
      */
     public function page(
         #[ExpectedValues([
-            "charset" => "string [UTF-8]",
-            "base" => "string",
-            "route" => "string",
-            "url" => "string",
-            "canonical" => "string",
-            "title" => "string",
-            "desc" => "string",
-            "img" => "string",
-            "author" => "string",
+            "charset",
+            "base",
+            "route",
+            "url",
+            "canonical",
+            "title",
+            "desc",
+            "img",
+            "author",
         ])] string $key,
         ?string    $value
     ): self
@@ -326,13 +348,7 @@ final class ViewBuilder
      * @param string|null $attribute Other attributes for the body tag
      * @return self
      */
-    public function body_attr(
-        #[ExpectedValues([
-            "class" => "string",
-            "attr" => "string",
-        ])] ?string $class = null,
-        ?string $attribute = null
-    ): self
+    public function body_attr( ?string $class = null, ?string $attribute = null): self
     {
         return $this->store_page_data(ViewEngine::key_body_attr, value: ["class" => $class, "attr" => $attribute]);
     }

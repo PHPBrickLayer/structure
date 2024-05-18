@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace BrickLayer\Lay\Core\Api;
 
 use BrickLayer\Lay\Core\Api\Enums\ApiReturnType;
+use BrickLayer\Lay\Core\Api\Enums\ApiStatus;
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\View\DomainResource;
 use BrickLayer\Lay\Core\View\ViewBuilder;
@@ -21,9 +22,10 @@ final class ApiEngine {
 
     private static ?string $request_uri_name;
     private static string $request_uri_raw;
+    private static string $current_route;
+    private static array $current_request_uri = [];
     private static array $registered_uris = [];
     private static array $request_uri = [];
-    private static array $current_request_uri = [];
     private static array $request_header;
     private static array $method_arguments;
     private static mixed $method_return_value;
@@ -42,9 +44,9 @@ final class ApiEngine {
     private static bool $using_route_limiter = false;
     private static bool $using_group_limiter = false;
 
-    private static function set_response_header(int $code, string $message, ApiReturnType $return_type) : void
+    private static function set_response_header(int|ApiStatus $code, ApiReturnType $return_type, ?string $message = null) : void
     {
-        header("HTTP/1.1 $code $message");
+        header($_SERVER['SERVER_PROTOCOL'] . " " . ApiStatus::extract_status($code, $message));
 
         switch ($return_type) {
             case ApiReturnType::JSON:
@@ -61,10 +63,11 @@ final class ApiEngine {
         self::new()->set_return_value();
     }
 
-    private static function exception(string $title, string $message, $exception = null) : void {
-        self::set_response_header(500, 'Internal Server Error', ApiReturnType::HTML);
+    private static function exception(string $title, string $message, $exception = null, array $header = ["code" => 500, "msg" => "Internal Server Error", "throw_header" => true]) : void {
+        self::set_response_header($header['code'], ApiReturnType::HTML, $header['msg']);
+
         $stack_trace = $exception ? $exception->getTrace() : [];
-        Exception::throw_exception($message, $title, true, self::$use_lay_exception, $stack_trace, exception: $exception);
+        Exception::throw_exception($message, $title, true, self::$use_lay_exception, $stack_trace, exception: $exception, thow_500: $header['throw_header']);
     }
 
     private function correct_request_method(bool $throw_exception = true) : bool {
@@ -120,6 +123,8 @@ final class ApiEngine {
             $prefix = explode("/", self::$prefix);
             self::$current_request_uri = [...$prefix, ...self::$current_request_uri];
         }
+
+        self::$current_route = implode("/", self::$current_request_uri);
 
         if(count(self::$request_uri) !== count(self::$current_request_uri))
             return $this;
@@ -239,13 +244,13 @@ final class ApiEngine {
         return $this;
     }
 
-    public function limit(int $requests, string $interval) : self
+    public function limit(int $requests, string $interval, ?string $key = null) : self
     {
         if(!self::$request_found)
             return $this;
 
         $cache = LayCache::new()->cache_file(self::RATE_LIMIT_CACHE_FILE . DomainResource::get()->domain->domain_referrer . ".json");
-        $key = str_replace([".", " "], "_", LayConfig::get_ip() . (self::$request_uri_name ?? self::$request_uri_raw));
+        $key = $key ?? str_replace([".", " "], "_", LayConfig::get_ip() . (self::$request_uri_name ?? self::$request_uri_raw));
         $limit = $cache->read($key, false);
 
         $request_count = (int) $limit?->request_count;
@@ -265,7 +270,7 @@ final class ApiEngine {
         $cache->update([$key, "request_count"], $request_count + 1);
 
         if($request_count > $requests)
-            self::set_response_header(429, "Request limit exceeded!", ApiReturnType::JSON);
+            self::set_response_header(ApiStatus::TOO_MANY_REQUESTS, ApiReturnType::JSON);
 
         return $this;
     }
@@ -333,7 +338,7 @@ final class ApiEngine {
         self::$request_uri_name = null;
     }
 
-    private static function set_return_value(?array $return_array = null) : void
+    private static function set_return_value(mixed $return_array = null) : void
     {
         self::$method_return_value = $return_array ?? self::$method_return_value ?? null;
         self::$request_found = true;
@@ -357,6 +362,10 @@ final class ApiEngine {
      */
     public function middleware(callable $middleware_callback, bool $_from_group = false) : self
     {
+
+        if(self::$request_complete)
+            return $this;
+
         self::$using_route_middleware = false;
 
         if(!self::$request_found)
@@ -408,6 +417,9 @@ final class ApiEngine {
      */
     public function group_middleware(callable $middleware_callback) : self
     {
+        if(self::$request_complete)
+            return $this;
+
         self::$using_group_middleware = false;
         $use_middleware = false;
         $uri_beginning = [];
@@ -486,6 +498,25 @@ final class ApiEngine {
         return $this;
     }
 
+    public function found() : array
+    {
+        return [
+            "found" => self::$request_found,
+            "request" => self::$request_uri_raw,
+            "route" => self::$current_route,
+            "route_name" => self::$request_uri_name,
+            "method" => self::$current_request_method,
+            "using_limit" => [
+                "group" => self::$using_group_limiter,
+                "route" => self::$using_route_limiter,
+            ],
+            "using_middleware" => [
+                "group" => self::$using_group_middleware,
+                "route" => self::$using_route_middleware,
+            ],
+        ];
+    }
+
     public function get_registered_uris() : array
     {
         return self::$registered_uris;
@@ -528,7 +559,7 @@ final class ApiEngine {
         $x = $return_type == ApiReturnType::JSON ? json_encode(self::$method_return_value) : self::$method_return_value;
 
         if($print) {
-            self::set_response_header(200, "Ok", $return_type);
+            self::set_response_header(http_response_code(), $return_type, "Ok");
             print_r($x);
             die;
         }
@@ -602,7 +633,7 @@ final class ApiEngine {
             $uris = "<br>" . PHP_EOL;
             $method = self::$current_request_method;
 
-            foreach(self::$registered_uris as $reg_uri){
+            foreach(self::$registered_uris as $reg_uri) {
                 $uris .= "URI == " . $reg_uri['uri'] . "<br>" . PHP_EOL;
                 $uris .= "URI NAME == " . $reg_uri['uri_name'] . "<br>" . PHP_EOL;
                 $uris .= "METHOD == " . $reg_uri['method'] . "<br>" . PHP_EOL;
@@ -614,7 +645,12 @@ final class ApiEngine {
                 "NoRequestExecuted",
                 "No valid handler for request [$uri] with method [$method]. $prefix_active
                 <h3 style='color: cyan; margin-bottom: 0'>Here are the registered requests with $method method: </h3>
-                <div style='color: #F3F9FA'>$uris</div>"
+                <div style='color: #F3F9FA'>$uris</div>",
+                header: [
+                    "code" => 404,
+                    "msg" => "API Route not found",
+                    "throw_header" => false
+                ]
             );
         }
 

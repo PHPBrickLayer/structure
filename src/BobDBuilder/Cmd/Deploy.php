@@ -19,6 +19,7 @@ class Deploy implements CmdLayout
     private ?string $ignore;
     private string $no_cache;
     private bool $push_git = true;
+    private bool $git_only = false;
 
     private function talk(string $message) : void
     {
@@ -42,6 +43,7 @@ class Deploy implements CmdLayout
 
         $this->commit_msg = $this->plug->extract_tags(["-m", "-g"], 0)[0] ?? null;
         $this->push_git = $this->plug->extract_tags(["-ng", "--no-git"], false)[0] ?? $this->push_git;
+        $this->git_only = $this->plug->extract_tags(["-go", "--git-only"], true)[0] ?? false;
 
         $ignore = $this->plug->extract_tags(["--ignore"], 0);
 
@@ -62,6 +64,12 @@ class Deploy implements CmdLayout
             $this->talk("- *--no-cache* detected. Entire project will be compressed...");
 
         $duration = LayDate::date();
+
+        if($this->git_only) {
+            $this->talk("- Pushing to git only *--git-only* tag detected");
+            $this->push_with_git();
+            return;
+        }
 
         $this->check_dependencies();
 

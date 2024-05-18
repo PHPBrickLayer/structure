@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace BrickLayer\Lay\Core\View;
 
+use BrickLayer\Lay\Libs\LayArray;
 use BrickLayer\Lay\Libs\LayObject;
 use Closure;
 use BrickLayer\Lay\Core\Exception;
@@ -114,7 +115,7 @@ final class ViewEngine {
         self::$assets = $const[self::key_assets];
         unset($const[self::key_assets]);
 
-        self::$meta_data = LayObject::new()->to_object($const);
+        self::$meta_data = LayArray::to_object($const);
 
         if($const[self::key_core]['skeleton'])
             $this->create_html_page();
