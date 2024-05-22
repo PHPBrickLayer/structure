@@ -305,7 +305,7 @@ Object.defineProperties(HTMLElement.prototype, {
     }
 });
 
-$loop([ NodeList.prototype, HTMLCollection.prototype ], (element => {
+$loop([ NodeList.prototype, HTMLCollection.prototype, Array.prototype, Object.prototype ], (element => {
     Object.defineProperties(element, {
         $loop: {
             value: function(callback) {
@@ -465,18 +465,27 @@ const $mediaPreview = (elementToWatch, placeToPreview, other = {}) => {
     if (event_wrap === true) $on(elementToWatch, "change", previewMedia, "on"); else if ($type(event_wrap) === "String") $on(elementToWatch, event_wrap, previewMedia, "on"); else previewMedia();
 };
 
-const $showPassword = () => {
-    let selector = $id("toggle-password") ? "#toggle-password" : ".osai-show-password";
-    $sela(selector).forEach((ele => {
-        $on(ele, "click", (() => {
-            let fields = $data(ele, "field");
-            if (!fields) return;
-            fields.split(",").forEach((field => {
-                let target = $sel(field);
-                if (target) target.type = target.type === "password" ? "text" : "password";
-            }));
-        }), "on");
-    }));
+const $showPassword = (callbackFn = (fieldType) => fieldType) => {
+    $sela(
+        $id("toggle-password") ? "#toggle-password" : ".osai-show-password"
+    )
+        .$loop(ele => {
+            ele.$on("click", () => {
+                let fields = $data(ele, "field");
+
+                if (!fields) return;
+
+                fields.split(",").$loop((field => {
+                    const target = $sel(field);
+
+                    if(!target)
+                        return
+
+                    target.type = target.type === "password" ? "text" : "password";
+                    callbackFn(target.type)
+                }));
+            }, "on")
+        })
 };
 
 const $rand = (min, max, mode = 0, silent = true) => {
