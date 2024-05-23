@@ -31,10 +31,18 @@ const $isInt = str => isNaN(str) ? str : parseInt(str);
 const $end = list => list[list.length - 1];
 
 const $omjsError = (component, error, throwError = false, ...others) => {
-    console.info("%cOMJ$ ERR :: `" + component + "` ERROR", "background: #e00; color: #fff; padding: 3px;");
-    if (others) console.warn(...others);
-    console.trace("%c" + error, "background: #fff3cd; color: #1d2124; padding: 2px;");
-    if (throwError) throw Error("OMJ$ ERR Thrown");
+    console.info("%cLayJsError: " + component, "color: #e00; font-weight: 600; font-size: 16px");
+
+    if(throwError) {
+        console.info(...others);
+        throw error;
+    }
+    else
+        console.info(
+            "%c" + error, "background: #fff3cd; color: #1d2124; padding: 2px; margin-bottom: 3px",
+            ...others
+        );
+    console.trace("LayJsTrace")
 };
 
 const $omjsElSub = (element, fnContext) => {
@@ -479,10 +487,15 @@ const $showPassword = (callbackFn = (fieldType) => fieldType) => {
                     const target = $sel(field);
 
                     if(!target)
-                        return
+                        return $omjsError(
+                            "$showPassword",
+                            "Selector [" + field + "] does not exist as declared by the above element",
+                            false,
+                            ele
+                        )
 
                     target.type = target.type === "password" ? "text" : "password";
-                    callbackFn(target.type)
+                    callbackFn(target.type, ele)
                 }));
             }, "on")
         })
