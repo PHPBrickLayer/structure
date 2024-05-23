@@ -110,14 +110,16 @@ trait SelectorOOPCrud
             $cols = "";
 
             try {
+                $SQL = SQL::new();
                 foreach ($column_and_values as $k => $c) {
-                    $c = SQL::instance()->clean($c, 11, 'PREVENT_SQL_INJECTION');
+                    $c = $SQL->clean($c, 11, 'PREVENT_SQL_INJECTION');
 
                     if($c === null) {
                         $cols .= "`$k`=NULL,";
                         continue;
                     }
 
+                    // If value `$c` is not a function like uuid(), timestamp(), etc; enclose it quotes
                     if (!preg_match("/^[a-zA-Z]+\([^)]*\)$/", $c))
                         $c = "'$c'";
 
