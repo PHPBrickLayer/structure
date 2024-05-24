@@ -40,8 +40,10 @@ trait Clean {
         $options = LayArray::flatten($options);
         $flags = $options['flag'] ?? $options['flags'] ?? ENT_QUOTES;
         $allowedTags = $options['allowed'] ?? $options['tags'] ?? $options['allowed_tags'] ?? "";
+
         // this condition is meant for the $find variable when handling url_beautify
         if(count(self::$escape_string) == 0) self::$escape_string = self::$stock_escape_string;
+
         if($level__combo == 6 && !in_array('ignore_preset',$options,true)){
             $this->reset_escape_string();
             $this->add_escape_string("/","\\","\"","#","|","^","*","~","!","$","@","%","`",';', ':', '=','<',
@@ -60,8 +62,13 @@ trait Clean {
 
             return mysqli_real_escape_string($link,$value);
         };
+
         // parse value
-        $value = filter_var($value,FILTER_VALIDATE_INT) ? (int) $value : (filter_var($value,FILTER_VALIDATE_FLOAT) ? (float) $value : $value);
+        if(is_numeric($value)) {
+            $value = filter_var($value, FILTER_VALIDATE_INT) ?: $value;
+            $value = !is_int($value) && preg_match('/[\.]/', $value) ? (float) $value : $value;
+        }
+
         // core && difficulty
         $mode = $options['core'] ?? "level";
         $difficulty = "loose";
@@ -84,9 +91,9 @@ trait Clean {
             /*4*/ fn ($val=null) => rawurlencode($val ?? $value),
             /*5*/ fn ($val=null) => str_replace($find,$replace,$val ?? $value),
             /*6*/ function ($val=null) use ($find,$value) {
-                    rsort($find);
-                    return preg_replace("/^-/","",preg_replace("/-$/","",strtolower(preg_replace("/--+/","-", str_replace($find,"-",rawurlencode(trim($val ?? $value)))))));
-                }
+                rsort($find);
+                return preg_replace("/^-/","",preg_replace("/-$/","",strtolower(preg_replace("/--+/","-", str_replace($find,"-",rawurlencode(trim($val ?? $value)))))));
+            }
         ];
 
         $permute = function ($combination,$value) use ($func) {
@@ -123,13 +130,7 @@ trait Clean {
         }
         return $value;
     }
-    public function clean_multi(int $level,...$values) : array {
-        $return = [];
-        for ($i = 0; $i < count($values); $i++){
-            $return[] = $this->clean($values[$i], $level);
-        }
-        return $return;
-    }
+
     public function add_escape_string(...$escape_string) : void {
         if(count(self::$escape_string) == 0) self::$escape_string = self::$stock_escape_string;
         self::$escape_string = array_merge(self::$escape_string, LayArray::flatten($escape_string));
@@ -154,7 +155,7 @@ trait Clean {
                 $option = [
                     "__RAW_VALUE_TYPE__" => $args['combo']
                 ];
-            break;
+                break;
             case 1 :
                 $title = "Clean::Dbg";
                 $body = "<b>Value:</b> __RAW_VALUE__<br> <b>Level/Combo:</b> __RAW_VALUE_TYPE__<br> <b>Extra:</b> __THIRD_OPT__";
@@ -163,18 +164,18 @@ trait Clean {
                     "__RAW_VALUE_TYPE__" => $args['combo'],
                     "__THIRD_OPT__" => $args['opts'],
                 ];
-            break;
+                break;
             case 2 :
                 $title = "Clean::Err";
                 $body = "No value passed!<br> <em>An empty string cannot be cleaned</em>";
-            break;
+                break;
             case 3:
                 $title = "Clean::Err";
                 $body = "A Non-String Value was encountered! __RAW_VALUE__";
                 $option = [
                     "__RAW_VALUE__" => $args['value'],
                 ];
-            break;
+                break;
 
         }
 

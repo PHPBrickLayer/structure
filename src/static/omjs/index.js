@@ -31,10 +31,17 @@ const $isInt = str => isNaN(str) ? str : parseInt(str);
 const $end = list => list[list.length - 1];
 
 const $omjsError = (component, error, throwError = false, ...others) => {
-    console.info("%cOMJ$ ERR :: `" + component + "` ERROR", "background: #e00; color: #fff; padding: 3px;");
-    if (others) console.warn(...others);
-    console.trace("%c" + error, "background: #fff3cd; color: #1d2124; padding: 2px;");
-    if (throwError) throw Error("OMJ$ ERR Thrown");
+    console.info("%cLayJsError: " + component, "color: #e00; font-weight: 600; font-size: 16px");
+
+    console.info(
+        "%c" + error, "background: #fff3cd; color: #1d2124; padding: 2px; margin-bottom: 3px",
+        ...others
+    );
+    console.trace("LayJsTrace")
+
+    if(throwError)
+        throw "LayJsError Thrown";
+
 };
 
 const $omjsElSub = (element, fnContext) => {
@@ -305,7 +312,7 @@ Object.defineProperties(HTMLElement.prototype, {
     }
 });
 
-$loop([ NodeList.prototype, HTMLCollection.prototype ], (element => {
+$loop([ NodeList.prototype, HTMLCollection.prototype, Array.prototype, Object.prototype ], (element => {
     Object.defineProperties(element, {
         $loop: {
             value: function(callback) {
@@ -465,18 +472,32 @@ const $mediaPreview = (elementToWatch, placeToPreview, other = {}) => {
     if (event_wrap === true) $on(elementToWatch, "change", previewMedia, "on"); else if ($type(event_wrap) === "String") $on(elementToWatch, event_wrap, previewMedia, "on"); else previewMedia();
 };
 
-const $showPassword = () => {
-    let selector = $id("toggle-password") ? "#toggle-password" : ".osai-show-password";
-    $sela(selector).forEach((ele => {
-        $on(ele, "click", (() => {
-            let fields = $data(ele, "field");
-            if (!fields) return;
-            fields.split(",").forEach((field => {
-                let target = $sel(field);
-                if (target) target.type = target.type === "password" ? "text" : "password";
-            }));
-        }), "on");
-    }));
+const $showPassword = (callbackFn = (fieldType) => fieldType) => {
+    $sela(
+        $id("toggle-password") ? "#toggle-password" : ".osai-show-password"
+    )
+        .$loop(ele => {
+            ele.$on("click", () => {
+                let fields = $data(ele, "field");
+
+                if (!fields) return;
+
+                fields.split(",").$loop((field => {
+                    const target = $sel(field);
+
+                    if(!target)
+                        return $omjsError(
+                            "$showPassword",
+                            "Selector [" + field + "] does not exist as declared by the above element",
+                            false,
+                            ele
+                        )
+
+                    target.type = target.type === "password" ? "text" : "password";
+                    callbackFn(target.type, ele)
+                }));
+            }, "on")
+        })
 };
 
 const $rand = (min, max, mode = 0, silent = true) => {
@@ -797,7 +818,7 @@ const $preloader = (act = "show") => {
             }
 
             reject({
-                statusText: Error(xhr.e ?? xhr.statusText),
+                statusText: xhr.e ?? xhr.statusText,
                 xhr: xhr,
                 status: xhr.status
             });

@@ -3,7 +3,6 @@ declare(strict_types=1);
 namespace BrickLayer\Lay\Core\View;
 
 use BrickLayer\Lay\Libs\LayArray;
-use BrickLayer\Lay\Libs\LayObject;
 use Closure;
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
@@ -98,7 +97,7 @@ final class ViewEngine {
         $layConfig = LayConfig::new();
         $data = $layConfig::site_data();
 
-        $const = array_replace_recursive(self::$constant_attributes, $page_data);;
+        $const = array_replace_recursive(self::$constant_attributes, $page_data);
 
         $const[self::key_page]['title_raw'] = $const[self::key_page]['title'];
 
@@ -220,13 +219,32 @@ final class ViewEngine {
 
     private function skeleton_body() : string
     {
+        $on_page_script_tags_prepend = "";
+        $on_page_script_tags_append = "";
+
         ob_start();
         $this->add_view_section(self::key_body);
+        $body = ob_get_clean();
+
+        $prepend_section_pattern = '/@prepend(.*?)@endprepend/si';
+        $append_section_pattern = '/@append(.*?)@append/si';
+
+        preg_match_all($prepend_section_pattern, $body, $prepend_section);
+        preg_match_all($append_section_pattern, $body, $append_section);
+
+        $body = preg_replace([$prepend_section_pattern, $append_section_pattern], "", $body);
+
+        $on_page_script_tags_prepend .= implode("", $prepend_section[1]);
+        $on_page_script_tags_append .= implode("", $append_section[1]);
+
+        ob_start();
+        echo $body;
 
         echo $this->core_script();
+        echo $on_page_script_tags_prepend;
         $this->add_view_section(self::key_script);
-
         $this->dump_assets("js");
+        echo $on_page_script_tags_append;
 
         if(self::$meta_data->{self::key_core}->close_connection)
             LayConfig::new()->close_sql();
