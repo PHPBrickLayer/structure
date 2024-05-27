@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace BrickLayer\Lay\Core\View;
 
 use BrickLayer\Lay\Libs\LayArray;
+use BrickLayer\Lay\Libs\LayObject;
 use Closure;
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
@@ -29,6 +30,7 @@ final class ViewEngine {
     private static array $constant_attributes = [];
     private static array $assets = [];
     private static object $meta_data;
+    private static array $head_styles;
 
     public static function constants(array $const) : void {
         $route = ViewBuilder::new()->request('route');
@@ -97,7 +99,7 @@ final class ViewEngine {
         $layConfig = LayConfig::new();
         $data = $layConfig::site_data();
 
-        $const = array_replace_recursive(self::$constant_attributes, $page_data);
+        $const = array_replace_recursive(self::$constant_attributes, $page_data);;
 
         $const[self::key_page]['title_raw'] = $const[self::key_page]['title'];
 
@@ -146,6 +148,10 @@ final class ViewEngine {
             <link rel="canonical" href="$page->canonical" />
         LINK;
         $body_attr = $meta->{self::key_body_attr};
+
+        // The reason we put skeleton_body() in a variable is to give the function time to run so that variables can be
+        // extracted and used by other functions like the skeleton_head()
+        $body = $this->skeleton_body();
 
         $page = <<<STR
         <!DOCTYPE html>
@@ -197,7 +203,7 @@ final class ViewEngine {
             <input type="hidden" id="LAY-ROUTE" value="$route">
             <div style="display: none" id="LAY-ROUTE-AS-ARRAY">$route_array</div>
             <!--//END LAY CONSTANTS-->
-            {$this->skeleton_body()}
+            $body
         </body></html>
         STR;
 
@@ -209,42 +215,62 @@ final class ViewEngine {
 
     private function skeleton_head() : string
     {
+        $onpage_styles_pre = "";
+        $onpage_styles_app = "";
+
+        if(isset(self::$head_styles)){
+            $onpage_styles_pre = self::$head_styles['pre'];
+            $onpage_styles_app = self::$head_styles['app'];
+        }
+
         ob_start();
 
+        echo $onpage_styles_pre;
         $this->add_view_section(self::key_head);
         $this->dump_assets("css");
+        echo $onpage_styles_app;
 
         return ob_get_clean();
     }
 
     private function skeleton_body() : string
     {
-        $on_page_script_tags_prepend = "";
-        $on_page_script_tags_append = "";
-
         ob_start();
         $this->add_view_section(self::key_body);
         $body = ob_get_clean();
 
-        $prepend_section_pattern = '/@prepend(.*?)@endprepend/si';
-        $append_section_pattern = '/@append(.*?)@append/si';
+        $prepend_style_pattern = '/@styletop(.*?)@endstyle/si';
+        $append_style_pattern = '/@style(.*?)@endstyle/si';
 
-        preg_match_all($prepend_section_pattern, $body, $prepend_section);
-        preg_match_all($append_section_pattern, $body, $append_section);
+        preg_match_all($prepend_style_pattern, $body, $prepend_style);
+        preg_match_all($append_style_pattern, $body, $append_style);
 
-        $body = preg_replace([$prepend_section_pattern, $append_section_pattern], "", $body);
 
-        $on_page_script_tags_prepend .= implode("", $prepend_section[1]);
-        $on_page_script_tags_append .= implode("", $append_section[1]);
+
+        $prepend_script_pattern = '/@scripttop(.*?)@endscript/si';
+        $append_script_pattern = '/@script(.*?)@endscript/si';
+
+        preg_match_all($prepend_script_pattern, $body, $prepend_script);
+        preg_match_all($append_script_pattern, $body, $append_script);
+
+        $body = preg_replace([$prepend_script_pattern, $append_script_pattern, $append_style_pattern, $prepend_style_pattern], "", $body);
+
+        $onpage_script_tags_prepend = implode("", $prepend_script[1]);
+        $onpage_script_tags_append = implode("", $append_script[1]);
+
+        self::$head_styles = [
+            "pre" => implode("", $prepend_style[1]),
+            "app" => implode("", $append_style[1]),
+        ];
 
         ob_start();
         echo $body;
 
         echo $this->core_script();
-        echo $on_page_script_tags_prepend;
+        echo $onpage_script_tags_prepend;
         $this->add_view_section(self::key_script);
         $this->dump_assets("js");
-        echo $on_page_script_tags_append;
+        echo $onpage_script_tags_append;
 
         if(self::$meta_data->{self::key_core}->close_connection)
             LayConfig::new()->close_sql();

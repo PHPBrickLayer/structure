@@ -37,10 +37,11 @@ const $omjsError = (component, error, throwError = false, ...others) => {
         "%c" + error, "background: #fff3cd; color: #1d2124; padding: 2px; margin-bottom: 3px",
         ...others
     );
+
     console.trace("LayJsTrace")
 
     if(throwError)
-        throw "LayJsError Thrown";
+        Error(error);
 
 };
 
