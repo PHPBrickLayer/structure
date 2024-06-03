@@ -18,6 +18,8 @@ const $obj = Object;
 
 const $web = navigator;
 
+const $docEl = $doc.documentElement;
+
 const $loc = $win.location;
 
 let $store;
