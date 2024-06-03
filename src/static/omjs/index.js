@@ -559,18 +559,35 @@ const $check = (value, type) => {
 };
 
 const $cookie = (name = "*", value = null, expire = null, path = "", domain = "") => {
-    if (name === "*") return $doc.cookie.split(";");
-    if (value === "del") return $doc.cookie = name + "=" + value + "; expires=Thu, 01 Jan 1970 00:00:00 UTC";
+    if (name === "*")
+        return $doc.cookie.split(";");
+
+    name = name.trim()
+
+    if (value === "del")
+        return $doc.cookie = name + "=" + value + "; expires=Thu, 01 Jan 1970 00:00:00 UTC";
+
     if (value) {
         const d = new Date, dn = new Date(d), days = (duration = 30) => dn.setDate(d.getDate() + duration);
-        if ($type(expire) === "Number") expire = days(expire);
+
+        if ($type(expire) === "Number")
+            expire = days(expire);
+
         expire = expire ?? new Date(days()).toUTCString();
-        if (path) path = "path=" + path + ";";
-        if (domain) domain = "domain=" + domain + ";";
+
+        if (path)
+            path = "path=" + path + ";";
+
+        if (domain)
+            domain = "domain=" + domain + ";";
+
         return $doc.cookie = `${name}=${value};expires=${expire};${path}${domain}"`;
     }
+
     let nameString = name + "=";
+
     value = $doc.cookie.split(";").filter((item => item.includes(nameString)));
+
     if (value.length) {
         value[0] = value[0].trim();
         return value[0].substring(nameString.length, value[0].length);
