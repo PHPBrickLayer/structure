@@ -515,6 +515,7 @@ const $rand = (min, max, mode = 0, silent = true) => {
 };
 
 const $view = element => {
+    element = $omjsElSub(element, "$view");
     let rect = element.getBoundingClientRect();
     let top = rect.top;
     let left = rect.left;
