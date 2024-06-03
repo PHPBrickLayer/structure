@@ -67,10 +67,6 @@ final class Anchor {
         return $this->link;
     }
 
-    public function class(string $class_name) : self {
-        return $this->attr('class', $class_name);
-    }
-
     public function target(#[ExpectedValues(['_blank','_parent','_top','_self'])] string $target) : self {
         return $this->attr('target', $target);
     }

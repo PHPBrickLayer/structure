@@ -17,14 +17,11 @@ final class Img {
 
     private bool $prepend_domain_on_src = true;
 
-    public function class(string $class_name) : self {
-        return $this->attr('class', $class_name);
-    }
 
     public function width(int|string $width) : self {
         return $this->attr('width',(string)  $width);
     }
-    
+
     public function height(int|string $height) : self {
         return $this->attr('height', (string) $height);
     }
