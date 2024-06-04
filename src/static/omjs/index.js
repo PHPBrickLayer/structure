@@ -778,17 +778,19 @@ const $debounce = (fn, interval, uniqueId = null) => {
     let queued
     const fnStr = uniqueId ?? fn.toString()
 
-    _$_$debounceStore.$loop((store) => {
+    _$_$debounceStore.$loop((store, timeout) => {
         if(fnStr === store) {
-            queued = true
+            queued = timeout
             return "break"
         }
 
         queued = false
     })
 
-    if(queued)
-        return;
+    if(queued) {
+        clearTimeout(queued)
+        delete _$_$debounceStore[queued]
+    }
 
     const timeout = setTimeout(() => {
         delete _$_$debounceStore[timeout]
@@ -796,7 +798,7 @@ const $debounce = (fn, interval, uniqueId = null) => {
     }, interval)
 
     _$_$debounceStore[timeout] = fnStr
-}
+};
 
 const $preloader = (act = "show") => {
     if (!$sel(".osai-preloader")) $html($sel("body"), "beforeend", `<div class="osai-preloader" style="display:none"><svg width="110" height="110" viewBox="0 0 110 110" fill="none" xmlns="http://www.w3.org/2000/svg">\n<path d="M33.7 0.419922C32.6768 0.428607 31.6906 0.803566 30.9201 1.47684C30.1496 2.15011 29.6458 3.07715 29.5 4.08992C28.5259 10.0187 25.4776 15.4087 20.8988 19.2989C16.32 23.1891 10.5083 25.3265 4.5 25.3299C3.37445 25.3352 2.2965 25.7846 1.50061 26.5805C0.704714 27.3764 0.25526 28.4544 0.25 29.5799V86.0499C0.25 89.2017 0.87078 92.3225 2.07689 95.2343C3.28301 98.1461 5.05083 100.792 7.27944 103.02C9.50804 105.249 12.1538 107.017 15.0656 108.223C17.9774 109.429 21.0983 110.05 24.25 110.05H75.6C76.6302 110.034 77.6202 109.647 78.388 108.96C79.1559 108.273 79.6501 107.332 79.78 106.31C80.584 100.96 83.0765 96.007 86.8938 92.1735C90.7112 88.34 95.6536 85.8266 101 84.9999C103.562 84.6132 106.168 84.6132 108.73 84.9999H109.73V24.4499C109.73 18.0847 107.201 11.9802 102.701 7.47936C98.1997 2.97849 92.0952 0.449923 85.73 0.449923L33.7 0.419922ZM61.57 79.9099H47.73C45.379 79.9099 43.051 79.4465 40.8792 78.5462C38.7074 77.6459 36.7343 76.3264 35.0728 74.663C33.4113 72.9996 32.0939 71.0251 31.1961 68.8523C30.2982 66.6794 29.8374 64.351 29.84 61.9999V46.7499C29.8387 44.6348 30.2542 42.5401 31.0627 40.5856C31.8712 38.6312 33.0569 36.8551 34.552 35.359C36.0472 33.863 37.8225 32.6761 39.7765 31.8664C41.7305 31.0567 43.8249 30.6399 45.94 30.6399H63.36C67.6326 30.6399 71.7303 32.3372 74.7515 35.3584C77.7727 38.3796 79.47 42.4773 79.47 46.7499V61.9999C79.4713 64.3514 79.0093 66.6801 78.1103 68.853C77.2113 71.0259 75.8931 73.0004 74.2308 74.6636C72.5685 76.3268 70.5947 77.6462 68.4223 78.5464C66.25 79.4466 63.9215 79.9099 61.57 79.9099Z" fill="url(#paint0_linear_29_21)"/>\n<defs>\n<linearGradient id="paint0_linear_29_21" x1="8.59" y1="74.8799" x2="109.29" y2="31.9699" gradientUnits="userSpaceOnUse">\n<stop stop-color="#53C3BD"/>\n<stop offset="0.47" stop-color="#739CD2"/>\n<stop offset="1" stop-color="#4C64AF"/>\n</linearGradient>\n</defs>\n</svg>\n<span>Loading...please wait</span></div></div>`);
