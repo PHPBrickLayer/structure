@@ -177,6 +177,10 @@ const $html = (element, whereOrHtml = null, code__moveTo = null) => {
         && whereOrHtml !== "del"
         && whereOrHtml !== "move"
         && whereOrHtml !== "wrap"
+        && whereOrHtml !== "beforebegin"
+        && whereOrHtml !== "afterbegin"
+        && whereOrHtml !== "beforeend"
+        && whereOrHtml !== "afterend"
     )
     {
         code__moveTo = whereOrHtml

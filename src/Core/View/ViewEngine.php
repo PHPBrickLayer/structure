@@ -169,12 +169,24 @@ final class ViewEngine {
             <meta name="msapplication-tap-highlight" content="no">
             <meta name="apple-mobile-web-app-capable" content="yes">
             <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+            
             <!-- Framework Tags-->
             <meta property="lay:site_name_short" id="LAY-SITE-NAME-SHORT" content="{$site_data->name->short}">
             <meta property="lay:url" id="LAY-PAGE-URL" content="$page->route">
             <meta property="lay:domain" id="LAY-DOMAIN-NAME" content="{$client->domain->domain_name}">
             <meta property="lay:domain_id" id="LAY-DOMAIN-ID" content="{$client->domain->domain_id}">
+            <meta property="lay:meta:api" id="LAY-API" content="$lay_api">
+            <meta property="lay:meta:upload" id="LAY-UPLOAD" content="$client->upload">
+            <meta property="lay:meta:shared_root" id="LAY-SHARED-ROOT" content="{$client->shared->root}">
+            <meta property="lay:meta:shared_img" id="LAY-SHARED-IMG" content="{$client->shared->img}">
+            <meta property="lay:meta:shared_env" id="LAY-SHARED-ENV" content="{$client->shared->env}">
+            <meta property="lay:meta:domain_root" id="LAY-DOMAIN-ROOT" content="$client->root">
+            <meta property="lay:meta:static_img" id="LAY-STATIC-IMG" content="$client->img">
+            <meta property="lay:meta:static_env" id="LAY-STATIC-ENV" content="$client->static_env">
+            <meta property="lay:meta:route" id="LAY-ROUTE" content="$route">
+            <meta property="lay:meta:route_as_array" id="LAY-ROUTE-AS-ARRAY" content='$route_array'>
             <!-- // Framework Tags-->
+            
             <meta property="og:title" id="LAY-PAGE-TITLE" content="$title_raw">
             <meta property="og:url" id="LAY-PAGE-FULL-URL" content="$page->url">
             <meta property="og:type" content="website">
@@ -191,19 +203,7 @@ final class ViewEngine {
             {$this->skeleton_head()}
         </head>
         <body class="$body_attr->class" $body_attr->attr>
-            <!--//START LAY CONSTANTS-->
-            <input type="hidden" id="LAY-API" value="$lay_api">
-            <input type="hidden" id="LAY-UPLOAD" value="$client->upload">
-            <input type="hidden" id="LAY-SHARED-IMG" value="{$client->shared->img}">
-            <input type="hidden" id="LAY-SHARED-ENV" value="{$client->shared->env}">
-            <input type="hidden" id="LAY-STATIC-IMG" value="$client->img">
-            <input type="hidden" id="LAY-STATIC-ENV" value="$client->static_env">
-            <input type="hidden" id="LAY-SHARED-ROOT" value="{$client->shared->root}">
-            <input type="hidden" id="LAY-DOMAIN-ROOT" value="$client->root">
-            <input type="hidden" id="LAY-ROUTE" value="$route">
-            <div style="display: none" id="LAY-ROUTE-AS-ARRAY">$route_array</div>
-            <!--//END LAY CONSTANTS-->
-            $body
+        $body
         </body></html>
         STR;
 
