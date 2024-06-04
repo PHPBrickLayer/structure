@@ -246,8 +246,10 @@ final class ApiEngine {
 
     public function limit(int $requests, string $interval, ?string $key = null) : self
     {
-        if(!self::$request_found)
+        if(!self::$request_found || self::$using_route_limiter)
             return $this;
+
+        self::$using_route_limiter = true;
 
         $cache = LayCache::new()->cache_file(self::RATE_LIMIT_CACHE_FILE . DomainResource::get()->domain->domain_referrer . ".json");
         $key = $key ?? str_replace([".", " "], "_", LayConfig::get_ip() . (self::$request_uri_name ?? self::$request_uri_raw));
@@ -269,8 +271,14 @@ final class ApiEngine {
 
         $cache->update([$key, "request_count"], $request_count + 1);
 
-        if($request_count > $requests)
+        if($request_count > $requests) {
             self::set_response_header(ApiStatus::TOO_MANY_REQUESTS, ApiReturnType::JSON);
+            self::set_return_value([
+                "code" => ApiStatus::TOO_MANY_REQUESTS->value,
+                "msg" => "TOO MANY REQUESTS",
+                "expire" => $expire
+            ]);
+        }
 
         return $this;
     }
