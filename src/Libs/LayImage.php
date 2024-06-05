@@ -7,7 +7,7 @@ use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\Traits\IsSingleton;
 
-final class LayImage{
+final class LayImage {
     use IsSingleton;
 
     /**

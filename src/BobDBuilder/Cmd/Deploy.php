@@ -6,7 +6,6 @@ use BrickLayer\Lay\BobDBuilder\EnginePlug;
 use BrickLayer\Lay\BobDBuilder\Interface\CmdLayout;
 use BrickLayer\Lay\Core\Enums\CustomContinueBreak;
 use BrickLayer\Lay\Libs\LayCache;
-use BrickLayer\Lay\Libs\LayCopyDir;
 use BrickLayer\Lay\Libs\LayDate;
 use BrickLayer\Lay\Libs\LayDir;
 use Exception;
@@ -95,7 +94,7 @@ class Deploy implements CmdLayout
         $is_css = fn($file) => strtolower(substr(trim($file),-4, 4)) === ".css";
         $is_js = fn($file) => strtolower(substr(trim($file),-3, 3)) === ".js";
 
-        new LayCopyDir (
+        LayDir::copy(
             $src_dir, $output_dir,
 
             // Check if the file was modified, else store last modified time

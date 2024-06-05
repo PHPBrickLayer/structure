@@ -5,9 +5,7 @@ namespace BrickLayer\Lay\BobDBuilder\Cmd\Traits\Make;
 use BrickLayer\Lay\BobDBuilder\BobExec;
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Libs\LayArray;
-use BrickLayer\Lay\Libs\LayCopyDir;
 use BrickLayer\Lay\Libs\LayDir;
-use BrickLayer\Lay\Orm\SQL;
 use SplFileObject;
 
 
@@ -79,7 +77,7 @@ trait Domain
         }
 
         $this->talk("- Creating new Domain directory in *$domain_dir*");
-        new LayCopyDir($this->internal_dir . "Domain", $domain_dir);
+        LayDir::copy($this->internal_dir . "Domain", $domain_dir);
 
         $this->talk("- Copying default files");
         $this->domain_default_files($domain, $domain_id, $domain_dir);
