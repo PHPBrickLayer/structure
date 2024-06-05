@@ -7,8 +7,32 @@ use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\Traits\IsSingleton;
 
-final class LayImage {
+final class LayImage{
     use IsSingleton;
+
+    /**
+     * @param string $file_name_or_post_name The path to the file or the name of the file from a post request
+     * @return int
+     * @throws \Exception
+     */
+    public function file_size(string $file_name_or_post_name) : int
+    {
+        $files = @$_FILES[$file_name_or_post_name];
+
+        if(empty($files['tmp_name'])) {
+            $size = @filesize($file_name_or_post_name);
+
+            if(!$size)
+                Exception::new()->use_exception(
+                    "LayImage_SizeError",
+                    "Cannot get the file size for [$file_name_or_post_name]; file may not exist or an invalid post name received"
+                );
+
+            return $size;
+        }
+
+        return filesize($files['tmp_name']);
+    }
 
     /**
      * Check image width and height size
