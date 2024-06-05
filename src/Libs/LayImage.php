@@ -57,9 +57,10 @@ final class LayImage{
      * @param int|null $height resize image height
      * @return LayImage
      */
-    public function create(string $tmpImage, string $newImage, int $quality = 80, bool $resize = false, ?int $width = null, ?int $height = null) : string {
+    public function create(string $tmpImage, string $newImage, int $quality = 80, bool $resize = false, ?int $width = null, ?int $height = null, bool $add_mod_time = true) : string {
         $ext = image_type_to_extension(exif_imagetype($tmpImage),false);
-        $newImage .= $ext == "gif" ? ".$ext" : ".webp";
+        $mod_time = $add_mod_time ? "-" .  filemtime($tmpImage) : "";
+        $newImage .= $mod_time . ($ext == "gif" ? ".$ext" : ".webp");
         $filename = pathinfo($newImage, PATHINFO_FILENAME) . ($ext == "gif" ? ".$ext" : ".webp");
 
         if($ext == "gif" && !$resize) {
@@ -109,6 +110,7 @@ final class LayImage{
             'quality' => 'int',
             'dimension' => 'array',
             'copy_tmp_file' => 'bool',
+            'add_mod_time' => 'bool',
         ])]
         array $options
     ): bool|string
@@ -118,13 +120,22 @@ final class LayImage{
         $permission = $permission ?? 0755;
         $dimension = $dimension ?? null;
         $quality = $quality ?? 80;
+        $add_mod_time = $add_mod_time ?? true;
 
         if(!isset($_FILES[$post_name]))
             return false;
 
         $directory = rtrim($directory,DIRECTORY_SEPARATOR);
 
-        $operation = function ($imgName, $tmp_name) use ($directory, $post_name, $new_name, $dimension, $copy_tmp_file, $quality){
+        $operation = function ($imgName, $tmp_name) use (
+            $directory,
+            $post_name,
+            $new_name,
+            $dimension,
+            $copy_tmp_file,
+            $quality,
+            $add_mod_time,
+        ){
             $lay = LayConfig::new();
 
             $tmpFolder = $lay::mk_tmp_dir();
@@ -142,8 +153,8 @@ final class LayImage{
                 $tmpImg = $tmp_name;
 
             $file_name = $dimension ?
-                $this->create($tmpImg, $directory, $quality, true, $dimension[0], $dimension[1]) :
-                $this->create($tmpImg, $directory, $quality);
+                $this->create($tmpImg, $directory, $quality, true, $dimension[0], $dimension[1], $add_mod_time) :
+                $this->create($tmpImg, $directory, $quality, add_mod_time: $add_mod_time);
 
             @unlink($tmpImg);
             return $file_name;
