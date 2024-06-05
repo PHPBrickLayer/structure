@@ -479,7 +479,7 @@ const $mediaPreview = (elementToWatch, placeToPreview, other = {}) => {
     if (event_wrap === true) $on(elementToWatch, "change", previewMedia, "on"); else if ($type(event_wrap) === "String") $on(elementToWatch, event_wrap, previewMedia, "on"); else previewMedia();
 };
 
-const $showPassword = (callbackFn = (fieldType) => fieldType) => {
+const $showPassword = (callbackFn = (fieldType) => fieldType, throwError = true) => {
     $sela(
         $id("toggle-password") ? "#toggle-password" : ".osai-show-password"
     )
@@ -492,16 +492,22 @@ const $showPassword = (callbackFn = (fieldType) => fieldType) => {
                 fields.split(",").$loop((field => {
                     const target = $sel(field);
 
-                    if(!target)
+                    if(!target) {
+                        if(!throwError)
+                            return
+
                         return $omjsError(
                             "$showPassword",
-                            "Selector [" + field + "] does not exist as declared by the above element",
+                            "Selector [" + field + "] does not exist as declared by $showPassword element",
                             false,
                             ele
                         )
+                    }
 
                     target.type = target.type === "password" ? "text" : "password";
-                    callbackFn(target.type, ele)
+
+                    if(callbackFn)
+                        callbackFn(target.type, ele)
                 }));
             }, "on")
         })
