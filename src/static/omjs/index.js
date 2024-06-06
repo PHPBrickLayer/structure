@@ -571,14 +571,22 @@ const $check = (value, type) => {
     }
 };
 
-const $cookie = (name = "*", value = null, expire = null, path = "", domain = "") => {
+const $cookie = (name = "*", value = null, expire = null, path = "/", domain = "") => {
     if (name === "*")
         return $doc.cookie.split(";");
 
     name = name.trim()
 
-    if (value === "del")
-        return $doc.cookie = name + "=" + value + "; expires=Thu, 01 Jan 1970 00:00:00 UTC";
+    if (path)
+        path = "Path=" + path + ";";
+
+    if (domain)
+        domain = "Domain=" + domain + ";";
+
+    if (value === "del") {
+        value = $cookie(name)
+        return $doc.cookie = `${name}=${value}; Expires=Thu, 01 Jan 1970 00:00:00 UTC;${path}${domain}`;
+    }
 
     if (value) {
         const d = new Date, dn = new Date(d), days = (duration = 30) => dn.setDate(d.getDate() + duration);
@@ -588,13 +596,7 @@ const $cookie = (name = "*", value = null, expire = null, path = "", domain = ""
 
         expire = expire ?? new Date(days()).toUTCString();
 
-        if (path)
-            path = "path=" + path + ";";
-
-        if (domain)
-            domain = "domain=" + domain + ";";
-
-        return $doc.cookie = `${name}=${value};expires=${expire};${path}${domain}"`;
+        return $doc.cookie = `${name}=${value};Expires=${expire};${path}${domain}"`;
     }
 
     let nameString = name + "=";
