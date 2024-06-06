@@ -5,7 +5,6 @@ namespace BrickLayer\Lay\Libs;
 
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\Traits\IsSingleton;
-use stdClass;
 
 class LayObject
 {
@@ -40,7 +39,6 @@ class LayObject
         $post = $return_array ? $_POST : (object) $_POST;
 
         if (!empty($data) && !str_starts_with($data, "{")) {
-            $x = "";
             $msg = "JSON formatted \$_POST needed; but invalid JSON format was found";
         }
 

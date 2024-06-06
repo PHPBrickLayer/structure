@@ -2,7 +2,6 @@
 
 namespace BrickLayer\Lay\BobDBuilder\Cmd\Traits\Make;
 
-use BrickLayer\Lay\Libs\LayCopyDir;
 use BrickLayer\Lay\Libs\LayDir;
 use BrickLayer\Lay\Libs\String\Pluralize;
 
@@ -51,7 +50,7 @@ trait Brick
         }
 
         $talk("- Creating new Brick directory in *$brick_dir*");
-        new LayCopyDir($this->internal_dir . "Brick", $brick_dir);
+        LayDir::copy($this->internal_dir . "Brick", $brick_dir);
 
         $talk("- Creating default brick files");
 

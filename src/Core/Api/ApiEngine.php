@@ -5,6 +5,7 @@ namespace BrickLayer\Lay\Core\Api;
 use BrickLayer\Lay\Core\Api\Enums\ApiReturnType;
 use BrickLayer\Lay\Core\Api\Enums\ApiStatus;
 use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Core\Traits\IsSingleton;
 use BrickLayer\Lay\Core\View\DomainResource;
 use BrickLayer\Lay\Core\View\ViewBuilder;
 use BrickLayer\Lay\Libs\LayCache;
@@ -14,9 +15,10 @@ use BrickLayer\Lay\Core\Api\Enums\ApiRequestMethod;
 use BrickLayer\Lay\Core\Exception;
 
 final class ApiEngine {
-    public static function new() : self {
-        return new self();
-    }
+    use IsSingleton;
+//    public static function new() : self {
+//        return new self();
+//    }
 
     private const RATE_LIMIT_CACHE_FILE = 'rate_limiter/';
 
@@ -38,11 +40,15 @@ final class ApiEngine {
     private static ?string $group;
     private static string $request_method;
     private static string $current_request_method;
-    private static ?\Closure $current_middleware = null;
+
+    private static ?Closure $current_middleware = null;
     private static bool $using_group_middleware = false;
     private static bool $using_route_middleware = false;
+
     private static bool $using_route_limiter = false;
     private static bool $using_group_limiter = false;
+    private static array $limiter_group = [];
+    private static array $limiter_global = [];
 
     private static function set_response_header(int|ApiStatus $code, ApiReturnType $return_type, ?string $message = null) : void
     {
@@ -212,7 +218,7 @@ final class ApiEngine {
     ->post("login")->bind(fn() => SystemUsers::new()->login());
     })`
      */
-    public function group(string $name, \Closure $grouped_requests) : self {
+    public function group(string $name, Closure $grouped_requests) : self {
         if(self::$request_complete)
             return $this;
 
@@ -230,7 +236,7 @@ final class ApiEngine {
      * @param Closure ...$grouped_requests A series of grouped requests that don't have group names
      * @return $this
      */
-    public function groups(\Closure ...$grouped_requests) : self {
+    public function groups(Closure ...$grouped_requests) : self {
         if(self::$request_complete)
             return $this;
 
@@ -244,24 +250,70 @@ final class ApiEngine {
         return $this;
     }
 
-    public function limit(int $requests, string $interval, ?string $key = null) : self
+    public function group_limit(int $requests, string $interval, ?string $key = null) : self
     {
-        if(!self::$request_found)
+        if(self::$request_complete)
             return $this;
 
+        $use_limiter = true;
+        $is_grouped = false;
+        $uri_beginning = [];
+        $args = [$requests, $interval, $key];
+
+        if(@!empty(self::$prefix)) {
+            $prefix = explode("/", self::$prefix);
+            $uri_beginning = array_merge($uri_beginning, $prefix);
+        }
+
+        if(@!empty(self::$group)) {
+            $group = explode("/", self::$group);
+            $uri_beginning = array_merge($uri_beginning, $group);
+            $is_grouped = true;
+        }
+
+        if($is_grouped)
+            foreach ($uri_beginning as $i => $begin) {
+                $use_limiter = $begin == self::$request_uri[$i];
+            }
+
+        if(!$use_limiter)
+            return $this;
+
+        self::$using_group_limiter = true;
+
+        if($is_grouped)
+            self::$limiter_group = $args;
+        else
+            self::$limiter_global = $args;
+
+        return $this;
+    }
+
+    public function limit(int $requests, string $interval, ?string $key = null) : self
+    {
+        if(!self::$request_found || self::$using_route_limiter)
+            return $this;
+
+        self::$using_route_limiter = true;
+
         $cache = LayCache::new()->cache_file(self::RATE_LIMIT_CACHE_FILE . DomainResource::get()->domain->domain_referrer . ".json");
-        $key = $key ?? str_replace([".", " "], "_", LayConfig::get_ip() . (self::$request_uri_name ?? self::$request_uri_raw));
+        $key = $key ?? LayConfig::get_ip();
+        $key = str_replace([".", " "], "_", $key . (self::$request_uri_name ?? self::$request_uri_raw));
         $limit = $cache->read($key, false);
 
         $request_count = (int) $limit?->request_count;
         $expire = $limit?->expire ?? null;
+        $interval_cached = $limit?->interval ?? null;
+        $requests_allowed = $limit?->requests_allowed ?? null;
         $timestamp = LayDate::date($interval, figure: true);
         $now = LayDate::date(figure: true);
 
-        if($expire == null or $expire < $now) {
+        if($expire == null or $expire < $now AND $interval_cached == $interval AND $requests_allowed == $requests) {
             $cache->store($key, [
                 "request_count" => 1,
                 "expire" => $timestamp,
+                "interval" => $interval,
+                "requests_allowed" => $requests,
             ]);
 
             return $this;
@@ -269,8 +321,14 @@ final class ApiEngine {
 
         $cache->update([$key, "request_count"], $request_count + 1);
 
-        if($request_count > $requests)
+        if($request_count > $requests) {
             self::set_response_header(ApiStatus::TOO_MANY_REQUESTS, ApiReturnType::JSON);
+            self::set_return_value([
+                "code" => ApiStatus::TOO_MANY_REQUESTS->value,
+                "msg" => "TOO MANY REQUESTS",
+                "expire" => $expire
+            ]);
+        }
 
         return $this;
     }
@@ -352,7 +410,7 @@ final class ApiEngine {
      * If it doesn't return 200, the binded method will not run.
      *
      * @param callable $middleware_callback
-     * @param bool $_from_group
+     * @param bool $__INTERNAL_
      * @return self
      * @example
      * `ApiEngine::new()->request->post('client/transactions/buy')
@@ -360,7 +418,7 @@ final class ApiEngine {
      * ->bind(fn() => Transactions::new()->buy());
      * `
      */
-    public function middleware(callable $middleware_callback, bool $_from_group = false) : self
+    public function middleware(callable $middleware_callback, bool $__INTERNAL_ = false) : self
     {
 
         if(self::$request_complete)
@@ -371,7 +429,7 @@ final class ApiEngine {
         if(!self::$request_found)
             return $this;
 
-        self::$using_route_middleware = !$_from_group;
+        self::$using_route_middleware = !$__INTERNAL_;
 
         $arguments = self::get_mapped_args();
         $return = $middleware_callback(...$arguments);
@@ -456,6 +514,7 @@ final class ApiEngine {
         if($this->skip_process())
             return $this;
 
+        // Register all request based on the method received
         if($this->correct_request_method(false))
             self::$registered_uris[] = [
                 "uri" => implode("/",self::$current_request_uri),
@@ -476,6 +535,21 @@ final class ApiEngine {
             return $this;
 
         $this->correct_request_method();
+
+        if(self::$limiter_group || self::$limiter_global) {
+            $next = true;
+
+            if(!empty(self::$limiter_group)) {
+                $next = false;
+                $this->limit(...self::$limiter_group);
+            }
+
+            if($next)
+                $this->limit(...self::$limiter_global);
+
+            if(self::$request_complete)
+                return $this;
+        }
 
         if(self::$current_middleware) {
             $this->middleware(self::$current_middleware);

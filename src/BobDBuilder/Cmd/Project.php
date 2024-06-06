@@ -5,7 +5,7 @@ namespace BrickLayer\Lay\BobDBuilder\Cmd;
 use BrickLayer\Lay\BobDBuilder\BobExec;
 use BrickLayer\Lay\BobDBuilder\EnginePlug;
 use BrickLayer\Lay\BobDBuilder\Interface\CmdLayout;
-use BrickLayer\Lay\Libs\LayCopyDir;
+use BrickLayer\Lay\Libs\LayDir;
 
 class Project implements CmdLayout
 {
@@ -44,10 +44,10 @@ class Project implements CmdLayout
             copy($server->root . ".env.example", $server->root . ".env");
 
         // copy core lay js file to project lay folder
-        new LayCopyDir($server->lay_static . "omjs", $server->shared . "lay");
+        LayDir::copy($server->lay_static . "omjs", $server->shared . "lay");
 
         // copy helper js file to project lay folder
-        new LayCopyDir($server->lay_static . "js", $server->shared . "lay");
+        LayDir::copy($server->lay_static . "js", $server->shared . "lay");
 
         if($tag == "--refresh-links") {
             $this->plug->write_info("Refreshing symlinks!");
