@@ -305,12 +305,12 @@ trait Config
         return !empty($_SERVER['HTTP_USER_AGENT']) && preg_match('~(Mobile)~i', $_SERVER['HTTP_USER_AGENT'], flags: PREG_UNMATCHED_AS_NULL);
     }
 
-    public function is_bot(): bool
+    public static function is_bot(): bool
     {
         return !empty($_SERVER['HTTP_USER_AGENT']) && preg_match('~(bot|crawl)~i', $_SERVER['HTTP_USER_AGENT'], flags: PREG_UNMATCHED_AS_NULL);
     }
 
-    public function get_os(): string
+    public static function get_os(): string
     {
         $OS = strtoupper(PHP_OS);
 
@@ -323,7 +323,7 @@ trait Config
         return $OS;
     }
 
-    public function geo_data(): bool|object
+    public static function geo_data(): bool|object
     {
         $data = false;
         try {
@@ -389,7 +389,15 @@ trait Config
         return $_SESSION[self::$SESSION_KEY][$IP_KEY]['ip'];
     }
 
-    public function has_internet(): bool|array
+    public static function user_agent() : string
+    {
+        if(empty($_SERVER['HTTP_USER_AGENT']))
+            return "NO USER AGENT DETECTED";
+
+        return $_SERVER['HTTP_USER_AGENT'];
+    }
+
+    public static function has_internet(): bool|array
     {
         return @fsockopen("google.com", 443, timeout: 1) !== false;
     }
