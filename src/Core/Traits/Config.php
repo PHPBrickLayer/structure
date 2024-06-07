@@ -302,14 +302,19 @@ trait Config
 
     public function is_mobile(): bool
     {
-        return (bool)strpos(strtolower($_SERVER['HTTP_USER_AGENT'] ?? "cli"), "mobile");
+        return !empty($_SERVER['HTTP_USER_AGENT']) && preg_match('~(Mobile)~i', $_SERVER['HTTP_USER_AGENT'], flags: PREG_UNMATCHED_AS_NULL);
+    }
+
+    public function is_bot(): bool
+    {
+        return !empty($_SERVER['HTTP_USER_AGENT']) && preg_match('~(bot|crawl)~i', $_SERVER['HTTP_USER_AGENT'], flags: PREG_UNMATCHED_AS_NULL);
     }
 
     public function get_os(): string
     {
         $OS = strtoupper(PHP_OS);
 
-        if(str_starts_with($OS, "MAC"))
+        if(str_starts_with($OS, "DAR") || str_starts_with($OS, "MAC"))
             return "MAC";
 
         if(str_starts_with($OS, "WIN"))
