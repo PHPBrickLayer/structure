@@ -50,7 +50,7 @@ final class ApiEngine {
     private static array $limiter_group = [];
     private static array $limiter_global = [];
 
-    private static function set_response_header(int|ApiStatus $code, ApiReturnType $return_type, ?string $message = null) : void
+    public static function set_response_header(int|ApiStatus $code, ?ApiReturnType $return_type = null, ?string $message = null) : void
     {
         header($_SERVER['SERVER_PROTOCOL'] . " " . ApiStatus::extract_status($code, $message));
 
