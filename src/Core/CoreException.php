@@ -127,11 +127,15 @@ class CoreException
 
         $referer = $_SERVER['HTTP_REFERER'] ?? ($cli_mode ? "CLI MODE" : 'unknown');
         $ip = LayConfig::get_ip();
+        $agent = LayConfig::user_agent();
+        $os = LayConfig::get_os();
 
-        $stack = "<div style='padding-left: 5px; color: #5656f5; margin: 5px 0'><b>Referrer:</b> <span style='color:#00ff80'>$referer</span> <br /> <b>IP:</b> <span style='color:#00ff80'>$ip</span></div><div style='padding-left: 10px'>";
+        $stack = "<div style='padding-left: 5px; color: #5656f5; margin: 5px 0'><b>Referrer:</b> <span style='color:#00ff80'>$referer</span> <br /> <b>IP:</b> <span style='color:#00ff80'>$ip</span> <br> <b>AGENT:</b> <span style='color:#00ff80'>$agent</span> <br> <b>OS:</b> <span style='color:#00ff80'>$os</span></div>";
         $stack_raw = <<<STACK
          REFERRER: $referer
          IP: $ip
+         AGENT: $agent
+         OS: $os
 
         STACK;
 

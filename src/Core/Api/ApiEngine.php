@@ -50,7 +50,7 @@ final class ApiEngine {
     private static array $limiter_group = [];
     private static array $limiter_global = [];
 
-    private static function set_response_header(int|ApiStatus $code, ApiReturnType $return_type, ?string $message = null) : void
+    public static function set_response_header(int|ApiStatus $code, ?ApiReturnType $return_type = null, ?string $message = null, bool $end_request = true) : void
     {
         header($_SERVER['SERVER_PROTOCOL'] . " " . ApiStatus::extract_status($code, $message));
 
@@ -66,7 +66,8 @@ final class ApiEngine {
                 break;
         }
 
-        self::new()->set_return_value();
+        if($end_request)
+            self::new()->set_return_value();
     }
 
     private static function exception(string $title, string $message, $exception = null, array $header = ["code" => 500, "msg" => "Internal Server Error", "throw_header" => true]) : void {
