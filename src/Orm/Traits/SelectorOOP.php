@@ -109,9 +109,19 @@ trait SelectorOOP
         return $this->store_vars('return_as', OrmReturnType::EXEC);
     }
 
-    final public function sort(string $sort, #[ExpectedValues(['ASC', 'asc', 'DESC', 'desc'])] string $order = "ASC"): self
+    final public function group(string $condition): self
     {
-        return $this->store_vars('sort', ["sort" => $sort, "type" => $order,], true);
+        return $this->store_vars('group', ["condition" => $condition,], true);
+    }
+
+    final public function having(string $condition): self
+    {
+        return $this->store_vars('having', ["condition" => $condition,], true);
+    }
+
+    final public function sort(string $column, #[ExpectedValues(['ASC', 'asc', 'DESC', 'desc'])] string $order = "ASC"): self
+    {
+        return $this->store_vars('sort', ["sort" => $column, "type" => $order,], true);
     }
 
     /**

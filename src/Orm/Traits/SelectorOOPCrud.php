@@ -230,6 +230,8 @@ trait SelectorOOPCrud
     {
         $d = $this->get_vars();
         $table = $d['table'] ?? null;
+        $group = $d['group'] ?? null;
+        $having = $d['having'] ?? null;
         $sort = $d['sort'] ?? null;
         $limit = $d['limit'] ?? null;
         $clause = $d['clause'] ?? "";
@@ -241,6 +243,26 @@ trait SelectorOOPCrud
 
         if (empty($table))
             $this->oop_exception("You did not initialize the `table`. Use the `->table(String)` method like this: `->value('your_table_name')`");
+
+        if ($group) {
+            $str = "";
+
+            foreach ($group as $g) {
+                $str .= $g['condition'] . ", ";
+            }
+
+            $clause .= " GROUP BY " . rtrim($str, ", ");
+        }
+
+        if ($having) {
+            $str = "";
+
+            foreach ($having as $h) {
+                $str .= $h['condition'] . ", ";
+            }
+
+            $clause .= " HAVING " . rtrim($str, ", ");
+        }
 
         if ($sort) {
             $str = "";
