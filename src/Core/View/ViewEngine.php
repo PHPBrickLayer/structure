@@ -282,6 +282,7 @@ final class ViewEngine {
     {
         $meta = self::$meta_data;
         $meta_view = $meta->{$view_section};
+        DomainResource::make_plaster(self::$meta_data);
 
         // Accept the type of unique view type from the current page and store it in the `$meta_view` variable.
         // This could be a view file, which will simply be the filename without its file extension (.view).

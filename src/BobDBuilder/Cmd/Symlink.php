@@ -38,6 +38,7 @@ class Symlink implements CmdLayout
         $plug->add_arg($this, ["link:dir"], 'link_dir', 0, 1);
         $plug->add_arg($this, ["link:file"], 'link_file', 0, 1);
         $plug->add_arg($this, ["link:refresh"], 'link_refresh', true);
+        $plug->add_arg($this, ["link:prune"], 'link_prune', true);
     }
 
     public function _spin(): void
@@ -53,6 +54,9 @@ class Symlink implements CmdLayout
 
         if($this->plug->tags['link_refresh'])
             $this->refresh_link();
+
+        if($this->plug->tags['link_prune'])
+            $this->prune_link();
     }
 
     private function init_db() : void
@@ -98,6 +102,26 @@ class Symlink implements CmdLayout
 
             new BobExec("link:{$link['type']} {$link['src']} {$link['dest']} --force --silent");
         }
+    }
+
+    public function prune_link() : void
+    {
+        if(!file_exists(self::$link_db))
+            return;
+
+        $links = json_decode(file_get_contents(self::$link_db), true);
+
+        foreach ($links as $i => $link) {
+            $dest = $this->plug->server->root . $link['dest'];
+
+            if($link['type'] == "htaccess")
+                $dest = $this->plug->server->domains . $link['dest'] . ".htaccess";
+
+            if(!is_link($dest))
+                unset($links[$i]);
+        }
+
+        file_put_contents(self::$link_db, json_encode($links));
     }
 
     use Htaccess;
