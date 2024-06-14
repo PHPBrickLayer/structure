@@ -230,8 +230,8 @@ final class ViewBuilder
         return $data['route'];
     }
 
-    #[ArrayShape(['route' => 'string', 'route_as_array' => 'array', 'domain_type' => DomainType::class, 'domain_id' => 'string', 'domain_uri' => 'string', 'pattern' => 'string', 0, 1, 2, 3, 4, 5, 6, 7, 8])]
-    public function request(#[ExpectedValues(['route', 'route_as_array', 'domain_type', 'domain_id', 'domain_uri', 'pattern', '*'])] string $key): DomainType|string|array
+    #[ArrayShape(['route' => 'string', 'route_as_array' => 'array','route_has_end_slash' => 'bool', 'domain_type' => DomainType::class, 'domain_id' => 'string', 'domain_uri' => 'string', 'pattern' => 'string', 0, 1, 2, 3, 4, 5, 6, 7, 8])]
+    public function request(#[ExpectedValues(['route', 'route_as_array', 'route_has_end_slash', 'domain_type', 'domain_id', 'domain_uri', 'pattern', '*'])] string $key): DomainType|string|array
     {
         if (!isset(self::$current_route_data))
             self::$current_route_data = Domain::current_route_data("*");

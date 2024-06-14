@@ -16,9 +16,6 @@ use BrickLayer\Lay\Core\Exception;
 
 final class ApiEngine {
     use IsSingleton;
-//    public static function new() : self {
-//        return new self();
-//    }
 
     private const RATE_LIMIT_CACHE_FILE = 'rate_limiter/';
 
@@ -36,6 +33,7 @@ final class ApiEngine {
     private static bool $request_found = false;
     private static bool $request_complete = false;
     private static bool $skip_process_on_false = true;
+    private static ?string $version;
     private static ?string $prefix;
     private static ?string $group;
     private static string $request_method;
@@ -117,7 +115,7 @@ final class ApiEngine {
         self::$method_return_type = $return_type;
 
         $uri_text = "";
-        $request_uri = trim($request_uri, "/");
+        $request_uri = $this->attach_version(trim($request_uri, "/"));
         self::$current_request_uri = explode("/", $request_uri);
         $last_item = end(self::$current_request_uri);
 
@@ -207,6 +205,28 @@ final class ApiEngine {
     }
 
     /**
+     * Add version to your api
+     * @param string $version example: v1
+     * @return void
+     */
+    public function set_version(string $version) : void
+    {
+        self::$version = str_replace("/","", $version);
+    }
+
+    public function clear_version() : void {
+        self::$version = null;
+    }
+
+    private function attach_version(string $uri) : string
+    {
+        if(isset(self::$version))
+            $uri = self::$version . "/" . ltrim($uri, "/");
+
+        return $uri;
+    }
+
+    /**
      * @param string $name Group name
      * @param Closure $grouped_requests a closure filled with a list of requests that depend on the group name
      * @return $this
@@ -261,14 +281,14 @@ final class ApiEngine {
         $uri_beginning = [];
         $args = [$requests, $interval, $key];
 
-        if(@!empty(self::$prefix)) {
-            $prefix = explode("/", self::$prefix);
-            $uri_beginning = array_merge($uri_beginning, $prefix);
-        }
+        if(isset(self::$version))
+            $uri_beginning[0] = self::$version;
 
-        if(@!empty(self::$group)) {
-            $group = explode("/", self::$group);
-            $uri_beginning = array_merge($uri_beginning, $group);
+        if(isset(self::$prefix))
+            $uri_beginning = array_merge($uri_beginning, explode("/", self::$prefix));
+
+        if(isset(self::$group)) {
+            $uri_beginning = array_merge($uri_beginning, explode("/", self::$group));
             $is_grouped = true;
         }
 
@@ -390,8 +410,11 @@ final class ApiEngine {
         return self::$request_uri[0] !== self::$current_request_uri[0];
     }
 
-    private function reset_engine() : void
+    private function reset_engine(bool $reset_version = true) : void
     {
+        if($reset_version)
+            self::$version = null;
+
         self::$prefix = null;
         self::$group = null;
         self::$request_uri_name = null;
@@ -483,12 +506,15 @@ final class ApiEngine {
         $use_middleware = false;
         $uri_beginning = [];
 
-        if(@!empty(self::$prefix)) {
+        if(isset(self::$version))
+            $uri_beginning[0] = self::$version;
+
+        if(isset(self::$prefix)) {
             $prefix = explode("/", self::$prefix);
             $uri_beginning = array_merge($uri_beginning, $prefix);
         }
 
-        if(@!empty(self::$group)) {
+        if(isset(self::$group)) {
             $group = explode("/", self::$group);
             $uri_beginning = array_merge($uri_beginning, $group);
         }
@@ -627,12 +653,11 @@ final class ApiEngine {
         if(!isset(self::$method_return_value))
             return null;
 
-        // Clear the prefix, because this method marks the end of a set of api routes
-        self::$prefix = null;
         $return_type ??= self::$method_return_type;
 
         $x = $return_type == ApiReturnType::JSON ? json_encode(self::$method_return_value) : self::$method_return_value;
 
+        self::reset_engine();
         if($print) {
             self::set_response_header(http_response_code(), $return_type, "Ok");
             print_r($x);
@@ -704,6 +729,7 @@ final class ApiEngine {
         $uri = self::$request_uri_raw ?? "";
 
         if(self::$request_found === false) {
+            $version_active = isset(self::$version) ? "<h3>Versioning is active: " . self::$version . "</h3>" : null;
             $prefix_active = isset(self::$prefix) ? "<h3>Prefix is active: " . self::$prefix . "</h3>" : null;
             $uris = "<br>" . PHP_EOL;
             $method = self::$current_request_method;
@@ -718,7 +744,7 @@ final class ApiEngine {
 
             self::exception(
                 "NoRequestExecuted",
-                "No valid handler for request [$uri] with method [$method]. $prefix_active
+                "No valid handler for request [$uri] with method [$method]. $version_active $prefix_active
                 <h3 style='color: cyan; margin-bottom: 0'>Here are the registered requests with $method method: </h3>
                 <div style='color: #F3F9FA'>$uris</div>",
                 header: [
