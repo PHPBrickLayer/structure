@@ -20,6 +20,7 @@ class Domain {
     private static string $current_route;
     private static array $current_route_details;
     private static string $indexed_domain;
+    private static bool $current_route_has_end_slash = false;
 
     private static bool $lay_init = false;
     private static LayConfig $layConfig;
@@ -161,6 +162,7 @@ class Domain {
 
         self::$current_route_details['route'] = $route ?: "index";
         self::$current_route_details['route_as_array'] = $route_as_array;
+        self::$current_route_details['route_has_end_slash'] = self::$current_route_has_end_slash;
         self::$current_route_details['pattern'] = $pattern;
         self::$current_route_details['domain_name'] = $domain_name;
         self::$current_route_details['domain_referrer'] = $_SERVER['HTTP_LAY_DOMAIN'] ?? $domain_name;
@@ -277,6 +279,7 @@ class Domain {
 
         //--END PARSE URI
 
+        self::$current_route_has_end_slash = str_ends_with($view,"/");
         self::$current_route = $this->check_route_is_static_file(trim($view,"/")) ?: 'index';
 
         return self::$current_route;
@@ -437,6 +440,7 @@ class Domain {
         #[ExpectedValues([
             'route',
             'route_as_array',
+            'route_has_end_slash',
             'domain_name',
             'domain_type',
             'domain_id',
