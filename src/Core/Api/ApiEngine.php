@@ -204,7 +204,12 @@ final class ApiEngine {
         self::$prefix = null;
     }
 
-    public function set_version(string $version = "v1") : void
+    /**
+     * Add version to your api
+     * @param string $version example: v1
+     * @return void
+     */
+    public function set_version(string $version) : void
     {
         self::$version = str_replace("/","", $version);
     }
