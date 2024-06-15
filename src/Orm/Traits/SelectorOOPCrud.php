@@ -355,6 +355,10 @@ trait SelectorOOPCrud
     final public function delete(?string $WHERE = null): bool
     {
         $d = $this->get_vars();
+
+        if(empty($WHERE) && @empty($d['clause']))
+            $this->oop_exception("You cannot delete without a clause. Use the `->clause(String)` or `->where(String)` to indicate a clause. If you wish to delete without a clause, then use the `->query(String)` method to construct your query");
+
         $d['clause'] = $WHERE ? "WHERE $WHERE" : $d['clause'];
         $d['query_type'] = OrmQueryType::DELETE;
         $table = $d['table'] ?? null;
