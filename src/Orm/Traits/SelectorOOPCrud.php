@@ -32,7 +32,7 @@ trait SelectorOOPCrud
         if (!isset($d['table']))
             $this->oop_exception("You did not initialize the `table`. Use the `->table(String)` method like this: `->value('your_table_name')`");
 
-        $column_to_check = $column_to_check ?? $d['table'] . "." . $column_to_check;
+        $column_to_check = $column_to_check ?? $d['table'] . ".id";
 
         return $this->capture_result(
             [$this->query("SELECT {$d['columns']} FROM {$d['table']} {$d['clause']} ORDER BY $column_to_check DESC LIMIT 1", $d), $d],
@@ -355,6 +355,10 @@ trait SelectorOOPCrud
     final public function delete(?string $WHERE = null): bool
     {
         $d = $this->get_vars();
+
+        if(empty($WHERE) && @empty($d['clause']))
+            $this->oop_exception("You cannot delete without a clause. Use the `->clause(String)` or `->where(String)` to indicate a clause. If you wish to delete without a clause, then use the `->query(String)` method to construct your query");
+
         $d['clause'] = $WHERE ? "WHERE $WHERE" : $d['clause'];
         $d['query_type'] = OrmQueryType::DELETE;
         $table = $d['table'] ?? null;

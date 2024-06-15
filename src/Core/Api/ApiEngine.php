@@ -653,11 +653,28 @@ final class ApiEngine {
         if(!isset(self::$method_return_value))
             return null;
 
+        // Clear the prefix, because this method marks the end of a set of api routes
+        self::$prefix = null;
         $return_type ??= self::$method_return_type;
 
-        $x = $return_type == ApiReturnType::JSON ? json_encode(self::$method_return_value) : self::$method_return_value;
+        $x = self::$method_return_value;
 
-        self::reset_engine();
+        if($return_type == ApiReturnType::JSON)
+            $x = json_encode(self::$method_return_value);
+
+        if($return_type == ApiReturnType::HTML && is_array(self::$method_return_value)) {
+            $y = "<h1>Server Response</h1>";
+
+            foreach (self::$method_return_value as $k => $value) {
+                if(is_array($value))
+                    $value = "Array Object []";
+
+                $y .= "<div><strong>$k:</strong> $value</div>";
+            }
+
+            $x = $y;
+        }
+
         if($print) {
             self::set_response_header(http_response_code(), $return_type, "Ok");
             print_r($x);
