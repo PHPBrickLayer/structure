@@ -32,7 +32,7 @@ trait SelectorOOPCrud
         if (!isset($d['table']))
             $this->oop_exception("You did not initialize the `table`. Use the `->table(String)` method like this: `->value('your_table_name')`");
 
-        $column_to_check = $column_to_check ?? $d['table'] . "." . $column_to_check;
+        $column_to_check = $column_to_check ?? $d['table'] . ".id";
 
         return $this->capture_result(
             [$this->query("SELECT {$d['columns']} FROM {$d['table']} {$d['clause']} ORDER BY $column_to_check DESC LIMIT 1", $d), $d],
