@@ -10,29 +10,52 @@ abstract class ApiHooks
     public readonly ApiEngine $request;
 
     public function __construct(
-        private readonly bool $prefetch = true,
-        private readonly bool $print_end_result = true,
+        private bool $prefetch = true,
+        private bool $print_end_result = true,
+        private bool $pre_connect = true,
     ) {
         if(!isset($this->request))
             $this->request = ApiEngine::new();
     }
 
+    public function prefetch(bool $option) : void
+    {
+        $this->prefetch = $option;
+    }
+
+    public function print_result(bool $option) : void
+    {
+        $this->print_end_result = $option;
+    }
+
+    public function preconnect(bool $option) : void
+    {
+        $this->pre_connect = $option;
+    }
+
+    public function pre_init() : void {}
+
+    public function post_init() : void {}
+
     public final function init() : void
     {
-        LayConfig::connect();
+        $this->pre_init();
+
+        if($this->pre_connect)
+            LayConfig::connect();
 
         if($this->prefetch)
             $this->request::fetch();
 
         $this->hooks();
+
+        $this->post_init();
         $this->request::end($this->print_end_result);
     }
 
     public function hooks() : void
     {
-        $this->request::fetch();
         $this->load_brick_hooks();
-        $this->request->print_as();
     }
 
     public final function load_brick_hooks(string ...$class_to_ignore) : void

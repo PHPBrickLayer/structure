@@ -20,6 +20,7 @@ final class ViewEngine {
 
     const key_core = "core";
     const key_page = "page";
+    const key_html_attr = "html_attr";
     const key_body_attr = "body_attr";
     const key_body = "body";
     const key_head = "head";
@@ -53,6 +54,10 @@ final class ViewEngine {
                 "desc" => $const[self::key_page]['desc'] ?? "",
                 "img" => $const[self::key_page]['img'] ?? null,
                 "author" => $const[self::key_page]['author'] ?? null,
+            ],
+            self::key_html_attr =>  [
+                "class" =>  $const[self::key_html_attr]['class'] ?? null,
+                "attr" =>   $const[self::key_html_attr]['attr'] ?? null,
             ],
             self::key_body_attr =>  [
                 "class" =>  $const[self::key_body_attr]['class'] ?? null,
@@ -94,7 +99,6 @@ final class ViewEngine {
     public function paint(array $page_data) : void {
         if(empty(self::$constant_attributes))
             self::constants([]);
-
 
         $layConfig = LayConfig::new();
         $data = $layConfig::site_data();
@@ -147,6 +151,7 @@ final class ViewEngine {
         $canonical = <<<LINK
             <link rel="canonical" href="$page->canonical" />
         LINK;
+        $html_attr = $meta->{self::key_html_attr};
         $body_attr = $meta->{self::key_body_attr};
 
         // The reason we put skeleton_body() in a variable is to give the function time to run so that variables can be
@@ -155,7 +160,7 @@ final class ViewEngine {
 
         $page = <<<STR
         <!DOCTYPE html>
-        <html itemscope lang="en" id="LAY-HTML">
+        <html itemscope lang="en" id="LAY-HTML" class="$html_attr->class" $html_attr->attr>
         <head>
             <title id="LAY-PAGE-TITLE-FULL">$title</title>
             <base href="$base" id="LAY-PAGE-BASE">

@@ -347,13 +347,25 @@ final class ViewBuilder
         return $this->store_page_data(ViewEngine::key_page, $key, $value);
     }
 
+
     /**
-     * Adds attributes to the html body tag `<body>`
+     * Adds attributes to the html tag `<html>`
      * @param string|null $class Body class name
      * @param string|null $attribute Other attributes for the body tag
      * @return self
      */
-    public function body_attr( ?string $class = null, ?string $attribute = null): self
+    public function html_attr(?string $class = null, ?string $attribute = null): self
+    {
+        return $this->store_page_data(ViewEngine::key_html_attr, value: ["class" => $class, "attr" => $attribute]);
+    }
+
+    /**
+     * Adds attributes to the html tag `<body>`
+     * @param string|null $class Body class name
+     * @param string|null $attribute Other attributes for the body tag
+     * @return self
+     */
+    public function body_attr(?string $class = null, ?string $attribute = null): self
     {
         return $this->store_page_data(ViewEngine::key_body_attr, value: ["class" => $class, "attr" => $attribute]);
     }
