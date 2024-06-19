@@ -23,7 +23,7 @@ class LayObject
 
             if(!$data)
                 Exception::throw_exception(
-                    "Trying to access post data for a " . $_SERVER['REQUEST_METHOD'] . " method request",
+                    "Trying to access post data for a [" . $_SERVER['REQUEST_METHOD'] . "] method request",
                     "LayObject::ERR",
                 );
 
@@ -39,6 +39,12 @@ class LayObject
         $post = $return_array ? $_POST : (object) $_POST;
 
         if (!empty($data) && !str_starts_with($data, "{")) {
+            if((is_object($post) && empty(get_object_vars($post))) || empty($post)) {
+                $post = [];
+                @parse_str($data, $post);
+                $post = $return_array ? $post : (object) $post;
+            }
+
             $msg = "JSON formatted \$_POST needed; but invalid JSON format was found";
         }
 
