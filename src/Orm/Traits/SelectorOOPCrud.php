@@ -27,15 +27,27 @@ trait SelectorOOPCrud
         $d = $this->get_vars();
         $d['can_be_null'] = false;
         $d['clause'] = $d['clause'] ?? "";
+        $sort = $d['sort'] ?? null;
         $d['columns'] = $d['columns'] ?? $d['values'] ?? "*";
 
         if (!isset($d['table']))
             $this->oop_exception("You did not initialize the `table`. Use the `->table(String)` method like this: `->value('your_table_name')`");
 
         $column_to_check = $column_to_check ?? $d['table'] . ".id";
+        $column_to_check = "ORDER BY $column_to_check DESC";
+
+        if ($sort) {
+            $str = "";
+
+            foreach ($sort as $s) {
+                $str .= $s['sort'] . " " . $s['type'] . ", ";
+            }
+
+            $column_to_check = "ORDER BY " . rtrim($str, ", ");
+        }
 
         return $this->capture_result(
-            [$this->query("SELECT {$d['columns']} FROM {$d['table']} {$d['clause']} ORDER BY $column_to_check DESC LIMIT 1", $d), $d],
+            [$this->query("SELECT {$d['columns']} FROM {$d['table']} {$d['clause']} $column_to_check LIMIT 1", $d), $d],
         );
     }
 
