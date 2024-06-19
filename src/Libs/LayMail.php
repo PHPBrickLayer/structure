@@ -160,6 +160,11 @@ abstract class LayMail {
         return $this;
     }
 
+    final public function debug() : self {
+        $this->debug = true;
+        return $this;
+    }
+
     final public function queue() : ?bool {
         if(!self::$credentials['host'])
             LayConfig::set_smtp();
@@ -173,11 +178,11 @@ abstract class LayMail {
         if((empty($email) || empty($name)) && $this->to_client)
             \BrickLayer\Lay\Core\Exception::throw_exception("Sending an email <b>to a client</b> with an empty `email`: [$email] or `name`: [$name] is not allowed!. If you wish to send to the server, use `->to_server()` method.", "EmptyRequiredField");
 
-        $server_mail_from = $this->server_from->mail ?? self::$credentials['default_sender_email'] ?? $site_data->mail->{0};
-        $server_name_from = $this->server_from->name ?? self::$credentials['default_sender_name'] ?? $site_data->name->short;
+        $server_mail_from = $this->server_from['email'] ?? self::$credentials['default_sender_email'] ?? $site_data->mail->{0};
+        $server_name_from = $this->server_from['name'] ?? self::$credentials['default_sender_name'] ?? $site_data->name->short;
 
-        $server_mail_to = $this->server->mail ?? $site_data->mail->{0};
-        $server_name_to = $this->server->name ?? $site_data->name->short;
+        $server_mail_to = $this->server['email'] ?? $site_data->mail->{0};
+        $server_name_to = $this->server['name'] ?? $site_data->name->short;
 
         if($this->to_client) {
             $recipient = [
