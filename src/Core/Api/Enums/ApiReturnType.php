@@ -6,5 +6,6 @@ enum ApiReturnType : string
 {
     case JSON = "JSON";
     case HTML = "HTML";
+    case XML = "XML";
     case STRING = "STRING";
 }

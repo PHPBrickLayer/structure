@@ -59,6 +59,9 @@ final class ApiEngine {
             case ApiReturnType::HTML:
                 header("Content-Type: text/html");
                 break;
+            case ApiReturnType::XML:
+                header("Content-Type: text/xml");
+                break;
             default:
                 header("Content-Type: text/plain");
                 break;
@@ -665,7 +668,7 @@ final class ApiEngine {
         if($return_type == ApiReturnType::JSON)
             $x = json_encode(self::$method_return_value);
 
-        if($return_type == ApiReturnType::HTML && is_array(self::$method_return_value)) {
+        if(($return_type == ApiReturnType::HTML || $return_type == ApiReturnType::XML) && is_array(self::$method_return_value)) {
             $y = "<h1>Server Response</h1>";
 
             foreach (self::$method_return_value as $k => $value) {
