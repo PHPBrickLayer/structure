@@ -164,7 +164,7 @@ final class ViewEngine {
         <head>
             <title id="LAY-PAGE-TITLE-FULL">$title</title>
             <base href="$base" id="LAY-PAGE-BASE">
-            <meta http-equiv="content-type" content="text/html;charset=$charset" />
+            <meta http-equiv="content-type" content="text/html;charset=$charset">
             <meta name="description" id="LAY-PAGE-DESC" content="$desc">
             <meta name="author" content="$author">
             <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -192,18 +192,33 @@ final class ViewEngine {
             <meta property="lay:meta:route_as_array" id="LAY-ROUTE-AS-ARRAY" content='$route_array'>
             <!-- // Framework Tags-->
             
-            <meta property="og:title" id="LAY-PAGE-TITLE" content="$title_raw">
+            <!-- Facebook Tags -->
             <meta property="og:url" id="LAY-PAGE-FULL-URL" content="$page->url">
             <meta property="og:type" content="website">
-            <meta property="og:site_name" id="LAY-SITE-NAME" content="{$site_data->name->full}">
+            <meta property="og:title" id="LAY-PAGE-TITLE" content="$title_raw">
             <meta property="og:description" content="$desc">
             <meta property="og:image" content="$img">
+            <meta property="og:site_name" id="LAY-SITE-NAME" content="{$site_data->name->full}">
+            <!-- // Facebook Tags -->
+            
+            <!--Twitter Tags -->
+            <meta name="twitter:card" content="summary_large_image">
+            <meta property="twitter:domain" content="{$client->domain->domain_uri}">
+            <meta property="twitter:url" content="$page->url">
+            <meta name="twitter:title" content="$title_raw">
+            <meta name="twitter:description" content="$desc">
+            <meta name="twitter:image" content="$img">
+            <!--//Twitter Tags -->
+            
+            <!--Generic Tags -->
             <meta itemprop="name" content="$title">
             <meta itemprop="description" content="$desc">
             <meta itemprop="image" id="LAY-PAGE-IMG" content="$img">
+            <!--//Generic Tags -->
+            
             <link rel="icon" type="image/x-icon" href="$favicon">
             <link rel="shortcut icon" href="$favicon">
-            <link rel="apple-touch-icon" href="$favicon" />
+            <link rel="apple-touch-icon" href="$favicon">
             $canonical
             {$this->skeleton_head()}
         </head>
