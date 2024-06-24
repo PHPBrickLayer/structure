@@ -248,13 +248,24 @@ trait SelectorOOPCrud
         $limit = $d['limit'] ?? null;
         $clause = $d['clause'] ?? "";
         $cols = $d['values'] ?? $d['columns'] ?? "*";
+        $between = $d['between'] ?? null;
         $d['query_type'] = OrmQueryType::SELECT;
         $d['fetch_as'] ??= OrmReturnType::ASSOC;
         $can_be_null = $d['can_be_null'] ?? true;
         $return_type = $can_be_null ? "array|object|null" : "array|object";
 
+
         if (empty($table))
             $this->oop_exception("You did not initialize the `table`. Use the `->table(String)` method like this: `->value('your_table_name')`");
+
+        if($between) {
+            $between['start'] = $between['format'] ? date("Y-m-d", strtotime($between['start'])) : $between['format'];
+            $between['end'] = $between['format'] ? date("Y-m-d", strtotime($between['end'])) : $between['format'];
+
+            $between = $between['col'] . " BETWEEN '" . $between['start'] . "' AND '" . $between['end'] . "'";
+
+            $clause = $clause ? $clause . "AND ($between) " : $between;
+        }
 
         if ($group) {
             $str = "";

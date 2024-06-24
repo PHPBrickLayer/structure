@@ -16,12 +16,12 @@ class LayObject
      * @return mixed Returns what json_decode returns
      * @throws \Exception
      */
-    public function get_json(bool $strict = true, bool $return_array = false): mixed
+    public function get_json(bool $throw_errors = true, bool $return_array = false): mixed
     {
         if($_SERVER['REQUEST_METHOD'] != "POST") {
             parse_str(file_get_contents("php://input"), $data);
 
-            if(!$data)
+            if(!$data && $throw_errors)
                 Exception::throw_exception(
                     "Trying to access post data for a [" . $_SERVER['REQUEST_METHOD'] . "] method request",
                     "LayObject::ERR",
@@ -48,7 +48,7 @@ class LayObject
             $msg = "JSON formatted \$_POST needed; but invalid JSON format was found";
         }
 
-        if ($strict && empty($data) && empty($post))
+        if ($throw_errors && empty($data) && empty($post))
             Exception::throw_exception(
                 $msg,
                 "LayObject::ERR",
