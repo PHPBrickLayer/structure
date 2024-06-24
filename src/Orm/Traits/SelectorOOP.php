@@ -124,6 +124,11 @@ trait SelectorOOP
         return $this->store_vars('sort', ["sort" => $column, "type" => $order,], true);
     }
 
+    final public function between(string $column, string $start, string $end, bool $fmt_to_date = true): self
+    {
+        return $this->store_vars('between', ["col" => $column, "start" => $start, "end" => $end, "format" => $fmt_to_date]);
+    }
+
     /**
      * @param int $max_result Specify query result limit
      * @param int $page_number Specifies the page batch based on the limit
