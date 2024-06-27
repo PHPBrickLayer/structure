@@ -21,7 +21,6 @@ class CoreException
     private static string $message;
     private static bool $already_caught = false;
     private static bool $show_internal_trace = true;
-    private static bool $show_exception_trace = true;
     private bool $throw_500 = true;
 
     public function capture_errors(bool $turn_warning_to_errors = false) : void
@@ -93,7 +92,6 @@ class CoreException
                 "use_lay_error" => $use_lay_error,
                 "exception_type" => $opts['type'] ?? 'error',
                 "exception_object" => $exception,
-                "show_exception_trace" => $opts['show_exception_trace'] ?? null,
                 "show_internal_trace" => $opts['show_internal_trace'] ?? null,
             ]
         );
@@ -102,11 +100,6 @@ class CoreException
     public function hide_internal_trace() : void
     {
         self::$show_internal_trace = false;
-    }
-
-    public function hide_exception_trace() : void
-    {
-        self::$show_exception_trace = false;
     }
 
     /**
@@ -155,7 +148,6 @@ class CoreException
         $env = $this->get_env();
         $display = $env == "DEVELOPMENT" || $other['core'] == "view";
         $cli_mode = LayConfig::get_mode() === LayMode::CLI;
-        $show_exception_trace = $other['show_exception_trace'] ?? self::$show_exception_trace;
         $show_internal_trace = $other['show_internal_trace'] ?? self::$show_internal_trace;
 
         if (!empty(@$other['raw'])) {
@@ -174,32 +166,20 @@ class CoreException
 
         $app_index = 0;
         $internal_index = 0;
-        $exception_index = 0;
 
         $internal_traces = "";
         $internal_traces_raw = "";
-        $exception_traces = "";
-        $exception_traces_raw = "";
 
         foreach ($other['stack'] as $v) {
             if (!isset($v['file']) && !isset($v['line']))
                 continue;
 
-            $is_exception = str_contains($v['file'], "bricklayer/structure/src/Core/CoreException.php") || str_contains($v['file'], "bricklayer/structure/src/Core/Exception.php");
             $is_internal = str_contains($v['file'], "bricklayer/structure/src/") || str_contains($v['file'], "bricklayer/structure/src/");
 
-            if(!$show_internal_trace && ($is_internal and !$is_exception))
+            if(!$show_internal_trace && $is_internal)
                 continue;
 
-            if(!$show_exception_trace && $is_exception)
-                continue;
-
-            if($is_internal && !$is_exception)
-                $k = ++$internal_index;
-            else if($is_exception)
-                $k = ++$exception_index;
-            else
-                $k = ++$app_index;
+            $k = $is_internal ? ++$internal_index : ++$app_index;
 
             $last_file = explode(DIRECTORY_SEPARATOR, $v['file']);
             $last_file = end($last_file);
@@ -216,12 +196,6 @@ class CoreException
 
             STACK;
 
-            if($is_exception) {
-                $exception_traces .= $sx;
-                $exception_traces_raw .= $sx_raw;
-                continue;
-            }
-
             if($is_internal) {
                 $internal_traces .= $sx;
                 $internal_traces_raw .= $sx_raw;
@@ -237,14 +211,6 @@ class CoreException
             $stack_raw .= <<<RAW
              ___INTERNAL___
             $internal_traces_raw
-            RAW;
-        }
-
-        if($show_exception_trace && $exception_traces) {
-            $exception_traces = "<details><summary style='margin-bottom: 10px'><span style='font-size: 20px; font-weight: bold; cursor: pointer;'>Exception Trace</span></summary>$exception_traces</details>";
-            $stack_raw .= <<<RAW
-             ___EXCEPTION___
-            $exception_traces_raw
             RAW;
         }
 
@@ -275,7 +241,6 @@ class CoreException
                     $stack
                 </details>
                 $internal_traces
-                $exception_traces
                 DEBUG;
 
             if(!$title) {
