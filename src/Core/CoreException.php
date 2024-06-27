@@ -352,7 +352,6 @@ class CoreException
                     "core" => $type,
                     "act" => @$opt['kill'] ? "kill" : "allow",
                     "raw" => $opt['raw'],
-                    "show_exception_trace" => $opt['show_exception_trace'],
                     "show_internal_trace" => $opt['show_internal_trace'],
                 ]
             );
