@@ -20,6 +20,8 @@ class CoreException
 
     private static string $message;
     private static bool $already_caught = false;
+    private static bool $show_internal_trace = true;
+    private static bool $show_exception_trace = true;
     private bool $throw_500 = true;
 
     public function capture_errors(bool $turn_warning_to_errors = false) : void
@@ -90,12 +92,47 @@ class CoreException
                 "raw" => $raw,
                 "use_lay_error" => $use_lay_error,
                 "exception_type" => $opts['type'] ?? 'error',
-                "exception_object" => $exception
+                "exception_object" => $exception,
+                "show_exception_trace" => $opts['show_exception_trace'] ?? null,
+                "show_internal_trace" => $opts['show_internal_trace'] ?? null,
             ]
         );
     }
 
-    private function container($title, $body, $other = []): string
+    public function hide_internal_trace() : void
+    {
+        self::$show_internal_trace = false;
+    }
+
+    public function hide_exception_trace() : void
+    {
+        self::$show_exception_trace = false;
+    }
+
+    /**
+     * @throws \Exception
+     */
+    public function kill_with_trace() : void
+    {
+        if($this->get_env() !== "DEVELOPMENT")
+            $this->use_exception(
+                "WrongEnvInvoke",
+                "You are throwing an exception with the wrong method on a production environment.\n"
+                . "*kill_and_trace()* method is meant to be used in a development environment only. \n"
+                . "If you are in a development environment, please use *\BrickLayer\Lay\Core\LayConfig::\$ENV_IS_DEV = true;* before calling this method"
+            );
+
+        $this->show_exception([
+                "kill" => true,
+                "use_lay_error" => true,
+                "exception_type" => 'error',
+                "show_exception_trace" => true,
+                "show_internal_trace" => true,
+            ]
+        );
+    }
+
+    private function container(?string $title, ?string $body, array $other = []): string
     {
         $title_color = "#5656f5";
         $body_color = "#dea303";
@@ -118,8 +155,10 @@ class CoreException
         $env = $this->get_env();
         $display = $env == "DEVELOPMENT" || $other['core'] == "view";
         $cli_mode = LayConfig::get_mode() === LayMode::CLI;
+        $show_exception_trace = $other['show_exception_trace'] ?? self::$show_exception_trace;
+        $show_internal_trace = $other['show_internal_trace'] ?? self::$show_internal_trace;
 
-        if (!empty($other['raw'])) {
+        if (!empty(@$other['raw'])) {
             foreach ($other['raw'] as $k => $r) {
                 $this->convertRaw($r, $k, $body);
             }
@@ -130,23 +169,41 @@ class CoreException
         $agent = LayConfig::user_agent();
         $os = LayConfig::get_os();
 
-        $stack = "<div style='padding-left: 5px; color: #5656f5; margin: 5px 0'><b>Referrer:</b> <span style='color:#00ff80'>$referer</span> <br /> <b>IP:</b> <span style='color:#00ff80'>$ip</span> <br> <b>AGENT:</b> <span style='color:#00ff80'>$agent</span> <br> <b>OS:</b> <span style='color:#00ff80'>$os</span></div>";
-        $stack_raw = <<<STACK
-         REFERRER: $referer
-         IP: $ip
-         AGENT: $agent
-         OS: $os
+        $stack = "";
+        $stack_raw = "";
 
-        STACK;
+        $app_index = 0;
+        $internal_index = 0;
+        $exception_index = 0;
 
-        foreach ($other['stack'] as $k => $v) {
+        $internal_traces = "";
+        $internal_traces_raw = "";
+        $exception_traces = "";
+        $exception_traces_raw = "";
+
+        foreach ($other['stack'] as $v) {
             if (!isset($v['file']) && !isset($v['line']))
                 continue;
 
-            $k++;
+            $is_exception = str_contains($v['file'], "bricklayer/structure/src/Core/CoreException.php") || str_contains($v['file'], "bricklayer/structure/src/Core/Exception.php");
+            $is_internal = str_contains($v['file'], "bricklayer/structure/src/") || str_contains($v['file'], "bricklayer/structure/src/");
+
+            if(!$show_internal_trace && ($is_internal and !$is_exception))
+                continue;
+
+            if(!$show_exception_trace && $is_exception)
+                continue;
+
+            if($is_internal)
+                $k = ++$internal_index;
+            else if($is_exception)
+                $k = ++$exception_index;
+            else
+                $k = ++$app_index;
+
             $last_file = explode(DIRECTORY_SEPARATOR, $v['file']);
             $last_file = end($last_file);
-            $stack .= <<<STACK
+            $sx = <<<STACK
                 <div style="color: #fff; padding-left: 20px">
                     <div>#$k: {$v['function']}(...)</div>
                     <div><b>$last_file ({$v['line']})</b></div>
@@ -154,23 +211,89 @@ class CoreException
                     <hr>
                 </div>
             STACK;
-            $stack_raw .= <<<STACK
+            $sx_raw = <<<STACK
               -#$k: {$v['function']} {$v['file']}:{$v['line']}
 
             STACK;
+
+            if($is_exception) {
+                $exception_traces .= $sx;
+                $exception_traces_raw .= $sx_raw;
+                continue;
+            }
+
+            if($is_internal) {
+                $internal_traces .= $sx;
+                $internal_traces_raw .= $sx_raw;
+                continue;
+            }
+
+            $stack .= $sx;
+            $stack_raw .= $sx_raw;
         }
 
-        $stack .= "</div>";
+        if($show_internal_trace && $internal_traces) {
+            $internal_traces = "<details><summary style='margin-bottom: 10px'><span style='font-size: 20px; font-weight: bold; cursor: pointer;'>Internal Trace</span></summary>$internal_traces</details>";
+            $stack_raw .= <<<RAW
+             ___INTERNAL___
+            $internal_traces_raw
+            RAW;
+        }
 
-        self::$message = $title . " \n" . strip_tags($body);
+        if($show_exception_trace && $exception_traces) {
+            $exception_traces = "<details><summary style='margin-bottom: 10px'><span style='font-size: 20px; font-weight: bold; cursor: pointer;'>Exception Trace</span></summary>$exception_traces</details>";
+            $stack_raw .= <<<RAW
+             ___EXCEPTION___
+            $exception_traces_raw
+            RAW;
+        }
+
+        $stack_raw = <<<STACK
+         REF: $referer
+         IP: $ip
+         AGENT: $agent
+         OS: $os
+         ___APP___
+        $stack_raw
+        STACK;
+
+
+        if($title)
+            self::$message = $title . " \n" . strip_tags($body);
 
         if ($display) {
+            $ERROR_BODY = <<<DEBUG
+                <div style='padding-left: 5px; color: #5656f5; margin: 5px 0'>
+                    <b>ENV:</b> <span style="color: #dea303">$env</span> <br>
+                    <b>REFERRER:</b> <span style='color:#00ff80'>$referer</span> <br> 
+                    <b>IP:</b> <span style='color:#00ff80'>$ip</span> <br> 
+                    <b>AGENT:</b> <span style='color:#00ff80'>$agent</span> <br> 
+                    <b>OS:</b> <span style='color:#00ff80'>$os</span>
+                </div>
+                <details open>
+                    <summary style="margin-bottom: 10px"><span style="font-size: 20px; font-weight: bold; cursor: pointer;">App Trace</span></summary>
+                    $stack
+                </details>
+                $internal_traces
+                $exception_traces
+                DEBUG;
+
+            if(!$title) {
+                $display = '<div style="min-height: 300px; background:#1d2124;padding:10px;color:#fffffa;overflow:auto;">' . $ERROR_BODY .'</div>';
+
+                if($cli_mode)
+                    print $stack_raw;
+                else
+                    echo $display;
+
+                return "kill";
+            }
+
             $display = <<<DEBUG
             <div style="min-height: 300px; background:#1d2124;padding:10px;color:#fffffa;overflow:auto;">
                 <h3 style='color: $title_color; margin: 2px 0'> $title </h3>
                 <div style='color: $body_color; font-weight: bold; margin: 5px 0;'> $body </div><br>
-                <div><b style="color: #dea303">$env ENVIRONMENT</b></div>
-                <div>$stack</div>
+                $ERROR_BODY
             </div>
             DEBUG;
 
@@ -208,7 +331,7 @@ class CoreException
 
             file_put_contents($file_log, $body, FILE_APPEND);
 
-            echo "<b>Your attention is needed at the backend, check your Lay error logs for details</b>";
+            echo "Your attention is needed at the backend, check your Lay error logs for details";
             return $other['act'] ?? "allow";
         }
     }
@@ -255,17 +378,34 @@ class CoreException
             return;
         }
 
-        $act = $this->container(
-            $opt['title'],
-            $opt['body_includes'],
-            [
-                "stack" => $trace,
-                "core" => $type,
-                "act" => @$opt['kill'] ? "kill" : "allow",
-                "raw" => $opt['raw'],
-            ]
-        );
+        if(isset($opt['title']))
+            $act = $this->container(
+                $opt['title'],
+                $opt['body_includes'],
+                [
+                    "stack" => $trace,
+                    "core" => $type,
+                    "act" => @$opt['kill'] ? "kill" : "allow",
+                    "raw" => $opt['raw'],
+                    "show_exception_trace" => $opt['show_exception_trace'],
+                    "show_internal_trace" => $opt['show_internal_trace'],
+                ]
+            );
 
+        if(!isset($opt['title'])) {
+            $act = "kill";
+            $this->container(
+                null,
+                null,
+                [
+                    "stack" => $trace,
+                    "core" => $type,
+                    "act" => $act,
+                    "show_exception_trace" => $opt['show_exception_trace'],
+                    "show_internal_trace" => $opt['show_internal_trace'],
+                ]
+            );
+        }
 
         if ($act == "kill") {
             self::$already_caught = true;

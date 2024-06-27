@@ -15,4 +15,12 @@ abstract class Exception {
     {
         return \BrickLayer\Lay\Core\CoreException::new();
     }
+
+    /**
+     * @throws \Exception
+     */
+    public static function kill_and_trace() : void
+    {
+        self::new()->kill_with_trace();
+    }
 }
