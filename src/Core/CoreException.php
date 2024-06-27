@@ -194,7 +194,7 @@ class CoreException
             if(!$show_exception_trace && $is_exception)
                 continue;
 
-            if($is_internal)
+            if($is_internal && !$is_exception)
                 $k = ++$internal_index;
             else if($is_exception)
                 $k = ++$exception_index;
