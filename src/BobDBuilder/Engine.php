@@ -12,14 +12,16 @@ class Engine
 
     public function __construct(
         private array $args,
-        private readonly bool $is_internal = false
+        private readonly bool $is_internal = false,
+        bool $die_on_error = true,
+        int &$response_code = 0
     )
     {
         $force = $this->extract_global_tag("--force", "-f");
         $show_help = $this->extract_global_tag("--help", "-h");
         $silent = $this->extract_global_tag("--silent", "-s");
 
-        $this->plug = new EnginePlug($this->args);
+        $this->plug = new EnginePlug($this->args, $die_on_error);
         $this->plug->is_internal = $this->is_internal;
 
         $this->plug->force = $force;
@@ -49,23 +51,30 @@ class Engine
 
         $this->plug->fire();
 
+        $response_code = (int) $this->plug->operation_successful;
+
         // End Bob execution
-        if(empty($this->plug->active_cmd))
+        if(empty($this->plug->active_cmd)) {
             $this->plug->write_warn(
                 "-- Bob has determined that the current command is invalid\n"
                 . "-- Please use --help to see the list of available commands"
-                , ["current_cmd" => $this->plug->typed_cmd, "hide_current_cmd" => false ]
+                , ["current_cmd" => $this->plug->typed_cmd, "hide_current_cmd" => false]
             );
+        }
 
-        if(!$this->plug->silent)
-            $this->plug->write_success(
-                "\n" . (
-                isset($this->plug->active_cmd_class) ?
-                    "-- Operation completed!" :
-                    ""
-                ),
-                [ 'close_talk' => true, ]
-            );
+        if(!$this->plug->silent) {
+            if($response_code)
+                $this->plug->write_success(
+                    "\n" . (
+                    isset($this->plug->active_cmd_class) ?
+                        "-- Operation completed!" :
+                        ""
+                    ),
+                    ['close_talk' => true,]
+                );
+            else
+                $this->plug->write_fail("-- Operation ended with error!");
+        }
     }
 
     public function extract_global_tag(string ...$tags) : bool
@@ -126,5 +135,4 @@ class Engine
         $this->plug->write_talk("-- Usage: php bob CMD --FLAGS");
         die;
     }
-
 }

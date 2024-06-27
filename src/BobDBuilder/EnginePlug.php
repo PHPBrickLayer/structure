@@ -18,6 +18,7 @@ use TypeError;
 
 class EnginePlug
 {
+    public bool $operation_successful = true;
     public bool $show_intro = true;
     public bool $show_help = false;
     public bool $force = false;
@@ -39,7 +40,8 @@ class EnginePlug
     private int $current_index;
 
     public function __construct(
-        private readonly array $args
+        private readonly array $args,
+        private readonly bool $die_on_error,
     )
     {
         $this->server = LayConfig::server_data();
@@ -59,8 +61,10 @@ class EnginePlug
         // This property is active when the command sent matches any on the existing Cmd classes
         // If it's not set, there's no need to loop through the existing classes to spin their methods,
         // we simply need to break out of this method and save php the stress.
-        if(!isset($this->active_cmd_class))
+        if(!isset($this->active_cmd_class)) {
+            $this->failed();
             return;
+        }
 
         foreach ($this->cmd_classes as $cmd_class) {
             if($spun_correct_class)
@@ -73,6 +77,7 @@ class EnginePlug
                 $cmd_class->_spin();
             }
             catch (TypeError|Error|\Exception $e){
+                $this->failed();
                 Exception::throw_exception(
                     $e->getMessage() . "\n"
                     . $e->getFile() . ":" . $e->getLine()
@@ -105,12 +110,14 @@ class EnginePlug
             try{
                 $class = new ReflectionClass($cmd_class);
             } catch (ReflectionException $e){
+                $this->failed();
                 Exception::throw_exception($e->getMessage(), "ReflectionException", exception: $e);
             }
 
             try {
                 $class = $class->newInstance();
             } catch (ReflectionException) {
+                $this->failed();
                 Exception::throw_exception(
                     " $cmd_class constructor class is private. \n"
                     . " All Cmd classes must expose their __construct function to clear this error",
@@ -124,6 +131,7 @@ class EnginePlug
             try {
                 $class->_init($this);
             } catch (Error|\Exception $e) {
+                $this->failed();
                 Exception::throw_exception($e->getMessage(), "BobError", exception: $e);
             }
         }
@@ -232,6 +240,7 @@ class EnginePlug
         $opts['hide_current_cmd'] = $opts['hide_current_cmd'] ?? true;
         $opts['close_talk'] = true;
         $opts['kill'] = true;
+        $this->failed();
 
         $this->write($message, CmdOutType::FAIL, $opts);
     }
@@ -275,11 +284,16 @@ class EnginePlug
                 "InvalidConsoleColor"
             );
 
-        if ($open_talk && !$silent)
-            Console::log("(^_^) Bob is Building --::--", Foreground::light_gray);
+        if ($open_talk && !$silent) {
+            Console::log("| :::::::::::::::::::: |", Foreground::light_gray);
+            Console::log("| \\\\____ (^_^) ____//  |", Foreground::light_gray);
+            Console::log("|         |||          |", Foreground::light_gray);
+            Console::log("|    Bob is Building   |", Foreground::light_gray);
+            Console::log("| :::::::::::::::::::: |", Foreground::light_gray);
+        }
 
         if (!$hide_cur_cmd && !$silent && !empty($current_cmd)) {
-            print "   CURRENT COMMAND ";
+            print "   ";
             Console::log(
                 " $current_cmd ",
                 bg_color: Background::cyan
@@ -323,12 +337,22 @@ class EnginePlug
         }
 
         if ($close_talk && !$silent) {
-            Console::log("(-_-) Bob is Done -----", Foreground::light_gray);
+            if($this->operation_successful)
+                Console::log(":) Bob is Done (:", Foreground::light_gray);
+            else
+                Console::log(":( Bob is encountered some errors ):", Foreground::light_gray);
+
+            Console::log("::::::::::::::::::::::::::::::::::::::", Foreground::light_gray);
             Console::bell();
         }
 
-        if($kill)
+        if($kill && $this->die_on_error)
             die;
+    }
+
+    public function failed() : void
+    {
+        $this->operation_successful = false;
     }
 
 }
