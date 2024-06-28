@@ -207,9 +207,9 @@ class CoreException
         }
 
         if($show_internal_trace && $internal_traces) {
-            $internal_traces = "<details><summary style='margin-bottom: 10px'><span style='font-size: 20px; font-weight: bold; cursor: pointer;'>Internal Trace</span></summary>$internal_traces</details>";
+            $internal_traces = "<details><summary style='margin-bottom: 10px'><span style='font-size: 20px; font-weight: bold; cursor: pointer;'>Internal Trace [$internal_index]</span></summary>$internal_traces</details>";
             $stack_raw .= <<<RAW
-             ___INTERNAL___
+             ___INTERNAL___ [$internal_index]
             $internal_traces_raw
             RAW;
         }
@@ -219,7 +219,7 @@ class CoreException
          IP: $ip
          AGENT: $agent
          OS: $os
-         ___APP___
+         ___APP___ [$app_index]
         $stack_raw
         STACK;
 
@@ -237,7 +237,7 @@ class CoreException
                     <b>OS:</b> <span style='color:#00ff80'>$os</span>
                 </div>
                 <details open>
-                    <summary style="margin-bottom: 10px"><span style="font-size: 20px; font-weight: bold; cursor: pointer;">App Trace</span></summary>
+                    <summary style="margin-bottom: 10px"><span style="font-size: 20px; font-weight: bold; cursor: pointer;">App Trace [$app_index]</span></summary>
                     $stack
                 </details>
                 $internal_traces

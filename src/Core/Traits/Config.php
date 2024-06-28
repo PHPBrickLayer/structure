@@ -17,6 +17,7 @@ trait Config
     private static SQL $SQL_INSTANCE;
     private static array $CONNECTION_ARRAY;
     private static array $SMTP_ARRAY;
+    private static array $CACHED_CORS;
     private static array $layConfigOptions;
     private static bool $DEFAULT_ROUTE_SET = false;
     private static bool $USE_DEFAULT_ROUTE = true;
@@ -108,9 +109,14 @@ trait Config
      * @param Closure|null $fun example function(){ header("Access-Control-Allow-Origin: Origin, X-Requested-With, Content-Type, Accept"); }
      * @return bool
      */
-    public static function set_cors(array $allowed_origins = [], bool $allow_all = false, ?Closure $fun = null): bool
+    public static function set_cors(array $allowed_origins = [], bool $allow_all = false, ?Closure $fun = null, bool $lazy_cors = true): bool
     {
-        $http_origin = rtrim($_SERVER['HTTP_ORIGIN'] ?? $_SERVER['HTTP_REFERER'] ?? "", "/");
+        if($lazy_cors) {
+            self::$CACHED_CORS = [$allowed_origins, $allow_all, $fun];
+            return true;
+        }
+
+        $http_origin = rtrim($_SERVER['HTTP_ORIGIN'] ?? $_SERVER['HTTP_HOST'] ?? $_SERVER['HTTP_REFERER'] ?? "", "/");
 
         if ($allow_all) {
             $http_origin = "*";
@@ -144,6 +150,12 @@ trait Config
 
         return true;
 
+    }
+
+    public static function call_lazy_cors() : void
+    {
+        if(isset(self::$CACHED_CORS))
+            self::set_cors(...self::$CACHED_CORS, lazy_cors: false);
     }
 
     public static function set_smtp(): void
@@ -352,7 +364,7 @@ trait Config
         if (self::$ENV_IS_DEV && self::new()->has_internet()) {
             $_SESSION[self::$SESSION_KEY][$IP_KEY] = [
                 "ip" => $_SESSION[self::$SESSION_KEY][$IP_KEY] = file_get_contents("https://api.ipify.io"),
-                "exp" => strtotime('1 hour')
+                "exp" => strtotime('3 hours')
             ];
 
             return $_SESSION[self::$SESSION_KEY][$IP_KEY]['ip'];
