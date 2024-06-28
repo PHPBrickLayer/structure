@@ -158,8 +158,16 @@ class CoreException
 
         $referer = $_SERVER['HTTP_REFERER'] ?? ($cli_mode ? "CLI MODE" : 'unknown');
         $ip = LayConfig::get_ip();
-        $agent = LayConfig::user_agent();
         $os = LayConfig::get_os();
+        $origin = $_SERVER['HTTP_ORIGIN'] ?? $_SERVER['HTTP_HOST'] ?? $referer;
+        $cors_active = LayConfig::cors_active() ? "ACTIVE" : "INACTIVE";
+        $headers_str = "";
+        $headers_html = "";
+
+        foreach (LayConfig::headers() as $k => $v) {
+            $headers_str .= "\n  [$k] $v";
+            $headers_html .= "<b style='color:#dea303'>[$k]</b> <span>$v</span> <br>";
+        }
 
         $stack = "";
         $stack_raw = "";
@@ -209,17 +217,19 @@ class CoreException
         if($show_internal_trace && $internal_traces) {
             $internal_traces = "<details><summary style='margin-bottom: 10px'><span style='font-size: 20px; font-weight: bold; cursor: pointer;'>Internal Trace [$internal_index]</span></summary>$internal_traces</details>";
             $stack_raw .= <<<RAW
-             ___INTERNAL___ [$internal_index]
+             ___INTERNAL___
             $internal_traces_raw
             RAW;
         }
 
         $stack_raw = <<<STACK
+         HOST: $origin
          REF: $referer
+         CORS: $cors_active
          IP: $ip
-         AGENT: $agent
          OS: $os
-         ___APP___ [$app_index]
+         HEADERS: $headers_str
+         ___APP___
         $stack_raw
         STACK;
 
@@ -229,13 +239,16 @@ class CoreException
 
         if ($display) {
             $ERROR_BODY = <<<DEBUG
-                <div style='padding-left: 5px; color: #5656f5; margin: 5px 0'>
+                <details style='padding-left: 5px; margin: 5px 0 10px'>
+                    <summary style="margin-bottom: 10px"><span style="font-size: 20px; font-weight: bold; cursor: pointer;">X-INFO</span></summary>
                     <b>ENV:</b> <span style="color: #dea303">$env</span> <br>
+                    <b>HOST:</b> <span style='color:#00ff80'>$origin</span> <br> 
                     <b>REFERRER:</b> <span style='color:#00ff80'>$referer</span> <br> 
-                    <b>IP:</b> <span style='color:#00ff80'>$ip</span> <br> 
-                    <b>AGENT:</b> <span style='color:#00ff80'>$agent</span> <br> 
-                    <b>OS:</b> <span style='color:#00ff80'>$os</span>
-                </div>
+                    <b>CORS:</b> <span style='color:#00ff80'>$cors_active</span> <br> 
+                    <b>IP:</b> <span style='color:#00ff80'>$ip</span> <br>  
+                    <b>OS:</b> <span style='color:#00ff80'>$os</span> <br>
+                    <b>HEADERS:</b> <div style='color:#00ff80; font-size: 16px; padding: 0 10px'>$headers_html</div>
+                </details>
                 <details open>
                     <summary style="margin-bottom: 10px"><span style="font-size: 20px; font-weight: bold; cursor: pointer;">App Trace [$app_index]</span></summary>
                     $stack
@@ -255,7 +268,7 @@ class CoreException
             }
 
             $display = <<<DEBUG
-            <div style="min-height: 300px; background:#1d2124;padding:10px;color:#fffffa;overflow:auto;">
+            <div style="min-height: 300px; background:#1d2124;padding:10px;color:#fffffa;overflow:auto; margin: 0 0 15px">
                 <h3 style='color: $title_color; margin: 2px 0'> $title </h3>
                 <div style='color: $body_color; font-weight: bold; margin: 5px 0;'> $body </div><br>
                 $ERROR_BODY
