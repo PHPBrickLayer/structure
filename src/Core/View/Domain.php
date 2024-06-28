@@ -3,7 +3,6 @@ declare(strict_types=1);
 
 namespace BrickLayer\Lay\Core\View;
 
-use BrickLayer\Lay\Core\Api\ApiHooks;
 use BrickLayer\Lay\Core\Exception;
 use JetBrains\PhpStorm\ExpectedValues;
 use BrickLayer\Lay\Core\Enums\CustomContinueBreak;
@@ -186,6 +185,9 @@ class Domain {
 
         if(file_exists(self::$current_route_details['domain_root'] . "foundation.php"))
             include_once self::$current_route_details['domain_root'] . "foundation.php";
+
+        // Make lazy CORS configuration become active after loading all foundation files incase there was an overwrite
+        LayConfig::call_lazy_cors();
 
         try{
             $builder = new ReflectionClass($builder);
