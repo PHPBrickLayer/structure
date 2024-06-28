@@ -331,6 +331,10 @@ trait Config
         return !empty($_SERVER['HTTP_USER_AGENT']) && preg_match('~(bot|crawl)~i', $_SERVER['HTTP_USER_AGENT'], flags: PREG_UNMATCHED_AS_NULL);
     }
 
+    /**
+     *  Get a list of all the headers received by this application from an HTTP request
+     * @return array
+     */
     public static function headers() : array
     {
         $rtn = [];
@@ -341,6 +345,17 @@ trait Config
         }
 
         return $rtn;
+    }
+
+    /**
+     * Get a header received by this application from an HTTP request using a key
+     * @param string $key
+     * @return mixed
+     */
+    public static function get_header(string $key) : mixed
+    {
+        $key = str_replace("-", "_", ltrim($key, "HTTP_"));
+        return $_SERVER["HTTP_" . $key] ?? null;
     }
 
     public static function get_os(): string
