@@ -3,11 +3,7 @@
 namespace BrickLayer\Lay\BobDBuilder\Cmd\Traits\Make;
 
 use BrickLayer\Lay\BobDBuilder\BobExec;
-use BrickLayer\Lay\Core\Exception;
-use BrickLayer\Lay\Libs\LayArray;
 use BrickLayer\Lay\Libs\LayDir;
-use SplFileObject;
-
 
 trait Domain
 {
@@ -179,6 +175,46 @@ trait Domain
 
     public function update_general_domain_entry(string $domain, string $domain_id, string $patterns): void
     {
+        $main_file = $this->plug->server->web . "index.php";
+        $index_page = file_get_contents($main_file);
+
+        // Default Domain Entry
+        preg_match(
+            '/Domain::new\(\)->create\([^)]*default[^)]*\);/s',
+            $index_page, $data
+        );
+
+        $default_domain = $data[0] ?? <<<DEF
+        Domain::new()->create(
+            id: "default",
+            builder: \web\domains\Default\Plaster::class,
+            patterns: ["*"],
+        );
+        DEF;
+
+        // Current Doamin being created
+        preg_match(
+            '/Domain::new\(\)->create\([^)]*'. $domain_id .'[^)]*\);/s',
+            $index_page, $data
+        );
+
+        $current_domain = $data[0] ?? <<<CUR
+        Domain::new()->create(
+            id: "$domain_id",
+            builder: \web\domains\\$domain\\Plaster::class,
+            patterns: [$pattern],
+        );
+        CUR;
+
+        // Remove any duplicate from the domain entry
+        $index_page = trim(preg_replace(
+            ['/Domain::new\(\)->create\([^)]*default[^)]*\);/s',
+                '/Domain::new\(\)->create\([^)]*'. $domain_id .'[^)]*\);/s'],
+            "",
+            $index_page
+        ));
+
+        // Create the new domain patterns as specified from the terminal
         $pattern = "";
         foreach (explode(",", $patterns) as $p) {
             $pattern .= '"' . strtolower(trim($p)) . '",';
@@ -186,100 +222,16 @@ trait Domain
 
         $pattern = rtrim($pattern, ",");
 
-        $main_file = $this->plug->server->web . "index.php";
-        $lock_file = $this->plug->server->web . ".index.php.lock";
-
-        copy($main_file, $lock_file);
-
-        $file = new SplFileObject($lock_file, 'r+');
-        $file->setFlags(SplFileObject::DROP_NEW_LINE);
-
-        $page = [];
-        $domains = [];
-        $key = 0;
-        $storing_domain = false;
-        $existing_domain_key = null;
-        $page_index = 0;
-
-        while (!$file->eof()) {
-            $entry = $file->fgets();
-
-            if($page_index > 6 && empty($entry))
-                continue;
-
-            if (str_starts_with($entry, "Domain::new()"))
-                $storing_domain = true;
-
-            if ($storing_domain) {
-
-                $domains[$key][] = $entry;
-
-                if(
-                    $existing_domain_key === null &&
-                    $this->plug->force
-                ) {
-                    if(
-                        str_starts_with(ltrim($entry), "id:")
-                    )
-                        $existing_domain_key = trim(
-                            rtrim(
-                                explode("id:", $entry)[1],
-                                ","
-                            ), "'\""
-                        ) == $domain_id ? $key : null;
-
-                    if(
-                        !$existing_domain_key &&
-                        str_starts_with(ltrim($entry), "builder:")
-                    )
-                        $existing_domain_key = @explode("\\", $entry)[3] == $domain ? $key : null;
-                }
-
-
-                if (str_ends_with($entry, ";")) {
-                    $storing_domain = false;
-                    $key++;
-                }
-
-                continue;
-            }
-
-            $page[] = $entry;
-            $page_index++;
-        }
-
-        $default_domain = end($domains);
-        array_pop($domains);
-
-        if($existing_domain_key)
-            unset($domains[$existing_domain_key]);
-
-        if($this->plug->is_internal && $domain == "Default") {
-            $default_domain = [''];
-        }
-
-        $domains = LayArray::flatten($domains);
-
-        $new_domain = [
-            'Domain::new()->create(',
-            '    id: "' . $domain_id . '",',
-            '    builder: \web\domains\\' . $domain . '\\Plaster::class,',
-            '    patterns: [' . $pattern . '],',
-            ');',
-        ];
-
-        try{
-            array_push($page, "", ...$domains, ...[""], ...$new_domain, ...[""], ...$default_domain, ...[""]);
-            $file->rewind();
-            $file->fwrite(implode("\n", $page));
-        } catch (\Exception $e) {
-            Exception::throw_exception($e->getMessage(), "MakeDomain", exception: $e);
-
-            LayDir::unlink($domain_dir);
-            unlink($lock_file);
-        }
-
-        copy($lock_file, $main_file);
-        unlink($lock_file);
+        // Replace the index file
+        file_put_contents(
+            $main_file,
+            <<<INDEX
+            $index_page
+            
+            $current_domain
+            
+            $default_domain
+            INDEX
+        );
     }
 }
