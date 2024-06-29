@@ -124,9 +124,9 @@ trait SelectorOOP
         return $this->store_vars('sort', ["sort" => $column, "type" => $order,], true);
     }
 
-    final public function between(string $column, string $start, string $end, bool $fmt_to_date = true): self
+    final public function between(string $column, string $start, string $end, bool $fmt_to_date = true, bool $allow_null = true): self
     {
-        return $this->store_vars('between', ["col" => $column, "start" => $start, "end" => $end, "format" => $fmt_to_date]);
+        return $this->store_vars('between', ["col" => $column, "start" => $start, "end" => $end, "format" => $fmt_to_date, "allow_null" => $allow_null]);
     }
 
     /**
