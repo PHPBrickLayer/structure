@@ -30,12 +30,15 @@ trait Dir
                 . "You cannot link a directory that doesn't exist"
             );
 
-        if (is_dir($dest) && !$this->plug->force)
+        if (is_dir($dest) && !$this->plug->force) {
             $this->plug->write_warn(
                 "Destination directory: *$dest* exists already!\n"
                 . "If you want to REPLACE!! it, pass the flag *--force*\n"
-                . "***### Take Note:: You will be deleting the former directory if you decide to pass the flag --force"
+                . "***### Take Note:: You will be deleting the former directory if you decide to pass the flag --force",
+                ["close_talk" => false]
             );
+            return;
+        }
 
         $src = str_replace("/", DIRECTORY_SEPARATOR, $src);
         $dest = str_replace("/", DIRECTORY_SEPARATOR, $dest);

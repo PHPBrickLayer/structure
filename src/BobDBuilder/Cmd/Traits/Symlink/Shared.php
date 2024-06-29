@@ -28,20 +28,23 @@ trait Shared
         $dest .= "shared";
         $src = $plug->server->web . "shared/";
 
-        if(!is_dir($src))
+        if(!is_dir($src)) {
+            $plug->failed();
             $plug->write_warn(
                 "*shared* directory exists already at: *$dest*\n"
                 . "If you want to REPLACE!! it, pass the flag --force\n"
                 . "***### Take Note:: You will be deleting the former *shared directory/symlink* if you decide to pass the flag --force"
             );
+        }
 
-        if ((is_dir($dest) || is_link($dest)) && !$plug->force)
+        if ((is_dir($dest) || is_link($dest)) && !$plug->force) {
+            $plug->failed();
             $plug->write_warn(
                 "*shared* directory exists already at: *$dest*\n"
                 . "If you want to REPLACE!! it, pass the flag --force\n"
                 . "***### Take Note:: You will be deleting the former *shared directory/symlink* if you decide to pass the flag --force"
             );
-
+        }
 
         $src = str_replace("/", DIRECTORY_SEPARATOR, $src);
         $dest = str_replace("/", DIRECTORY_SEPARATOR, $dest);

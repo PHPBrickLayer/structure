@@ -27,12 +27,14 @@ trait File
         if (!file_exists($src))
             $this->plug->write_fail("Source file *$src* does not exist! You cannot link a file that doesn't exist");
 
-        if (file_exists($dest) && !$this->plug->force)
+        if (file_exists($dest) && !$this->plug->force) {
+            $this->plug->failed();
             $this->plug->write_warn(
                 "Destination file: *$dest* exists already!\n"
                 . "If you want to REPLACE!! it, pass the flag *--force*\n"
                 . "***### Take Note::  You will be deleting the former file if you decide to pass the flag --force"
             );
+        }
 
 
         $src = str_replace("/", DIRECTORY_SEPARATOR, $src);

@@ -3,7 +3,11 @@
 namespace BrickLayer\Lay\BobDBuilder\Cmd\Traits\Make;
 
 use BrickLayer\Lay\BobDBuilder\BobExec;
+use BrickLayer\Lay\Core\Exception;
+use BrickLayer\Lay\Libs\LayArray;
 use BrickLayer\Lay\Libs\LayDir;
+use SplFileObject;
+
 
 trait Domain
 {
@@ -28,7 +32,8 @@ trait Domain
                 . "Example: 'case-study'\n"
             );
 
-        if (empty($pattern) || (!$this->plug->is_internal && trim($pattern) == "*"))
+        if (empty($pattern) || (!$this->plug->is_internal && trim($pattern) == "*")) {
+            $this->plug->failed();
             $this->plug->write_warn(
                 "Pattern cannot be an empty quote or '*'\n"
                 . "\n"
@@ -36,6 +41,7 @@ trait Domain
                 . "Example: 'blog-posts,blog'\n"
                 . "Example: 'case-study'\n"
             );
+        }
 
 
         $domain = explode(" ", ucwords($domain));
@@ -44,12 +50,15 @@ trait Domain
         $domain_dir = $this->plug->server->domains . $domain;
         $exists = is_dir($domain_dir);
 
-        if($domain == "Default" && !$this->plug->is_internal)
+        if($domain == "Default" && !$this->plug->is_internal) {
+            $this->plug->failed();
             $this->plug->write_warn(
                 "Unfortunately you cannot create a *Default* domain automatically\n"
                 . "If for whatever reasons you need to do that, navigate to the Lay Repository and copy it from there\n"
-                . "Github: *https://github.com/PHPBrickLayer/lay*"
+                . "Github: *https://github.com/PHPBrickLayer/lay*\n"
+                . "Alternatively, just create a new domain, it will be added automatically!"
             );
+        }
 
         if($domain == "Default" && $this->plug->is_internal) {
             $domain_id = "default";
