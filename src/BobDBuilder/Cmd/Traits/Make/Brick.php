@@ -20,9 +20,11 @@ trait Brick
         if (!$brick)
             $this->plug->write_fail("No brick specified");
 
-        if(is_string($singleton) && !str_starts_with($singleton, "-"))
+        if(is_string($singleton) && !str_starts_with($singleton, "-")) {
+            $this->plug->failed();
             $this->plug->write_warn("*$singleton* is not a valid tag.\n"
                 . "This command only accepts *BrickName* and *--n-singleton* as it's arguments");
+        }
 
         if($singleton === "--n-singleton")
             $singleton = false;

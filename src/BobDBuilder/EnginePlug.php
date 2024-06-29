@@ -251,8 +251,9 @@ class EnginePlug
 
     public function write_warn(string $message, array $opts = []) : void {
         $opts['hide_current_cmd'] = $opts['hide_current_cmd'] ?? true;
-        $opts['close_talk'] = true;
+        $opts['close_talk'] = $opts['close_talk'] ?? true;
         $opts['kill'] = true;
+        $this->failed();
 
         $this->write($message, CmdOutType::WARN, $opts);
     }
@@ -346,8 +347,12 @@ class EnginePlug
             Console::bell();
         }
 
-        if($kill && $this->die_on_error)
+        if($kill && $this->die_on_error) {
+            if(!$silent)
+                Console::bell();
+
             die;
+        }
     }
 
     public function failed() : void

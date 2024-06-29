@@ -121,7 +121,7 @@ final class ApiEngine {
         self::$method_return_type = $return_type;
 
         $uri_text = "";
-        $request_uri = $this->attach_version(trim($request_uri, "/"));
+        $request_uri = trim($request_uri, "/");
         self::$current_request_uri = explode("/", $request_uri);
         $last_item = end(self::$current_request_uri);
 
@@ -135,7 +135,10 @@ final class ApiEngine {
             self::$current_request_uri = [...$prefix, ...self::$current_request_uri];
         }
 
-        self::$current_route = implode("/", self::$current_request_uri);
+        if(isset(self::$version)) {
+            self::$current_request_uri = [...[self::$version], ...self::$current_request_uri];
+            self::$current_route = $this->attach_version(implode("/", self::$current_request_uri));
+        }
 
         if(count(self::$request_uri) !== count(self::$current_request_uri))
             return $this;

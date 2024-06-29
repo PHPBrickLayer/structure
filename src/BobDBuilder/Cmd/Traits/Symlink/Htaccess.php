@@ -24,12 +24,14 @@ trait Htaccess
 
         $dest .= ".htaccess";
 
-        if (file_exists($dest) && !$plug->force)
+        if (file_exists($dest) && !$plug->force) {
+            $plug->failed();
             $plug->write_warn(
                 "htaccess exists already at: *$dest*\n"
                 . "If you want to REPLACE!! it, pass the flag --force\n"
                 . "***### Take Note:: You will be deleting the former htaccess if you decide to pass the flag --force"
             );
+        }
 
         $src = $plug->server->web . ".htaccess";
 
