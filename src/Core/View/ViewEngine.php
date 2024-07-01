@@ -259,21 +259,21 @@ final class ViewEngine {
         $this->add_view_section(self::key_body);
         $body = ob_get_clean();
 
-        $prepend_style_pattern = '/@styletop(.*?)@endstyle/si';
-        $append_style_pattern = '/@style(.*?)@endstyle/si';
+        $prepend_style_pattern = '/@styletop\n(.*?)@endstyle/si';
+        $append_style_pattern = '/@style\n(.*?)@endstyle/si';
 
         preg_match_all($prepend_style_pattern, $body, $prepend_style);
         preg_match_all($append_style_pattern, $body, $append_style);
 
 
 
-        $prepend_script_pattern = '/@scripttop(.*?)@endscript/si';
-        $append_script_pattern = '/@script(.*?)@endscript/si';
+        $prepend_script_pattern = '/@scripttop\n(.*?)@endscript/si';
+        $append_script_pattern = '/@script\n(.*?)@endscript/si';
 
         preg_match_all($prepend_script_pattern, $body, $prepend_script);
         preg_match_all($append_script_pattern, $body, $append_script);
 
-        $body = preg_replace([$prepend_script_pattern, $append_script_pattern, $append_style_pattern, $prepend_style_pattern], "", $body);
+        $body = preg_replace([$prepend_script_pattern, $append_script_pattern, $prepend_style_pattern, $append_style_pattern], "", $body);
 
         $onpage_script_tags_prepend = implode("", $prepend_script[1]);
         $onpage_script_tags_append = implode("", $append_script[1]);
