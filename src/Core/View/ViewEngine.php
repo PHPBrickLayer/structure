@@ -266,7 +266,6 @@ final class ViewEngine {
         preg_match_all($append_style_pattern, $body, $append_style);
 
 
-
         $prepend_script_pattern = '/@scripttop\n(.*?)@endscript/si';
         $append_script_pattern = '/@script\n(.*?)@endscript/si';
 
