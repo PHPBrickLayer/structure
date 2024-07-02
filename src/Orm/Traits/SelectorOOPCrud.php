@@ -238,17 +238,19 @@ trait SelectorOOPCrud
         );
     }
 
-    final public function select(): array|null|Generator|\mysqli_result
+    final public function select(?array $__Internal__ = null): array|null|Generator|\mysqli_result
     {
-        $d = $this->get_vars();
+        $d = $__Internal__ ?? $this->get_vars();
         $table = $d['table'] ?? null;
         $group = $d['group'] ?? null;
         $having = $d['having'] ?? null;
         $sort = $d['sort'] ?? null;
         $limit = $d['limit'] ?? null;
         $clause = $d['clause'] ?? "";
+        $between_clause = $clause;
         $cols = $d['values'] ?? $d['columns'] ?? "*";
         $between = $d['between'] ?? null;
+        $between_allow_null = true;
         $d['query_type'] = OrmQueryType::SELECT;
         $d['fetch_as'] ??= OrmReturnType::ASSOC;
         $can_be_null = $d['can_be_null'] ?? true;
@@ -261,10 +263,10 @@ trait SelectorOOPCrud
         if($between) {
             $between['start'] = $between['format'] ? date("Y-m-d", strtotime($between['start'])) : $between['format'];
             $between['end'] = $between['format'] ? date("Y-m-d", strtotime($between['end'])) : $between['format'];
-
+            $between_allow_null = $between['allow_null'] ?? $between_allow_null;
             $between = $between['col'] . " BETWEEN '" . $between['start'] . "' AND '" . $between['end'] . "'";
 
-            $clause = $clause ? $clause . "AND ($between) " : $between;
+            $clause = $clause ? $clause . " AND ($between) " : "WHERE " . $between;
         }
 
         if ($group) {
@@ -316,18 +318,23 @@ trait SelectorOOPCrud
             $clause .= " LIMIT $current_result, $result_per_queue";
         }
 
-        if (!isset($d['join']))
-            return $this->capture_result(
-                [$this->query("SELECT $cols FROM $table $clause", $d), $d],
-                $return_type
-            );
+        if (isset($d['join']))
+            $clause = $this->_join($d) . $clause;
 
-        $clause = $this->_join($d) . $clause;
-
-        return $this->capture_result(
+        $rtn = $this->capture_result(
             [$this->query("SELECT $cols FROM $table $clause", $d), $d],
             $return_type
         );
+
+        if(empty($rtn) && !$between_allow_null) {
+            unset($d['between']);
+            $d['limit']['index'] ??= 1;
+            $d['limit']['max_result'] ??= 100;
+
+            return $this->select($d);
+        }
+
+        return $rtn;
     }
 
     final public function count_row(?string $column = null, ?string $WHERE = null): int
