@@ -2,8 +2,11 @@
 
 namespace BrickLayer\Lay\Libs;
 
-abstract class LayFn
+final class LayFn
 {
+    private function __construct(){}
+    private function __clone(){}
+
     public static function num_format(?int $num, int $digits) : string
     {
         if(!$num)
@@ -36,4 +39,31 @@ abstract class LayFn
                 number_format($num, $digits)
             ) . $item['symbol'] : '0';
     }
+
+    public static function trim_word(string $string, string $word, ?string $preg_pattern = null) : string
+    {
+        $len = function ($str) {
+            if (function_exists("mb_strlen"))
+                return mb_strlen($str);
+
+            return strlen($str);
+        };
+
+        if($len($word) < 2)
+            return trim($string, $word);
+
+        $pattern = $preg_pattern ?? '~^(' . $word . ')|(' . $word . ')$~';
+        return preg_replace($pattern, "", $string);
+    }
+
+    public static function ltrim_word(string $string, string $word) : string
+    {
+        return self::trim_word($string, $word, '~^(' . $word . ')~');
+    }
+
+    public static function rtrim_word(string $string, string $word) : string
+    {
+        return self::trim_word($string, $word, '~(' . $word . ')$~');
+    }
+
 }
