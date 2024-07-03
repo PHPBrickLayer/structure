@@ -197,7 +197,7 @@ trait Config
         if($key == "Bearer")
             return $all['Authorization'] ? LayFn::ltrim_word($all['Authorization'], "Bearer ") : null;
 
-        return $all[$key] ?? null;
+        return $all[$key] ?? $all[strtolower($key)] ?? null;
     }
 
     public static function get_os(): string
