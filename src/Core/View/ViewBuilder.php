@@ -235,7 +235,7 @@ final class ViewBuilder
      * If the key is 'route_as_array', then values should be accessed with regular array numbered index, like 0,1,2...n
      * @return DomainType|string|array
      */
-    #[ArrayShape(['route' => 'string', 'route_as_array' => 'array','route_has_end_slash' => 'bool', 'domain_type' => DomainType::class, 'domain_id' => 'string', 'domain_uri' => 'string', 'pattern' => 'string'])]
+    #[ArrayShape(['int','int','int','int','int','int','int','int','route' => 'string', 'route_as_array' => 'array','route_has_end_slash' => 'bool', 'domain_type' => DomainType::class, 'domain_id' => 'string', 'domain_uri' => 'string', 'pattern' => 'string'])]
     public function request(#[ExpectedValues(['route', 'route_as_array', 'route_has_end_slash', 'domain_type', 'domain_id', 'domain_uri', 'pattern', '*'])] string $key): DomainType|string|array
     {
         if (!isset(self::$current_route_data))
