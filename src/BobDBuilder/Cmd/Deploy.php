@@ -45,7 +45,7 @@ class Deploy implements CmdLayout
         $this->git_only = $this->plug->extract_tags(["-go", "--git-only"], true)[0] ?? false;
 
         $ignore = $this->plug->extract_tags(["--ignore"], 0);
-        $ignore_file = $this->root . ".bobignore";
+        $ignore_file = $this->root . "ignore.bob";
 
         if($ignore && $ignore[0] == null)
             $this->plug->write_warn(
