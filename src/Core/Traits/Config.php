@@ -6,6 +6,7 @@ namespace BrickLayer\Lay\Core\Traits;
 use BrickLayer\Lay\Core\Enums\LayMode;
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Libs\LayFn;
 use BrickLayer\Lay\Libs\LayMail;
 use BrickLayer\Lay\Orm\SQL;
 use Closure;
@@ -193,7 +194,10 @@ trait Config
 
         if ($key === "*") return $all;
 
-        return $all[$key];
+        if($key == "Bearer")
+            return $all['Authorization'] ? LayFn::ltrim_word($all['Authorization'], "Bearer ") : null;
+
+        return $all[$key] ?? null;
     }
 
     public static function get_os(): string
