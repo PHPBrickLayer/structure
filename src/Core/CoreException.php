@@ -164,7 +164,10 @@ class CoreException
         $headers_str = "";
         $headers_html = "";
 
-        foreach (LayConfig::headers() as $k => $v) {
+        foreach (LayConfig::get_header("*") as $k => $v) {
+            if(in_array($k, ["Cookie", "Accept-Language", "Accept-Encoding"], true))
+                continue;
+
             $headers_str .= "\n  [$k] $v";
             $headers_html .= "<b style='color:#dea303'>[$k]</b> <span>$v</span> <br>";
         }

@@ -292,7 +292,7 @@ final class ViewEngine {
         echo $onpage_script_tags_append;
 
         if(self::$meta_data->{self::key_core}->close_connection)
-            LayConfig::new()->close_sql();
+            LayConfig::new()->close_orm();
 
         return ob_get_clean();
     }
