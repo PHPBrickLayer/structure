@@ -30,7 +30,6 @@ trait Config{
     ];
 
     private static function _init(mysqli|array|null $connection) : void {
-
         self::new()->set_db($connection);
     }
 
@@ -42,7 +41,8 @@ trait Config{
         extract(self::$DB_ARGS);
         $charset = $charset ?? self::$CHARSET;
         $cxn = $this->ping(true,null, true);
-        $port = $port ?? null;
+        $port ??= 3306;
+        $port = (int) $port;
         $socket = $socket ?? null;
 
         if(!($cxn['host'] == $host and $cxn['user'] == $user and $cxn['db'] == $db)) {
@@ -166,6 +166,7 @@ trait Config{
 
         return false;
     }
+
     public function set_db(mysqli|array $args) : void {
         if(!is_array($args)) {
             $this->plug($args);
@@ -175,7 +176,9 @@ trait Config{
         self::$DB_ARGS = $args;
         $this->connect();
     }
+
     public function get_db_args() : array { return self::$DB_ARGS; }
+
     public function set_link(mysqli $link): void { self::$link = $link;}
 
     public function get_link(): ?mysqli { return self::$link ?? null; }
