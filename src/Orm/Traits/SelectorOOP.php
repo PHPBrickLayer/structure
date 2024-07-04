@@ -98,12 +98,12 @@ trait SelectorOOP
 
     final public function debug(): self
     {
-        return $this->store_vars('debug', 1);
+        return $this->store_vars('debug', true);
     }
 
     final public function catch(): self
     {
-        return $this->store_vars('catch', 1);
+        return $this->store_vars('catch', true);
     }
 
     final public function just_exec(): self
