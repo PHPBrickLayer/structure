@@ -13,6 +13,7 @@ use BrickLayer\Lay\Orm\Traits\Controller;
 use BrickLayer\Lay\Orm\Enums\OrmExecStatus;
 use Exception;
 use Generator;
+use JetBrains\PhpStorm\ArrayShape;
 use mysqli;
 use mysqli_result;
 use SQLite3Result;
@@ -92,7 +93,20 @@ class SQL
      * @param array $option Adjust the function to fit your use case;
      * @return int|bool|array|mysqli_result|SQLite3Result|Generator|null
      */
-    final public function query(string $query, array $option = []): int|bool|array|null|mysqli_result|SQLite3Result|Generator
+    final public function query(
+        string $query,
+        #[ArrayShape([
+            "debug" => "bool",
+            "catch" => "bool",
+            "can_be_null" => "bool",
+            "can_be_false" => "bool",
+            "loop" => "bool",
+            "except" => "string",
+            "return_as" => "BrickLayer\\Lay\\Orm\\Enums\\OrmReturnType",
+            "query_type" => "BrickLayer\\Lay\\Orm\\Enums\\OrmQueryType",
+            "fetch_as" => "BrickLayer\\Lay\\Orm\\Enums\\OrmReturnType",
+        ])] array $option = []
+    ): int|bool|array|null|mysqli_result|SQLite3Result|Generator
     {
         if (!isset(self::$link))
             self::exception(
@@ -101,8 +115,8 @@ class SQL
             );
 
         $option = LayArray::flatten($option);
-        $debug = $option['debug'] ?? 0;
-        $catch_error = $option['catch'] ?? 0;
+        $debug = $option['debug'] ?? false;
+        $catch_error = $option['catch'] ?? false;
         $return_as = $option['return_as'] ?? OrmReturnType::RESULT; // exec|result
         $can_be_null = $option['can_be_null'] ?? true;
         $can_be_false = $option['can_be_false'] ?? true;
@@ -213,8 +227,6 @@ class SQL
                 $option['fetch_as'] ?? OrmReturnType::BOTH,
                 $option['except'] ?? "",
                 $option['fun'] ?? null,
-                $option['result_dimension'] ?? 2,
-                $affected_rows
             );
 
             if(!$loop)
