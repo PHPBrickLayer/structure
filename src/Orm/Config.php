@@ -2,14 +2,18 @@
 declare(strict_types=1);
 namespace BrickLayer\Lay\Orm;
 use BrickLayer\Lay\Core\CoreException;
+use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Orm\Enums\OrmDriver;
 use BrickLayer\Lay\Orm\Enums\OrmQueryType;
 use BrickLayer\Lay\Orm\Enums\OrmReturnType;
 use mysqli;
+use SQLite3;
 
 trait Config{
-    private static mysqli $link;
+    private static mysqli|SQLite3 $link;
     private static string $CHARSET = "utf8mb4";
+    private static string $DB_FILE;
     private static array $DB_ARGS = [
         "host" => null,
         "user" => null,
@@ -17,7 +21,6 @@ trait Config{
         "db" => null,
         "port" => null,
         "socket" => null,
-        "env" => null,
         "silent" => false,
         "ssl" => [
             "key" => null,
@@ -29,11 +32,6 @@ trait Config{
         ],
     ];
 
-    private static function _init(mysqli|array|null $connection) : void {
-
-        self::new()->set_db($connection);
-    }
-
     /**
      * Connect Controller Manually From Here
      * @return mysqli|null
@@ -42,47 +40,89 @@ trait Config{
         extract(self::$DB_ARGS);
         $charset = $charset ?? self::$CHARSET;
         $cxn = $this->ping(true,null, true);
-        $port = $port ?? null;
+        $port ??= 3306;
+        $port = (int) $port;
         $socket = $socket ?? null;
 
-        if(!($cxn['host'] == $host and $cxn['user'] == $user and $cxn['db'] == $db)) {
-            $mysqli = null;
+        self::$db_name = $cxn['db'];
 
-            try {
-                if(!empty(@$ssl['certificate']) || !empty(@$ssl['ca_certificate'])){
-                    $mysqli = mysqli_init();
-                    mysqli_ssl_set(
-                        $mysqli,
-                        @$ssl['key'],
-                        @$ssl['certificate'],
-                        @$ssl['ca_certificate'],
-                        @$ssl['ca_path'],
-                        @$ssl['cipher_algos'],
-                    );
-                    mysqli_real_connect($mysqli, $host, $user, $password, $db, $port, $socket, (int) @$ssl['flag']);
-                }
+        if($cxn['host'] == $host and $cxn['user'] == $user and $cxn['db'] == $db)
+            return $this->get_link();
 
-                if (!$mysqli){
-                    $mysqli = mysqli_connect($host, $user, $password, $db, $port, $socket);
-                    $mysqli->set_charset($charset);
-                }
+        mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
+        $mysqli = mysqli_init();
 
-                $this->set_link($mysqli);
-            }catch (\Exception $e){}
+        if(!$mysqli)
+            self::exception(
+                "ConnErr",
+                "<div style='color: #e00; font-weight: bold; margin: 5px 1px;'>Cannot initialize connection</div>"
+            );
 
-            if(!$mysqli){
-                if (filter_var($silent,FILTER_VALIDATE_BOOL))
-                    return null;
-                else
-                    $this->exception(
-                        "ConnErr",
-                        "<div style='color: #e00; font-weight: bold; margin: 5px 1px;'>" . mysqli_connect_error() . "</div>"
-                    );
-            }
+//        $mysqli->options(MYSQLI_INIT_COMMAND, 'SET AUTOCOMMIT = 0');
+        $mysqli->options(MYSQLI_OPT_CONNECT_TIMEOUT, 5);
+
+        if (!empty(@$ssl['certificate']) || !empty(@$ssl['ca_certificate'])) {
+            $mysqli->ssl_set(
+                @$ssl['key'],
+                @$ssl['certificate'],
+                @$ssl['ca_certificate'],
+                @$ssl['ca_path'],
+                @$ssl['cipher_algos']
+            );
         }
 
-        return $this->get_link();
+        $connected = false;
+
+        try {
+            $connected = @$mysqli->real_connect($host, $user, $password, $db, $port, $socket, (int)@$ssl['flag']);
+        }
+        catch (\Exception $e) {}
+
+        if($connected) {
+            $mysqli->set_charset($charset);
+            $this->set_link($mysqli);
+            return $this->get_link();
+        }
+
+        if (filter_var($silent, FILTER_VALIDATE_BOOL))
+            return null;
+
+        self::exception(
+            "ConnErr",
+            "<div style='color: #e00; font-weight: bold; margin: 5px 1px;'>" . mysqli_connect_error() . "</div>"
+        );
+    }
+
+    private function connect_sqlite(string $db_file) : SQLite3
+    {
+        if(self::$active_driver !== OrmDriver::SQLITE)
+            self::exception(
+                "MismatchedDriver",
+                "Database connection argument is string [$db_file], but database driver is [" .
+                self::$active_driver->value . "]. Please change db driver to: " . OrmDriver::SQLITE->value
+            );
+
+        try {
+            $db = LayConfig::server_data()->db;
+
+            if(!is_dir($db)){
+                umask(0);
+                mkdir($db, 0755, true);
+            }
+
+            self::$db_name = str_replace("/", DIRECTORY_SEPARATOR, $db_file);
+            $file = $db . self::$db_name;
+            self::$link = new SQLite3($file);
+            self::$link->enableExceptions(true);
+        } catch (\Exception $e){
+            self::exception(
+                "SQLiteConnectionError",
+                "Error initializing SQLite DB [$file]: " . $e->getMessage(),
+                exception: $e
+            );
+        }
+        return self::$link;
     }
 
     /**
@@ -125,7 +165,7 @@ trait Config{
                     $host = $x['host_short'];
 
                     if (!$ignore_msg)
-                        $this->exception(
+                        self::exception(
                             "ConnTest",
                             <<<CONN
                             <h2>Connection Established!</h2>
@@ -144,7 +184,7 @@ trait Config{
                         );
                 }
                 else if (!$ignore_no_conn)
-                    $this->exception(
+                    self::exception(
                         "ConnErr",
                         "No connection detected: <h5 style='color: #008dc5'>Connection might be closed:</h5>",
                     );
@@ -152,12 +192,15 @@ trait Config{
         } return ["host" => $host, "user" => $usr, "db" => $db];
     }
 
-    public function close(?mysqli $link = null, bool $silent_error = false) : bool {
+    public function close(mysqli|SQLite3|null $link = null, bool $silent_error = false) : bool {
         try {
-            return mysqli_close($link ?? $this->get_link());
+            if($link)
+                return $link->close();
+
+            return self::get_link()->close();
         }catch (\Exception $e){
             if(!$silent_error)
-                $this->exception(
+                self::exception(
                     "ConnErr",
                     "<div style='color: #e00; font-weight: bold; margin: 5px 1px;'>Failed to close connection. No pre-existing DB connection</div>",
                     exception: $e
@@ -166,17 +209,39 @@ trait Config{
 
         return false;
     }
-    public function set_db(mysqli|array $args) : void {
-        if(!is_array($args)) {
-            $this->plug($args);
+
+    public function set_db(mysqli|array|string $args) : void {
+        if(is_string($args)) {
+            $this->connect_sqlite($args);
             return;
         }
 
-        self::$DB_ARGS = $args;
-        $this->connect();
-    }
-    public function get_db_args() : array { return self::$DB_ARGS; }
-    public function set_link(mysqli $link): void { self::$link = $link;}
+        if(is_array($args)) {
+            self::$DB_ARGS = $args;
+            $this->connect();
+            return;
+        }
 
-    public function get_link(): ?mysqli { return self::$link ?? null; }
+        $this->plug($args);
+    }
+
+    public function get_db_args() : array { return self::$DB_ARGS; }
+
+    public function set_link(mysqli|SQLite3 $link): void { self::$link = $link;}
+
+    public function get_link(): mysqli|SQLite3|null { return self::$link ?? null; }
+
+    public function escape_string(string $value) : string
+    {
+        if(!isset(self::$active_driver))
+            self::exception(
+                "AccessingDbWithoutConn",
+                "You are trying to access the database link without an active connection"
+            );
+
+        if (self::$active_driver == OrmDriver::MYSQL)
+            return self::$link->real_escape_string($value);
+
+        return self::$link::escapeString($value);
+    }
 }

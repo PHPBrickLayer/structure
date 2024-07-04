@@ -6,7 +6,7 @@ enum OrmReturnType {
     case ASSOC;
     case NUM;
     case BOTH;
-    case EXEC;
+    case EXECUTION;
     case RESULT;
     case GENERATOR;
 }

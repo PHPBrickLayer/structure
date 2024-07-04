@@ -3,7 +3,9 @@ declare(strict_types=1);
 namespace BrickLayer\Lay\Orm\Traits;
 
 use BrickLayer\Lay\Core\Exception;
+use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Libs\LayArray;
+use BrickLayer\Lay\Orm\Enums\OrmDriver;
 use BrickLayer\Lay\Orm\SQL;
 
 trait Clean {
@@ -33,10 +35,6 @@ trait Clean {
      * @return mixed
      */
     public function clean(mixed $value, float $level__combo = 0, ...$options): mixed {
-        // perquisite
-        $core = SQL::new();
-        $link = $core->get_link();
-
         $options = LayArray::flatten($options);
         $flags = $options['flag'] ?? $options['flags'] ?? ENT_QUOTES;
         $allowedTags = $options['allowed'] ?? $options['tags'] ?? $options['allowed_tags'] ?? "";
@@ -52,15 +50,17 @@ trait Clean {
         $find = $options['search'] ?? $options['find'] ?? self::$escape_string;
         $replace = $options['replace'] ?? $options['put'] ?? "";
 
-        $esc_str = function ($mode,$value) use($link){
+        $esc_str = function ($mode,$value) {
+            $esc_fn = fn($value) => LayConfig::get_orm()->escape_string($value);
+
             // Extra layer of security for escape string
             if($mode == "strict" || $mode == "PREVENT_SQL_INJECTION") {
                 $keyWords = ["SELECT","INSERT","DELETE","UPDATE","CREATE","DROP","SHOW","USE","DESCRIBE","DESC","ALTER","UNION","INFORMATION_SCHEMA"];
                 $keyWords = array_merge($keyWords, array_map("strtolower", $keyWords));
-                $value = str_replace($keyWords, array_map(fn($x) => mysqli_real_escape_string($link,$x), $keyWords), $value);
+                $value = str_replace($keyWords, array_map(fn($x) => $esc_fn($x), $keyWords), $value);
             }
 
-            return mysqli_real_escape_string($link,$value);
+            return $esc_fn($value);
         };
 
         // parse value

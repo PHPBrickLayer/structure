@@ -4,8 +4,9 @@ declare(strict_types=1);
 namespace BrickLayer\Lay\Libs;
 
 use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Libs\String\Enum\EscapeType;
+use BrickLayer\Lay\Libs\String\Escape;
 use BrickLayer\Lay\Orm\SQL;
-use Wolfcast\BrowserDetection;
 
 /**
  * Store session as cookie through accurate environment storage and encrypted storage token.
@@ -13,7 +14,6 @@ use Wolfcast\BrowserDetection;
  * \Lay\libs\LayCookieStorage::save_to_db("my-cookie"): void;
  * \Lay\libs\LayCookieStorage::check_db(): array;
  * \Lay\libs\LayCookieStorage::clear_from_db(): bool;
- * @uses \Wolfcast\BrowserDetection https://wolfcast.com/
  */
 abstract class LayCookieStorage
 {
@@ -40,7 +40,7 @@ abstract class LayCookieStorage
     private static function init(): void
     {
         if (!isset(self::$session_user_cookie))
-            self::$session_user_cookie = "lay_cok_" . self::orm()->clean(self::lay()::site_data()->name->short, 6);
+            self::$session_user_cookie = "lay_cok_" . Escape::clean(self::lay()::site_data()->name->short, EscapeType::P_URL);
 
         $_SESSION[self::SESSION_KEY]  = $_SESSION[self::SESSION_KEY]  ?? [];
 
@@ -172,10 +172,11 @@ abstract class LayCookieStorage
 
     private static function get_user_token(string $id): array
     {
-        $orm = self::orm();
-        $id = $orm->clean($id, 16, 'strict');
+        $id = Escape::clean($id, EscapeType::STRIP_TRIM_ESCAPE, [
+            "strict" => true
+        ]);
 
-        return $orm->open(self::$table)
+        return self::orm()->open(self::$table)
             ->column("created_by, auth")
             ->then_select("WHERE id='$id'");
     }
@@ -188,10 +189,10 @@ abstract class LayCookieStorage
     private static function store_user_token(string $user_id): ?string
     {
         $orm = self::orm();
-        $env_info = self::browser_info() . " IP: " . LayConfig::get_ip();
+        $env_info = self::browser_info();
         $expire = LayDate::date("30 days");
         $now = LayDate::date();
-        $user_id = $orm->clean($user_id, 16, 'strict');
+        $user_id = Escape::clean($user_id, EscapeType::STRIP_TRIM_ESCAPE, ['strict' => true]);
 
         self::delete_expired_tokens();
 
@@ -214,8 +215,7 @@ abstract class LayCookieStorage
 
     public static function browser_info(): string
     {
-        $browser = new BrowserDetection();
-        return $browser->getName() . " " . $browser->getPlatform() . " " . $browser->getUserAgent();
+        return LayConfig::get_os() . " " . LayConfig::get_header("User-Agent") . " IP: " . LayConfig::get_ip();
     }
 
     public static function clear_from_db(): void
@@ -230,7 +230,7 @@ abstract class LayCookieStorage
 
     private static function delete_user_token(string $token_id): void
     {
-        $token_id = self::orm()->clean($token_id, 11, 'PREVENT_SQL_INJECTION');
+        $token_id = Escape::clean($token_id, EscapeType::TRIM_ESCAPE);
         self::orm()->open(self::$table)->delete("id='$token_id'");
     }
 

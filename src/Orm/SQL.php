@@ -6,13 +6,16 @@ namespace BrickLayer\Lay\Orm;
 use BrickLayer\Lay\Core\CoreException;
 use BrickLayer\Lay\Core\Traits\IsSingleton;
 use BrickLayer\Lay\Libs\LayArray;
+use BrickLayer\Lay\Orm\Enums\OrmDriver;
 use BrickLayer\Lay\Orm\Enums\OrmQueryType;
 use BrickLayer\Lay\Orm\Enums\OrmReturnType;
 use BrickLayer\Lay\Orm\Traits\Controller;
 use BrickLayer\Lay\Orm\Enums\OrmExecStatus;
 use Exception;
+use Generator;
 use mysqli;
 use mysqli_result;
+use SQLite3Result;
 
 /**
  * Simple Query Language
@@ -24,15 +27,47 @@ class SQL
     use Controller;
 
     public array $query_info;
+    private static OrmDriver $active_driver;
+    private static string $db_name;
+
+    public static function get_driver() : OrmDriver
+    {
+        if(isset(self::$active_driver))
+            return self::$active_driver;
+
+        if(!isset($_ENV['DB_DRIVER']))
+            self::exception(
+                "NoDBDriverFound",
+                "No Database driver was found. It's possible that you called this method before initializing the ORM"
+            );
+
+        if($driver = self::test_driver($_ENV['DB_DRIVER']))
+            return $driver;
+
+        self::exception(
+            "UnidentifiedDriver",
+            "An unidentified database driver was found: " . $_ENV['DB_DRIVER']
+        );
+    }
+
+    public static function test_driver(string $string) : ?OrmDriver
+    {
+        return match ($string) {
+            default => null,
+            "mysql" => OrmDriver::MYSQL,
+            "sqlite" => OrmDriver::SQLITE
+        };
+    }
 
     /**
-     * @param $connection mysqli|array|null The link to a mysqli connection or an array of [host, user, password, db]
+     * @param $connection mysqli|array|null|string The link to a mysqli connection or an array of [host, user, password, db]
      * When nothing is passed, the class assumes dev isn't doing any db operation
      */
-    public static function init(mysqli|array|null $connection = null): self
+    public static function init(mysqli|array|null|string $connection = null, OrmDriver $driver = OrmDriver::MYSQL): self
     {
-        self::_init($connection);
-        return self::instance();
+        self::$active_driver = $driver;
+        self::new()->set_db($connection);
+        return self::new();
     }
 
     public function switch_db(string $name): bool
@@ -41,7 +76,7 @@ class SQL
         return mysqli_select_db(self::$link, $name);
     }
 
-    public function exception(string $title, string $message, array $opts = [], $exception = null) : void
+    public static function exception(string $title, string $message, array $opts = [], $exception = null) : void
     {
         CoreException::new()->use_exception(
             "OrmExp_" . $title,
@@ -55,12 +90,12 @@ class SQL
      * Query Engine
      * @param string $query
      * @param array $option Adjust the function to fit your use case;
-     * @return int|bool|array|mysqli_result|\Generator|null
+     * @return int|bool|array|mysqli_result|SQLite3Result|Generator|null
      */
-    final public function query(string $query, array $option = []): int|bool|array|null|mysqli_result|\Generator
+    final public function query(string $query, array $option = []): int|bool|array|null|mysqli_result|SQLite3Result|Generator
     {
         if (!isset(self::$link))
-            $this->exception(
+            self::exception(
                 "ConnErr",
                 "No connection detected: <h5>Connection might be closed!</h5>",
             );
@@ -81,9 +116,11 @@ class SQL
         }
 
         if ($debug)
-            $this->exception(
+            self::exception(
                 "QueryReview",
-                "<pre style='color: #dea303 !important'>$query</pre>",
+                "<pre style='color: #dea303 !important'>$query</pre>
+                    <div style='margin: 10px 0'>DB: <span style='color: #00A261'>" . self::$db_name . "</span></div>
+                    <div style='margin: 10px 0'>Driver: <span style='color: #00A261'>" . self::$active_driver->value . "</span></div>",
                 [ "type" => "view" ]
             );
 
@@ -92,17 +129,20 @@ class SQL
         $has_error = false;
 
         try {
-            $exec = mysqli_query(self::$link, $query);
+            $exec = self::$link->query($query);
         } catch (Exception $e) {
             $has_error = true;
             if ($exec === false && $catch_error === 0) {
                 $query_type = is_string($query_type) ? $query_type : $query_type->name;
 
-                $this->exception(
+                self::exception(
                     "QueryExec",
-                    "<b style='color: #008dc5'>" . mysqli_error($this->get_link()) . "</b> 
+                    "<b style='color: #008dc5'>" . (self::$link->error ?? self::$link->lastErrorMsg()) . "</b> 
                     <div style='color: #fff0b3; margin-top: 5px'>$query</div> 
-                    <div style='margin: 10px 0'>Statement: $query_type</div>",
+                    <div style='margin: 10px 0'>Statement: $query_type</div>
+                    <div style='margin: 10px 0'>DB: <span style='color: #00A261'>" . self::$db_name . "</span></div>
+                    <div style='margin: 10px 0'>Driver: <span style='color: #00A261'>" . self::$active_driver->value . "</span></div>
+                    ",
                     exception: $e
                 );
             }
@@ -116,18 +156,30 @@ class SQL
             "has_error" => $has_error
         ];
 
-        if($return_as == OrmReturnType::EXEC)
+        if($return_as == OrmReturnType::EXECUTION)
             return $exec;
 
-        if ($query_type == OrmQueryType::COUNT)
-            return $this->query_info['data'] = (int)mysqli_fetch_row($exec)[0];
+        if ($query_type == OrmQueryType::COUNT) {
+            if(self::$active_driver == OrmDriver::SQLITE)
+                return $this->query_info['data'] = (int)$exec->fetchArray(SQLITE3_NUM);
+
+            return $this->query_info['data'] = (int)$exec->fetch_row()[0];
+        }
 
         // prevent select queries from returning bool
         if (in_array($query_type, [OrmQueryType::SELECT, OrmQueryType::LAST_INSERTED]))
             $can_be_false = false;
 
-        // Sort out result
-        if (mysqli_affected_rows(self::$link) == 0) {
+        // Get affected rows count
+        if(self::$active_driver == OrmDriver::SQLITE && ($query_type == OrmQueryType::SELECT || $query_type == OrmQueryType::SELECT->name)) {
+            $x = explode("FROM", $query,2)[1];
+            $affected_rows = self::$link->querySingle("SELECT COUNT (*) FROM" . rtrim($x, ";") . ";");
+        }
+
+        $affected_rows = $affected_rows ?? self::$link->affected_rows ?? self::$link->changes();
+
+        // Record no row if there isn't any
+        if ($affected_rows == 0) {
             $this->query_info['has_data'] = false;
 
             if ($query_type == OrmQueryType::SELECT || $query_type == OrmQueryType::LAST_INSERTED)
@@ -161,7 +213,8 @@ class SQL
                 $option['fetch_as'] ?? OrmReturnType::BOTH,
                 $option['except'] ?? "",
                 $option['fun'] ?? null,
-                $option['result_dimension'] ?? 2
+                $option['result_dimension'] ?? 2,
+                $affected_rows
             );
 
             if(!$loop)
@@ -171,8 +224,10 @@ class SQL
                 $exec = $exec ?? [];
 
             $this->query_info['data'] = $exec;
+
+            return $exec;
         }
 
-        return $exec;
+        return (bool) $affected_rows;
     }
 }

@@ -5,6 +5,8 @@ namespace BrickLayer\Lay\Libs\ID;
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\Traits\IsSingleton;
+use BrickLayer\Lay\Libs\String\Enum\EscapeType;
+use BrickLayer\Lay\Libs\String\Escape;
 
 class Gen
 {
@@ -36,7 +38,9 @@ class Gen
 
     protected static function count(string $table, string $column, $value) : bool {
         $orm = LayConfig::get_orm();
-        $value = $orm->clean($value,16,'strict');
+        $value = Escape::clean($value,EscapeType::STRIP_TRIM_ESCAPE, [
+            "strict" => true
+        ]);
         return $orm->open($table)->count_row($column,"$column='$value'") > 0;
     }
 
