@@ -4,10 +4,12 @@ declare(strict_types=1);
 namespace BrickLayer\Lay\Orm\Traits;
 
 use BrickLayer\Lay\Core\Exception;
+use BrickLayer\Lay\Libs\LayArray;
 use BrickLayer\Lay\Orm\Enums\OrmReturnType;
 use BrickLayer\Lay\Orm\SQL;
 use Closure;
 use Generator;
+use JetBrains\PhpStorm\ArrayShape;
 use JetBrains\PhpStorm\ExpectedValues;
 
 trait SelectorOOP
@@ -106,8 +108,25 @@ trait SelectorOOP
 
     final public function just_exec(): self
     {
-        return $this->store_vars('return_as', OrmReturnType::EXEC);
+        return $this->store_vars('return_as', OrmReturnType::EXECUTION);
     }
+
+    final public function bind_num(array $num_array): self
+    {
+        if(@LayArray::some($num_array, fn($v,$i) => is_string($i))[0])
+            $this->oop_exception("`->bind_num()` method accepts numbered index only. If you wish to use named index, use `->bind_assoc`");
+
+        return $this->store_vars('bind_num', $num_array);
+    }
+
+    final public function bind_assoc(array $assoc_array): self
+    {
+        if(@LayArray::some($assoc_array, fn($v,$i) => is_int($i))[0])
+            $this->oop_exception("`->bind_assoc()` method accepts stringed index only. If you wish to use numbered index, use `->bind_num`");
+
+        return $this->store_vars('bind_assoc', $assoc_array);
+    }
+
 
     final public function group(string $condition): self
     {

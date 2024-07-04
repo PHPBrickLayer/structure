@@ -2,9 +2,10 @@
 
 namespace BrickLayer\Lay\Orm\Traits;
 
+use BrickLayer\Lay\Libs\String\Enum\EscapeType;
+use BrickLayer\Lay\Libs\String\Escape;
 use BrickLayer\Lay\Orm\Enums\OrmQueryType;
 use BrickLayer\Lay\Orm\Enums\OrmReturnType;
-use BrickLayer\Lay\Orm\SQL;
 use Exception;
 use Generator;
 
@@ -108,6 +109,34 @@ trait SelectorOOPCrud
         };
     }
 
+    private function bind_param(string $string, array $data) : string
+    {
+        $bind_num = $data['bind_num'] ?? null;
+        $bind_assoc = $data['bind_assoc'] ?? null;
+
+        if($bind_num) {
+            foreach ($bind_num as $b) {
+                if(gettype($b) != "integer")
+                    $b = "'$b'";
+
+                $string = preg_replace("~\?~", "$b", $string, 1);
+            }
+        }
+
+        if($bind_assoc) {
+            foreach ($bind_assoc as $k => $b) {
+                if(gettype($b) != "integer")
+                    $b = "'$b'";
+
+                $k = ":" . ltrim($k, ":");
+
+                $string = preg_replace("~($k)~", "$b", $string, 1);
+            }
+        }
+
+        return $string;
+    }
+
     final public function insert(?array $column_and_values = null): bool
     {
         $d = $this->get_vars();
@@ -122,9 +151,8 @@ trait SelectorOOPCrud
             $cols = "";
 
             try {
-                $SQL = SQL::new();
                 foreach ($column_and_values as $k => $c) {
-                    $c = $SQL->clean($c, 11, 'PREVENT_SQL_INJECTION');
+                    $c = Escape::clean($c, EscapeType::TRIM_ESCAPE);
 
                     if($c === null) {
                         $cols .= "`$k`=NULL,";
@@ -198,7 +226,7 @@ trait SelectorOOPCrud
             $cols = "";
             try {
                 foreach ($values as $k => $c) {
-                    $c = SQL::instance()->clean($c, 11, 'PREVENT_SQL_INJECTION');
+                    $c = Escape::clean($c, EscapeType::TRIM_ESCAPE);
                     $cols .= $c == null ? "`$k`=NULL," : "`$k`='$c',";
                 }
             } catch (Exception $e) {
@@ -238,6 +266,8 @@ trait SelectorOOPCrud
         );
     }
 
+    final public function update() : bool { return $this->edit(); }
+
     final public function select(?array $__Internal__ = null): array|null|Generator|\mysqli_result
     {
         $d = $__Internal__ ?? $this->get_vars();
@@ -247,7 +277,6 @@ trait SelectorOOPCrud
         $sort = $d['sort'] ?? null;
         $limit = $d['limit'] ?? null;
         $clause = $d['clause'] ?? "";
-        $between_clause = $clause;
         $cols = $d['values'] ?? $d['columns'] ?? "*";
         $between = $d['between'] ?? null;
         $between_allow_null = true;
@@ -256,14 +285,13 @@ trait SelectorOOPCrud
         $can_be_null = $d['can_be_null'] ?? true;
         $return_type = $can_be_null ? "array|object|null" : "array|object";
 
-
         if (empty($table))
             $this->oop_exception("You did not initialize the `table`. Use the `->table(String)` method like this: `->value('your_table_name')`");
 
         if($between) {
             $between['start'] = $between['format'] ? date("Y-m-d", strtotime($between['start'])) : $between['format'];
             $between['end'] = $between['format'] ? date("Y-m-d", strtotime($between['end'])) : $between['format'];
-            $between_allow_null = $between['allow_null'] ?? $between_allow_null;
+            $between_allow_null = $between['allow_null'] ?? true;
             $between = $between['col'] . " BETWEEN '" . $between['start'] . "' AND '" . $between['end'] . "'";
 
             $clause = $clause ? $clause . " AND ($between) " : "WHERE " . $between;
@@ -320,6 +348,8 @@ trait SelectorOOPCrud
 
         if (isset($d['join']))
             $clause = $this->_join($d) . $clause;
+
+        $clause = $this->bind_param($clause, $d);
 
         $rtn = $this->capture_result(
             [$this->query("SELECT $cols FROM $table $clause", $d), $d],

@@ -2,6 +2,8 @@
 declare(strict_types=1);
 namespace BrickLayer\Lay\Libs;
 
+use BrickLayer\Lay\Libs\String\Enum\EscapeType;
+use BrickLayer\Lay\Libs\String\Escape;
 use JetBrains\PhpStorm\ArrayShape;
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
@@ -54,10 +56,10 @@ final class LayImage{
      * @param int $quality image result quality [max value = 100 && min value = 0]
      * @param bool $resize default: false
      * @param int|null $width resize image width
-     * @param int|null $height resize image height
-     * @return LayImage
+     * @param bool $add_mod_time
+     * @return string
      */
-    public function create(string $tmpImage, string $newImage, int $quality = 80, bool $resize = false, ?int $width = null, ?int $height = null, bool $add_mod_time = true) : string {
+    public function create(string $tmpImage, string $newImage, int $quality = 80, bool $resize = false, ?int $width = null, bool $add_mod_time = true) : string {
         $ext = image_type_to_extension(exif_imagetype($tmpImage),false);
         $mod_time = $add_mod_time ? "-" .  filemtime($tmpImage) : "";
         $newImage .= $mod_time . ($ext == "gif" ? ".$ext" : ".webp");
@@ -141,7 +143,7 @@ final class LayImage{
             $tmpFolder = $lay::mk_tmp_dir();
 
             $tmpImg = $tmpFolder . "temp-file";
-            $directory = $directory . DIRECTORY_SEPARATOR . $lay::get_orm()->clean($new_name,6);
+            $directory = $directory . DIRECTORY_SEPARATOR . Escape::clean($new_name,EscapeType::P_URL);
 
             if (!extension_loaded("gd"))
                 $this->exception("GD Library not installed, please install php-gd extension and try again");
@@ -153,7 +155,7 @@ final class LayImage{
                 $tmpImg = $tmp_name;
 
             $file_name = $dimension ?
-                $this->create($tmpImg, $directory, $quality, true, $dimension[0], $dimension[1], $add_mod_time) :
+                $this->create($tmpImg, $directory, $quality, true, $dimension[0], $add_mod_time) :
                 $this->create($tmpImg, $directory, $quality, add_mod_time: $add_mod_time);
 
             @unlink($tmpImg);

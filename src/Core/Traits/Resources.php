@@ -27,6 +27,7 @@ trait Resources {
         $obj->root              =   $dir;
         $obj->temp              =   $dir  .   ".lay_temp" .   $slash;
         $obj->bricks            =   $dir  .   "bricks"    .   $slash;
+        $obj->db                =   $dir  .   "db"        .   $slash;
         $obj->utils             =   $dir  .   "utils"     .   $slash;
         $obj->web               =   $dir  .   "web"       .   $slash;
         $obj->shared            =   $dir  .   "web"       .   $slash .    "shared" .  $slash;
@@ -69,6 +70,7 @@ trait Resources {
         "root" => 'string',
         "temp" => 'string',
         "bricks" => 'string',
+        "db" => 'string',
         "utils" => 'string',
         "web" => 'string',
         "shared" => 'string',

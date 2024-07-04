@@ -120,23 +120,9 @@ trait Config
     {
         if (isset(self::$SMTP_ARRAY)) return;
 
-        $parse = function ($value): ?string {
-            if (empty($value)) return null;
-
-            $code = "@layConfig";
-
-            if (str_starts_with($value, $code)) {
-                $value = explode($code, $value);
-                $value = end($value);
-                $value = eval("return \BrickLayer\Lay\Core\LayConfig{$value};");
-            }
-
-            return $value;
-        };
-
         self::load_env();
 
-        self::$SMTP_ARRAY = ["host" => $_ENV['SMTP_HOST'], "port" => $_ENV['SMTP_PORT'], "protocol" => $_ENV['SMTP_PROTOCOL'], "username" => $_ENV['SMTP_USERNAME'], "password" => $_ENV['SMTP_PASSWORD'], "default_sender_name" => $parse(@$_ENV['DEFAULT_SENDER_NAME']), "default_sender_email" => $parse(@$_ENV['DEFAULT_SENDER_EMAIL']),];
+        self::$SMTP_ARRAY = ["host" => $_ENV['SMTP_HOST'], "port" => $_ENV['SMTP_PORT'], "protocol" => $_ENV['SMTP_PROTOCOL'], "username" => $_ENV['SMTP_USERNAME'], "password" => $_ENV['SMTP_PASSWORD'], "default_sender_name" => $_ENV['DEFAULT_SENDER_NAME'], "default_sender_email" => $_ENV['DEFAULT_SENDER_EMAIL'],];
 
         LayMail::set_credentials(self::$SMTP_ARRAY);
     }

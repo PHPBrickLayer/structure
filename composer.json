@@ -28,8 +28,8 @@
         "ext-gd": "*",
         "ext-fileinfo": "*",
         "ext-dom": "*",
+        "ext-sqlite3": "*",
         "vlucas/phpdotenv": "^5.5.0",
-        "wolfcast/browser-detection": "^2.9.7",
         "phpmailer/phpmailer": "^6.8.0",
         "aws/aws-sdk-php": "^3.296"
     },
@@ -38,12 +38,5 @@
     },
 
     "minimum-stability": "stable",
-    "prefer-stable": true,
-
-    "extra": {
-        "npm-packages": {
-            "terser": "5.15.1",
-            "clean-css": "3.4.12"
-        }
-    }
+    "prefer-stable": true
 }
