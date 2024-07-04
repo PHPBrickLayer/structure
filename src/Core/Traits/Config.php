@@ -10,6 +10,7 @@ use BrickLayer\Lay\Libs\LayFn;
 use BrickLayer\Lay\Libs\LayMail;
 use BrickLayer\Lay\Orm\SQL;
 use Closure;
+use JetBrains\PhpStorm\ArrayShape;
 use mysqli;
 use TypeError;
 
@@ -27,7 +28,17 @@ trait Config
     private static string $SESSION_KEY = "__LAY_VARS__";
     private static string $GLOBAL_API;
 
-    public static function session_start(array $flags = []): void
+    public static function session_start(#[ArrayShape([
+        "expose_php" => "bool",
+        "timezone" => "string",
+        "only_cookies" => "int",
+        "http_only" => "bool",
+        "secure" => "bool",
+        "samesite" => "string",
+        "domain" => "string",
+        "path" => "string",
+        "lifetime" => "int",
+    ])] array $flags = []): void
     {
         $cookie_opt = [];
         $flags['expose_php'] ??= false;
