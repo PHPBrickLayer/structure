@@ -127,11 +127,16 @@ trait Config
         LayMail::set_credentials(self::$SMTP_ARRAY);
     }
 
-    public static function get_orm(): SQL
+    public static function get_orm(bool $connect_db = false): SQL
     {
         self::is_init();
 
-        if (!isset(self::$SQL_INSTANCE)) Exception::throw_exception("Trying to access the database without connecting; use`\$this->builder->connect_db()` to connect db.", "OrmNotDetected");
+        if (!isset(self::$SQL_INSTANCE) && !$connect_db)
+            Exception::throw_exception(
+                "Trying to access the database without connecting; use`\$this->builder->connect_db()` in a `Plaster.php` file or `LayConfig::connect()` to connect db.",
+                "OrmNotDetected"
+            );
+        self::connect();
 
         return self::$SQL_INSTANCE;
     }
