@@ -81,14 +81,16 @@ class Escape
             self::exception(
                 "NonString",
                 "A non stringed value was received in a strict environment. In <b>strict</b> mode, only stringed values are accepted\n"
-                . "<div>Type: <b>" . gettype($value) . "</b></div>"
+                . "<div>Value: <span style='font-weight: bold; color: #0dcaf0'>" . print_r($value, true) . "</span></div>\n"
+                . "<div>Type: <span style='font-weight: bold; color: #0dcaf0'>" . gettype($value) . "</span></div>"
             );
 
         if(!is_string($value) && !is_numeric($value))
             self::exception(
                 "InvalidValue",
                 "An unaccepted value data type was received. Allowed types are <b>string and number</b>\n"
-                . "<div>Type: <b>" . gettype($value) . "</b></div>"
+                . "<div>Value: <span style='font-weight: bold; color: #0dcaf0'>" . print_r($value, true) . "</span></div>\n"
+                . "<div>Type: <span style='font-weight: bold; color: #0dcaf0'>" . gettype($value) . "</span></div>"
             );
 
         if (is_numeric($value))
@@ -132,28 +134,28 @@ class Escape
                     );
 
                 $type_or_combo = [$type_or_combo];
-            break;
+                break;
             case EscapeType::STRIP_TRIM_ESCAPE: // 16
                 $type_or_combo = [EscapeType::P_STRIP, EscapeType::P_TRIM, EscapeType::P_ESCAPE];
-            break;
+                break;
             case EscapeType::STRIP_ESCAPE:
                 $type_or_combo = [EscapeType::P_STRIP, EscapeType::P_ESCAPE];
-            break;
+                break;
             case EscapeType::TRIM_ESCAPE:
                 $type_or_combo = [EscapeType::P_TRIM, EscapeType::P_ESCAPE];
-            break;
+                break;
             case EscapeType::ESCAPE_SPEC_CHAR:
                 $type_or_combo = [EscapeType::P_ESCAPE, EscapeType::P_SPEC_CHAR];
-            break;
+                break;
             case EscapeType::SPEC_CHAR_STRIP:
                 $type_or_combo = [EscapeType::P_SPEC_CHAR, EscapeType::P_STRIP];
-            break;
+                break;
             case EscapeType::STRIP_TRIM:
                 $type_or_combo = [EscapeType::P_STRIP, EscapeType::P_TRIM];
-            break;
+                break;
             case EscapeType::ALL:
                 $type_or_combo = [EscapeType::P_STRIP, EscapeType::P_SPEC_CHAR, EscapeType::P_TRIM, EscapeType::P_ESCAPE];
-            break;
+                break;
         }
 
         return $permute($type_or_combo, $value);
