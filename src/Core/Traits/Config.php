@@ -202,9 +202,41 @@ trait Config
         return $all[$key] ?? $all[strtolower($key)] ?? null;
     }
 
+    #[ArrayShape([
+        "agent" => "string",
+        "product" => "string",
+        "platform" => "string",
+        "engine" => "string",
+        "browser" => "string",
+    ])]
+    public static function user_agent() : ?array
+    {
+        $agent = $_SERVER['HTTP_USER_AGENT'] ?? null;
+
+        if(!$agent)
+            return null;
+
+        // Define the regex pattern
+        $pattern = '/^(?<product>.*?)\s\((?<platform>.*?)\)\s(?<engine>.*?)\s\((?<engine2>.*?)\)\s(?<browser>.*?)$/';
+        preg_match($pattern, $agent, $matches);
+
+        if(empty($matches))
+            return null;
+
+        return [
+            "agent" => $matches[0],
+            "product" => $matches['product'],
+            "platform" => $matches['platform'],
+            "engine" => $matches['engine'] . " (" . $matches['engine2']  .")",
+            "browser" => $matches['browser'],
+        ];
+    }
+
     public static function get_os(): string
     {
-        $OS = strtoupper(PHP_OS);
+        $OS = self::user_agent()['platform'] ?? null;
+        $OS ??= PHP_OS;
+        $OS = strtoupper($OS);
 
         if (str_starts_with($OS, "DAR") || str_starts_with($OS, "MAC")) return "MAC";
 
