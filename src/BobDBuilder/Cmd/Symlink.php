@@ -112,12 +112,16 @@ class Symlink implements CmdLayout
         $links = json_decode(file_get_contents(self::$link_db), true);
 
         foreach ($links as $i => $link) {
+            $src = $this->plug->server->root . $link['src'];
             $dest = $this->plug->server->root . $link['dest'];
 
             if($link['type'] == "htaccess")
                 $dest = $this->plug->server->domains . $link['dest'] . ".htaccess";
 
             if(!is_link($dest))
+                unset($links[$i]);
+
+            if(!is_file($src) and !is_dir($src))
                 unset($links[$i]);
         }
 
