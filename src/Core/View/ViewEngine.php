@@ -275,18 +275,14 @@ final class ViewEngine {
             "app" => implode($matches['style_dwn']),
         ];
 
-        $onpage_script_tags_prepend = implode($matches['script_top']);
-        $onpage_script_tags_append = implode($matches['script_dwn']);
-        $body = implode($matches['html_content']);
-
         ob_start();
-        echo $body;
+        echo implode($matches['html_content']);
 
-        echo $this->core_script();
-        echo $onpage_script_tags_prepend;
+        $this->core_script();
+        echo implode($matches['script_top']);
         $this->add_view_section(self::key_script);
         $this->dump_assets("js");
-        echo $onpage_script_tags_append;
+        echo implode($matches['script_dwn']);
 
         if(self::$meta_data->{self::key_core}->close_connection)
             LayConfig::new()->close_orm();
@@ -449,14 +445,16 @@ final class ViewEngine {
         return $script->defer((bool) $defer)->src($src, false);
     }
 
-    private function core_script() : string {
+    private function core_script() : void {
         $meta = self::$meta_data;
         $layConfig = LayConfig::new();
         $js_template = fn ($src, $attr = []) => $this->script_tag_template($src, $attr);
         $core_script = "";
 
-        if(!$meta->{self::key_core}->use_lay_script)
-            return $core_script;
+        if(!$meta->{self::key_core}->use_lay_script) {
+            echo $core_script;
+            return;
+        }
 
         $s = DIRECTORY_SEPARATOR;
         $domain = DomainResource::get();
@@ -476,6 +474,6 @@ final class ViewEngine {
         $core_script .= $omj ?? $js_template($lay_base . 'index.js',['defer' => false]);
         $core_script .= $const ?? $js_template($lay_base . 'constants.js', ['defer' => false]);
 
-        return $core_script;
+        echo $core_script;
     }
 }
