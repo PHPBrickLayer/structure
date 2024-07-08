@@ -16,6 +16,7 @@ class Deploy implements CmdLayout
     private string $root;
     private ?string $commit_msg;
     private ?string $ignore;
+    private ?string $copy_only;
     private string $no_cache;
     private bool $push_git = true;
     private bool $git_only = false;
@@ -45,7 +46,8 @@ class Deploy implements CmdLayout
         $this->git_only = $this->plug->extract_tags(["-go", "--git-only"], true)[0] ?? false;
 
         $ignore = $this->plug->extract_tags(["--ignore"], 0);
-        $ignore_file = $this->root . "ignore.bob";
+        $copy = $this->plug->extract_tags(["--copy-only"], 0);
+        $ignore_file = $this->root . "bob.ignore.json";
 
         if($ignore && $ignore[0] == null)
             $this->plug->write_warn(
@@ -53,12 +55,22 @@ class Deploy implements CmdLayout
                 . "Example: --ignore 'ckeditor,sass,font.wotff'"
             );
 
+        if($copy && $copy[0] == null)
+            $this->plug->write_warn(
+                "You added the copy-only flag but didn't include the folder or file to copy only.\n"
+                . "Example: --copy-only 'ckeditor,sass,font.wotff'"
+            );
+
         $this->ignore = $ignore[0] ?? null;
+        $this->copy_only = $copy[0] ?? null;
 
         if(file_exists($ignore_file)) {
-            $ignore_file = str_replace("\n", ",", file_get_contents($ignore_file));
+            $ignore = json_decode(file_get_contents($ignore_file));
+            $ignore_file = implode(",", $ignore->ignore);
+            $copy_file = implode(",", $ignore->copy_only);
 
             $this->ignore = $this->ignore ? $this->ignore . "," . $ignore_file : $ignore_file;
+            $this->copy_only = $this->copy_only ? $this->copy_only . "," . $copy_file : $copy_file;
         }
 
         if($this->ignore)
@@ -90,6 +102,7 @@ class Deploy implements CmdLayout
     public function batch_minification(string $src_dir, string $output_dir): void
     {
         $ignore = $this->ignore ? explode(",", $this->ignore) : [];
+        $copy_only = $this->copy_only ? explode(",", $this->copy_only) : [];
         $core_ignore = ["node_modules", "scss"];
 
         $error = [];
@@ -121,7 +134,30 @@ class Deploy implements CmdLayout
             },
 
             // After the file has been copied, work on it if it meets our criteria
-            post_copy: function ($file,$parent_dir,$output_dir) use ($is_css, $is_js, &$error, &$changes) {
+            post_copy: function ($file,$parent_dir,$output_dir) use ($is_css, $is_js, &$error, &$changes, $copy_only) {
+
+                // Check if directory matches one that needs to be copied only
+                foreach ($copy_only as $copy) {
+                    $regex_pattern = preg_quote($copy, '/');
+                    $regex_pattern = str_replace('\*', '[^/]*', $regex_pattern);
+                    $regex_pattern = '#' . $regex_pattern . '$#';
+
+                    preg_match($regex_pattern, $parent_dir, $match);
+
+                    if($match) {
+                        $changes++;
+                        return CustomContinueBreak::CONTINUE;
+                    }
+                }
+
+                // Check if file matches one that needs to be copied only
+                if(in_array($file, $copy_only,true)) {
+                    $changes++;
+                    return CustomContinueBreak::CONTINUE;
+                }
+
+                // Start file compression
+
                 $output = $output_dir . DIRECTORY_SEPARATOR . $file;
                 $file = $parent_dir . DIRECTORY_SEPARATOR . $file;
                 $return = null;
