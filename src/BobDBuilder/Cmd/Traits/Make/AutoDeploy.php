@@ -65,6 +65,16 @@ trait AutoDeploy
                     header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
                 }
             );
+            
+            \$hook_file = LayConfig::server_data()->temp . "git_webhook.txt";
+            file_put_contents(\$hook_file, "[" . date("Y-m-d H:i:s e") . "]\n");
+            
+            function x_hook_logger(?string \$action) : void
+            {
+                global \$hook_file;
+            
+                file_put_contents(\$hook_file, "\$action \n", FILE_APPEND);
+            }
             FILE
         );
 
@@ -83,54 +93,55 @@ trait AutoDeploy
 
             include_once "foundation.php";
             
+            \$main_branch = "main";
+            
             // Replace [PRIMARY_DOMAIN] with your actual primary domain. 
             // Create a subdomain entry on your dns. 
-            // Finally, paste the link below to github or your CI platform
-            // https://$pattern.[PRIMARY_DOMAIN]/$uuid
-            // As you can see, we recommend using a subdomain as your webhook url. 
-            
-            // Alternatively, you can link:dir this domain directory to a particular domain and access through there
-            // https://[PRIMARY_DOMAIN]/$pattern/$uuid
+            // Finally, paste the link below to github or your CI/CD platform
+            // https://$pattern.[PRIMARY_DOMAIN]/$uuid 
             
             // Verify webhook from GitHub
-            if(\$_SERVER['REQUEST_METHOD'] !== 'POST' or @\$_GET['brick'] !== "$uuid") {
+            if(!isset(\$_SERVER['REQUEST_METHOD']))
+                Exception::throw_exception("Wrong mode of contact", "GitADMismatched");
+
+            if(\$_SERVER['REQUEST_METHOD'] !== 'POST' or @\$_GET['brick'] !== "$uuid")
                 Exception::throw_exception("Invalid endpoint met! please check your uuid and try again", "GitADMismatched");
-                die;
-            }
-
-            \$main_branch = "main";
-
-            print "GitAD Responds With: \\n";
 
             \$post = json_decode(\$_POST['payload']);
 
             if(!isset(\$post->pull_request)) {
-                echo \$post?->action?->zen;
-                die;
+                x_hook_logger(\$post?->action?->zen);
+                return;
             }
 
             if(\$post->pull_request->state != "closed") {
-                echo "Pull Request: " . \$post->pull_request->state;
-                die;
+                x_hook_logger("Pull Request: " . \$post->pull_request->state);
+                return;
             }
 
-            shell_exec("git submodule init 2>&1 &");
-            shell_exec("git checkout \$main_branch 2>&1 &");
-            shell_exec('git fetch --all 2>&1 &');
-            shell_exec("git reset --hard origin/\$main_branch 2>&1 &");
-            
-            print "Symlinks are being refreshed \\n";
-            \$bob = LayConfig::server_data()->root . "bob";
-            shell_exec("php \$bob link:refresh 2>&1 &");
+            \$log = "";
 
+            \$log .= "-- Submodule Init: " . shell_exec("git submodule init 2>&1 &") . " \n";
+            \$log .= "-- Git Checkout: " . shell_exec("git checkout \$main_branch 2>&1 &") . "\n";
+            \$log .= "-- Git Fetch: " . shell_exec('git fetch --all 2>&1 &') . "\n";
+            \$log .= "-- Git Reset: " . shell_exec("git reset --hard origin/\$main_branch 2>&1 &") . "\n";
+            
+            \$log .= "\n";
+            \$log .= "-- Symlinks are being refreshed\n";
+            
+            \$bob = LayConfig::server_data()->root . "bob";
+            \$log .= "-- Link Refresh: " . shell_exec("php \$bob link:refresh 2>&1 &") . "\n";
+            
             // push composer deployment for later execution to avoid 504 (timeout error)
-            echo LayCron::new()
+            \$log .= "-- Cronjob: " . LayCron::new()
                 ->job_id("update-composer-pkgs")
                 ->every_minute()
                 ->just_once()
-                ->new_job("bob up_composer")['msg'];
+                ->new_job("bob up_composer")['msg']
+            ;
             
-            echo "<br> Done";
+            x_hook_logger($log);
+            print "Done!";
             FILE
         );
 
