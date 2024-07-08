@@ -114,11 +114,12 @@ trait AutoDeploy
                 die;
             }
 
-            echo shell_exec("git checkout \$main_branch 2>&1 &");
-            echo shell_exec('git fetch --all 2>&1 &');
-            echo shell_exec("git reset --hard origin/\$main_branch 2>&1 &");
+            shell_exec("git submodule init 2>&1 &");
+            shell_exec("git checkout \$main_branch 2>&1 &");
+            shell_exec('git fetch --all 2>&1 &');
+            shell_exec("git reset --hard origin/\$main_branch 2>&1 &");
             
-            print "Symlinks are being refreshed\n";
+            print "Symlinks are being refreshed \\n";
             \$bob = LayConfig::server_data()->root . "bob";
             shell_exec("php \$bob link:refresh 2>&1 &");
 
@@ -129,6 +130,7 @@ trait AutoDeploy
                 ->just_once()
                 ->new_job("bob up_composer")['msg'];
             
+            echo "<br> Done";
             FILE
         );
 
