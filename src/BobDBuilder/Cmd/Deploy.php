@@ -302,6 +302,8 @@ class Deploy implements CmdLayout
         if(!$is_repo)
             $this->plug->write_warn("Project does not have git, hence git deployment has been aborted");
 
+        $branch = shell_exec("git branch --show-current");
+
         if(str_contains(exec("cd $root | git pull 2>&1"), "error: ")) {
             exec(<<<CMD
                 git add . 2>&1 &&
@@ -318,8 +320,8 @@ class Deploy implements CmdLayout
             exec("git commit -m \"$msg\" 2>&1", $output);
         }
 
-        exec("git push &", $output);
-        exec("cd $root | git add . && git commit -m \"$msg\" && git push > /dev/null &");
+        exec("git push -u origin $branch &", $output);
+        exec("cd $root | git add . && git commit -m \"$msg\" && git push -u origin $branch > /dev/null &");
 
         $this->talk(" (-) *Git Says*");
 

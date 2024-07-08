@@ -65,7 +65,27 @@ abstract class LayMail {
         return self::$credentials;
     }
 
-    final public static function set_credentials(array $details) : array {
+    final public static function set_credentials(
+        #[ArrayShape([
+            "host" => 'string',
+            "port" => 'string',
+            "protocol" => 'string',
+            "username" => 'string',
+            "password" => 'string',
+            "default_sender_name" => 'string',
+            "default_sender_email" => 'string',
+        ])] ?array $details = null
+    ) : array {
+        $details ??= [
+            "host" => $_ENV['SMTP_HOST'],
+            "port" => $_ENV['SMTP_PORT'],
+            "protocol" => $_ENV['SMTP_PROTOCOL'],
+            "username" => $_ENV['SMTP_USERNAME'],
+            "password" => $_ENV['SMTP_PASSWORD'],
+            "default_sender_name" => $_ENV['DEFAULT_SENDER_NAME'],
+            "default_sender_email" => $_ENV['DEFAULT_SENDER_EMAIL'],
+        ];
+
         return self::$credentials = $details;
     }
 

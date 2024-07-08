@@ -259,37 +259,30 @@ final class ViewEngine {
         $this->add_view_section(self::key_body);
         $body = ob_get_clean();
 
-        $prepend_style_pattern = '/@styletop\n(.*?)@endstyle/si';
-        $append_style_pattern = '/@style\n(.*?)@endstyle/si';
+        $pattern = '/
+            @styletop\n(?P<style_top>.*?)\s*@endstyle
+            | @scripttop\n(?P<script_top>.*?)\s*@endscript
+            | @style\n(?P<style_dwn>.*?)\s*@endstyle
+            | @script\n(?P<script_dwn>.*?)\s*@endscript
+            | (?P<html_content>.*?)
+            (?=@styletop\n|\@scripttop\n|\@script\n|\@style\n|\z)  # Lookahead for the next annotation or end of string
+        /sxi';
 
-        preg_match_all($prepend_style_pattern, $body, $prepend_style);
-        preg_match_all($append_style_pattern, $body, $append_style);
-
-
-        $prepend_script_pattern = '/@scripttop\n(.*?)@endscript/si';
-        $append_script_pattern = '/@script\n(.*?)@endscript/si';
-
-        preg_match_all($prepend_script_pattern, $body, $prepend_script);
-        preg_match_all($append_script_pattern, $body, $append_script);
-
-        $body = preg_replace([$prepend_script_pattern, $append_script_pattern, $prepend_style_pattern, $append_style_pattern], "", $body);
-
-        $onpage_script_tags_prepend = implode("", $prepend_script[1]);
-        $onpage_script_tags_append = implode("", $append_script[1]);
+        preg_match_all($pattern, $body, $matches, PREG_UNMATCHED_AS_NULL);
 
         self::$head_styles = [
-            "pre" => implode("", $prepend_style[1]),
-            "app" => implode("", $append_style[1]),
+            "pre" => implode($matches['style_top']),
+            "app" => implode($matches['style_dwn']),
         ];
 
         ob_start();
-        echo $body;
+        echo implode($matches['html_content']);
 
-        echo $this->core_script();
-        echo $onpage_script_tags_prepend;
+        $this->core_script();
+        echo implode($matches['script_top']);
         $this->add_view_section(self::key_script);
         $this->dump_assets("js");
-        echo $onpage_script_tags_append;
+        echo implode($matches['script_dwn']);
 
         if(self::$meta_data->{self::key_core}->close_connection)
             LayConfig::new()->close_orm();
@@ -452,14 +445,16 @@ final class ViewEngine {
         return $script->defer((bool) $defer)->src($src, false);
     }
 
-    private function core_script() : string {
+    private function core_script() : void {
         $meta = self::$meta_data;
         $layConfig = LayConfig::new();
         $js_template = fn ($src, $attr = []) => $this->script_tag_template($src, $attr);
         $core_script = "";
 
-        if(!$meta->{self::key_core}->use_lay_script)
-            return $core_script;
+        if(!$meta->{self::key_core}->use_lay_script) {
+            echo $core_script;
+            return;
+        }
 
         $s = DIRECTORY_SEPARATOR;
         $domain = DomainResource::get();
@@ -479,6 +474,6 @@ final class ViewEngine {
         $core_script .= $omj ?? $js_template($lay_base . 'index.js',['defer' => false]);
         $core_script .= $const ?? $js_template($lay_base . 'constants.js', ['defer' => false]);
 
-        return $core_script;
+        echo $core_script;
     }
 }

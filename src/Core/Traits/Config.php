@@ -129,13 +129,7 @@ trait Config
 
     public static function set_smtp(): void
     {
-        if (isset(self::$SMTP_ARRAY)) return;
-
-        self::load_env();
-
-        self::$SMTP_ARRAY = ["host" => $_ENV['SMTP_HOST'], "port" => $_ENV['SMTP_PORT'], "protocol" => $_ENV['SMTP_PROTOCOL'], "username" => $_ENV['SMTP_USERNAME'], "password" => $_ENV['SMTP_PASSWORD'], "default_sender_name" => $_ENV['DEFAULT_SENDER_NAME'], "default_sender_email" => $_ENV['DEFAULT_SENDER_EMAIL'],];
-
-        LayMail::set_credentials(self::$SMTP_ARRAY);
+        LayMail::set_credentials();
     }
 
     public static function get_orm(bool $connect_db = false): SQL
@@ -425,21 +419,8 @@ trait Config
 
     public function init_orm(bool $connect_by_default = true): self
     {
-        if (isset(self::$CONNECTION_ARRAY)) {
-            if ($connect_by_default) self::connect(self::$CONNECTION_ARRAY);
-
-            return $this;
-        }
-
-        $ENV = self::$ENV_IS_DEV ? 'dev' : 'prod';
-
-        self::load_env();
-
-        if (!isset($_ENV['DB_HOST'])) return $this;
-
-        self::$CONNECTION_ARRAY = ["host" => $_ENV['DB_HOST'], "user" => $_ENV['DB_USERNAME'], "password" => $_ENV['DB_PASSWORD'], "db" => $_ENV['DB_NAME'], "env" => $_ENV['DB_ENV'] ?? $ENV, "port" => $_ENV['DB_PORT'] ?? NULL, "socket" => $_ENV['DB_SOCKET'] ?? NULL, "silent" => $_ENV['DB_ALLOW_STARTUP_ERROR'] ?? false, "ssl" => ["key" => $_ENV['DB_SSL_KEY'] ?? null, "certificate" => $_ENV['DB_SSL_CERTIFICATE'] ?? null, "ca_certificate" => $_ENV['DB_SSL_CA_CERTIFICATE'] ?? null, "ca_path" => $_ENV['DB_SSL_CA_PATH'] ?? null, "cipher_algos" => $_ENV['DB_SSL_CIPHER_ALGOS'] ?? null, "flag" => $_ENV['DB_SSL_FLAG'] ?? 0],];
-
-        if ($connect_by_default) self::connect(self::$CONNECTION_ARRAY);
+        if ($connect_by_default)
+            self::connect();
 
         return $this;
     }
@@ -447,21 +428,8 @@ trait Config
     public static function connect(?array $connection_params = null): SQL
     {
         self::is_init();
-        $env = self::$ENV_IS_DEV ? 'dev' : 'prod';
 
-        if (isset($connection_params['host']) || isset(self::$CONNECTION_ARRAY['host']))
-            $opt = self::$CONNECTION_ARRAY ?? $connection_params;
-        else
-            $opt = self::$CONNECTION_ARRAY[$env] ?? $connection_params[$env];
-
-        if (empty($opt)) Exception::throw_exception("Invalid Connection Parameter Passed");
-
-        if (is_array($opt)) $opt['env'] = $opt['env'] ?? $env;
-
-        if ($env == "prod") $opt['env'] = "prod";
-
-        self::$SQL_INSTANCE = SQL::init($opt);
-        return self::$SQL_INSTANCE;
+        return self::$SQL_INSTANCE = SQL::init($connection_params);
     }
 
 }
