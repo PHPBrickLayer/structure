@@ -116,14 +116,19 @@ final class LayCron
         $mailto .= PHP_EOL;
         $cron_jobs = implode("", $this->jobs_list);
 
-        file_put_contents(self::CRON_FILE, $mailto . $cron_jobs);
+        $exec = @file_put_contents(self::CRON_FILE, $mailto . $cron_jobs);
 
-        exec("crontab " . self::CRON_FILE . " 2>&1", $out);
-        $exec = empty($out);
+        if($exec) {
+            exec("crontab " . self::CRON_FILE . " 2>&1", $out);
+            $exec = empty($out);
+            $error = implode("\n", $out);
+        }
+        else
+            $error = "Could not create cronjob. Confirm if you have access to crontab: " . self::CRON_FILE;
 
         $this->exec_output = [
             "exec" => $exec,
-            "msg" => !$exec ? implode("\n", $out) : "Cron job added successfully. Date: " . LayDate::date(format_index: 2)
+            "msg" => !$exec ? $error  : "Cron job added successfully. Date: " . LayDate::date(format_index: 2)
         ];
 
         return $exec;
