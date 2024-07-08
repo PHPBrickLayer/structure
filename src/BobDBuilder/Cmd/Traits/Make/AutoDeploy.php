@@ -65,6 +65,15 @@ trait AutoDeploy
                     header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
                 }
             );
+            
+            function x_hook_logger(?string \$action) : void
+            {
+                \$hook_file = LayConfig::server_data()->temp . "git_webhook.txt";
+                \$action = "[" . date("Y-m-d H:i:s e") . "] \$action \n";
+                \$action .= "---- ---- ---- ----";
+            
+                file_put_contents(\$hook_file, \$action, FILE_APPEND);
+            }
             FILE
         );
 
@@ -83,6 +92,8 @@ trait AutoDeploy
 
             include_once "foundation.php";
             
+            \$main_branch = "main";
+            
             // Replace [PRIMARY_DOMAIN] with your actual primary domain. 
             // Create a subdomain entry on your dns. 
             // Finally, paste the link below to github or your CI platform
@@ -93,44 +104,43 @@ trait AutoDeploy
             // https://[PRIMARY_DOMAIN]/$pattern/$uuid
             
             // Verify webhook from GitHub
-            if(\$_SERVER['REQUEST_METHOD'] !== 'POST' or @\$_GET['brick'] !== "$uuid") {
+            if(!isset(\$_SERVER['REQUEST_METHOD']))
+                Exception::throw_exception("Wrong mode of contact", "GitADMismatched");
+
+            if(\$_SERVER['REQUEST_METHOD'] !== 'POST' or @\$_GET['brick'] !== "$uuid")
                 Exception::throw_exception("Invalid endpoint met! please check your uuid and try again", "GitADMismatched");
-                die;
-            }
-
-            \$main_branch = "main";
-
-            print "GitAD Responds With: \\n";
 
             \$post = json_decode(\$_POST['payload']);
 
             if(!isset(\$post->pull_request)) {
-                echo \$post?->action?->zen;
-                die;
+                x_hook_logger(\$post?->action?->zen);
+                return;
             }
 
             if(\$post->pull_request->state != "closed") {
-                echo "Pull Request: " . \$post->pull_request->state;
-                die;
+                x_hook_logger("Pull Request: " . \$post->pull_request->state);
+                return;
             }
 
-            shell_exec("git submodule init 2>&1 &");
-            shell_exec("git checkout \$main_branch 2>&1 &");
-            shell_exec('git fetch --all 2>&1 &');
-            shell_exec("git reset --hard origin/\$main_branch 2>&1 &");
+            x_hook_logger(shell_exec("git submodule init 2>&1 &"));
+            x_hook_logger(shell_exec("git checkout \$main_branch 2>&1 &"));
+            x_hook_logger(shell_exec('git fetch --all 2>&1 &'));
+            x_hook_logger(shell_exec("git reset --hard origin/\$main_branch 2>&1 &"));
             
-            print "Symlinks are being refreshed \\n";
+            x_hook_logger("Symlinks are being refreshed \\n");
             \$bob = LayConfig::server_data()->root . "bob";
-            shell_exec("php \$bob link:refresh 2>&1 &");
+            x_hook_logger(shell_exec("php \$bob link:refresh 2>&1 &"));
 
             // push composer deployment for later execution to avoid 504 (timeout error)
-            echo LayCron::new()
+            x_hook_logger(
+                LayCron::new()
                 ->job_id("update-composer-pkgs")
                 ->every_minute()
                 ->just_once()
-                ->new_job("bob up_composer")['msg'];
+                ->new_job("bob up_composer")['msg']
+            );
             
-            echo "<br> Done";
+            print "Done!";
             FILE
         );
 
