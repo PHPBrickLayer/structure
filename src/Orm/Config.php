@@ -37,6 +37,9 @@ trait Config{
 
     private static function cache_connection($link) : void
     {
+        if(!isset(self::$active_driver))
+            return;
+
         $_SESSION[self::SESSION_KEY][self::$active_driver->value] = $link;
     }
 
