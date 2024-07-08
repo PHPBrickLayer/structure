@@ -66,13 +66,14 @@ trait AutoDeploy
                 }
             );
             
+            \$hook_file = LayConfig::server_data()->temp . "git_webhook.txt";
+            file_put_contents(\$hook_file, "[" . date("Y-m-d H:i:s e") . "]\n");
+            
             function x_hook_logger(?string \$action) : void
             {
-                \$hook_file = LayConfig::server_data()->temp . "git_webhook.txt";
-                \$action = "[" . date("Y-m-d H:i:s e") . "] \$action \n";
-                \$action .= "---- ---- ---- ----";
+                global \$hook_file;
             
-                file_put_contents(\$hook_file, \$action, FILE_APPEND);
+                file_put_contents(\$hook_file, "\$action \n", FILE_APPEND);
             }
             FILE
         );
@@ -96,12 +97,8 @@ trait AutoDeploy
             
             // Replace [PRIMARY_DOMAIN] with your actual primary domain. 
             // Create a subdomain entry on your dns. 
-            // Finally, paste the link below to github or your CI platform
-            // https://$pattern.[PRIMARY_DOMAIN]/$uuid
-            // As you can see, we recommend using a subdomain as your webhook url. 
-            
-            // Alternatively, you can link:dir this domain directory to a particular domain and access through there
-            // https://[PRIMARY_DOMAIN]/$pattern/$uuid
+            // Finally, paste the link below to github or your CI/CD platform
+            // https://$pattern.[PRIMARY_DOMAIN]/$uuid 
             
             // Verify webhook from GitHub
             if(!isset(\$_SERVER['REQUEST_METHOD']))
@@ -122,24 +119,28 @@ trait AutoDeploy
                 return;
             }
 
-            x_hook_logger(shell_exec("git submodule init 2>&1 &"));
-            x_hook_logger(shell_exec("git checkout \$main_branch 2>&1 &"));
-            x_hook_logger(shell_exec('git fetch --all 2>&1 &'));
-            x_hook_logger(shell_exec("git reset --hard origin/\$main_branch 2>&1 &"));
-            
-            x_hook_logger("Symlinks are being refreshed \\n");
-            \$bob = LayConfig::server_data()->root . "bob";
-            x_hook_logger(shell_exec("php \$bob link:refresh 2>&1 &"));
+            \$log = "";
 
+            \$log .= "-- Submodule Init: " . shell_exec("git submodule init 2>&1 &") . " \n";
+            \$log .= "-- Git Checkout: " . shell_exec("git checkout \$main_branch 2>&1 &") . "\n";
+            \$log .= "-- Git Fetch: " . shell_exec('git fetch --all 2>&1 &') . "\n";
+            \$log .= "-- Git Reset: " . shell_exec("git reset --hard origin/\$main_branch 2>&1 &") . "\n";
+            
+            \$log .= "\n";
+            \$log .= "-- Symlinks are being refreshed\n";
+            
+            \$bob = LayConfig::server_data()->root . "bob";
+            \$log .= "-- Link Refresh: " . shell_exec("php \$bob link:refresh 2>&1 &") . "\n";
+            
             // push composer deployment for later execution to avoid 504 (timeout error)
-            x_hook_logger(
-                LayCron::new()
+            \$log .= "-- Cronjob: " . LayCron::new()
                 ->job_id("update-composer-pkgs")
                 ->every_minute()
                 ->just_once()
                 ->new_job("bob up_composer")['msg']
-            );
+            ;
             
+            x_hook_logger($log);
             print "Done!";
             FILE
         );
