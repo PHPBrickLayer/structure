@@ -1,19 +1,21 @@
 <?php
 declare(strict_types=1);
 namespace BrickLayer\Lay\Orm;
-use BrickLayer\Lay\Core\CoreException;
-use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Orm\Enums\OrmDriver;
 use BrickLayer\Lay\Orm\Enums\OrmQueryType;
 use BrickLayer\Lay\Orm\Enums\OrmReturnType;
+use JetBrains\PhpStorm\ArrayShape;
 use mysqli;
 use SQLite3;
 
 trait Config{
+    private const SESSION_KEY = "__LAY_SQL__";
     private static mysqli|SQLite3 $link;
     private static string $CHARSET = "utf8mb4";
     private static string $DB_FILE;
+    private static bool $persist_connection = true;
+    private static array $PINGED_DB_ARGS;
     private static array $DB_ARGS = [
         "host" => null,
         "user" => null,
@@ -31,7 +33,17 @@ trait Config{
             "flag" => 0
         ],
     ];
+    private static bool $connected = false;
 
+    private static function cache_connection($link) : void
+    {
+        $_SESSION[self::SESSION_KEY][self::$active_driver->value] = $link;
+    }
+
+    private static function get_cached_connection() : mysqli|SQLite3|null
+    {
+        return $_SESSION[self::SESSION_KEY][self::$active_driver->value] ?? null;
+    }
     /**
      * Connect Controller Manually From Here
      * @return mysqli|null
@@ -39,15 +51,18 @@ trait Config{
     private function connect() : ?mysqli {
         extract(self::$DB_ARGS);
         $charset = $charset ?? self::$CHARSET;
-        $cxn = $this->ping(true,null, true);
         $port ??= 3306;
         $port = (int) $port;
         $socket = $socket ?? null;
 
-        self::$db_name = $cxn['db'];
+        if(self::is_connected()) {
+            $cxn = self::$PINGED_DB_ARGS;
+            self::$db_name = $cxn['db'];
 
-        if($cxn['host'] == $host and $cxn['user'] == $user and $cxn['db'] == $db)
-            return $this->get_link();
+            if($cxn['host'] == $host and $cxn['user'] == $user and $cxn['db'] == $db)
+                return $this->get_link();
+        }
+
 
         mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
@@ -75,11 +90,12 @@ trait Config{
         $connected = false;
 
         try {
-            $connected = @$mysqli->real_connect($host, $user, $password, $db, $port, $socket, (int)@$ssl['flag']);
+            $connected = @$mysqli->real_connect((self::$persist_connection ? "p:" : "" ). $host, $user, $password, $db, $port, $socket, (int)@$ssl['flag']);
         }
         catch (\Exception $e) {}
 
         if($connected) {
+            self::$connected = true;
             $mysqli->set_charset($charset);
             $this->set_link($mysqli);
             return $this->get_link();
@@ -106,15 +122,18 @@ trait Config{
         try {
             $db = LayConfig::server_data()->db;
 
-            if(!is_dir($db)){
+            if(!is_dir($db)) {
                 umask(0);
                 mkdir($db, 0755, true);
             }
 
             self::$db_name = str_replace("/", DIRECTORY_SEPARATOR, $db_file);
+
             $file = $db . self::$db_name;
             self::$link = new SQLite3($file);
             self::$link->enableExceptions(true);
+            self::$connected = true;
+
         } catch (\Exception $e){
             self::exception(
                 "SQLiteConnectionError",
@@ -122,6 +141,7 @@ trait Config{
                 exception: $e
             );
         }
+
         return self::$link;
     }
 
@@ -143,6 +163,7 @@ trait Config{
         return $this->get_link();
     }
 
+    #[ArrayShape(['host' => 'string', 'user' => 'string', 'db' => 'string', 'connected' => 'bool'])]
     /**
      * Check Database Connection
      * @param bool $ignore_msg false by default to echo connection info
@@ -151,45 +172,44 @@ trait Config{
      * @return array containing [host,user,db]
      **/
     public function ping(bool $ignore_msg = false, ?mysqli $link = null, bool $ignore_no_conn = false) : array {
-        $cxn = $link ?? $this->get_link() ?? null; $db = ""; $usr = ""; $host = "";
-        if($cxn){
-            if(isset($this->get_link()->host_info)) {
-                if (@mysqli_ping($cxn)) {
-                    $x = $this->query(
-                        "SELECT SUBSTRING_INDEX(host, ':', 1) AS host_short, USER AS users, db FROM information_schema.processlist",
-                        ["fetch_as" => OrmReturnType::ASSOC, "query_type" => OrmQueryType::SELECT,]
-                    );
+        $link = $link ?? $this->get_link() ?? null;
 
-                    $db = $x['db'];
-                    $usr = $x['users'];
-                    $host = $x['host_short'];
+        if(!$link || !isset($link->host_info))
+            return ["host" => "", "user" => "", "db" => "", "connected" => false];
 
-                    if (!$ignore_msg)
-                        self::exception(
-                            "ConnTest",
-                            <<<CONN
-                            <h2>Connection Established!</h2>
-                            <u>Your connection info states:</u>
-                            <div style="color: gold; font-weight: bold; margin: 5px 1px;">
-                                &gt; Host: <u>$host</u>
-                            </div>
-                            <div style="color: gold; font-weight: bold; margin: 5px 1px;">
-                                &gt; User: <u>$usr</u>
-                            </div>
-                            <div style="color: gold; font-weight: bold; margin: 5px 1px;">
-                                &gt; Database: <u>$db</u>
-                            </div>
-                            CONN,
-                            [ "type" => "success" ]
-                        );
-                }
-                else if (!$ignore_no_conn)
-                    self::exception(
-                        "ConnErr",
-                        "No connection detected: <h5 style='color: #008dc5'>Connection might be closed:</h5>",
-                    );
-            }
-        } return ["host" => $host, "user" => $usr, "db" => $db];
+        if(!$link->ping() && !$ignore_no_conn)
+            self::exception(
+                "ConnErr",
+                "No connection detected: <h5 style='color: #008dc5'>Connection might be closed:</h5>",
+            );
+
+        extract(
+            $this->query(
+                "SELECT SUBSTRING_INDEX(host, ':', 1) AS host_short, USER AS users, db FROM information_schema.processlist",
+                [ "fetch_as" => OrmReturnType::ASSOC, "query_type" => OrmQueryType::SELECT, ]
+            )
+        );
+
+        if (!$ignore_msg)
+            self::exception(
+                "ConnTest",
+                <<<CONN
+                        <h2>Connection Established!</h2>
+                    <u>Your connection info states:</u>
+                    <div style="color: gold; font-weight: bold; margin: 5px 1px;">
+                        &gt; Host: <u>$host_short</u>
+                    </div>
+                    <div style="color: gold; font-weight: bold; margin: 5px 1px;">
+                        &gt; User: <u>$users</u>
+                    </div>
+                    <div style="color: gold; font-weight: bold; margin: 5px 1px;">
+                        &gt; Database: <u>$db</u>
+                    </div>
+                CONN,
+                [ "type" => "success" ]
+            );
+
+        return ["host" => $host_short, "user" => $users, "db" => $db, "connected" => true];
     }
 
     public function close(mysqli|SQLite3|null $link = null, bool $silent_error = false) : bool {
@@ -210,7 +230,9 @@ trait Config{
         return false;
     }
 
-    public function set_db(mysqli|array|string $args) : void {
+    private function set_db(mysqli|array|string $args, bool $persist_conn) : void {
+        self::$persist_connection = $persist_conn;
+
         if(is_string($args)) {
             $this->connect_sqlite($args);
             return;
@@ -227,7 +249,10 @@ trait Config{
 
     public function get_db_args() : array { return self::$DB_ARGS; }
 
-    public function set_link(mysqli|SQLite3 $link): void { self::$link = $link;}
+    public function set_link(mysqli|SQLite3 $link): void {
+        self::$link = $link;
+        self::cache_connection($link);
+    }
 
     public function get_link(): mysqli|SQLite3|null { return self::$link ?? null; }
 
@@ -243,5 +268,19 @@ trait Config{
             return self::$link->real_escape_string($value);
 
         return self::$link::escapeString($value);
+    }
+
+    public static function is_connected() : bool
+    {
+        $link = self::get_cached_connection();
+
+        if($link) {
+            self::$link = $link;
+            $ping = self::new()->ping(true, $link, true);
+            self::$connected = $ping['connected'];
+            self::$PINGED_DB_ARGS = $ping;
+        }
+
+        return self::$connected;
     }
 }

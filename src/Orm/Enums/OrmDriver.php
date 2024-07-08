@@ -3,6 +3,15 @@
 namespace BrickLayer\Lay\Orm\Enums;
 
 enum OrmDriver : string {
-    case MYSQL = "MySQL";
-    case SQLITE = "SQLite";
+    case MYSQL = "mysql";
+    case SQLITE = "sqlite";
+
+    public static function stringify() : string
+    {
+        $str = "";
+        foreach (self::cases() as $c){
+            $str .= $c->value . ", ";
+        }
+        return rtrim($str, ", ");
+    }
 }

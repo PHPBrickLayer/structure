@@ -8,6 +8,7 @@ use BrickLayer\Lay\BobDBuilder\Helper\Console\Format\Foreground;
 use BrickLayer\Lay\BobDBuilder\Helper\Console\Format\Style;
 use BrickLayer\Lay\Core\Enums\LayMode;
 use BrickLayer\Lay\Core\Traits\IsSingleton;
+use BrickLayer\Lay\Orm\SQL;
 
 class CoreException
 {
@@ -388,6 +389,9 @@ class CoreException
         }
 
         if ($act == "kill") {
+            if(SQL::is_connected())
+                SQL::new()->close();
+
             self::$already_caught = true;
             error_reporting(0);
             ini_set('error_log', false);
