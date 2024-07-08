@@ -161,6 +161,17 @@ class Escape
         return $permute($type_or_combo, $value);
     }
 
+    public static function dirty(mixed $value) : mixed
+    {
+        if(!$value)
+            return $value;
+
+        if(!is_string($value))
+            return $value;
+
+        return stripslashes(str_replace(['\r','\n'],["\r", "\n"], $value));
+    }
+
     private static function exception(string $title, string $body): void
     {
         Exception::new()->use_exception("EscapeClean::" . $title, $body);

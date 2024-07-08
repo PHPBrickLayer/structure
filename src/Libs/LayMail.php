@@ -234,15 +234,17 @@ abstract class LayMail {
         self::$mail_link->addAddress($recipient['to'], $recipient['name']);
         self::$mail_link->setFrom($server_mail_from, $server_name_from);
 
-        if(isset($this->bcc))
-            foreach($this->bcc as $bcc) {
+        if(isset($this->bcc)) {
+            foreach ($this->bcc as $bcc) {
                 self::$mail_link->addBCC($bcc['email'], $bcc['name']);
             }
+        }
 
-        if(isset($this->cc))
-            foreach($this->cc as $cc) {
+        if(isset($this->cc)) {
+            foreach ($this->cc as $cc) {
                 self::$mail_link->addCC($cc['email'], $cc['name']);
             }
+        }
 
         if(isset($this->attachment)) {
             if($this->attachment['as_string'])
