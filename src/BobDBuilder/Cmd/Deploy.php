@@ -320,10 +320,10 @@ class Deploy implements CmdLayout
             exec("git commit -m \"$msg\" 2>&1", $output);
         }
 
-        exec("git push -u origin $branch &", $output);
-        exec("cd $root | git add . && git commit -m \"$msg\" && git push -u origin $branch > /dev/null &");
-
         $this->talk(" (-) *Git Says*");
+
+        exec("git push -u origin $branch > /dev/null &", $output);
+        exec("cd $root | git add . && git commit -m \"$msg\" && git push --recurse-submodules=on-demand > /dev/null &");
 
         foreach ($output as $out){
             print "     " . $out . "\n";
