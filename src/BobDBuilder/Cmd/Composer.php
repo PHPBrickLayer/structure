@@ -5,6 +5,7 @@ namespace BrickLayer\Lay\BobDBuilder\Cmd;
 use BrickLayer\Lay\BobDBuilder\EnginePlug;
 use BrickLayer\Lay\BobDBuilder\Interface\CmdLayout;
 use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Libs\LayDate;
 
 class Composer implements CmdLayout
 {
@@ -47,7 +48,8 @@ class Composer implements CmdLayout
 
         file_put_contents(
             $temp . "deploy_composer_output.txt",
-            "CMD: $cmd\n" . implode("\n", $out)
+            "[" . LayDate::date(format_index: 2) . "]\n"
+            . "CMD: $cmd\n" . implode("\n", $out)
         );
     }
 
