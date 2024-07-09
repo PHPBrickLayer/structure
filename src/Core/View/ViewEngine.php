@@ -3,7 +3,6 @@ declare(strict_types=1);
 namespace BrickLayer\Lay\Core\View;
 
 use BrickLayer\Lay\Libs\LayArray;
-use BrickLayer\Lay\Libs\LayObject;
 use Closure;
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
@@ -39,7 +38,6 @@ final class ViewEngine {
 
         self::$constant_attributes = [
             self::key_core => [
-                "close_connection" => $const[self::key_core]['close_connection'] ?? true,
                 "use_lay_script" => $const[self::key_core]['use_lay_script'] ?? true,
                 "skeleton" => $const[self::key_core]['skeleton'] ?? true,
                 "append_site_name" => $const[self::key_core]['append_site_name'] ?? true,
@@ -283,9 +281,6 @@ final class ViewEngine {
         $this->add_view_section(self::key_script);
         $this->dump_assets("js");
         echo implode($matches['script_dwn']);
-
-        if(self::$meta_data->{self::key_core}->close_connection)
-            LayConfig::new()->close_orm();
 
         return ob_get_clean();
     }

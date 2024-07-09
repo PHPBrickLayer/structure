@@ -10,7 +10,7 @@ use mysqli;
 use SQLite3;
 
 trait Config{
-    private const SESSION_KEY = "__LAY_SQL__";
+    private static string $SESSION_KEY = "__LAY_SQL__";
     private static mysqli|SQLite3 $link;
     private static string $CHARSET = "utf8mb4";
     private static string $DB_FILE;
@@ -40,12 +40,12 @@ trait Config{
         if(!isset(self::$active_driver))
             return;
 
-        $_SESSION[self::SESSION_KEY][self::$active_driver->value] = $link;
+        $_SESSION[self::$SESSION_KEY][self::$active_driver->value] = $link;
     }
 
     private static function get_cached_connection() : mysqli|SQLite3|null
     {
-        return $_SESSION[self::SESSION_KEY][self::$active_driver->value] ?? null;
+        return $_SESSION[self::$SESSION_KEY][self::$active_driver->value] ?? null;
     }
     /**
      * Connect Controller Manually From Here
@@ -62,7 +62,7 @@ trait Config{
             $cxn = self::$PINGED_DB_ARGS;
             self::$db_name = $cxn['db'];
 
-            if($cxn['host'] == $host and $cxn['user'] == $user and $cxn['db'] == $db)
+            if($cxn['user'] == $user and $cxn['db'] == $db)
                 return $this->get_link();
         }
 
