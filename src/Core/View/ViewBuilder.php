@@ -311,7 +311,6 @@ final class ViewBuilder
      */
     public function core(
         #[ExpectedValues([
-            "close_connection",
             "use_lay_script",
             "skeleton",
             "append_site_name",

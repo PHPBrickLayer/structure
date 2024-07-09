@@ -340,7 +340,7 @@ class Deploy implements CmdLayout
 
         $branch = shell_exec("git branch --show-current");
 
-        if(str_contains(exec("cd $root | git pull 2>&1"), "error: ")) {
+        if(str_contains(exec("cd $root | git pull --recurse-submodules 2>&1"), "error: ")) {
             exec(<<<CMD
                 git add . 2>&1 &&
                 git commit -m "$msg" 2>&1  
