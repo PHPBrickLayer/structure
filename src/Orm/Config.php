@@ -57,10 +57,10 @@ trait Config{
         $port ??= 3306;
         $port = (int) $port;
         $socket = $socket ?? null;
+        self::$db_name = $db;
 
         if(self::is_connected()) {
             $cxn = self::$PINGED_DB_ARGS;
-            self::$db_name = $cxn['db'];
 
             if($cxn['user'] == $user and $cxn['db'] == $db)
                 return $this->get_link();
