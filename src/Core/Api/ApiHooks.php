@@ -96,4 +96,15 @@ abstract class ApiHooks
             }
         }
     }
+
+    public final function dump_all_endpoints() : array
+    {
+        $this->request::$DEBUG_MODE = true;
+
+        LayConfig::connect();
+        $this->request::fetch();
+        $this->load_brick_hooks();
+
+        return $this->request->get_registered_uris();
+    }
 }
