@@ -24,8 +24,8 @@ class Escape
         mixed $value,
         EscapeType|array $type_or_combo = EscapeType::STRIP_ESCAPE,
         #[ArrayShape([
-            "flag" => "int",
-            "allowed_tags" => "string",
+            "special_chars" => "array [flag(int), encoding(?string), double_encode(bool)]",
+            "allowed_tags" => "string|array[string]",
             "debug" => "bool",
             "strict" => "bool",
             "connect_db" => "bool",
@@ -35,7 +35,9 @@ class Escape
         ])] array $options = []
     ): mixed
     {
-        $flags = $options['flag'] ?? ENT_QUOTES;
+        $flags = $options['special_chars']['flag'] ?? ENT_QUOTES;
+        $encoding = $options['special_chars']['encoding'] ?? null;
+        $double_encode = $options['special_chars']['double_encode'] ?? true;
         $allowedTags = $options['allowed_tags'] ?? "";
         $reset_esc_string = $options['reset_esc_string'] ?? true;
         $debug = $options['debug'] ?? false;
@@ -100,12 +102,19 @@ class Escape
         $map[EscapeType::P_ESCAPE] = fn($val = null) => LayConfig::get_orm($connect_db)->escape_string((string) $value);
         $map[EscapeType::P_STRIP] = fn($val = null) => strip_tags((string)($val ?? $value), $allowedTags);
         $map[EscapeType::P_TRIM] = fn($val = null) => trim($val ?? $value);
-        $map[EscapeType::P_SPEC_CHAR] = fn($val = null) => htmlspecialchars($val ?? $value, $flags);
+        $map[EscapeType::P_SPEC_CHAR] = fn($val = null) => htmlspecialchars($val ?? $value, $flags, $encoding, $double_encode);
         $map[EscapeType::P_ENCODE_URL] = fn($val = null) => rawurlencode($val ?? $value);
         $map[EscapeType::P_REPLACE] = fn($val = null) => str_replace($find, $replace, $val ?? $value);
         $map[EscapeType::P_URL] = function ($val = null) use ($find, $value) {
             rsort($find);
-            return preg_replace("/^-/", "", preg_replace("/-$/", "", strtolower(preg_replace("/--+/", "-", str_replace($find, "-", rawurlencode(trim($val ?? $value)))))));
+
+            $value = $val ?? $value;
+            $value = rawurlencode($value);
+            $value = str_replace($find, "-", $value);
+            $value = preg_replace("/--+/", "-", $value);
+            $value = strtolower($value);
+
+            return trim($value,"-");
         };
 
         $permute = function ($combination, $value) use ($map) {
