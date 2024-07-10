@@ -2,6 +2,8 @@
 
 namespace BrickLayer\Lay\Libs;
 
+use JetBrains\PhpStorm\NoReturn;
+
 final class LayFn
 {
     private function __construct(){}
@@ -64,6 +66,13 @@ final class LayFn
     public static function rtrim_word(string $string, string $word) : string
     {
         return self::trim_word($string, $word, '~(' . $word . ')$~');
+    }
+
+    #[NoReturn] public static function dump_json(array $data) : void
+    {
+        header("Content-Type: application/json");
+        echo json_encode($data);
+        die;
     }
 
 }

@@ -48,6 +48,8 @@ final class ApiEngine {
     private static array $limiter_group = [];
     private static array $limiter_global = [];
 
+    public static bool $DEBUG_MODE = false;
+
     public static function set_response_header(int|ApiStatus $code, ?ApiReturnType $return_type = null, ?string $message = null, bool $end_request = true, bool $kill_process = false) : void
     {
         header($_SERVER['SERVER_PROTOCOL'] . " " . ApiStatus::extract_status($code, $message));
@@ -82,6 +84,11 @@ final class ApiEngine {
     }
 
     private function correct_request_method(bool $throw_exception = true) : bool {
+        if(self::$DEBUG_MODE) {
+            self::$current_request_method = self::$request_method;
+            return true;
+        }
+
         if(!isset($_SERVER['REQUEST_METHOD']))
             self::exception("RequestMethodNotFound", "No request method found. You are probably accessing this page illegally!");
 
@@ -301,10 +308,11 @@ final class ApiEngine {
             $is_grouped = true;
         }
 
-        if($is_grouped)
+        if($is_grouped) {
             foreach ($uri_beginning as $i => $begin) {
-                $use_limiter = $begin == self::$request_uri[$i];
+                $use_limiter = $begin == @self::$request_uri[$i];
             }
+        }
 
         if(!$use_limiter)
             return $this;
@@ -406,10 +414,13 @@ final class ApiEngine {
 
     private function skip_process() : bool
     {
+        if(self::$DEBUG_MODE)
+            return false;
+
         if(!self::$skip_process_on_false)
             return false;
 
-        $current_uri = !empty(self::$registered_uris) ? end(self::$registered_uris)['uri'] : null;
+        $current_uri = !empty(self::$registered_uris) ? end(self::$registered_uris)['route'] : null;
 
         if(
             empty(self::$current_request_uri) ||
@@ -553,17 +564,17 @@ final class ApiEngine {
         // Register all request based on the method received
         if($this->correct_request_method(false))
             self::$registered_uris[] = [
-                "uri" => implode("/",self::$current_request_uri),
-                "uri_name" => self::$request_uri_name ?? "",
-                "method" => self::$request_method,
-                "return_type" => self::$method_return_type,
-                "using_limit" => [
-                    "group" => self::$using_group_limiter,
-                    "route" => self::$using_route_limiter,
+                'route' => implode("/",self::$current_request_uri),
+                'route_name' => self::$request_uri_name ?? "",
+                'method' => self::$request_method,
+                'return_type' => self::$method_return_type,
+                'using_limit' => [
+                    'group' => self::$using_group_limiter,
+                    'route' => self::$using_route_limiter,
                 ],
-                "using_middleware" => [
-                    "group" => self::$using_group_middleware,
-                    "route" => self::$using_route_middleware,
+                'using_middleware' => [
+                    'group' => self::$using_group_middleware,
+                    'route' => self::$using_route_middleware,
                 ],
             ];
 
@@ -727,7 +738,7 @@ final class ApiEngine {
      * Capture the URI of requests sent to the api router then store it for further processing
      * @return self
      */
-    public static function fetch() : self {
+    public static function fetch(string $local_endpoint = "api") : self {
         $req = ViewBuilder::new()->request("*");
         $endpoint = $req['route'];
 
@@ -736,16 +747,16 @@ final class ApiEngine {
 
         self::$request_found = false;
         self::$request_complete = false;
-        self::$request_header = getallheaders();
+        self::$request_header = LayConfig::get_header("*");
         self::$request_uri_raw = $endpoint;
         self::$request_uri = $req['route_as_array'];
 
-        if(self::$request_uri[0] == "api") {
+        if(self::$request_uri[0] == $local_endpoint) {
             array_shift(self::$request_uri);
             self::$request_uri_raw = implode("/", self::$request_uri);
         }
 
-        if(empty(self::$request_uri[0]))
+        if(self::$DEBUG_MODE === false && empty(self::$request_uri[0]))
             self::exception("InvalidAPIRequest", "Invalid api request sent. Malformed URI received. You can't access this script like this!");
 
         return self::new();
@@ -761,8 +772,8 @@ final class ApiEngine {
             $method = self::$current_request_method;
 
             foreach(self::$registered_uris as $reg_uri) {
-                $uris .= "URI == " . $reg_uri['uri'] . "<br>" . PHP_EOL;
-                $uris .= "URI NAME == " . $reg_uri['uri_name'] . "<br>" . PHP_EOL;
+                $uris .= "URI == " . $reg_uri['route'] . "<br>" . PHP_EOL;
+                $uris .= "URI NAME == " . $reg_uri['route_name'] . "<br>" . PHP_EOL;
                 $uris .= "METHOD == " . $reg_uri['method'] . "<br>" . PHP_EOL;
                 $uris .= "RETURN TYPE == " . $reg_uri['return_type']->name . "<br>" . PHP_EOL;
                 $uris .= "<br>" . PHP_EOL;
