@@ -342,7 +342,7 @@ class Deploy implements CmdLayout
 
         if(str_contains(exec("cd $root | git pull --recurse-submodules 2>&1"), "error: ")) {
             exec(<<<CMD
-                git add . 2>&1 &&
+                git add -A 2>&1 &&
                 git commit -m "$msg" 2>&1  
             CMD, $output);
 
