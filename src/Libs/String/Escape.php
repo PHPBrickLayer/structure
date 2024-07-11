@@ -35,7 +35,7 @@ class Escape
         ])] array $options = []
     ): mixed
     {
-        $flags = $options['special_chars']['flag'] ?? ENT_QUOTES;
+        $flags = $options['special_chars']['flag'] ?? ENT_QUOTES|ENT_SUBSTITUTE;
         $encoding = $options['special_chars']['encoding'] ?? null;
         $double_encode = $options['special_chars']['double_encode'] ?? true;
         $allowedTags = $options['allowed_tags'] ?? "";
@@ -104,7 +104,7 @@ class Escape
         $map[EscapeType::P_TRIM] = fn($val = null) => trim($val ?? $value);
         $map[EscapeType::P_SPEC_CHAR] = fn($val = null) => htmlspecialchars($val ?? $value, $flags, $encoding, $double_encode);
         $map[EscapeType::P_ENCODE_URL] = fn($val = null) => rawurlencode($val ?? $value);
-        $map[EscapeType::P_REPLACE] = fn($val = null) => str_replace($find, $replace, $val ?? $value);
+        $map[EscapeType::P_REPLACE] = fn ($val = null) => str_replace($find, $replace, $val ?? $value);
         $map[EscapeType::P_URL] = function ($val = null) use ($find, $value) {
             rsort($find);
 
@@ -128,6 +128,7 @@ class Escape
 
                 $value = $map[$combo]($value);
             }
+
             return $value;
         };
 
