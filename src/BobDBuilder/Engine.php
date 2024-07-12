@@ -9,6 +9,7 @@ use BrickLayer\Lay\Core\Enums\CustomContinueBreak;
 class Engine
 {
     public EnginePlug $plug;
+    private static float $process_duration;
 
     public function __construct(
         private array $args,
@@ -17,6 +18,8 @@ class Engine
         int &$response_code = 0
     )
     {
+        $start_time = microtime(true);
+
         $force = $this->extract_global_tag("--force", "-f");
         $show_help = $this->extract_global_tag("--help", "-h");
         $silent = $this->extract_global_tag("--silent", "-s");
@@ -54,6 +57,10 @@ class Engine
         $response_code = (int) $this->plug->operation_successful;
 
         // End Bob execution
+        $end_time = microtime(true);
+
+        self::$process_duration = ceil($end_time - $start_time);
+
         if(empty($this->plug->active_cmd)) {
             $this->plug->write_warn(
                 "-- Bob has determined that the current command is invalid\n"
@@ -70,10 +77,12 @@ class Engine
                         "-- Operation completed!" :
                         ""
                     ),
-                    ['close_talk' => true,]
+                    ['close_talk' => true, "process_duration" => self::$process_duration]
                 );
             else
-                $this->plug->write_fail("-- Operation ended with error!");
+                $this->plug->write_fail("-- Operation ended with error!", [
+                    "process_duration" => self::$process_duration
+                ]);
         }
     }
 

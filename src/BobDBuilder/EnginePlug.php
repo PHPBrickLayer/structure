@@ -267,6 +267,7 @@ class EnginePlug
         $hide_cur_cmd = $opts['hide_current_cmd'] ?? false;
         $silent = $opts['silent'] ?? $this->silent;
         $maintain_line = $opts['maintain_line'] ?? false;
+        $process_duration = $opts['process_duration'] ?? null;
 
         $color = match ($type) {
             default => Style::normal,
@@ -342,6 +343,9 @@ class EnginePlug
                 Console::log(":) Bob is Done (:", Foreground::light_gray);
             else
                 Console::log(":( Bob is encountered some errors ):", Foreground::light_gray);
+
+            if($process_duration)
+                Console::log("Duration: $process_duration seconds", Foreground::light_purple);
 
             Console::log("::::::::::::::::::::::::::::::::::::::", Foreground::light_gray);
             Console::bell();

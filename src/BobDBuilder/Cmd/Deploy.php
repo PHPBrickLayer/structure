@@ -81,8 +81,6 @@ class Deploy implements CmdLayout
         if($this->no_cache)
             $this->talk("- *--no-cache* detected. Entire project will be compressed...");
 
-        $duration = LayDate::date();
-
         if($this->git_only) {
             $this->talk("- Pushing to git only *--git-only* tag detected");
             $this->push_with_git();
@@ -95,8 +93,6 @@ class Deploy implements CmdLayout
         $this->compress_shared_static();
         $this->compress_static();
         $this->push_with_git();
-
-        $this->talk("- Duration: " . LayDate::elapsed($duration, append_ago: false));
     }
 
     public function batch_minification(string $src_dir, string $output_dir): void
