@@ -15,7 +15,6 @@ trait Config{
     private static string $CHARSET = "utf8mb4";
     private static string $DB_FILE;
     private static bool $persist_connection = true;
-    private static array $PINGED_DB_ARGS;
     private static array $DB_ARGS = [
         "host" => null,
         "user" => null,
@@ -43,6 +42,16 @@ trait Config{
         $_SESSION[self::$SESSION_KEY][self::$active_driver->value] = $link;
     }
 
+    private static function cache_pinged_data(array $args) : void
+    {
+        $_SESSION[self::$SESSION_KEY]["PINGED_DATA"] = $args;
+    }
+
+    private static function get_pinged_data() : ?array
+    {
+        return $_SESSION[self::$SESSION_KEY]["PINGED_DATA"] ?? null;
+    }
+
     private static function get_cached_connection() : mysqli|SQLite3|null
     {
         return $_SESSION[self::$SESSION_KEY][self::$active_driver->value] ?? null;
@@ -59,13 +68,8 @@ trait Config{
         $socket = $socket ?? null;
         self::$db_name = $db;
 
-        if(self::is_connected()) {
-            $cxn = self::$PINGED_DB_ARGS;
-
-            if($cxn['user'] == $user and $cxn['db'] == $db)
-                return $this->get_link();
-        }
-
+        if(self::is_connected())
+            return $this->get_link();
 
         mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
@@ -148,24 +152,6 @@ trait Config{
         return self::$link;
     }
 
-    /**
-     * Connect Controller Using Existing Link
-     * @param mysqli $link
-     * @return mysqli
-     */
-    private function plug(mysqli $link) : mysqli {
-        $cxn_old = $this->ping(true);
-
-        if(empty($cxn_old['host']) || empty($cxn_old['user']) || empty($cxn_old['db']))
-            $this->set_link($link);
-        else {
-            $cxn_new = $this->ping(true, $link);
-            if (!($cxn_old['host'] == $cxn_new['host'] and $cxn_old['user'] == $cxn_new['user'] and $cxn_old['db'] == $cxn_new['db']))
-                $this->set_link($link);
-        }
-        return $this->get_link();
-    }
-
     #[ArrayShape(['host' => 'string', 'user' => 'string', 'db' => 'string', 'connected' => 'bool'])]
     /**
      * Check Database Connection
@@ -186,12 +172,26 @@ trait Config{
                 "No connection detected: <h5 style='color: #008dc5'>Connection might be closed:</h5>",
             );
 
-        extract(
-            $this->query(
-                "SELECT SUBSTRING_INDEX(host, ':', 1) AS host_short, USER AS users, db FROM information_schema.processlist",
-                [ "fetch_as" => OrmReturnType::ASSOC, "query_type" => OrmQueryType::SELECT, ]
-            )
+        $pinged = self::get_pinged_data();
+        $now = time();
+
+        if($pinged && self::$DB_ARGS['user'] == $pinged['user'] && self::$DB_ARGS['db'] == $pinged['db'])
+            return $pinged;
+
+        $data = $this->query(
+            "SELECT SUBSTRING_INDEX(host, ':', 1) AS host_short, USER AS users, db FROM information_schema.processlist",
+            [ "fetch_as" => OrmReturnType::ASSOC, "query_type" => OrmQueryType::SELECT, ]
         );
+
+        $data = [
+            "host" => $data['host_short'],
+            "user" => $data['users'],
+            "db" => $data['db'],
+            "connected" => true,
+            "expire" => strtotime("1 hour")
+        ];
+
+        self::cache_pinged_data($data);
 
         if (!$ignore_msg)
             self::exception(
@@ -200,19 +200,19 @@ trait Config{
                         <h2>Connection Established!</h2>
                     <u>Your connection info states:</u>
                     <div style="color: gold; font-weight: bold; margin: 5px 1px;">
-                        &gt; Host: <u>$host_short</u>
+                        &gt; Host: <u>{$data['host']}</u>
                     </div>
                     <div style="color: gold; font-weight: bold; margin: 5px 1px;">
-                        &gt; User: <u>$users</u>
+                        &gt; User: <u>{$data['user']}</u>
                     </div>
                     <div style="color: gold; font-weight: bold; margin: 5px 1px;">
-                        &gt; Database: <u>$db</u>
+                        &gt; Database: <u>{$data['db']}</u>
                     </div>
                 CONN,
                 [ "type" => "success" ]
             );
 
-        return ["host" => $host_short, "user" => $users, "db" => $db, "connected" => true];
+        return $data;
     }
 
     public function close(mysqli|SQLite3|null $link = null, bool $silent_error = false) : bool {
@@ -233,7 +233,7 @@ trait Config{
         return false;
     }
 
-    private function set_db(mysqli|array|string $args, bool $persist_conn) : void {
+    private function set_db(mysqli|SQLite3|array|string $args, bool $persist_conn) : void {
         self::$persist_connection = $persist_conn;
 
         if(is_string($args)) {
@@ -247,7 +247,7 @@ trait Config{
             return;
         }
 
-        $this->plug($args);
+        $this->set_link($args);
     }
 
     public function get_db_args() : array { return self::$DB_ARGS; }
@@ -281,7 +281,6 @@ trait Config{
             self::$link = $link;
             $ping = self::new()->ping(true, $link, true);
             self::$connected = $ping['connected'];
-            self::$PINGED_DB_ARGS = $ping;
         }
 
         return self::$connected;
