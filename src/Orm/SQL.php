@@ -55,8 +55,8 @@ class SQL
     {
         return match ($string) {
             default => null,
-            "mysql" => OrmDriver::MYSQL,
-            "sqlite" => OrmDriver::SQLITE
+            OrmDriver::MYSQL->value => OrmDriver::MYSQL,
+            OrmDriver::SQLITE->value => OrmDriver::SQLITE
         };
     }
 
