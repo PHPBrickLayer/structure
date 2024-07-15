@@ -198,7 +198,6 @@ final class LayCookieStorage
     }
 
 
-
     /*
      * ### PUBLIC ###
      */
