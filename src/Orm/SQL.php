@@ -192,14 +192,18 @@ class SQL
 
         try {
             $exec = self::$link->query($query);
-        } catch (Exception $e) {
+        } catch (Exception|\mysqli_sql_exception $e) {
             $has_error = true;
-            if ($exec === false && $catch_error === 0) {
+            if ($exec === false && $catch_error === false) {
                 $query_type = is_string($query_type) ? $query_type : $query_type->name;
+                $error = self::$link->error ?: null;
+
+                if(method_exists(self::$link, "lastErrorMsg"))
+                    $error = self::$link->lastErrorMsg() ?? null;
 
                 self::exception(
                     "QueryExec",
-                    "<b style='color: #008dc5'>" . (self::$link->error ?? self::$link->lastErrorMsg()) . "</b> 
+                    "<b style='color: #008dc5'>" . ($error ?? $e->getMessage()) . "</b> 
                     <div style='color: #fff0b3; margin-top: 5px'>$query</div> 
                     <div style='margin: 10px 0'>Statement: $query_type</div>
                     <div style='margin: 10px 0'>DB: <span style='color: #00A261'>" . self::$db_name . "</span></div>

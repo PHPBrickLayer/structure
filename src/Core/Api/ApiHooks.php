@@ -97,7 +97,7 @@ abstract class ApiHooks
         }
     }
 
-    public final function dump_all_endpoints() : array
+    public final function get_all_endpoints() : array
     {
         $this->request::$DEBUG_MODE = true;
 
@@ -105,6 +105,6 @@ abstract class ApiHooks
         $this->request::fetch();
         $this->load_brick_hooks();
 
-        return $this->request->get_registered_uris();
+        return $this->request::all_api_endpoints();
     }
 }

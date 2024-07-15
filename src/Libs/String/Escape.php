@@ -32,6 +32,7 @@ class Escape
             "reset_esc_string" => "bool",
             "find" => "string|array",
             "replace" => "string|array",
+            "p_url_replace" => "string",
         ])] array $options = []
     ): mixed
     {
@@ -43,6 +44,7 @@ class Escape
         $debug = $options['debug'] ?? false;
         $strict = $options['strict'] ?? false;
         $connect_db = $options['connect_db'] ?? true;
+        $p_url_replace = $options['p_url_replace'] ?? "-";
 
         // this condition is meant for the $find variable when handling urls
         if (count(self::$escape_string) == 0) self::$escape_string = self::$stock_escape_string;
@@ -105,16 +107,16 @@ class Escape
         $map[EscapeType::P_SPEC_CHAR] = fn($val = null) => htmlspecialchars($val ?? $value, $flags, $encoding, $double_encode);
         $map[EscapeType::P_ENCODE_URL] = fn($val = null) => rawurlencode($val ?? $value);
         $map[EscapeType::P_REPLACE] = fn ($val = null) => str_replace($find, $replace, $val ?? $value);
-        $map[EscapeType::P_URL] = function ($val = null) use ($find, $value) {
+        $map[EscapeType::P_URL] = function ($val = null) use ($find, $value, $p_url_replace) {
             rsort($find);
 
             $value = $val ?? $value;
             $value = rawurlencode($value);
-            $value = str_replace($find, "-", $value);
-            $value = preg_replace("/--+/", "-", $value);
+            $value = str_replace($find, $p_url_replace, $value);
+            $value = preg_replace("/{$p_url_replace}{$p_url_replace}+/", $p_url_replace, $value);
             $value = strtolower($value);
 
-            return trim($value,"-");
+            return trim($value,$p_url_replace);
         };
 
         $permute = function ($combination, $value) use ($map) {

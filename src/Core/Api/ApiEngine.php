@@ -10,6 +10,8 @@ use BrickLayer\Lay\Core\View\DomainResource;
 use BrickLayer\Lay\Core\View\ViewBuilder;
 use BrickLayer\Lay\Libs\LayCache;
 use BrickLayer\Lay\Libs\LayDate;
+use BrickLayer\Lay\Libs\String\Enum\EscapeType;
+use BrickLayer\Lay\Libs\String\Escape;
 use Closure;
 use BrickLayer\Lay\Core\Api\Enums\ApiRequestMethod;
 use BrickLayer\Lay\Core\Exception;
@@ -19,20 +21,93 @@ final class ApiEngine {
 
     private const RATE_LIMIT_CACHE_FILE = 'rate_limiter/';
 
+    /**
+     * Endpoints can be named, and this is responsible for storing it
+     * @var string|null
+     */
     private static ?string $request_uri_name;
+
+    /**
+     * This is the uri as sent by the application; meaning something like: api/user/1
+     * @var string
+     */
     private static string $request_uri_raw;
-    private static string $current_route;
+
+    /**
+     * This is only set when a route is found
+     * @var string
+     */
+    private static string $active_route;
+
+    /**
+     * This holds details of the current route being processed by the engine. This is always set
+     * @var array
+     */
     private static array $current_request_uri = [];
+
+    /**
+     * This holds details of the current route being processed by the engine. This is always set
+     * @var string
+     */
+    private static string $current_uri_string;
+
+    /**
+     * The stores each uris processed by the engine for a selected request method like: get, post, etc.
+     * It is only active in debug mode
+     * @var array
+     */
     private static array $registered_uris = [];
+
+    /**
+     * The stores each uris processed by the engine for all request methods.
+     * It is only active in debug mode
+     * @var array
+     */
+    private static array $all_uris = [];
+
+    /**
+     * Original request uri from the client. It is broken into an array
+     * @example user/profile/1 = [user, profile, 1]
+     * @var array
+     */
     private static array $request_uri = [];
+
+    /**
+     * Headers sent with the request by the client
+     * @var array
+     */
     private static array $request_header;
-    private static array $method_arguments;
-    private static mixed $method_return_value;
+
+    /**
+     * The extrapolated values from the active request uri
+     * @example /user/profile/{id}/blog/edit/{blog_id}; == [{id}, {blog_id}]
+     * @var array
+     */
+    private static array $uri_variables;
+
+    /**
+     * Return value of the `->bind` method for the active route.
+     * @var mixed
+     */
+    private static mixed $bind_return_value;
+
+    /**
+     * Return type of the `->bind` method for the active route.
+     * @var ApiReturnType
+     */
     private static ApiReturnType $method_return_type = ApiReturnType::JSON;
+
+    /**
+     * Instruct the engine to use Lay's inbuilt exceptions or PHP exceptions
+     * @var bool
+     */
     private static bool $use_lay_exception = true;
+
+
     private static bool $request_found = false;
     private static bool $request_complete = false;
     private static bool $skip_process_on_false = true;
+
     private static ?string $version;
     private static ?string $prefix;
     private static ?string $group;
@@ -84,11 +159,6 @@ final class ApiEngine {
     }
 
     private function correct_request_method(bool $throw_exception = true) : bool {
-        if(self::$DEBUG_MODE) {
-            self::$current_request_method = self::$request_method;
-            return true;
-        }
-
         if(!isset($_SERVER['REQUEST_METHOD']))
             self::exception("RequestMethodNotFound", "No request method found. You are probably accessing this page illegally!");
 
@@ -124,10 +194,9 @@ final class ApiEngine {
         if(self::$request_found || self::$request_complete || !$this->correct_request_method(false))
             return $this;
 
-        self::$method_arguments = [];
+        self::$uri_variables = [];
         self::$method_return_type = $return_type;
 
-        $uri_text = "";
         $request_uri = trim($request_uri, "/");
         self::$current_request_uri = explode("/", $request_uri);
         $last_item = end(self::$current_request_uri);
@@ -144,7 +213,7 @@ final class ApiEngine {
 
         if(isset(self::$version)) {
             self::$current_request_uri = [...[self::$version], ...self::$current_request_uri];
-            self::$current_route = $this->attach_version(implode("/", self::$current_request_uri));
+            self::$active_route = $this->attach_version(implode("/", self::$current_request_uri));
         }
 
         if(count(self::$request_uri) !== count(self::$current_request_uri))
@@ -154,8 +223,6 @@ final class ApiEngine {
             return $this;
 
         foreach (self::$current_request_uri as $i => $query) {
-            $uri_text .= "$query/";
-
             if (self::$request_uri[$i] !== $query && !str_starts_with($query, "{"))
                 break;
 
@@ -170,29 +237,7 @@ final class ApiEngine {
              * If request has a {placeholder}, then process it and store for future use
              */
             if(str_starts_with($query, "{")) {
-
-                /**
-                 * Strip curly braces from the placeholder for further processing. \
-                 * Then get the data type if specified from the placeholder and cast it to that.
-                 *
-                 * Example: Using the request `users/profile/36373` \
-                 * The `->map_request('users/profile/{@int 1}')` \
-                 * Value will be stored as `"users.profile.has_args" => (int) 36373`
-                 */
-                $stripped = explode(" ", trim($query, "{}"));
-                $data_type = preg_grep("/^@[a-z]+/", $stripped)[0] ?? null;
-
-                if($data_type) {
-                    $data_type = substr($data_type, 1);
-                    try {
-                        settype(self::$request_uri[$i], $data_type);
-                    }
-                    catch (\ValueError $e){
-                        self::exception("InvalidDataType", "`@$data_type` is not a valid datatype, In [" . rtrim($uri_text, "/") . "];", $e);
-                    }
-                }
-
-                self::$method_arguments['args'][] = self::$request_uri[$i];
+                self::$uri_variables['args'][] = self::$request_uri[$i];
                 self::$request_found = true;
             }
         }
@@ -336,7 +381,14 @@ final class ApiEngine {
 
         $cache = LayCache::new()->cache_file(self::RATE_LIMIT_CACHE_FILE . DomainResource::get()->domain->domain_referrer . ".json");
         $key = $key ?? LayConfig::get_ip();
-        $key = str_replace([".", " "], "_", $key . (self::$request_uri_name ?? self::$request_uri_raw));
+        $key = Escape::clean(
+            $key . (self::$request_uri_name ?? self::$request_uri_raw),
+            EscapeType::P_URL, [
+                'strict' => false,
+                'p_url_replace' => "_"
+            ]
+        );
+
         $limit = $cache->read($key, false);
 
         $request_count = (int) $limit?->request_count;
@@ -420,7 +472,7 @@ final class ApiEngine {
         if(!self::$skip_process_on_false)
             return false;
 
-        $current_uri = !empty(self::$registered_uris) ? end(self::$registered_uris)['route'] : null;
+        $current_uri = self::$current_uri_string ?? null;
 
         if(
             empty(self::$current_request_uri) ||
@@ -442,7 +494,7 @@ final class ApiEngine {
 
     private static function set_return_value(mixed $return_array = null) : void
     {
-        self::$method_return_value = $return_array ?? self::$method_return_value ?? null;
+        self::$bind_return_value = $return_array ?? self::$bind_return_value ?? null;
         self::$request_found = true;
         self::$request_complete = true;
     }
@@ -561,10 +613,11 @@ final class ApiEngine {
         if($this->skip_process())
             return $this;
 
-        // Register all request based on the method received
-        if($this->correct_request_method(false))
-            self::$registered_uris[] = [
-                'route' => implode("/",self::$current_request_uri),
+        if(self::$DEBUG_MODE) {
+            self::$current_uri_string = implode("/", self::$current_request_uri);
+
+            $uri_obj = [
+                'route' => self::$current_uri_string,
                 'route_name' => self::$request_uri_name ?? "",
                 'method' => self::$request_method,
                 'return_type' => self::$method_return_type,
@@ -577,6 +630,18 @@ final class ApiEngine {
                     'route' => self::$using_route_middleware,
                 ],
             ];
+
+            self::$all_uris[] = $uri_obj;
+        }
+
+        // Register all request based on the method received
+        if($this->correct_request_method(false)) {
+            self::$current_uri_string ??= implode("/", self::$current_request_uri);
+
+            if (self::$DEBUG_MODE)
+                self::$registered_uris[] = $uri_obj;
+        }
+
 
         if(!self::$request_found || self::$request_complete)
             return $this;
@@ -601,7 +666,7 @@ final class ApiEngine {
         if(self::$current_middleware) {
             $this->middleware(self::$current_middleware);
 
-            if(isset(self::$method_return_value))
+            if(isset(self::$bind_return_value))
                 return $this;
         }
 
@@ -624,7 +689,7 @@ final class ApiEngine {
         return [
             "found" => self::$request_found,
             "request" => self::$request_uri_raw,
-            "route" => self::$current_route,
+            "route" => self::$active_route,
             "route_name" => self::$request_uri_name,
             "method" => self::$current_request_method,
             "using_limit" => [
@@ -640,14 +705,35 @@ final class ApiEngine {
 
     public function get_registered_uris() : array
     {
+        if(!self::$DEBUG_MODE)
+            self::exception(
+                "WrongModeAccess",
+                "You cannot get registered uris in production mode.\n<br>"
+                . "You must set [ApiEngine::\$DEBUG_MODE] to `true`.\n <br>"
+                . "You can do this in [Api/Plaster.php] file or any other ApiEngine class"
+            );
+
         return self::$registered_uris;
+    }
+
+    public static function all_api_endpoints() : array
+    {
+        if(!self::$DEBUG_MODE)
+            self::exception(
+                "WrongModeAccess",
+                "You cannot use this method in production mode.\n<br>"
+                . "You must set [ApiEngine::\$DEBUG_MODE] to `true`.\n <br>"
+                . "You can do this in [Api/Plaster.php] file or any other ApiEngine class"
+            );
+
+        return self::$all_uris;
     }
 
     public function get_result() : mixed {
         $this->reset_engine();
 
         try {
-            return self::$method_return_value;
+            return self::$bind_return_value;
         } catch (\Error $e) {
             self::exception("PrematureGetResult", $e->getMessage() . "; You simply called get result and no specified route was hit, so there's nothing to 'get'", $e);
         }
@@ -670,22 +756,22 @@ final class ApiEngine {
      * depending on what was selected as `$return_type`
      */
     public function print_as(?ApiReturnType $return_type = null, bool $print = true) : string|bool|null {
-        if(!isset(self::$method_return_value))
+        if(!isset(self::$bind_return_value))
             return null;
 
         // Clear the prefix, because this method marks the end of a set of api routes
         self::$prefix = null;
         $return_type ??= self::$method_return_type;
 
-        $x = self::$method_return_value;
+        $x = self::$bind_return_value;
 
         if($return_type == ApiReturnType::JSON)
-            $x = json_encode(self::$method_return_value);
+            $x = json_encode(self::$bind_return_value);
 
-        if(($return_type == ApiReturnType::HTML || $return_type == ApiReturnType::XML) && is_array(self::$method_return_value)) {
+        if(($return_type == ApiReturnType::HTML || $return_type == ApiReturnType::XML) && is_array(self::$bind_return_value)) {
             $y = "<h1>Server Response</h1>";
 
-            foreach (self::$method_return_value as $k => $value) {
+            foreach (self::$bind_return_value as $k => $value) {
                 if(is_array($value))
                     $value = "Array Object []";
 
@@ -705,11 +791,11 @@ final class ApiEngine {
     }
 
     /**
-     * Get the mapped-out arguments of a current `->for` case
+     * Get the mapped-out arguments of the current request uri
      * @return array
      */
     public function get_mapped_args() : array {
-        return self::$method_arguments['args'] ?? [];
+        return self::$uri_variables['args'] ?? [];
     }
 
     public function get_uri() : array {
@@ -736,6 +822,7 @@ final class ApiEngine {
 
     /**
      * Capture the URI of requests sent to the api router then store it for further processing
+     * @param string $local_endpoint The expected endpoint prefix
      * @return self
      */
     public static function fetch(string $local_endpoint = "api") : self {
@@ -766,10 +853,11 @@ final class ApiEngine {
         $uri = self::$request_uri_raw ?? "";
 
         if(self::$request_found === false) {
-            $version_active = isset(self::$version) ? "<h3>Versioning is active: " . self::$version . "</h3>" : null;
-            $prefix_active = isset(self::$prefix) ? "<h3>Prefix is active: " . self::$prefix . "</h3>" : null;
+            $version_active = isset(self::$version) ? "<div>Version: <span class='color: cyan'>" . self::$version . "</span></div>" : null;
+            $prefix_active = isset(self::$prefix) ? "<div>Prefix: <span style='color: #fff'>" . self::$prefix . "</span></div>" : null;
             $uris = "<br>" . PHP_EOL;
             $method = self::$current_request_method;
+            $mode = self::$DEBUG_MODE ? "Debug" : "Production";
 
             foreach(self::$registered_uris as $reg_uri) {
                 $uris .= "URI == " . $reg_uri['route'] . "<br>" . PHP_EOL;
@@ -779,11 +867,16 @@ final class ApiEngine {
                 $uris .= "<br>" . PHP_EOL;
             }
 
+            $message =self::$DEBUG_MODE ? "<h3 style='color: cyan; margin-bottom: 0'>Here are the registered requests: </h3>
+                <div style='color: #F3F9FA'>$uris</div>" : "";
+
             self::exception(
                 "NoRequestExecuted",
-                "No valid handler for request [$uri] with method [$method]. $version_active $prefix_active
-                <h3 style='color: cyan; margin-bottom: 0'>Here are the registered requests with $method method: </h3>
-                <div style='color: #F3F9FA'>$uris</div>",
+                "No valid handler for request [$uri]<br><br>  
+                <div>Method: <span style='color: #fff'>$method</span></div> 
+                <div>API Mode: <span style='color: #fff'>$mode</span></div>
+                $version_active $prefix_active
+                $message",
                 header: [
                     "code" => 404,
                     "msg" => "API Route not found",

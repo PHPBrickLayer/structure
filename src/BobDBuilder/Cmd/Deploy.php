@@ -66,8 +66,8 @@ class Deploy implements CmdLayout
 
         if(file_exists($ignore_file)) {
             $ignore = json_decode(file_get_contents($ignore_file));
-            $ignore_file = $ignore->ignore ? implode(",", $ignore->ignore) : "";
-            $copy_file = $ignore->copy_only ? implode(",", $ignore->copy_only): "";
+            $ignore_file = isset($ignore->ignore) ? implode(",", $ignore->ignore) : "";
+            $copy_file = isset($ignore->copy_only) ? implode(",", $ignore->copy_only): "";
 
             $this->ignore = $this->ignore ? $this->ignore . "," . $ignore_file : $ignore_file;
             $this->copy_only = $this->copy_only ? $this->copy_only . "," . $copy_file : $copy_file;
@@ -81,8 +81,6 @@ class Deploy implements CmdLayout
         if($this->no_cache)
             $this->talk("- *--no-cache* detected. Entire project will be compressed...");
 
-        $duration = LayDate::date();
-
         if($this->git_only) {
             $this->talk("- Pushing to git only *--git-only* tag detected");
             $this->push_with_git();
@@ -95,8 +93,6 @@ class Deploy implements CmdLayout
         $this->compress_shared_static();
         $this->compress_static();
         $this->push_with_git();
-
-        $this->talk("- Duration: " . LayDate::elapsed($duration, append_ago: false));
     }
 
     public function batch_minification(string $src_dir, string $output_dir): void

@@ -38,39 +38,51 @@ final class LayImage{
 
     /**
      * Check image width and height size
-     * @param $imageFile string file to be checked for size
-     * @return array [width,height]
+     * @param $image_file string file to be checked for size
+     * @return array [width,height] in pixel (px)
      */
-    public function get_size(string $imageFile) : array {
-        list($w_orig,$h_orig) = getimagesize($imageFile);
+    #[ArrayShape(['width' => 'int', 'height' => 'int'])]
+    public function get_size(string $image_file) : array {
+        list($w_orig,$h_orig) = getimagesize($image_file);
 
         if(!$w_orig || !$h_orig)
-            $this->exception("An invalid image file was sent for upload");
+            $this->exception("An invalid image file was sent for upload: " . $image_file);
 
         return ["width" => $w_orig,"height" => $h_orig];
     }
 
     /**
-     * @param string $tmpImage location to temporary file or file to be handled
-     * @param string $newImage location to new image file
+     * Alias of get_size
+     * @see get_size
+     * @param string $image_file
+     * @return array
+     */
+    public function get_ratio(string $image_file) : array
+    {
+        return $this->get_size($image_file);
+    }
+
+    /**
+     * @param string $tmp_img location to temporary file or file to be handled
+     * @param string $new_img location to new image file
      * @param int $quality image result quality [max value = 100 && min value = 0]
      * @param bool $resize default: false
      * @param int|null $width resize image width
      * @param bool $add_mod_time
      * @return string
      */
-    public function create(string $tmpImage, string $newImage, int $quality = 80, bool $resize = false, ?int $width = null, bool $add_mod_time = true) : string {
-        $ext = image_type_to_extension(exif_imagetype($tmpImage),false);
-        $mod_time = $add_mod_time ? "-" .  filemtime($tmpImage) : "";
-        $newImage .= $mod_time . ($ext == "gif" ? ".$ext" : ".webp");
-        $filename = pathinfo($newImage, PATHINFO_FILENAME) . ($ext == "gif" ? ".$ext" : ".webp");
+    public function create(string $tmp_img, string $new_img, int $quality = 80, bool $resize = false, ?int $width = null, bool $add_mod_time = true) : string {
+        $ext = image_type_to_extension(exif_imagetype($tmp_img),false);
+        $mod_time = $add_mod_time ? "-" .  filemtime($tmp_img) : "";
+        $new_img .= $mod_time . ($ext == "gif" ? ".$ext" : ".webp");
+        $filename = pathinfo($new_img, PATHINFO_FILENAME) . ($ext == "gif" ? ".$ext" : ".webp");
 
         if($ext == "gif" && !$resize) {
-            copy($tmpImage, $newImage);
+            copy($tmp_img, $new_img);
             return $filename;
         }
 
-        $img = call_user_func("imagecreatefrom$ext", $tmpImage);
+        $img = call_user_func("imagecreatefrom$ext", $tmp_img);
 
         if($resize)
             $img = imagescale($img, $width);
@@ -79,9 +91,9 @@ final class LayImage{
         imagesavealpha($img, true);
 
         if($ext == "gif")
-            imagegif($img, $newImage);
+            imagegif($img, $new_img);
         else
-            imagewebp($img, $newImage, $quality);
+            imagewebp($img, $new_img, $quality);
 
         imagedestroy($img);
 

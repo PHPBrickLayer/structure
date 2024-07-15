@@ -8,6 +8,9 @@ use BrickLayer\Lay\Core\Traits\Init;
 use BrickLayer\Lay\Core\Traits\IsSingleton;
 use BrickLayer\Lay\Core\Traits\Resources;
 
+// If you want to measure the run time, just call this constant and subtract the new `microtime(true)` from it
+define("LAY_START", microtime(true));
+
 final class LayConfig {
     use IsSingleton;
     use Init;
