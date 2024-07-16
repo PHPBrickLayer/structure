@@ -7,10 +7,13 @@ use BrickLayer\Lay\Core\CoreException;
 use BrickLayer\Lay\Core\Traits\IsSingleton;
 use BrickLayer\Lay\Libs\LayArray;
 use BrickLayer\Lay\Orm\Enums\OrmDriver;
+use BrickLayer\Lay\Orm\Enums\OrmExecStatus;
 use BrickLayer\Lay\Orm\Enums\OrmQueryType;
 use BrickLayer\Lay\Orm\Enums\OrmReturnType;
-use BrickLayer\Lay\Orm\Traits\Controller;
-use BrickLayer\Lay\Orm\Enums\OrmExecStatus;
+use BrickLayer\Lay\Orm\Traits\Config;
+use BrickLayer\Lay\Orm\Traits\Functions;
+use BrickLayer\Lay\Orm\Traits\SelectorOOP;
+use BrickLayer\Lay\Orm\Traits\SelectorOOPCrud;
 use Exception;
 use Generator;
 use JetBrains\PhpStorm\ArrayShape;
@@ -25,7 +28,9 @@ class SQL
 {
     use IsSingleton;
     use Config;
-    use Controller;
+    use SelectorOOP;
+    use SelectorOOPCrud;
+    use Functions;
 
     public array $query_info;
     private static OrmDriver $active_driver;

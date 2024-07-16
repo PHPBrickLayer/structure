@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-namespace BrickLayer\Lay\Orm;
+namespace BrickLayer\Lay\Orm\Traits;
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Orm\Enums\OrmDriver;
 use BrickLayer\Lay\Orm\Enums\OrmQueryType;

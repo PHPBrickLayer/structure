@@ -211,11 +211,6 @@ trait SelectorOOP
         return $this->store_vars('fetch_as', OrmReturnType::NUM);
     }
 
-    final public function result_dimension(#[ExpectedValues([1, 2])] int $dimension): self
-    {
-        return $this->store_vars('result_dimension', $dimension);
-    }
-
     final public function then_insert(string|array $columns): bool
     {
         $this->column($columns);
@@ -275,8 +270,6 @@ trait SelectorOOP
 
         return $r;
     }
-
-    use SelectorOOPCrud;
 
     private function oop_exception(string $message, $exception = null): void
     {

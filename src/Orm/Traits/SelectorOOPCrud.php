@@ -18,11 +18,6 @@ trait SelectorOOPCrud
         return $this->saved_result ?? null;
     }
 
-    final public function uuid(): string
-    {
-        return $this->query("SELECT UUID()")[0];
-    }
-
     final public function last_item(?string $column_to_check = null): array
     {
         $d = $this->get_vars();
@@ -50,91 +45,6 @@ trait SelectorOOPCrud
         return $this->capture_result(
             [$this->query("SELECT {$d['columns']} FROM {$d['table']} {$d['clause']} $column_to_check LIMIT 1", $d), $d],
         );
-    }
-
-    private function capture_result(array $result_and_opt, string $return_type = 'array'): mixed
-    {
-        $catch_error = $result_and_opt[1]['catch'] ?? false;
-
-        $this->saved_result = $result_and_opt[0];
-        $return_as = $result_and_opt[1]['return_as'] ?? OrmReturnType::RESULT;
-
-        if ($return_as != OrmReturnType::GENERATOR && $this->saved_result instanceof Generator)
-            $this->saved_result = iterator_to_array($this->saved_result);
-
-        $types = explode("|", $return_type);
-        $last_index = count($types) - 1;
-
-        foreach ($types as $i => $type) {
-            $x = $this->match_type($type, $i == $last_index, $catch_error);
-
-            if ($x == "__IGNORE__")
-                continue;
-
-            if ($x == "__MATCHED__")
-                break;
-
-            return $x;
-        }
-
-        return $this->saved_result;
-    }
-
-    private function match_type(string $return_type, bool $last_index, bool $catch_error): mixed
-    {
-        $test_type = call_user_func("is_$return_type", $this->saved_result);
-
-        if ($test_type)
-            return "__MATCHED__";
-
-        if (!$last_index)
-            return "__IGNORE__";
-
-        $type = gettype($this->saved_result);
-
-        if ($type == "object")
-            $type = "mysqli_object";
-
-        $return_type = strtoupper($return_type);
-
-        if (!$catch_error)
-            $this->oop_exception("invalid return type received from query. Got [<b>$type</b>] instead of [<b>$return_type</b>]");
-
-        return match ($return_type) {
-            default => [],
-            'STRING' => '',
-            'BOOL' => false,
-            'INT' => 0,
-            'NULL' => null,
-        };
-    }
-
-    private function bind_param(string $string, array $data) : string
-    {
-        $bind_num = $data['bind_num'] ?? null;
-        $bind_assoc = $data['bind_assoc'] ?? null;
-
-        if($bind_num) {
-            foreach ($bind_num as $b) {
-                if(gettype($b) != "integer")
-                    $b = "'$b'";
-
-                $string = preg_replace("~\?~", "$b", $string, 1);
-            }
-        }
-
-        if($bind_assoc) {
-            foreach ($bind_assoc as $k => $b) {
-                if(gettype($b) != "integer")
-                    $b = "'$b'";
-
-                $k = ":" . ltrim($k, ":");
-
-                $string = preg_replace("~($k)~", "$b", $string, 1);
-            }
-        }
-
-        return $string;
     }
 
     final public function insert(?array $column_and_values = null): bool
@@ -388,6 +298,111 @@ trait SelectorOOPCrud
         );
     }
 
+    final public function delete(?string $WHERE = null): bool
+    {
+        $d = $this->get_vars();
+
+        if(empty($WHERE) && @empty($d['clause']))
+            $this->oop_exception("You cannot delete without a clause. Use the `->clause(String)` or `->where(String)` to indicate a clause. If you wish to delete without a clause, then use the `->query(String)` method to construct your query");
+
+        $d['clause'] = $WHERE ? "WHERE $WHERE" : $d['clause'];
+        $d['query_type'] = OrmQueryType::DELETE;
+        $table = $d['table'] ?? null;
+
+        if (empty($table))
+            $this->oop_exception("You did not initialize the `table`. Use the `->table(String)` method like this: `->value('your_table_name')`");
+
+        return $this->capture_result(
+            [$this->query("DELETE FROM $table {$d['clause']}", $d), $d],
+            'bool'
+        );
+    }
+
+    private function capture_result(array $result_and_opt, string $return_type = 'array'): mixed
+    {
+        $catch_error = $result_and_opt[1]['catch'] ?? false;
+
+        $this->saved_result = $result_and_opt[0];
+        $return_as = $result_and_opt[1]['return_as'] ?? OrmReturnType::RESULT;
+
+        if ($return_as != OrmReturnType::GENERATOR && $this->saved_result instanceof Generator)
+            $this->saved_result = iterator_to_array($this->saved_result);
+
+        $types = explode("|", $return_type);
+        $last_index = count($types) - 1;
+
+        foreach ($types as $i => $type) {
+            $x = $this->match_type($type, $i == $last_index, $catch_error);
+
+            if ($x == "__IGNORE__")
+                continue;
+
+            if ($x == "__MATCHED__")
+                break;
+
+            return $x;
+        }
+
+        return $this->saved_result;
+    }
+
+    private function match_type(string $return_type, bool $last_index, bool $catch_error): mixed
+    {
+        $test_type = call_user_func("is_$return_type", $this->saved_result);
+
+        if ($test_type)
+            return "__MATCHED__";
+
+        if (!$last_index)
+            return "__IGNORE__";
+
+        $type = gettype($this->saved_result);
+
+        if ($type == "object")
+            $type = "mysqli_object";
+
+        $return_type = strtoupper($return_type);
+
+        if (!$catch_error)
+            $this->oop_exception("invalid return type received from query. Got [<b>$type</b>] instead of [<b>$return_type</b>]");
+
+        return match ($return_type) {
+            default => [],
+            'STRING' => '',
+            'BOOL' => false,
+            'INT' => 0,
+            'NULL' => null,
+        };
+    }
+
+    private function bind_param(string $string, array $data) : string
+    {
+        $bind_num = $data['bind_num'] ?? null;
+        $bind_assoc = $data['bind_assoc'] ?? null;
+
+        if($bind_num) {
+            foreach ($bind_num as $b) {
+                if(gettype($b) != "integer")
+                    $b = "'$b'";
+
+                $string = preg_replace("~\?~", "$b", $string, 1);
+            }
+        }
+
+        if($bind_assoc) {
+            foreach ($bind_assoc as $k => $b) {
+                if(gettype($b) != "integer")
+                    $b = "'$b'";
+
+                $k = ":" . ltrim($k, ":");
+
+                $string = preg_replace("~($k)~", "$b", $string, 1);
+            }
+        }
+
+        return $string;
+    }
+
     private function _join(array $d): string
     {
         if (!isset($d['join']))
@@ -411,26 +426,5 @@ trait SelectorOOPCrud
 
         return $join_query;
     }
-
-    final public function delete(?string $WHERE = null): bool
-    {
-        $d = $this->get_vars();
-
-        if(empty($WHERE) && @empty($d['clause']))
-            $this->oop_exception("You cannot delete without a clause. Use the `->clause(String)` or `->where(String)` to indicate a clause. If you wish to delete without a clause, then use the `->query(String)` method to construct your query");
-
-        $d['clause'] = $WHERE ? "WHERE $WHERE" : $d['clause'];
-        $d['query_type'] = OrmQueryType::DELETE;
-        $table = $d['table'] ?? null;
-
-        if (empty($table))
-            $this->oop_exception("You did not initialize the `table`. Use the `->table(String)` method like this: `->value('your_table_name')`");
-
-        return $this->capture_result(
-            [$this->query("DELETE FROM $table {$d['clause']}", $d), $d],
-            'bool'
-        );
-    }
-
 
 }
