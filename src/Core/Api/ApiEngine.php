@@ -853,7 +853,7 @@ final class ApiEngine {
         $uri = self::$request_uri_raw ?? "";
 
         if(self::$request_found === false) {
-            $version_active = isset(self::$version) ? "<div>Version: <span class='color: cyan'>" . self::$version . "</span></div>" : null;
+            $version_active = isset(self::$version) ? "<div>Version: <span style='color: #fff'>" . self::$version . "</span></div>" : null;
             $prefix_active = isset(self::$prefix) ? "<div>Prefix: <span style='color: #fff'>" . self::$prefix . "</span></div>" : null;
             $uris = "<br>" . PHP_EOL;
             $method = self::$current_request_method;
