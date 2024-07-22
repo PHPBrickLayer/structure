@@ -119,10 +119,9 @@ trait AutoDeploy
                 return;
             }
 
-            \$log = "";
-
-            \$log .= "-- Submodule Init: " . shell_exec("git submodule init 2>&1 &") . " \n";
+            \$log = "-- Submodule Init: " . shell_exec("git submodule init 2>&1 &") . " \n";
             \$log .= "-- Git Checkout: " . shell_exec("git checkout \$main_branch 2>&1 &") . "\n";
+            \$log .= "-- Submodule Pull: " . shell_exec('git pull --recurse-submodules 2>&1 &') . "\n";
             \$log .= "-- Git Fetch: " . shell_exec('git fetch --all 2>&1 &') . "\n";
             \$log .= "-- Git Reset: " . shell_exec("git reset --hard origin/\$main_branch 2>&1 &") . "\n";
             

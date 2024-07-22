@@ -6,6 +6,7 @@ namespace BrickLayer\Lay\Core\View;
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\Traits\IsSingleton;
+use BrickLayer\Lay\Core\View\Annotate\CurrentRouteData;
 use BrickLayer\Lay\Core\View\Enums\DomainType;
 use BrickLayer\Lay\Core\View\Tags\Anchor;
 use BrickLayer\Lay\Libs\LayArray;
@@ -236,7 +237,7 @@ final class ViewBuilder
      * @return DomainType|string|array
      */
     #[ArrayShape(['int','int','int','int','int','int','int','int','route' => 'string', 'route_as_array' => 'array','route_has_end_slash' => 'bool', 'domain_type' => DomainType::class, 'domain_id' => 'string', 'domain_uri' => 'string', 'pattern' => 'string'])]
-    public function request(#[ExpectedValues(['route', 'route_as_array', 'route_has_end_slash', 'domain_type', 'domain_id', 'domain_uri', 'pattern', '*'])] string $key): DomainType|string|array
+    public function request(#[ExpectedValues(CurrentRouteData::ANNOTATE)] string $key): DomainType|string|array
     {
         if (!isset(self::$current_route_data))
             self::$current_route_data = Domain::current_route_data("*");
@@ -339,6 +340,8 @@ final class ViewBuilder
             "desc",
             "img",
             "author",
+            "lang",
+            "type",
         ])] string $key,
         ?string    $value
     ): self

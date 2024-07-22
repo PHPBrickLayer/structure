@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace BrickLayer\Lay\Core\View;
 
 use BrickLayer\Lay\Core\Exception;
+use BrickLayer\Lay\Core\View\Annotate\CurrentRouteData;
 use JetBrains\PhpStorm\ExpectedValues;
 use BrickLayer\Lay\Core\Enums\CustomContinueBreak;
 use BrickLayer\Lay\Core\LayConfig;
@@ -170,6 +171,8 @@ class Domain {
         self::$current_route_details['domain_uri'] = str_replace("/web/", "/", $data->domain) . $uri;
         self::$current_route_details['domain_base'] = $data->domain . $domain_base;
         self::$current_route_details['domain_root'] = LayConfig::server_data()->root . implode(DIRECTORY_SEPARATOR, $file) . DIRECTORY_SEPARATOR;
+        self::$current_route_details['plaster'] = self::$current_route_details['domain_root'] . "plaster" . DIRECTORY_SEPARATOR;
+        self::$current_route_details['layout'] = self::$current_route_details['domain_root'] . "layout" . DIRECTORY_SEPARATOR;
 
         if($is_api > 0)
             self::$current_route_details['domain_is_api'] = true;
@@ -438,22 +441,11 @@ class Domain {
         self::$indexed_domain = $id;
     }
 
-    public static function current_route_data(
-        #[ExpectedValues([
-            'route',
-            'route_as_array',
-            'route_has_end_slash',
-            'domain_name',
-            'domain_type',
-            'domain_id',
-            'domain_uri',
-            'domain_base',
-            'domain_root',
-            'pattern',
-            '*',
-        ])]
-        string $key
-    ) : string|DomainType|array
+    /**
+     * @param string $key
+     * @return string|DomainType|array
+     */
+    public static function current_route_data(#[ExpectedValues(CurrentRouteData::ANNOTATE)] string $key) : string|DomainType|array
     {
         if($key == "*")
             return self::$current_route_details;
