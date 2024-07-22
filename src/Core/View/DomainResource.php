@@ -5,9 +5,6 @@ namespace BrickLayer\Lay\Core\View;
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\Traits\IsSingleton;
 use BrickLayer\Lay\Core\View\Enums\DomainType;
-use BrickLayer\Lay\Libs\LayObject;
-use JetBrains\PhpStorm\ArrayShape;
-use JetBrains\PhpStorm\ObjectShape;
 
 class DomainResource
 {
@@ -18,10 +15,7 @@ class DomainResource
 
     private static function domain () : object
     {
-        $data = Domain::current_route_data("*");
-        $data['plaster'] = $data['domain_root'] . "plaster" . DIRECTORY_SEPARATOR;
-        $data['layout'] = $data['domain_root'] . "layout" . DIRECTORY_SEPARATOR;
-
+        $data = Domain::current_route_data("");
         return (object) $data;
     }
 
@@ -83,38 +77,59 @@ class DomainResource
         self::$resource->{$key} = $value;
     }
 
-    #[ObjectShape([
-        'root' => 'string',
-        'upload' => 'string',
-        'static' => 'string',
-        'static_env' => 'string',
-        'css' => 'string',
-        'img' => 'string',
-        'js' => 'string',
-        'plugins' => 'string',
-        'ui' => 'string',
-        'shared' => 'object [root, static, env, css, img, js, plugins, img_default [object [logo, favicon, icon, meta]]]',
-        'domain' => 'object [
-            domain_uri, 
-            route, 
-            route_as_array, 
-            domain_type, 
-            domain_name, 
-            domain_referrer,
-            domain_id, 
-            domain_root, 
-            pattern, 
-            plaster, 
-            layout, 
-            0...n
-        ]',
-        'lay' => 'object [uri, root]',
-    ])]
+
+    /**
+     * @psalm-return  object{
+     *      root: string,
+     *      upload: string,
+     *      static: string,
+     *      static_env: string,
+     *      css: string,
+     *      img: string,
+     *      js: string,
+     *      plugins: string,
+     *      ui: string,
+     *      shared: object{
+     *          root : string,
+     *          static: string,
+     *          env: string,
+     *          css: string,
+     *          img: string,
+     *          js: string,
+     *          plugins: string,
+     *          img_default: object{
+     *              logo: string,
+     *              favicon: string,
+     *              icon: string,
+     *              meta: string
+     *          }
+     *      },
+     *     lay: object{
+     *          uri: string,
+     *          root: string
+     *     },
+     *     domain: object{
+     *      route: string,
+     *      route_as_array: array,
+     *      route_has_end_slash: bool,
+     *      domain_name: string,
+     *      domain_type: DomainType,
+     *      domain_id: string,
+     *      domain_root: string,
+     *      domain_referrer: string,
+     *      domain_uri: string,
+     *      domain_base: string,
+     *      pattern: string,
+     *      plaster: string,
+     *      layout: string,
+     *      int<0, max>
+     *     }
+     * }
+     */
     public static function get() : object
     {
         return self::$resource;
     }
-
     public static function make_plaster(object $values) : void
     {
         self::$plaster = $values;
@@ -133,15 +148,24 @@ class DomainResource
     /**
      * You are getting everything you sent through the `ViewCast` aka `Plaster` class
      * from this method, in the exact same way
-     * @return object
+     * @psalm-return object{
+     *     head: string,
+     *     body: string,
+     *     script: string,
+     *     page: object{
+     *          charset: string,
+     *          base: string,
+     *          route: string,
+     *          url: string,
+     *          canonical: string,
+     *          title: string,
+     *          desc: string,
+     *          img: string,
+     *          author: string,
+     *     },
+     *     local: object
+     * }
      */
-    #[ObjectShape([
-        "head" => "string",
-        "body" => "string",
-        "script" => "string",
-        "page" => "object [charset, base, route, url, canonical, title, desc, img, author]",
-        "local" => "object",
-    ])]
     public static function plaster() : object
     {
         return self::$plaster ?? new \stdClass();

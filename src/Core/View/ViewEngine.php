@@ -52,6 +52,8 @@ final class ViewEngine {
                 "desc" => $const[self::key_page]['desc'] ?? "",
                 "img" => $const[self::key_page]['img'] ?? null,
                 "author" => $const[self::key_page]['author'] ?? null,
+                "lang" => $const[self::key_page]['lang'] ?? "en_US",
+                "type" => $const[self::key_page]['type'] ?? "website",
             ],
             self::key_html_attr =>  [
                 "class" =>  $const[self::key_html_attr]['class'] ?? null,
@@ -158,7 +160,7 @@ final class ViewEngine {
 
         $page = <<<STR
         <!DOCTYPE html>
-        <html itemscope lang="en" id="LAY-HTML" class="$html_attr->class" $html_attr->attr>
+        <html itemscope lang="$page->lang" id="LAY-HTML" class="$html_attr->class" $html_attr->attr>
         <head>
             <title id="LAY-PAGE-TITLE-FULL">$title</title>
             <base href="$base" id="LAY-PAGE-BASE">
@@ -191,8 +193,9 @@ final class ViewEngine {
             <!-- // Framework Tags-->
             
             <!-- Facebook Tags -->
+            <meta property="og:locale" content="$page->lang" />
             <meta property="og:url" id="LAY-PAGE-FULL-URL" content="$page->url">
-            <meta property="og:type" content="website">
+            <meta property="og:type" content="$page->type">
             <meta property="og:title" id="LAY-PAGE-TITLE" content="$title_raw">
             <meta property="og:description" content="$desc">
             <meta property="og:image" content="$img">

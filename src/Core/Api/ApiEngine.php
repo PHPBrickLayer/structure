@@ -103,16 +103,36 @@ final class ApiEngine {
      */
     private static bool $use_lay_exception = true;
 
-
+    /**
+     * Becomes true if a route is found
+     * @var bool
+     */
     private static bool $request_found = false;
+
+    /**
+     * Becomes true when the Engine is done running
+     * @var bool
+     */
     private static bool $request_complete = false;
+
+    /**
+     * Control the Engine's flow of logic
+     * @var bool
+     */
     private static bool $skip_process_on_false = true;
 
     private static ?string $version;
     private static ?string $prefix;
     private static ?string $group;
+
+    /**
+     * POST, GET, etc.
+     * This variable holds the request method of the route being processed by the Engine
+     * @var string
+     */
     private static string $request_method;
-    private static string $current_request_method;
+    
+    private static string $active_request_method;
 
     private static ?Closure $current_middleware = null;
     private static bool $using_group_middleware = false;
@@ -165,7 +185,7 @@ final class ApiEngine {
         $match = strtoupper($_SERVER['REQUEST_METHOD']) === self::$request_method;
 
         if($match) {
-            self::$current_request_method = self::$request_method;
+            self::$active_request_method = self::$request_method;
             return true;
         }
 
@@ -691,7 +711,7 @@ final class ApiEngine {
             "request" => self::$request_uri_raw,
             "route" => self::$active_route,
             "route_name" => self::$request_uri_name,
-            "method" => self::$current_request_method,
+            "method" => self::$active_request_method,
             "using_limit" => [
                 "group" => self::$using_group_limiter,
                 "route" => self::$using_route_limiter,
@@ -856,7 +876,7 @@ final class ApiEngine {
             $version_active = isset(self::$version) ? "<div>Version: <span style='color: #fff'>" . self::$version . "</span></div>" : null;
             $prefix_active = isset(self::$prefix) ? "<div>Prefix: <span style='color: #fff'>" . self::$prefix . "</span></div>" : null;
             $uris = "<br>" . PHP_EOL;
-            $method = self::$current_request_method;
+            $method = self::$active_request_method;
             $mode = self::$DEBUG_MODE ? "Debug" : "Production";
 
             foreach(self::$registered_uris as $reg_uri) {
