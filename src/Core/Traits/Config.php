@@ -175,7 +175,7 @@ trait Config
 
     public static function is_bot(): bool
     {
-        return !empty($_SERVER['HTTP_USER_AGENT']) && preg_match('~(bot|crawl)~i', $_SERVER['HTTP_USER_AGENT'], flags: PREG_UNMATCHED_AS_NULL);
+        return (bool) preg_match('~(bot|crawl)~i', self::get_header("User-Agent"), flags: PREG_UNMATCHED_AS_NULL);
     }
 
     /**
