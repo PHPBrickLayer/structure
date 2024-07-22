@@ -15,7 +15,7 @@ class DomainResource
 
     private static function domain () : object
     {
-        $data = Domain::current_route_data("");
+        $data = Domain::current_route_data("*");
         return (object) $data;
     }
 
