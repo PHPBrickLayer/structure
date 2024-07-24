@@ -52,6 +52,9 @@ enum ApiStatus : int
     case GATEWAY_TIMEOUT = 504;
     case HTTP_VERSION_NOT_SUPPORTED = 505;
 
+    // Custom http code
+    case SESSION_EXPIRED = 909;
+
     public static function extract_status(int|self $code, ?string $message = null) : string
     {
         if(!is_int($code)) {

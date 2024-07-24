@@ -22,17 +22,9 @@ trait Domain
         if (!$domain)
             $this->plug->write_fail("No domain specified");
 
-        if (!$pattern)
-            $this->plug->write_fail(
-                "No domain pattern specified!\n"
-                . "Pattern has to be in quotes ('').\n"
-                . "\n"
-                . "See pattern examples below:\n"
-                . "Example: 'blog-posts,blog'\n"
-                . "Example: 'case-study'\n"
-            );
+        $pattern ??= strtolower($domain);
 
-        if (empty($pattern) || (!$this->plug->is_internal && trim($pattern) == "*")) {
+        if (!$this->plug->is_internal && trim($pattern) == "*") {
             $this->plug->failed();
             $this->plug->write_warn(
                 "Pattern cannot be an empty quote or '*'\n"
@@ -40,9 +32,9 @@ trait Domain
                 . "See pattern examples below:\n"
                 . "Example: 'blog-posts,blog'\n"
                 . "Example: 'case-study'\n"
+                . "Example: docs\n"
             );
         }
-
 
         $domain = explode(" ", ucwords($domain));
         $domain_id = strtolower(implode("-", $domain) . "-id");
@@ -201,13 +193,26 @@ trait Domain
         );
         DEF;
 
-        // Current Doamin being created
+        // Current Domain being created
         preg_match(
             '/Domain::new\(\)->create\([^)]*'. $domain_id .'[^)]*\);/s',
             $index_page, $data
         );
 
-        $current_domain = $data[0] ?? <<<CUR
+        // Create the new domain patterns as specified from the terminal
+        $pattern = "";
+        foreach (explode(",", $patterns) as $p) {
+            $pattern .= '"' . strtolower(trim($p)) . '",';
+        }
+
+        $pattern = rtrim($pattern, ",");
+
+        preg_match('/"([^"]+)"/', $data[0], $old_pattern);
+        $old_pattern = $old_pattern[0] ?? null;
+
+        $pattern = $old_pattern == $pattern ? $old_pattern : $pattern;
+
+        $current_domain = <<<CUR
         Domain::new()->create(
             id: "$domain_id",
             builder: \web\domains\\$domain\\Plaster::class,
@@ -222,14 +227,6 @@ trait Domain
             "",
             $index_page
         ));
-
-        // Create the new domain patterns as specified from the terminal
-        $pattern = "";
-        foreach (explode(",", $patterns) as $p) {
-            $pattern .= '"' . strtolower(trim($p)) . '",';
-        }
-
-        $pattern = rtrim($pattern, ",");
 
         // Replace the index file
         file_put_contents(
