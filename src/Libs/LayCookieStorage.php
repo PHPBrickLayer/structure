@@ -39,15 +39,17 @@ final class LayCookieStorage
         $table = self::$table;
 
         // check if table exists, but catch the error
-        $exists = self::orm()->open(self::$table)->catch()->clause("LIMIT 1")->just_exec()->select();
+        self::orm()->open(self::$table)->catch()->clause("LIMIT 1")->just_exec()->select();
+
+        $query_info = self::orm()->query_info;
 
         // Check if the above query had an error. If no error, table exists, else table doesn't exist
-        if (self::orm()->query_info['has_error'] === false) {
+        if ($query_info['has_error'] === false) {
             $_SESSION[self::SESSION_KEY]["has_error"] = true;
             return;
         }
 
-        if($exists->field_count > 0) {
+        if($query_info['rows'] > 0) {
             $_SESSION[self::SESSION_KEY]["table_exists"] = true;
             return;
         }

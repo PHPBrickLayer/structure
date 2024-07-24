@@ -32,7 +32,18 @@ class SQL
     use SelectorOOPCrud;
     use Functions;
 
+    /**
+     * @var array $query_info
+     * @psalm-return array{
+     *     status: OrmExecStatus,
+     *     has_data: bool,
+     *     data: mixed,
+     *     has_error: bool,
+     *     rows: int,
+     * }
+     */
     public array $query_info;
+
     private static OrmDriver $active_driver;
     private static string $db_name;
 
@@ -224,7 +235,8 @@ class SQL
             "status" => OrmExecStatus::SUCCESS,
             "has_data" => true,
             "data" => $exec,
-            "has_error" => $has_error
+            "has_error" => $has_error,
+            "rows" => 0
         ];
 
         if($return_as == OrmReturnType::EXECUTION)
@@ -248,6 +260,8 @@ class SQL
         }
 
         $affected_rows = $affected_rows ?? self::$link->affected_rows ?? self::$link->changes();
+
+        $this->query_info['rows'] = $affected_rows;
 
         // Record no row if there isn't any
         if ($affected_rows == 0) {
