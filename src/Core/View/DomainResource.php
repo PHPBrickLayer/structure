@@ -159,6 +159,7 @@ class DomainResource
      *          url: string,
      *          canonical: string,
      *          title: string,
+     *          title_raw: string,
      *          desc: string,
      *          img: string,
      *          author: string,
