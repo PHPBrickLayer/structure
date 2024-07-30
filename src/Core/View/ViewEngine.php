@@ -53,6 +53,7 @@ final class ViewEngine {
                 "img" => $const[self::key_page]['img'] ?? null,
                 "author" => $const[self::key_page]['author'] ?? null,
                 "lang" => $const[self::key_page]['lang'] ?? "en_US",
+                "html_lang" => $const[self::key_page]['html_lang'] ?? "en",
                 "type" => $const[self::key_page]['type'] ?? "website",
             ],
             self::key_html_attr =>  [
@@ -160,7 +161,7 @@ final class ViewEngine {
 
         $page = <<<STR
         <!DOCTYPE html>
-        <html itemscope lang="$page->lang" id="LAY-HTML" class="$html_attr->class" $html_attr->attr>
+        <html itemscope lang="$page->html_lang" id="LAY-HTML" class="$html_attr->class" $html_attr->attr>
         <head>
             <title id="LAY-PAGE-TITLE-FULL">$title</title>
             <base href="$base" id="LAY-PAGE-BASE">
