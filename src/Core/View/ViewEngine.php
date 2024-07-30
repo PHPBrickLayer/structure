@@ -205,11 +205,12 @@ final class ViewEngine {
             
             <!--Twitter Tags -->
             <meta name="twitter:card" content="summary_large_image">
-            <meta property="twitter:domain" content="{$client->domain->domain_uri}">
-            <meta property="twitter:url" content="$page->url">
+            <meta name="twitter:site" content="{$site_data->name->full}">
             <meta name="twitter:title" content="$title_raw">
             <meta name="twitter:description" content="$desc">
             <meta name="twitter:image" content="$img">
+            <meta property="twitter:domain" content="{$client->domain->domain_uri}">
+            <meta property="twitter:url" content="$page->url">
             <!--//Twitter Tags -->
             
             <!--Generic Tags -->
