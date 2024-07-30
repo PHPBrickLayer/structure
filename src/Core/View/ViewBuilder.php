@@ -340,6 +340,7 @@ final class ViewBuilder
             "desc",
             "img",
             "author",
+            "html_lang",
             "lang",
             "type",
         ])] string $key,
