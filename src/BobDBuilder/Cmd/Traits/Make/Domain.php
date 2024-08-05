@@ -3,10 +3,7 @@
 namespace BrickLayer\Lay\BobDBuilder\Cmd\Traits\Make;
 
 use BrickLayer\Lay\BobDBuilder\BobExec;
-use BrickLayer\Lay\Core\Exception;
-use BrickLayer\Lay\Libs\LayArray;
 use BrickLayer\Lay\Libs\LayDir;
-use SplFileObject;
 
 
 trait Domain
@@ -206,9 +203,12 @@ trait Domain
         }
 
         $pattern = rtrim($pattern, ",");
+        $old_pattern = null;
 
-        preg_match('/"([^"]+)"/', $data[0], $old_pattern);
-        $old_pattern = $old_pattern[0] ?? null;
+        if(!empty($data)) {
+            preg_match('/"([^"]+)"/', $data[0], $old_pattern);
+            $old_pattern = $old_pattern[0] ?? null;
+        }
 
         $pattern = $old_pattern == $pattern ? $old_pattern : $pattern;
 
