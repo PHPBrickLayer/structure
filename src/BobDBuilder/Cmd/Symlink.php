@@ -121,8 +121,12 @@ class Symlink implements CmdLayout
             if(!is_link($dest))
                 unset($links[$i]);
 
-            if(!is_file($src) and !is_dir($src))
+            if(!is_file($src) and !is_dir($src)) {
                 unset($links[$i]);
+
+                if (is_link($dest))
+                    unlink($dest);
+            }
         }
 
         file_put_contents(self::$link_db, json_encode($links));
