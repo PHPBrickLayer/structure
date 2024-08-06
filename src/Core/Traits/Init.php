@@ -90,7 +90,7 @@ trait Init {
         $base           = str_replace($slash, "/", end($base));
         $http_host      = $_SERVER['HTTP_HOST'] ?? "cli";
         $env_host       = $_SERVER['REMOTE_ADDR'] ?? "cli";
-        $proto          = ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? $_SERVER['REQUEST_SCHEME']) . "://";
+        $proto          = ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? $_SERVER['REQUEST_SCHEME'] ?? 'http') . "://";
         $base_no_proto  = rtrim(str_replace($slash,"/", $base),"/");
 
         if($http_host != "cli")
