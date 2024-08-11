@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace BrickLayer\Lay\Core\View;
 
+use BrickLayer\Lay\Core\Enums\LayServerType;
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\View\Annotate\CurrentRouteData;
 use JetBrains\PhpStorm\ExpectedValues;
@@ -272,12 +273,16 @@ class Domain {
         //--START PARSE URI
         $root = "/";
         $get_name = "brick";
+        $request_uri = $_SERVER['REQUEST_URI'];
+
+        if(LayConfig::new()->get_server_type() == LayServerType::APACHE)
+            $request_uri = $_GET[$get_name] ?? '';
 
         $root_url = self::$site_data->base_no_proto;
         $root_file_system = rtrim(explode("index.php", $_SERVER['SCRIPT_NAME'])[0], "/");
 
-        $view = str_replace("/index.php","",$_GET[$get_name] ?? "");
-        $view = str_replace([$root_url,$root_file_system],"",$view);
+        $view = str_replace("/index.php", "", $request_uri);
+        $view = str_replace([$root_url, $root_file_system], "", $view);
 
         if($root != "/")
             $view = str_replace(["/$root/","/$root","$root/"],"", $view);

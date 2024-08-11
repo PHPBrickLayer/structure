@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace BrickLayer\Lay\Core\Traits;
 
 use BrickLayer\Lay\Core\Enums\LayMode;
+use BrickLayer\Lay\Core\Enums\LayServerType;
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Libs\LayFn;
@@ -369,6 +370,11 @@ trait Config
     public function get_global_api(): ?string
     {
         return self::$GLOBAL_API ?? null;
+    }
+
+    public function get_server_type(): LayServerType
+    {
+        return self::$SERVER_TYPE;
     }
 
     private function metadata(string $key, mixed $value): self
