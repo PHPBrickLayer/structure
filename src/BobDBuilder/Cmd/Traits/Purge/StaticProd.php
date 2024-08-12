@@ -14,9 +14,11 @@ trait StaticProd
         if(!isset($this->tags['purge_static_prod']))
             return;
 
-        foreach ($this->plug->server->domains as $domain) {
+        $worked = false;
+
+        foreach (scandir($this->plug->server->domains) as $domain) {
             if(
-                    $domain == "Api"
+                $domain == "Api"
                 ||  $domain == "GitAutoDeploy"
                 ||  $domain == "."
                 ||  $domain == ".."
@@ -30,14 +32,21 @@ trait StaticProd
 
             if(is_dir($static)) {
                 rmdir($static);
+                $worked = true;
                 $this->plug->write_talk("Removed: $static", ['silent' => true]);
             }
 
             if(is_dir($shared)) {
                 rmdir($shared);
+                $worked = true;
                 $this->plug->write_talk("Removed: $shared", ['silent' => true]);
             }
 
+        }
+
+        if(!$worked) {
+            $this->plug->write_talk("No operations carried out. Directories may have been deleted already", ['silent' => true]);
+            return;
         }
 
         LayCache::new()
