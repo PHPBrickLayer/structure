@@ -14,8 +14,6 @@ trait Brick
 
         $brick = $this->tags['purge_brick'][0] ?? null;
 
-        $talk = fn($msg) => $this->plug->write_talk($msg, ['silent' => true]);
-
         if (!$brick)
             $this->plug->write_fail("No brick specified");
 
