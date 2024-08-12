@@ -27,15 +27,13 @@ class LayDir {
         }
 
         if(is_link($dir)) {
-            if($is_windows && !is_dir($dir)) {
-                self::$result = unlink($dir);
+            if($is_windows && is_dir($dir)) {
+                self::$result = rmdir($dir);
                 return;
             }
 
-            if(!$is_windows) {
-                self::$result = unlink($dir);
-                return;
-            }
+            self::$result = unlink($dir);
+            return;
         }
 
         foreach (scandir($dir) as $object) {
