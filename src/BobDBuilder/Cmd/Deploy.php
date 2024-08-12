@@ -76,6 +76,9 @@ class Deploy implements CmdLayout
         if($this->ignore)
             $this->talk("- Ignoring *$this->ignore*");
 
+        if(!$this->push_git)
+            $this->talk("- *--no-git* flag detected, so git will be ignored");
+
         $this->no_cache = $this->plug->extract_tags(["--no-cache", "-nc"], true)[0] ?? false;
 
         if($this->no_cache)
@@ -314,10 +317,8 @@ class Deploy implements CmdLayout
 
     public function push_with_git() : void
     {
-        if(!$this->push_git) {
-            $this->talk("- *--no-git* flag detected, so ignoring git push...");
+        if(!$this->push_git)
             return;
-        }
 
         $this->talk("- Attempting git deployment");
 
