@@ -2,7 +2,6 @@
 
 namespace BrickLayer\Lay\BobDBuilder\Cmd\Traits\Symlink;
 
-use BrickLayer\Lay\Libs\LayDir;
 use BrickLayer\Lay\Libs\Symlink\LaySymlink;
 use BrickLayer\Lay\Libs\Symlink\SymlinkTypes;
 
@@ -16,7 +15,8 @@ trait Shared
         if (!$dest)
             return;
 
-        $domain = rtrim(str_replace("shared", "", $dest), "/") . $plug->s;
+        $domain = str_replace(["/", "shared"], [DIRECTORY_SEPARATOR, ""], $dest);
+        $domain = rtrim($domain, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
         $dest = $plug->server->domains . $domain;
 
         if (!is_dir($dest))
@@ -26,7 +26,7 @@ trait Shared
             );
 
         $dest .= "shared";
-        $src = $plug->server->web . "shared/";
+        $src = $plug->server->web . "shared" . DIRECTORY_SEPARATOR;
 
         if(!is_dir($src)) {
             $plug->failed();
@@ -46,11 +46,8 @@ trait Shared
             );
         }
 
-        $src = str_replace("/", DIRECTORY_SEPARATOR, $src);
-        $dest = str_replace("/", DIRECTORY_SEPARATOR, $dest);
-
-        LayDir::unlink($dest);
-        LaySymlink::make($src, $dest, SymlinkTypes::JUNCTION);
+        LaySymlink::remove($dest);
+        LaySymlink::make($src, $dest, SymlinkTypes::SOFT);
 
         $this->track_link("", $domain, "shared");
 

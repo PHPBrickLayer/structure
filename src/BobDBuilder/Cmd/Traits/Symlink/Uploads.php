@@ -2,7 +2,6 @@
 
 namespace BrickLayer\Lay\BobDBuilder\Cmd\Traits\Symlink;
 
-use BrickLayer\Lay\Libs\LayDir;
 use BrickLayer\Lay\Libs\Symlink\LaySymlink;
 use BrickLayer\Lay\Libs\Symlink\SymlinkTypes;
 
@@ -17,7 +16,8 @@ trait Uploads
             return;
 
         $source = $plug->server->web . "uploads";
-        $domain = rtrim(str_replace("uploads", "", $dest), "/") . $plug->s;
+        $dest = str_replace(["/","\\"], DIRECTORY_SEPARATOR, $dest);
+        $domain = rtrim(str_replace("uploads", "", $dest), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
         $dest = $plug->server->domains . $domain;
 
         if (!is_dir($source)) {
@@ -42,11 +42,8 @@ trait Uploads
             );
         }
 
-        $source = str_replace("/", DIRECTORY_SEPARATOR, $source);
-        $dest = str_replace("/", DIRECTORY_SEPARATOR, $dest);
-
-        LayDir::unlink($dest);
-        LaySymlink::make($source, $dest, SymlinkTypes::JUNCTION);
+        LaySymlink::remove($dest);
+        LaySymlink::make($source, $dest, SymlinkTypes::SOFT);
 
         $this->track_link("", $domain, "uploads");
 

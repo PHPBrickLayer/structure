@@ -2,9 +2,7 @@
 
 namespace BrickLayer\Lay\BobDBuilder\Cmd\Traits\Symlink;
 
-use BrickLayer\Lay\Libs\LayDir;
 use BrickLayer\Lay\Libs\Symlink\LaySymlink;
-use BrickLayer\Lay\Libs\Symlink\SymlinkTypes;
 
 trait Htaccess
 {
@@ -16,7 +14,8 @@ trait Htaccess
         if (!$dest)
             return;
 
-        $domain = rtrim(str_replace(".htaccess", "", $dest), "/") . $plug->s;
+        $domain = str_replace(["/", ".htaccess"], [DIRECTORY_SEPARATOR, ""], $dest);
+        $domain = rtrim($domain, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
         $dest = $plug->server->domains . $domain;
 
         if (!is_dir($dest))
@@ -35,11 +34,8 @@ trait Htaccess
 
         $src = $plug->server->web . ".htaccess";
 
-        $src = str_replace("/", DIRECTORY_SEPARATOR, $src);
-        $dest = str_replace("/", DIRECTORY_SEPARATOR, $dest);
-
-        LayDir::unlink($dest);
-        LaySymlink::make($src, $dest, SymlinkTypes::HARD);
+        LaySymlink::remove($dest);
+        LaySymlink::make($src, $dest);
 
         $this->track_link("", $domain, "htaccess");
 

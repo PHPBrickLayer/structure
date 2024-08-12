@@ -4,6 +4,7 @@ namespace BrickLayer\Lay\Libs;
 
 use BrickLayer\Lay\Core\Enums\CustomContinueBreak;
 use BrickLayer\Lay\Core\Exception;
+use BrickLayer\Lay\Core\LayConfig;
 use Closure;
 
 class LayDir {
@@ -14,6 +15,8 @@ class LayDir {
      */
     public static function unlink(string $dir) : void
     {
+        $is_windows = LayConfig::get_os() == "WINDOWS";
+
         if (!is_dir($dir)) {
             self::$result = false;
 
@@ -23,7 +26,7 @@ class LayDir {
             return;
         }
 
-        if(is_link($dir)) {
+        if(is_link($dir) && ($is_windows && !is_dir($dir))) {
             self::$result = unlink($dir);
             return;
         }
@@ -32,12 +35,12 @@ class LayDir {
             if ($object == "." || $object == "..")
                 continue;
 
-            if (!is_dir($dir . "/" . $object)) {
-                unlink($dir."/".$object);
+            if (!is_dir($dir . DIRECTORY_SEPARATOR . $object)) {
+                unlink($dir. DIRECTORY_SEPARATOR . $object);
                 continue;
             }
 
-            self::unlink($dir . "/" . $object);
+            self::unlink($dir . DIRECTORY_SEPARATOR . $object);
         }
 
         self::$result = rmdir($dir);

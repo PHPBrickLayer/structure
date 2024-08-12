@@ -75,8 +75,8 @@ class Symlink implements CmdLayout
     {
         $new_link = [
             "type" => $link_type,
-            "src" => $src,
-            "dest" => $dest,
+            "src" => str_replace(["/","\\"], DIRECTORY_SEPARATOR, $src),
+            "dest" => str_replace(["/","\\"], DIRECTORY_SEPARATOR, $dest),
         ];
 
         $links = [];
@@ -132,7 +132,7 @@ class Symlink implements CmdLayout
                 unset($links[$i]);
 
                 if (is_link($dest))
-                    unlink($dest);
+                    LayDir::unlink($dest);
             }
         }
 
