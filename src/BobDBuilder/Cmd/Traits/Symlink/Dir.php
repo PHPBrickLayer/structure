@@ -2,7 +2,6 @@
 
 namespace BrickLayer\Lay\BobDBuilder\Cmd\Traits\Symlink;
 
-use BrickLayer\Lay\Libs\LayDir;
 use BrickLayer\Lay\Libs\Symlink\LaySymlink;
 use BrickLayer\Lay\Libs\Symlink\SymlinkTypes;
 
@@ -21,8 +20,8 @@ trait Dir
         if (!isset($link[1]))
             $this->plug->write_fail("Destination directory not specified!");
 
-        $src = $this->plug->server->root . $link[0];
-        $dest = $this->plug->server->root . $link[1];
+        $src = $this->plug->server->root . str_replace(["/","\\"], DIRECTORY_SEPARATOR, $link[0]);
+        $dest = $this->plug->server->root . str_replace(["/","\\"], DIRECTORY_SEPARATOR, $link[1]);
 
         if (!is_dir($src))
             $this->plug->write_fail(
@@ -40,12 +39,8 @@ trait Dir
             return;
         }
 
-        $src = str_replace("/", DIRECTORY_SEPARATOR, $src);
-        $dest = str_replace("/", DIRECTORY_SEPARATOR, $dest);
-
-        LayDir::unlink($dest);
-
-        LaySymlink::make($src, $dest, SymlinkTypes::JUNCTION);
+        LaySymlink::remove($dest);
+        LaySymlink::make($src, $dest, SymlinkTypes::SOFT);
 
         $this->track_link($link[0], $link[1], "dir");
 

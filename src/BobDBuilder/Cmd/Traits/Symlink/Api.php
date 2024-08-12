@@ -2,7 +2,6 @@
 
 namespace BrickLayer\Lay\BobDBuilder\Cmd\Traits\Symlink;
 
-use BrickLayer\Lay\Libs\LayDir;
 use BrickLayer\Lay\Libs\Symlink\LaySymlink;
 use BrickLayer\Lay\Libs\Symlink\SymlinkTypes;
 
@@ -16,7 +15,8 @@ trait Api
         if (!$dest)
             return;
 
-        $domain = rtrim(str_replace(["api", "Api"], "", $dest), "/") . $plug->s;
+        $dest = str_replace(["/","\\"], DIRECTORY_SEPARATOR, $dest);
+        $domain = rtrim(str_replace(["api", "Api"], "", $dest), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
         $dest = $plug->server->domains . $domain;
 
         if (!is_dir($dest))
@@ -26,7 +26,7 @@ trait Api
             );
 
         $dest .= "api";
-        $src = $plug->server->domains . "Api/";
+        $src = $plug->server->domains . "Api" . DIRECTORY_SEPARATOR;
 
         if(!is_dir($src)) {
             $plug->failed();
@@ -46,12 +46,8 @@ trait Api
             );
         }
 
-        $src = str_replace("/", DIRECTORY_SEPARATOR, $src);
-        $dest = str_replace("/", DIRECTORY_SEPARATOR, $dest);
-
-        LayDir::unlink($dest);
-
-        LaySymlink::make($src, $dest, SymlinkTypes::HARD);
+        LaySymlink::remove($dest);
+        LaySymlink::make($src, $dest, SymlinkTypes::SOFT);
 
         $this->track_link("", $domain, "api");
 

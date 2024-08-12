@@ -2,9 +2,7 @@
 
 namespace BrickLayer\Lay\BobDBuilder\Cmd\Traits\Symlink;
 
-use BrickLayer\Lay\Libs\LayDir;
 use BrickLayer\Lay\Libs\Symlink\LaySymlink;
-use BrickLayer\Lay\Libs\Symlink\SymlinkTypes;
 
 trait File
 {
@@ -36,12 +34,8 @@ trait File
             );
         }
 
-
-        $src = str_replace("/", DIRECTORY_SEPARATOR, $src);
-        $dest = str_replace("/", DIRECTORY_SEPARATOR, $dest);
-
-        LayDir::unlink($dest);
-        LaySymlink::make($src, $dest, SymlinkTypes::HARD);
+        LaySymlink::remove($dest);
+        LaySymlink::make($src, $dest);
 
         $this->track_link($link[0], $link[1], "file");
 
