@@ -230,9 +230,9 @@ final class ViewEngine {
         STR;
 
         if($layConfig::$ENV_IS_PROD && $layConfig::is_page_compressed())
-            $page = "<!DOCTYPE html>\n" . preg_replace("/>(\s)+</m","><",preg_replace("/<!--(.|\s)*?-->/","",$page));
+            $page = preg_replace("/>(\s)+</m","><",preg_replace("/<!--(.|\s)*?-->/","",$page));
 
-        echo $page;
+        echo "<!DOCTYPE html>\n" . $page;
     }
 
     private function skeleton_head() : string
