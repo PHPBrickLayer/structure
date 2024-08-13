@@ -160,7 +160,6 @@ final class ViewEngine {
         $body = $this->skeleton_body();
 
         $page = <<<STR
-        <!DOCTYPE html>
         <html itemscope lang="$page->html_lang" id="LAY-HTML" class="$html_attr->class" $html_attr->attr>
         <head>
             <title id="LAY-PAGE-TITLE-FULL">$title</title>
@@ -231,7 +230,7 @@ final class ViewEngine {
         STR;
 
         if($layConfig::$ENV_IS_PROD && $layConfig::is_page_compressed())
-            $page = preg_replace("/>(\s)+</m","><",preg_replace("/<!--(.|\s)*?-->/","",$page));
+            $page = "<!DOCTYPE html>\n" . preg_replace("/>(\s)+</m","><",preg_replace("/<!--(.|\s)*?-->/","",$page));
 
         echo $page;
     }
