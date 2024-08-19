@@ -2,20 +2,31 @@
 
 namespace BrickLayer\Lay\Core\Api;
 
+use BrickLayer\Lay\Core\Api\Enums\ApiReturnType;
+use BrickLayer\Lay\Core\Api\Enums\ApiStatus;
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
+use JetBrains\PhpStorm\NoReturn;
 
 abstract class ApiHooks
 {
+    /**
+     * @deprecated
+     * @var ApiEngine
+     */
     public readonly ApiEngine $request;
+
+    public readonly ApiEngine $engine;
 
     public function __construct(
         private bool $prefetch = true,
         private bool $print_end_result = true,
         private bool $pre_connect = true,
     ) {
-        if(!isset($this->request))
-            $this->request = ApiEngine::new();
+        if(!isset($this->engine)) {
+            $this->engine = ApiEngine::start($this::class);
+            $this->request = $this->engine;
+        }
     }
 
     public function prefetch(bool $option) : void
@@ -45,12 +56,12 @@ abstract class ApiHooks
             LayConfig::connect();
 
         if($this->prefetch)
-            $this->request::fetch();
+            $this->engine::fetch();
 
         $this->hooks();
 
         $this->post_init();
-        $this->request::end($this->print_end_result);
+        $this->engine::end($this->print_end_result);
     }
 
     public function hooks() : void
@@ -99,12 +110,21 @@ abstract class ApiHooks
 
     public final function get_all_endpoints() : array
     {
-        $this->request::$DEBUG_MODE = true;
+        $this->engine::set_debug_mode();
 
         LayConfig::connect();
-        $this->request::fetch();
+        $this->engine::fetch();
+        $this->engine->group_limit(60, "3 minutes");
         $this->load_brick_hooks();
 
-        return $this->request::all_api_endpoints();
+        return $this->engine::all_api_endpoints();
+    }
+
+    #[NoReturn]
+    public final function dump_endpoints_as_json() : void
+    {
+        $this->engine::set_response_header(ApiStatus::OK, ApiReturnType::JSON);
+        echo json_encode($this->get_all_endpoints());
+        die;
     }
 }

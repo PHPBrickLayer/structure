@@ -5,7 +5,6 @@ namespace BrickLayer\Lay\Core\Api;
 use BrickLayer\Lay\Core\Api\Enums\ApiReturnType;
 use BrickLayer\Lay\Core\Api\Enums\ApiStatus;
 use BrickLayer\Lay\Core\LayConfig;
-use BrickLayer\Lay\Core\Traits\IsSingleton;
 use BrickLayer\Lay\Core\View\DomainResource;
 use BrickLayer\Lay\Core\View\ViewBuilder;
 use BrickLayer\Lay\Libs\LayCache;
@@ -17,7 +16,8 @@ use BrickLayer\Lay\Core\Api\Enums\ApiRequestMethod;
 use BrickLayer\Lay\Core\Exception;
 
 final class ApiEngine {
-    use IsSingleton;
+    private static self $engine;
+    private static bool $DEBUG_MODE = false;
 
     private const RATE_LIMIT_CACHE_FILE = 'rate_limiter/';
 
@@ -63,7 +63,12 @@ final class ApiEngine {
      * It is only active in debug mode
      * @var array
      */
-    private static array $all_uris = [];
+    private static array $all_uris = [
+        "__DEBUG_MODE__" =>
+            "Ensure you turn off THIS MODE in production environment, because it will expose " .
+            "all your endpoints and heavily impact the performance of your application!",
+        "class" => []
+    ];
 
     /**
      * Original request uri from the client. It is broken into an array
@@ -124,6 +129,27 @@ final class ApiEngine {
     private static ?string $version;
     private static ?string $prefix;
     private static ?string $group;
+    private static bool $anonymous_group = false;
+
+    /** [ENGINE SCOPE] **/
+    private const GLOBAL_API_CLASS = "web\\domains\\Api\\Plaster";
+    /**
+     * The current API class Engine is processing
+     * @var string
+     */
+    private static string $current_api_class;
+
+    /**
+     * Objects that should persist across all Api classes
+     * @var array
+     */
+    private static array $global_scope_props;
+
+    /**
+     * Objects that should persist in the class even after being overwritten by a group
+     * @var array
+     */
+    private static array $class_scope_props;
 
     /**
      * POST, GET, etc.
@@ -131,54 +157,111 @@ final class ApiEngine {
      * @var string
      */
     private static string $request_method;
-    
     private static string $active_request_method;
 
     private static ?Closure $current_middleware = null;
     private static bool $using_group_middleware = false;
     private static bool $using_route_middleware = false;
 
-    private static bool $using_route_limiter = false;
-    private static bool $using_group_limiter = false;
+    private static bool $using_route_rate_limiter = false;
     private static array $limiter_group = [];
     private static array $limiter_global = [];
-
-    public static bool $DEBUG_MODE = false;
-
-    public static function set_response_header(int|ApiStatus $code, ?ApiReturnType $return_type = null, ?string $message = null, bool $end_request = true, bool $kill_process = false) : void
-    {
-        header($_SERVER['SERVER_PROTOCOL'] . " " . ApiStatus::extract_status($code, $message));
-
-        switch ($return_type) {
-            case ApiReturnType::JSON:
-                header("Content-Type: application/json");
-                break;
-            case ApiReturnType::HTML:
-                header("Content-Type: text/html");
-                break;
-            case ApiReturnType::XML:
-                header("Content-Type: text/xml");
-                break;
-            default:
-                header("Content-Type: text/plain");
-                break;
-        }
-
-        if($end_request)
-            self::new()->set_return_value();
-
-        if($kill_process)
-            exit(is_int($code) ? $code : $code->value);
-    }
+    private static array $limiter_route = [];
 
     private static function exception(string $title, string $message, $exception = null, array $header = ["code" => 500, "msg" => "Internal Server Error", "throw_header" => true]) : void {
         self::set_response_header($header['code'], ApiReturnType::HTML, $header['msg']);
 
         $stack_trace = $exception ? $exception->getTrace() : [];
+        $active_route = isset(self::$active_route) ? "<div><b>Active Route:</b> [<span style='color: #F3F9FA'>" . self::$active_route . "</span>]</div><br>" : "";
+        $message = $active_route . $message;
         Exception::throw_exception($message, $title, true, self::$use_lay_exception, $stack_trace, exception: $exception, thow_500: $header['throw_header']);
     }
 
+    /**
+     * Restore global scoped props incase a class has modified it
+     * @return void
+     */
+    private static function restore_global_props() : void
+    {
+        self::reset_engine();
+
+        if(!isset(self::$global_scope_props))
+            return;
+
+        foreach (self::$global_scope_props as $key => $global_scope_prop) {
+            self::${$key} = $global_scope_prop;
+        }
+    }
+
+    private static function update_global_props(string $key, mixed $value) : void
+    {
+        self::update_class_props($key, $value);
+
+        if(self::$current_api_class != self::GLOBAL_API_CLASS)
+            return;
+
+        self::$global_scope_props[$key] = $value;
+    }
+
+    private static function update_class_props(string $key, mixed $value) : void
+    {
+        if(self::$current_api_class == self::GLOBAL_API_CLASS)
+            return;
+
+        if(isset(self::$group) || self::$anonymous_group)
+            return;
+
+        self::$class_scope_props['__CURRENT_API_CLASS__'] = self::$current_api_class;
+        self::$class_scope_props[$key] = $value;
+    }
+
+    private static function restore_class_props() : void
+    {
+        self::restore_global_props();
+
+        if(!isset(self::$class_scope_props))
+            return;
+
+        if(
+            isset(self::$class_scope_props['__CURRENT_API_CLASS__'])
+            && self::$class_scope_props['__CURRENT_API_CLASS__'] !== self::$current_api_class
+        ) {
+            self::$class_scope_props = [];
+            return;
+        }
+
+        foreach (self::$class_scope_props as $key => $class_scope_prop) {
+            if($key == "__CURRENT_API_CLASS__")
+                continue;
+
+            self::${$key} = $class_scope_prop;
+        }
+    }
+
+    private static function clear_group_scope() : void
+    {
+        if(!isset(self::$group))
+            return;
+
+        self::$limiter_group = [];
+
+        if(self::$using_group_middleware) {
+            self::$current_middleware = null;
+            self::$using_group_middleware = false;
+        }
+
+        self::$group = null;
+        self::$anonymous_group = false;
+
+        self::restore_class_props();
+    }
+
     private function correct_request_method(bool $throw_exception = true) : bool {
+        if(self::$DEBUG_MODE) {
+            self::$active_request_method = self::$request_method;
+            return true;
+        }
+
         if(!isset($_SERVER['REQUEST_METHOD']))
             self::exception("RequestMethodNotFound", "No request method found. You are probably accessing this page illegally!");
 
@@ -209,7 +292,9 @@ final class ApiEngine {
      * @example `post/user/index/25`; is interpreted as => `'post/user/index/{@int id}'`
      */
     private function map_request(string $request_uri, ApiReturnType $return_type) : self {
+        // reset route specific items
         self::$request_uri_name = null;
+        self::$limiter_route = [];
 
         if(self::$request_found || self::$request_complete || !$this->correct_request_method(false))
             return $this;
@@ -231,16 +316,16 @@ final class ApiEngine {
             self::$current_request_uri = [...$prefix, ...self::$current_request_uri];
         }
 
-        if(isset(self::$version)) {
+        if(isset(self::$version))
             self::$current_request_uri = [...[self::$version], ...self::$current_request_uri];
-            self::$active_route = $this->attach_version(implode("/", self::$current_request_uri));
-        }
 
         if(count(self::$request_uri) !== count(self::$current_request_uri))
             return $this;
 
-        if($this->skip_process())
+        if($this->skip_process() || self::$DEBUG_MODE)
             return $this;
+
+        self::$active_route = $this->attach_version(implode("/", self::$current_request_uri));
 
         foreach (self::$current_request_uri as $i => $query) {
             if (self::$request_uri[$i] !== $query && !str_starts_with($query, "{"))
@@ -266,6 +351,48 @@ final class ApiEngine {
     }
 
     /**
+     * Entry method to initialize the engine
+     * @param string $class_scope
+     * @return self
+     */
+    public static function start(string $class_scope) : self
+    {
+        self::$engine = new self();
+
+        self::$current_api_class = $class_scope;
+
+        self::restore_global_props();
+
+        return self::$engine;
+    }
+
+    public static function set_response_header(int|ApiStatus $code, ?ApiReturnType $return_type = null, ?string $message = null, bool $end_request = true, bool $kill_process = false) : void
+    {
+        header($_SERVER['SERVER_PROTOCOL'] . " " . ApiStatus::extract_status($code, $message));
+
+        switch ($return_type) {
+            case ApiReturnType::JSON:
+                header("Content-Type: application/json");
+                break;
+            case ApiReturnType::HTML:
+                header("Content-Type: text/html");
+                break;
+            case ApiReturnType::XML:
+                header("Content-Type: text/xml");
+                break;
+            default:
+                header("Content-Type: text/plain");
+                break;
+        }
+
+        if($end_request)
+            self::$engine->set_return_value();
+
+        if($kill_process)
+            exit(is_int($code) ? $code : $code->value);
+    }
+
+    /**
      * @param string $prefix The prefix of the uri request. This is especially useful for multiple requests with same prefix
      * @example
      *  - /admin/profile
@@ -278,6 +405,7 @@ final class ApiEngine {
      */
     public function prefix(string $prefix) : self {
         self::$prefix = trim($prefix, "/");
+        self::update_global_props("prefix", self::$prefix);
         return $this;
     }
 
@@ -293,6 +421,7 @@ final class ApiEngine {
     public function set_version(string $version) : void
     {
         self::$version = str_replace("/","", $version);
+        self::update_global_props("version", self::$version);
     }
 
     public function clear_version() : void {
@@ -327,8 +456,7 @@ final class ApiEngine {
         self::$group = trim($name, "/");
         $grouped_requests($this);
 
-        // Clear prefix and group when done
-        self::$group = null;
+        self::clear_group_scope();
 
         return $this;
     }
@@ -342,12 +470,16 @@ final class ApiEngine {
         if(self::$request_complete)
             return $this;
 
+        self::$anonymous_group = true;
+
         foreach ($grouped_requests as $request) {
             if(self::$request_complete)
                 return $this;
 
             $request($this);
         }
+
+        self::clear_group_scope();
 
         return $this;
     }
@@ -373,31 +505,41 @@ final class ApiEngine {
             $is_grouped = true;
         }
 
+        if(self::$anonymous_group)
+            $is_grouped = true;
+
         if($is_grouped) {
             foreach ($uri_beginning as $i => $begin) {
                 $use_limiter = $begin == @self::$request_uri[$i];
             }
         }
 
-        if(!$use_limiter)
+        if(!self::$DEBUG_MODE && !$use_limiter)
             return $this;
-
-        self::$using_group_limiter = true;
 
         if($is_grouped)
             self::$limiter_group = $args;
         else
             self::$limiter_global = $args;
 
+        self::update_global_props("limiter_global", $args);
+
         return $this;
     }
 
-    public function limit(int $requests, string $interval, ?string $key = null) : self
+    public function limit(int $requests, string $interval, ?string $key = null, string $__INTERNAL_TYPE__ = "ROUTE") : self
     {
-        if(!self::$request_found || self::$using_route_limiter)
+        if(!self::$DEBUG_MODE && (!self::$request_found || self::$using_route_rate_limiter))
             return $this;
 
-        self::$using_route_limiter = true;
+        if($__INTERNAL_TYPE__ == "ROUTE") {
+            self::$limiter_route = [$requests, $interval, $key];
+        }
+
+        self::$using_route_rate_limiter = true;
+
+        if(self::$DEBUG_MODE)
+            return $this;
 
         $cache = LayCache::new()->cache_file(self::RATE_LIMIT_CACHE_FILE . DomainResource::get()->domain->domain_referrer . ".json");
         $key = $key ?? LayConfig::get_ip();
@@ -436,6 +578,7 @@ final class ApiEngine {
             self::set_return_value([
                 "code" => ApiStatus::TOO_MANY_REQUESTS->value,
                 "msg" => "TOO MANY REQUESTS",
+                "message" => "TOO MANY REQUESTS",
                 "expire" => $expire
             ]);
         }
@@ -479,9 +622,14 @@ final class ApiEngine {
         return $this->map_request($request_uri, $return_type);
     }
 
+    /**
+     * Tells the engine to not skip a route when it detects an issue
+     * @return void
+     */
     public static function dont_skip_process() : void
     {
         self::$skip_process_on_false = false;
+        self::update_global_props("skip_process_on_false", self::$skip_process_on_false);
     }
 
     private function skip_process() : bool
@@ -502,14 +650,21 @@ final class ApiEngine {
         return self::$request_uri[0] !== self::$current_request_uri[0];
     }
 
-    private function reset_engine(bool $reset_version = true) : void
+    private static function reset_engine() : void
     {
-        if($reset_version)
-            self::$version = null;
-
+        self::$version = null;
         self::$prefix = null;
         self::$group = null;
-        self::$request_uri_name = null;
+        self::$anonymous_group = false;
+
+        self::$current_middleware = null;
+        self::$using_group_middleware = false;
+        self::$using_route_middleware = false;
+
+        self:: $using_route_rate_limiter = false;
+        self:: $limiter_group = [];
+        self:: $limiter_global = [];
+        self:: $limiter_route = [];
     }
 
     private static function set_return_value(mixed $return_array = null) : void
@@ -520,10 +675,10 @@ final class ApiEngine {
     }
 
     /**
-     * When used, this method runs when a single route is hit, before getting to the binded method.
+     * When used, this method runs when a single route is hit, before getting to the bound method.
      * The callback should return an array.
-     * The array should have be "code" => 200;
-     * If it doesn't return 200, the binded method will not run.
+     * The array should be "code" => 200;
+     * If it doesn't return 200, the bound method will not run.
      *
      * @param callable $middleware_callback
      * @param bool $__INTERNAL_
@@ -536,7 +691,6 @@ final class ApiEngine {
      */
     public function middleware(callable $middleware_callback, bool $__INTERNAL_ = false) : self
     {
-
         if(self::$request_complete)
             return $this;
 
@@ -550,6 +704,7 @@ final class ApiEngine {
         $arguments = self::get_mapped_args();
         $return = $middleware_callback(...$arguments);
 
+
         if(!isset($return['code']))
             self::exception(
                 "MiddlewareError",
@@ -560,6 +715,8 @@ final class ApiEngine {
         if($return['code'] == 200) {
             if(isset(self::$current_middleware))
                 self::$current_middleware = null;
+
+            self::update_global_props("current_middleware", self::$current_middleware);
 
             return $this;
         }
@@ -611,19 +768,66 @@ final class ApiEngine {
             $uri_beginning = array_merge($uri_beginning, $group);
         }
 
-        foreach ($uri_beginning as $i => $begin){
+        foreach ($uri_beginning as $i => $begin) {
             $use_middleware = $begin == self::$request_uri[$i];
         }
 
-        if(!$use_middleware)
+        if(!self::$DEBUG_MODE && !$use_middleware)
             return $this;
 
         self::$using_group_middleware = true;
         self::$current_middleware = $middleware_callback;
 
+        self::update_global_props("using_group_middleware", self::$using_group_middleware);
+        self::update_global_props("current_middleware", self::$current_middleware);
+
+        if(self::$DEBUG_MODE)
+            return $this;
+
         return $this->middleware($middleware_callback, true);
     }
 
+    private static function matched_uri_obj() : array
+    {
+        $route_limiter = self::$limiter_route;
+        $group_limiter = self::$limiter_group;
+        $global_limiter = self::$limiter_global;
+
+        $route_limiter_used = isset($route_limiter[0]);
+        $group_limiter_used = !$route_limiter_used && isset($group_limiter[0]);
+        $global_limiter_used = !$route_limiter_used && !$group_limiter_used && isset($global_limiter[0]);
+
+        return [
+            'route' => self::$current_uri_string,
+            'route_name' => self::$request_uri_name ?? "",
+            'method' => self::$request_method,
+            'return_type' => self::$method_return_type,
+            'using_middleware' => [
+                'route' => self::$using_route_middleware,
+                'group' => self::$using_group_middleware
+            ],
+            'rate_limiter' => [
+                'route' => [
+                    "used" => $route_limiter_used,
+                    "reqs" => $route_limiter[0] ?? null,
+                    "duration" => $route_limiter[1] ?? null,
+                    "key" => $route_limiter[2] ?? null,
+                ],
+                "group" => [
+                    "used" => $group_limiter_used,
+                    "reqs" => $group_limiter[0] ?? null,
+                    "duration" => $group_limiter[1] ?? null,
+                    "key" => $group_limiter[2] ?? null,
+                ],
+                "global" => [
+                    "used" => $global_limiter_used,
+                    "reqs" => $global_limiter[0] ?? null,
+                    "duration" => $global_limiter[1] ?? null,
+                    "key" => $global_limiter[2] ?? null,
+                ],
+            ],
+        ];
+    }
 
     /**
      * @param Closure $callback_of_controller_method method name of the set controller.
@@ -633,25 +837,13 @@ final class ApiEngine {
         if($this->skip_process())
             return $this;
 
+
         if(self::$DEBUG_MODE) {
             self::$current_uri_string = implode("/", self::$current_request_uri);
 
-            $uri_obj = [
-                'route' => self::$current_uri_string,
-                'route_name' => self::$request_uri_name ?? "",
-                'method' => self::$request_method,
-                'return_type' => self::$method_return_type,
-                'using_limit' => [
-                    'group' => self::$using_group_limiter,
-                    'route' => self::$using_route_limiter,
-                ],
-                'using_middleware' => [
-                    'group' => self::$using_group_middleware,
-                    'route' => self::$using_route_middleware,
-                ],
-            ];
+            $uri_obj = self::matched_uri_obj();
 
-            self::$all_uris[] = $uri_obj;
+            self::$all_uris['class'][self::$current_api_class][] = $uri_obj;
         }
 
         // Register all request based on the method received
@@ -662,22 +854,21 @@ final class ApiEngine {
                 self::$registered_uris[] = $uri_obj;
         }
 
-
         if(!self::$request_found || self::$request_complete)
             return $this;
 
         $this->correct_request_method();
 
-        if(self::$limiter_group || self::$limiter_global) {
+        if(empty(self::$limiter_route) && (!empty(self::$limiter_group) || !empty(self::$limiter_global))) {
             $next = true;
 
             if(!empty(self::$limiter_group)) {
                 $next = false;
-                $this->limit(...self::$limiter_group);
+                $this->limit(...self::$limiter_group, __INTERNAL_TYPE__: "GROUP");
             }
 
             if($next)
-                $this->limit(...self::$limiter_global);
+                $this->limit(...self::$limiter_global, __INTERNAL_TYPE__: "GLOBAL");
 
             if(self::$request_complete)
                 return $this;
@@ -691,8 +882,10 @@ final class ApiEngine {
         }
 
         try {
-            $arguments = self::get_mapped_args();
-            self::set_return_value($callback_of_controller_method(...$arguments));
+            if(!self::$DEBUG_MODE) {
+                $arguments = self::get_mapped_args();
+                self::set_return_value($callback_of_controller_method(...$arguments));
+            }
         }
         catch (\TypeError $e){
             self::exception("ApiEngineMethodError", "Check the bind function of your route: [" . self::$request_uri_raw . "]; <br>" . $e->getMessage(), $e);
@@ -706,21 +899,11 @@ final class ApiEngine {
 
     public function found() : array
     {
-        return [
-            "found" => self::$request_found,
-            "request" => self::$request_uri_raw,
-            "route" => self::$active_route,
-            "route_name" => self::$request_uri_name,
-            "method" => self::$active_request_method,
-            "using_limit" => [
-                "group" => self::$using_group_limiter,
-                "route" => self::$using_route_limiter,
-            ],
-            "using_middleware" => [
-                "group" => self::$using_group_middleware,
-                "route" => self::$using_route_middleware,
-            ],
-        ];
+        $x = self::matched_uri_obj();
+        $x['found'] =  self::$request_found;
+        $x["request"] = self::$request_uri_raw;
+
+        return $x;
     }
 
     public function get_registered_uris() : array
@@ -749,8 +932,9 @@ final class ApiEngine {
         return self::$all_uris;
     }
 
-    public function get_result() : mixed {
-        $this->reset_engine();
+    public function get_result() : mixed
+    {
+        self::reset_engine();
 
         try {
             return self::$bind_return_value;
@@ -832,12 +1016,18 @@ final class ApiEngine {
 
     /**
      * Let this class use php's Exception Class, rather than the Exception class in lay that is formatted with HTMl
-     * @return self
+     * @return void
      */
-    public static function use_php_exception() : self {
+    public static function use_php_exception() : void
+    {
         self::$use_lay_exception = false;
+        self::update_global_props("use_lay_exception", self::$use_lay_exception);
+    }
 
-        return self::new();
+    public static function set_debug_mode() : void
+    {
+        self::$DEBUG_MODE = true;
+        self::update_global_props("DEBUG_MODE", self::$DEBUG_MODE);
     }
 
     /**
@@ -866,47 +1056,52 @@ final class ApiEngine {
         if(self::$DEBUG_MODE === false && empty(self::$request_uri[0]))
             self::exception("InvalidAPIRequest", "Invalid api request sent. Malformed URI received. You can't access this script like this!");
 
-        return self::new();
+        return self::$engine;
     }
 
     public static function end(bool $print_existing_result = true) : ?string {
         $uri = self::$request_uri_raw ?? "";
 
-        if(self::$request_found === false) {
-            $version_active = isset(self::$version) ? "<div>Version: <span style='color: #fff'>" . self::$version . "</span></div>" : null;
-            $prefix_active = isset(self::$prefix) ? "<div>Prefix: <span style='color: #fff'>" . self::$prefix . "</span></div>" : null;
-            $uris = "<br>" . PHP_EOL;
-            $method = self::$active_request_method;
-            $mode = self::$DEBUG_MODE ? "Debug" : "Production";
+        if(self::$request_found) {
+            if($print_existing_result)
+                self::$engine->print_as_json();
 
-            foreach(self::$registered_uris as $reg_uri) {
-                $uris .= "URI == " . $reg_uri['route'] . "<br>" . PHP_EOL;
-                $uris .= "URI NAME == " . $reg_uri['route_name'] . "<br>" . PHP_EOL;
-                $uris .= "METHOD == " . $reg_uri['method'] . "<br>" . PHP_EOL;
-                $uris .= "RETURN TYPE == " . $reg_uri['return_type']->name . "<br>" . PHP_EOL;
-                $uris .= "<br>" . PHP_EOL;
-            }
-
-            $message =self::$DEBUG_MODE ? "<h3 style='color: cyan; margin-bottom: 0'>Here are the registered requests: </h3>
-                <div style='color: #F3F9FA'>$uris</div>" : "";
-
-            self::exception(
-                "NoRequestExecuted",
-                "No valid handler for request [$uri]<br><br>  
-                <div>Method: <span style='color: #fff'>$method</span></div> 
-                <div>API Mode: <span style='color: #fff'>$mode</span></div>
-                $version_active $prefix_active
-                $message",
-                header: [
-                    "code" => 404,
-                    "msg" => "API Route not found",
-                    "throw_header" => false
-                ]
-            );
+            return null;
         }
 
-        if($print_existing_result)
-            self::new()->print_as_json();
+        $version_active = isset(self::$version) ? "<div>Version: <span style='color: #fff'>" . self::$version . "</span></div>" : null;
+        $prefix_active = isset(self::$prefix) ? "<div>Prefix: <span style='color: #fff'>" . self::$prefix . "</span></div>" : null;
+        $uris = "<br>" . PHP_EOL;
+        $method = self::$active_request_method;
+        $mode = self::$DEBUG_MODE ? "true" : "false";
+
+        foreach(self::$registered_uris as $reg_uri) {
+            $uris .= "URI == " . $reg_uri['route'] . "<br>" . PHP_EOL;
+            $uris .= "URI NAME == " . $reg_uri['route_name'] . "<br>" . PHP_EOL;
+            $uris .= "METHOD == " . $reg_uri['method'] . "<br>" . PHP_EOL;
+            $uris .= "RETURN TYPE == " . $reg_uri['return_type']->name . "<br>" . PHP_EOL;
+            $uris .= "<br>" . PHP_EOL;
+        }
+
+        $message =self::$DEBUG_MODE ? "<h3 style='color: cyan; margin-bottom: 0'>Here are the registered requests: </h3>
+                <div style='color: #F3F9FA'>$uris</div>" : "";
+
+        self::exception(
+            "NoRequestExecuted",
+            "No valid handler for request [<span style='color: #F3F9FA'>$uri</span>]<br><br>  
+                <div>Code: <span style='color: #fff'>404</span></div> 
+                <div>Message: <span style='color: #fff'>Route not found</span></div> 
+                <div>Method: <span style='color: #fff'>$method</span></div> 
+                <div>Debug Mode: <span style='color: #fff'>$mode</span></div>
+                $version_active $prefix_active
+                $message",
+            header: [
+                "code" => 404,
+                "msg" => "API Route not found",
+                "message" => "API Route not found",
+                "throw_header" => false
+            ]
+        );
 
         return null;
     }
