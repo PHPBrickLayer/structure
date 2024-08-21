@@ -757,7 +757,7 @@ final class ApiEngine {
         }
 
         foreach ($uri_beginning as $i => $begin) {
-            $use_middleware = $begin == self::$request_uri[$i];
+            $use_middleware = $begin == @self::$request_uri[$i];
         }
 
         if(!self::$DEBUG_DUMP_MODE && !$use_middleware)
@@ -1064,18 +1064,19 @@ final class ApiEngine {
 
         $version_active = isset(self::$version) ? "<div>Version: <span style='color: #fff'>" . self::$version . "</span></div>" : null;
         $prefix_active = isset(self::$prefix) ? "<div>Active Prefix: <span style='color: #fff'>" . self::$prefix . "</span></div>" : null;
-        $uris = "<br>" . PHP_EOL;
+        $uris = "";
         $method = self::$active_request_method;
         $mode = self::$DEBUG_MODE ? "true" : "false";
 
         foreach(self::$registered_uris as $reg_uri) {
+            $uris = "<div>" . PHP_EOL;
             $uris .= "<span style='color: #0dcaf0'>URI:</span> " . $reg_uri['route'] . "<br>" . PHP_EOL;
             $uris .= "<span style='color: #0dcaf0'>URI_NAME:</span> " . ($reg_uri['route_name'] ?: '-') . "<br>" . PHP_EOL;
             $uris .= "<span style='color: #0dcaf0'>RESPONSE_TYPE:</span> " . $reg_uri['return_type']->name . "<br>" . PHP_EOL;
-            $uris .= "<br>" . PHP_EOL;
+            $uris .= "</div>" . PHP_EOL;
         }
 
-        $message =self::$DEBUG_MODE ? "<h3 style='margin-bottom: 0'>Here are some similar [$method] routes: </h3>
+        $message = self::$DEBUG_MODE && !empty($uris) ? "<h3>Here are some similar [$method] routes: </h3>
                 <div style='color: #F3F9FA'>$uris</div>" : "";
 
         self::exception(

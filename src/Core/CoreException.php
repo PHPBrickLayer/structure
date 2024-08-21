@@ -289,33 +289,28 @@ class CoreException
 
                 return $other['act'] ?? "kill";
             }
-
-            echo $display;
-
-            return $other['act'] ?? "kill";
         }
 
-        else {
-            $dir = LayConfig::server_data()->temp;
-            $file_log = $dir . DIRECTORY_SEPARATOR . "exceptions.log";
+        $dir = LayConfig::server_data()->temp;
+        $file_log = $dir . DIRECTORY_SEPARATOR . "exceptions.log";
 
-            if (!is_dir($dir)) {
-                umask(0);
-                mkdir($dir, 0755, true);
-            }
-
-            $date = date("Y-m-d H:i:s e");
-            $body = strip_tags($body);
-            $body = <<<DEBUG
-            [$date] $title: $body
-            $stack_raw
-            DEBUG;
-
-            file_put_contents($file_log, $body, FILE_APPEND);
-
-            echo "Your attention is needed at the backend, check your Lay error logs for details";
-            return $other['act'] ?? "allow";
+        if (!is_dir($dir)) {
+            umask(0);
+            mkdir($dir, 0755, true);
         }
+
+        $date = date("Y-m-d H:i:s e");
+        $body = strip_tags($body);
+        $body = <<<DEBUG
+        [$date] $title: $body
+        $stack_raw
+        DEBUG;
+
+        file_put_contents($file_log, $body, FILE_APPEND);
+
+        echo $display ?: "Your attention is needed at the backend, check your Lay error logs for details";
+
+        return $other['act'] ?? "allow";
     }
 
     private function convertRaw($print_val, $replace, &$body): void
