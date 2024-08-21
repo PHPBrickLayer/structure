@@ -3,9 +3,11 @@
 namespace BrickLayer\Lay\Libs;
 
 use BrickLayer\Lay\Core\Traits\IsSingleton;
+use BrickLayer\Lay\Libs\String\WordCount;
 
 /**
  * @deprecated
+ * @see WordCount
  */
 class LayWordCount
 {
