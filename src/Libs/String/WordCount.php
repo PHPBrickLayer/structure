@@ -1,15 +1,10 @@
 <?php
 
-namespace BrickLayer\Lay\Libs;
+namespace BrickLayer\Lay\Libs\String;
 
 use BrickLayer\Lay\Core\Traits\IsSingleton;
-use BrickLayer\Lay\Libs\String\WordCount;
 
-/**
- * @deprecated
- * @see WordCount
- */
-class LayWordCount
+class WordCount
 {
     private int $words_per_minute = 265;
     private int $secs_allocated_to_img = 6;
