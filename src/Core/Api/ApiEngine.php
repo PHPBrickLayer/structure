@@ -340,14 +340,19 @@ final class ApiEngine {
         self::save_request_for_debug();
 
         if(self::$route_found)
-            self::$active_route = self::stringify_request();
+            self::$active_route = self::stringify_request(false);
 
         return $this;
     }
 
-    private static function stringify_request() : string
+    private static function stringify_request(bool $always_stringify = true) : string
     {
-        self::$current_uri_string = implode("/", self::$current_request_uri);
+        $stringify = fn() => implode("/", self::$current_request_uri);
+
+        if($always_stringify)
+            self::$current_uri_string = $stringify();
+        else
+            self::$current_uri_string ??= $stringify();
 
         return self::$current_uri_string;
     }
@@ -429,6 +434,7 @@ final class ApiEngine {
 
     public function clear_prefix() : void {
         self::$prefix = null;
+        self::update_global_props("prefix", self::$prefix);
     }
 
     /**
@@ -444,6 +450,7 @@ final class ApiEngine {
 
     public function clear_version() : void {
         self::$version = null;
+        self::update_global_props("version", self::$version);
     }
 
     /**
@@ -768,6 +775,10 @@ final class ApiEngine {
         return $this->middleware($middleware_callback, true);
     }
 
+    /**
+     * This object is used in debug mode to store routes in a predictable data object
+     * @return array
+     */
     private static function matched_uri_obj() : array
     {
         $route_limiter = self::$limiter_route;
@@ -867,6 +878,14 @@ final class ApiEngine {
         return $x;
     }
 
+    /**
+     * This method returns the currently registered URIS based on the request METHOD received.
+     *
+     * This method can only be used in the `LayConfig::$ENV_IS_DEV` mode. If you wish to run this method in a production
+     * environment, you will have to explicitly call the `ApiEngine::set_debug_mode()` before calling this method.
+     * @return array
+     * @see self::matched_uri_obj(); for the array shape
+     */
     public function get_registered_uris() : array
     {
         if(LayConfig::$ENV_IS_PROD && !self::$DEBUG_MODE)
@@ -880,6 +899,13 @@ final class ApiEngine {
         return self::$registered_uris;
     }
 
+    /**
+     * This method returns all the api endpoints registered in the system.
+     *
+     * This method runs only if the `ApiEngine::set_debug_dump_mode()` is called before it.
+     * @return array
+     * @see self::matched_uri_obj(); for the array shape
+     */
     public static function all_api_endpoints() : array
     {
         if(!self::$DEBUG_DUMP_MODE)
@@ -1049,7 +1075,7 @@ final class ApiEngine {
             $uris .= "<br>" . PHP_EOL;
         }
 
-        $message =self::$DEBUG_MODE ? "<h3 style='margin-bottom: 0'>Here are some similar [{$reg_uri['method']}] routes: </h3>
+        $message =self::$DEBUG_MODE ? "<h3 style='margin-bottom: 0'>Here are some similar [$method] routes: </h3>
                 <div style='color: #F3F9FA'>$uris</div>" : "";
 
         self::exception(
