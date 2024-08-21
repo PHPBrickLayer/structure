@@ -26,6 +26,9 @@ abstract class ApiHooks
         if(!isset($this->engine)) {
             $this->engine = ApiEngine::start($this::class);
             $this->request = $this->engine;
+
+            if(LayConfig::$ENV_IS_DEV)
+                $this->engine::set_debug_mode();
         }
     }
 
