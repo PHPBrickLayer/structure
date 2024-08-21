@@ -25,8 +25,25 @@ trait Standard {
         self::$me->attr = self::ATTRIBUTES ?? [];
     }
 
+    /**
+     * Element Attributes
+     * @param string $key
+     * @param string $value
+     * @return Img|Anchor|Link|Script|Standard
+     */
     public function attr(string $key, string $value) : self {
         $this->attr[$key] = $value;
+        return $this;
+    }
+
+    /**
+     * Data Attributes
+     * @param string $key
+     * @param string $value
+     * @return Img|Anchor|Link|Script|Standard
+     */
+    public function data(string $key, string $value) : self {
+        $this->attr["data-" . $key] = $value;
         return $this;
     }
 
