@@ -113,13 +113,9 @@ abstract class ApiHooks
 
     public final function get_all_endpoints() : array
     {
-        $this->engine::set_debug_mode();
-
-        LayConfig::connect();
+        $this->engine::set_debug_dump_mode();
         $this->engine::fetch();
-        $this->engine->group_limit(60, "3 minutes");
         $this->load_brick_hooks();
-
         return $this->engine::all_api_endpoints();
     }
 
