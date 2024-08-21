@@ -4,6 +4,9 @@ namespace BrickLayer\Lay\Libs;
 
 use BrickLayer\Lay\Core\Traits\IsSingleton;
 
+/**
+ * @deprecated
+ */
 class LayWordCount
 {
     private int $words_per_minute = 265;
