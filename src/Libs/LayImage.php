@@ -37,29 +37,28 @@ final class LayImage{
     }
 
     /**
-     * Check image width and height size
-     * @param $image_file string file to be checked for size
-     * @return array [width,height] in pixel (px)
+     * @deprecated
+     * @see self::get_ratio()
      */
     #[ArrayShape(['width' => 'int', 'height' => 'int'])]
     public function get_size(string $image_file) : array {
+        return $this->get_ratio($image_file);
+    }
+
+    /**
+     * Check image width and height size
+     * @param $image_file string file to be checked for size
+     * @return array
+     */
+    #[ArrayShape(['width' => 'int', 'height' => 'int'])]
+    public function get_ratio(string $image_file) : array
+    {
         list($w_orig,$h_orig) = getimagesize($image_file);
 
         if(!$w_orig || !$h_orig)
             $this->exception("An invalid image file was sent for upload: " . $image_file);
 
         return ["width" => $w_orig,"height" => $h_orig];
-    }
-
-    /**
-     * Alias of get_size
-     * @see get_size
-     * @param string $image_file
-     * @return array
-     */
-    public function get_ratio(string $image_file) : array
-    {
-        return $this->get_size($image_file);
     }
 
     /**
