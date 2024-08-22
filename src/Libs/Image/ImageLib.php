@@ -1,7 +1,8 @@
 <?php
 declare(strict_types=1);
-namespace BrickLayer\Lay\Libs;
+namespace BrickLayer\Lay\Libs\Image;
 
+use BrickLayer\Lay\Libs\Image\Enums\ImageErrorType;
 use BrickLayer\Lay\Libs\String\Enum\EscapeType;
 use BrickLayer\Lay\Libs\String\Escape;
 use JetBrains\PhpStorm\ArrayShape;
@@ -9,7 +10,10 @@ use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\Traits\IsSingleton;
 
-final class LayImage{
+final class ImageLib {
+    private int $img_file_size;
+    private array $img_file_ratio;
+
     use IsSingleton;
 
     /**
@@ -39,27 +43,17 @@ final class LayImage{
     /**
      * Check image width and height size
      * @param $image_file string file to be checked for size
-     * @return array [width,height] in pixel (px)
+     * @return array
      */
     #[ArrayShape(['width' => 'int', 'height' => 'int'])]
-    public function get_size(string $image_file) : array {
+    public function get_ratio(string $image_file) : array
+    {
         list($w_orig,$h_orig) = getimagesize($image_file);
 
         if(!$w_orig || !$h_orig)
             $this->exception("An invalid image file was sent for upload: " . $image_file);
 
         return ["width" => $w_orig,"height" => $h_orig];
-    }
-
-    /**
-     * Alias of get_size
-     * @see get_size
-     * @param string $image_file
-     * @return array
-     */
-    public function get_ratio(string $image_file) : array
-    {
-        return $this->get_size($image_file);
     }
 
     /**
@@ -79,6 +73,8 @@ final class LayImage{
 
         if($ext == "gif" && !$resize) {
             copy($tmp_img, $new_img);
+            $this->img_file_size = filesize($new_img);
+            $this->img_file_ratio = $this->get_ratio($new_img);
             return $filename;
         }
 
@@ -96,6 +92,8 @@ final class LayImage{
             imagewebp($img, $new_img, $quality);
 
         imagedestroy($img);
+        $this->img_file_size = filesize($new_img);
+        $this->img_file_ratio = $this->get_ratio($new_img);
 
         return $filename;
     }
@@ -113,8 +111,18 @@ final class LayImage{
      * This function moves your uploaded image, creates the directory,
      * resizes the image and returns the image name and extension (image.webp)
      * @param array $options
-     * @return string|bool filename and extension on success or false on fail
+     * @return array
+     * @throws \Exception
      */
+    #[ArrayShape([
+        'uploaded' => 'bool',
+        'error' => 'string',
+        'error_type' => "BrickLayer\\Lay\\Libs\\Image\\Enums\\ImageErrorType",
+        'url' => 'string',
+        'size' => 'int',
+        'width' => 'int',
+        'height' => 'int',
+    ])]
     public function move(
         #[ArrayShape([
             'post_name' => 'string',
@@ -125,9 +133,10 @@ final class LayImage{
             'dimension' => 'array',
             'copy_tmp_file' => 'bool',
             'add_mod_time' => 'bool',
+            'file_limit' => 'int',
         ])]
         array $options
-    ): bool|string
+    ): array
     {
         extract($options);
         $copy_tmp_file = $copy_tmp_file ?? false;
@@ -135,9 +144,14 @@ final class LayImage{
         $dimension = $dimension ?? null;
         $quality = $quality ?? 80;
         $add_mod_time = $add_mod_time ?? true;
+        $file_limit = $file_limit ?? null;
 
         if(!isset($_FILES[$post_name]))
-            return false;
+            return [
+                "uploaded" => false,
+                "error" => "$post_name is not set",
+                "error_type" => ImageErrorType::FILE_NOT_SET
+            ];
 
         $directory = rtrim($directory,DIRECTORY_SEPARATOR);
 
@@ -171,7 +185,14 @@ final class LayImage{
                 $this->create($tmpImg, $directory, $quality, add_mod_time: $add_mod_time);
 
             @unlink($tmpImg);
-            return $file_name;
+
+            return [
+                "uploaded" => true,
+                "url" => $file_name,
+                "size" => $this->img_file_size,
+                "width" => $this->img_file_ratio['width'],
+                "height" => $this->img_file_ratio['height'],
+            ];
         };
 
         if(!is_dir($directory)) {
@@ -180,15 +201,34 @@ final class LayImage{
                 $this->exception("Failed to create directory on location: ($directory); access denied; modify permissions and try again");
         }
 
-        $files = $_FILES[$post_name];
+        $file = $_FILES[$post_name];
 
-        if(empty($files['tmp_name']))
-            return false;
+        if(empty($file['tmp_name']))
+            return [
+                "uploaded" => false,
+                "error" => "File was not received. Ensure the file is not above the set limit in your php.ini",
+                "error_type" => ImageErrorType::TMP_FILE_EMPTY
+            ];
 
-        return $operation($files["name"], $files["tmp_name"]);
+        if($file_limit && $this->file_size($file['tmp_name']) > $file_limit) {
+            $file_limit = $file_limit/1000000;
+
+            if($file_limit  > 1)
+                $file_limit = number_format($file_limit, 2) . "mb";
+            else
+                $file_limit = number_format($file_limit, 2) . "bytes";
+
+            return [
+                "uploaded" => false,
+                "error_type" => ImageErrorType::EXCEEDS_FILE_LIMIT,
+                "error" => "File is above the set limit: $file_limit",
+            ];
+        }
+
+        return $operation($file["name"], $file["tmp_name"]);
     }
 
     private function exception(string $message) : void {
-        Exception::throw_exception($message, "IMG-SERVICE");
+        Exception::throw_exception($message, "ImgLib");
     }
 }

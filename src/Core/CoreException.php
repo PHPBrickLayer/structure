@@ -31,7 +31,7 @@ class CoreException
             if(error_reporting() != E_ALL)
                 return false;
 
-            $eol = LayConfig::get_mode() == LayMode::HTTP ? "<br>" : "\n";
+            $eol = LayConfig::get_mode() == LayMode::HTTP ? "<br>" . PHP_EOL : PHP_EOL;
 
             if($err_no === E_WARNING || $err_no === E_USER_WARNING) {
                 $this->use_exception(
@@ -267,11 +267,8 @@ class CoreException
                     print $stack_raw;
                 else
                     echo $display;
-
-                return "kill";
-            }
-
-            $display = <<<DEBUG
+            } else
+                $display = <<<DEBUG
             <div style="min-height: 300px; background:#1d2124;padding:10px;color:#fffffa;overflow:auto; margin: 0 0 15px">
                 <h3 style='color: $title_color; margin: 2px 0'> $title </h3>
                 <div style='color: $body_color; font-weight: bold; margin: 5px 0;'> $body </div><br>
@@ -302,7 +299,8 @@ class CoreException
         $date = date("Y-m-d H:i:s e");
         $body = strip_tags($body);
         $body = <<<DEBUG
-        [$date] $title: $body
+        [$date] $title: 
+        $body
         $stack_raw
         DEBUG;
 
