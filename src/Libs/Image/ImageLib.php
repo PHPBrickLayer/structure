@@ -206,7 +206,7 @@ final class ImageLib {
         if(empty($file['tmp_name']))
             return [
                 "uploaded" => false,
-                "error" => "File was not received. Ensure the file is not above the set limit in your php.ini",
+                "error" => "File was not received. Ensure the file is not above the set max file size. Try a file with a lower file size",
                 "error_type" => ImageErrorType::TMP_FILE_EMPTY
             ];
 
