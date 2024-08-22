@@ -168,7 +168,7 @@ final class ApiEngine {
 
         $stack_trace = $exception ? $exception->getTrace() : [];
         $active_route = isset(self::$active_route) ? "<div><b>Active Route:</b> [<span style='color: #F3F9FA'>" . self::$active_route . "</span>]</div><br>" : "";
-        $message = $active_route . $message;
+        $message = $active_route . PHP_EOL . $message;
         Exception::throw_exception($message, $title, true, self::$use_lay_exception, $stack_trace, exception: $exception, thow_500: $header['throw_header']);
     }
 
