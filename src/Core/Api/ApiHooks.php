@@ -11,7 +11,8 @@ use JetBrains\PhpStorm\NoReturn;
 abstract class ApiHooks
 {
     /**
-     * @deprecated
+     * Alias for $engine
+     * @see $engine
      * @var ApiEngine
      */
     public readonly ApiEngine $request;

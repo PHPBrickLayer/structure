@@ -163,17 +163,43 @@ final class ApiEngine {
     private static array $limiter_global = [];
     private static array $limiter_route = [];
 
-    private static function exception(string $title, string $message, $exception = null, array $header = ["code" => 500, "msg" => "Internal Server Error", "throw_header" => true]) : void {
-        self::set_response_header($header['code'], ApiReturnType::HTML, $header['msg']);
+    private static function exception(
+        string $title,
+        string $message,
+               $exception = null, array
+               $header = ["code" => 500, "msg" => "Internal Server Error", "throw_header" => true]
+    ) : void {
+        $active_route = self::$active_route ?? null;
+
+        if(!isset($header['json_error']))
+            self::set_response_header($header['code'], ApiReturnType::HTML, $header['msg']);
 
         $stack_trace = $exception ? $exception->getTrace() : [];
-        $active_route = isset(self::$active_route) ? "<div><b>Active Route:</b> [<span style='color: #F3F9FA'>" . self::$active_route . "</span>]</div><br>" : "";
+        $active_route = $active_route ? "<div><b>Active Route:</b> [<span style='color: #F3F9FA'>$active_route</span>]</div><br>" : "";
         $message = $active_route . PHP_EOL . $message;
-        Exception::throw_exception($message, $title, true, self::$use_lay_exception, $stack_trace, exception: $exception, thow_500: $header['throw_header']);
+
+        Exception::throw_exception(
+            $message,
+            $title,
+            true,
+            self::$use_lay_exception,
+            $stack_trace,
+            exception: $exception,
+            throw_500: $header['throw_header'],
+            error_as_json: true,
+            json: [
+                "code" => $header['code'],
+                "message" => $header['msg'],
+                "others" => [
+                    "active_route" => self::$active_route ?? "",
+                    "info" => $header['json_error'] ?? ""
+                ],
+            ]
+        );
     }
 
     /**
-     * Restore global scoped props incase a class has modified it
+     * Restore global scoped props in case a class has modified it
      * @return void
      */
     private static function restore_global_props() : void
@@ -1067,8 +1093,17 @@ final class ApiEngine {
         $uris = "";
         $method = self::$active_request_method;
         $mode = self::$DEBUG_MODE ? "true" : "false";
+        $send_json_error = !isset(LayConfig::user_agent()['browser']);
+        $json_error = [];
 
         foreach(self::$registered_uris as $reg_uri) {
+            if($send_json_error)
+                $json_error[] = [
+                    "route" => "/" . ltrim($reg_uri['route'], "/"),
+                    "route_name" => $reg_uri['route_name'],
+                    "response_type" => $reg_uri['return_type'],
+                ];
+
             $uris = "<div>" . PHP_EOL;
             $uris .= "<span style='color: #0dcaf0'>URI:</span> " . $reg_uri['route'] . "<br>" . PHP_EOL;
             $uris .= "<span style='color: #0dcaf0'>URI_NAME:</span> " . ($reg_uri['route_name'] ?: '-') . "<br>" . PHP_EOL;
@@ -1079,6 +1114,14 @@ final class ApiEngine {
         $message = self::$DEBUG_MODE && !empty($uris) ? "<h3>Here are some similar [$method] routes: </h3>
                 <div style='color: #F3F9FA'>$uris</div>" : "";
 
+        if($send_json_error)
+            $json_error = [
+                "debug_mode" => $mode,
+                "method" => $method,
+                "version" => self::$version ?? "",
+                "active_prefix" => self::$prefix ?? "",
+                "similar_routes" => $json_error
+            ];
         self::exception(
             "NoRequestExecuted",
             "No valid handler for route [<span style='color: #F3F9FA'>$uri</span>]<br><br>  
@@ -1092,7 +1135,8 @@ final class ApiEngine {
                 "code" => 404,
                 "msg" => "API Route not found",
                 "message" => "API Route not found",
-                "throw_header" => false
+                "throw_header" => false,
+                "json_error" => $json_error
             ]
         );
 

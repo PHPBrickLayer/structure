@@ -6,21 +6,27 @@ abstract class Exception {
     /**
      * @throws \Exception
      */
-    public static function throw_exception(string $message, string $title = "Generic", bool $kill = true, bool $use_lay_error = true, array $stack_track = [], $exception = null, bool $thow_500 = true) : void
+    public static function throw_exception(string $message, string $title = "Generic", bool $kill = true, bool $use_lay_error = true, array $stack_track = [], $exception = null, bool $throw_500 = true, bool $error_as_json = false, ?array $json = null) : void
     {
-        self::new()->use_exception("LayExp_$title", $message, $kill, trace: $stack_track, use_lay_error: $use_lay_error, exception: $exception, throw_500: $thow_500);
+        self::new()->use_exception($title, $message, $kill, trace: $stack_track, use_lay_error: $use_lay_error, exception: $exception, throw_500: $throw_500, error_as_json: $error_as_json, json_packet: $json);
     }
 
-    public static function new() : \BrickLayer\Lay\Core\CoreException
+    public static function new() : CoreException
     {
-        return \BrickLayer\Lay\Core\CoreException::new();
+        return CoreException::new();
     }
 
     /**
      * @throws \Exception
      */
-    public static function kill_and_trace() : void
+    public static function kill_and_trace(bool $show_error = true) : void
     {
-        self::new()->kill_with_trace();
+        self::new()->kill_with_trace($show_error);
     }
+
+    public static function hide_x_info() : void
+    {
+        self::new()->hide_x_info();
+    }
+
 }
