@@ -216,7 +216,9 @@ trait Config
         preg_match($pattern, $agent, $matches);
 
         if(empty($matches))
-            return null;
+            return [
+                'agent' => $agent
+            ];
 
         return [
             "agent" => $matches[0],

@@ -6,6 +6,7 @@ namespace BrickLayer\Lay\Core;
 use BrickLayer\Lay\BobDBuilder\Helper\Console\Console;
 use BrickLayer\Lay\BobDBuilder\Helper\Console\Format\Foreground;
 use BrickLayer\Lay\BobDBuilder\Helper\Console\Format\Style;
+use BrickLayer\Lay\Core\Api\Enums\ApiStatus;
 use BrickLayer\Lay\Core\Enums\LayMode;
 use BrickLayer\Lay\Core\Traits\IsSingleton;
 use BrickLayer\Lay\Orm\SQL;
@@ -22,7 +23,9 @@ class CoreException
     private static string $message;
     private static bool $already_caught = false;
     private static bool $show_internal_trace = true;
+    private static bool $show_x_info = true;
     private bool $throw_500 = true;
+    private bool $throw_as_json = true;
 
     public function capture_errors(bool $turn_warning_to_errors = false) : void
     {
@@ -64,7 +67,19 @@ class CoreException
     /**
      * @throws \Exception
      */
-    public function use_exception(string $title, string $body, bool $kill = true, array $trace = [], array $raw = [], bool $use_lay_error = true, array $opts = [], $exception = null, bool $throw_500 = true): void
+    public function use_exception(
+        string $title,
+        string $body,
+        bool $kill = true,
+        array $trace = [],
+        array $raw = [],
+        bool $use_lay_error = true,
+        array $opts = [],
+               $exception = null,
+        bool $throw_500 = true,
+        bool $error_as_json = true,
+        ?array $json_packet = null,
+    ): void
     {
         if($exception) {
             $file_all = $exception->getFile();
@@ -83,6 +98,7 @@ class CoreException
         }
 
         $this->throw_500 = $throw_500;
+        $this->throw_as_json = $error_as_json;
 
         $this->show_exception([
                 "title" => $title,
@@ -94,6 +110,7 @@ class CoreException
                 "exception_type" => $opts['type'] ?? 'error',
                 "exception_object" => $exception,
                 "show_internal_trace" => $opts['show_internal_trace'] ?? null,
+                "json_packet" => $json_packet,
             ]
         );
     }
@@ -103,10 +120,16 @@ class CoreException
         self::$show_internal_trace = false;
     }
 
+    public function hide_x_info() : void
+    {
+        self::$show_x_info = false;
+    }
+
+
     /**
      * @throws \Exception
      */
-    public function kill_with_trace() : void
+    public function kill_with_trace(bool $show_error = true) : void
     {
         if($this->get_env() !== "DEVELOPMENT")
             $this->use_exception(
@@ -116,14 +139,18 @@ class CoreException
                 . "If you are in a development environment, please use *\BrickLayer\Lay\Core\LayConfig::\$ENV_IS_DEV = true;* before calling this method"
             );
 
-        $this->show_exception([
-                "kill" => true,
-                "use_lay_error" => true,
-                "exception_type" => 'error',
-                "show_exception_trace" => true,
-                "show_internal_trace" => true,
-            ]
-        );
+        $opts = [
+            "kill" => true,
+            "use_lay_error" => true,
+            "exception_type" => 'error',
+            "show_exception_trace" => true,
+            "show_internal_trace" => true,
+        ];
+
+        if($show_error)
+            $opts["title"] = $show_error ? "KillWithTrace" : null;
+
+        $this->show_exception($opts);
     }
 
     private function container(?string $title, ?string $body, array $other = []): string
@@ -132,7 +159,7 @@ class CoreException
         $body_color = "#dea303";
         $cli_color = Foreground::light_cyan;
 
-        switch ($other['core']){
+        switch ($other['core']) {
             default: break;
             case "error":
                 $title_color = "#ff0014";
@@ -149,6 +176,7 @@ class CoreException
         $env = $this->get_env();
         $display = $env == "DEVELOPMENT" || $other['core'] == "view";
         $cli_mode = LayConfig::get_mode() === LayMode::CLI;
+        $use_json = $this->throw_as_json && !isset(LayConfig::user_agent()['browser']);
         $show_internal_trace = $other['show_internal_trace'] ?? self::$show_internal_trace;
 
         if (!empty(@$other['raw'])) {
@@ -164,6 +192,7 @@ class CoreException
         $cors_active = LayConfig::cors_active() ? "ACTIVE" : "INACTIVE";
         $headers_str = "";
         $headers_html = "";
+        $headers_json = [];
 
         foreach (LayConfig::get_header("*") as $k => $v) {
             if(in_array($k, ["Cookie", "Accept-Language", "Accept-Encoding"], true))
@@ -171,10 +200,16 @@ class CoreException
 
             $headers_str .= "\n  [$k] $v";
             $headers_html .= "<b style='color:#dea303'>[$k]</b> <span>$v</span> <br>";
+
+            if($use_json)
+                $headers_json[] = [
+                    $k => $v
+                ];
         }
 
         $stack = "";
         $stack_raw = "";
+        $stack_json = [];
 
         $app_index = 0;
         $internal_index = 0;
@@ -182,11 +217,13 @@ class CoreException
         $internal_traces = "";
         $internal_traces_raw = "";
 
+        $s = DIRECTORY_SEPARATOR;
+
         foreach ($other['stack'] as $v) {
             if (!isset($v['file']) && !isset($v['line']))
                 continue;
 
-            $is_internal = str_contains($v['file'], "bricklayer/structure/src/") || str_contains($v['file'], "bricklayer/structure/src/");
+            $is_internal = str_contains($v['file'], "bricklayer{$s}structure{$s}src{$s}") || str_contains($v['file'], "bricklayer{$s}structure{$s}src{$s}");
 
             if(!$show_internal_trace && $is_internal)
                 continue;
@@ -207,15 +244,27 @@ class CoreException
               -#$k: {$v['function']} {$v['file']}:{$v['line']}
 
             STACK;
+            $jx = [
+                "file" => $v['file'],
+                "line" => $v['line'],
+                "fn" => $v['function'],
+            ];
 
             if($is_internal) {
                 $internal_traces .= $sx;
                 $internal_traces_raw .= $sx_raw;
+
+                if($show_internal_trace && $use_json)
+                    $stack_json['internal'][] = $jx;
+
                 continue;
             }
 
             $stack .= $sx;
             $stack_raw .= $sx_raw;
+
+            if($use_json)
+                $stack_json['app'][] = $jx;
         }
 
         if($show_internal_trace && $internal_traces) {
@@ -237,9 +286,51 @@ class CoreException
         $stack_raw
         STACK;
 
+        if($cli_mode) {
+            $body = strip_tags($body);
+            Console::log(" $title ", Style::bold);
+            print "---------------------\n";
+            Console::log($body, $cli_color);
+            print "---------------------\n";
+            print $stack_raw;
+
+            return $other['act'] ?? "kill";
+        }
+
+        if($use_json) {
+            $error_json = [
+                "code" => $other['json_packet']['code'] ?? 500,
+                "message" => $other['json_packet']['message'] ?? "Internal Server Error",
+                "packet" => $other['json_packet']['others'] ?? [],
+            ];
+
+            if(self::$show_x_info) {
+                $error_json["x_info"] = [
+                    "env" => $env,
+                    "host" => $origin,
+                    "referer" => $referer,
+                    "cors" => $cors_active,
+                    "ip" => $ip,
+                    "os" => $os,
+                    "trace" => [
+                        "app" => $stack_json['app'] ?? null,
+                        "internal" => $stack_json['internal'] ?? null,
+                    ],
+                    "headers" => $headers_json,
+                ];
+            }
+
+            $code = ApiStatus::tryFrom($error_json['code']);
+            $code = $code->value ?? 500;
+
+            header("HTTP/1.1 $code " . $error_json['message']);
+            header("Content-Type: application/json");
+            echo json_encode($error_json);
+            return $other['act'] ?? "allow";
+        }
 
         if($title)
-            self::$message = $title . " \n" . strip_tags($body);
+            self::$message = $title . " \n" . ($body ? strip_tags($body) : "");
 
         if ($display) {
             $ERROR_BODY = <<<DEBUG
@@ -260,14 +351,9 @@ class CoreException
                 $internal_traces
                 DEBUG;
 
-            if(!$title) {
+            if(!$title)
                 $display = '<div style="min-height: 300px; background:#1d2124;padding:10px;color:#fffffa;overflow:auto;">' . $ERROR_BODY .'</div>';
-
-                if($cli_mode)
-                    print $stack_raw;
-                else
-                    echo $display;
-            } else
+            else
                 $display = <<<DEBUG
             <div style="min-height: 300px; background:#1d2124;padding:10px;color:#fffffa;overflow:auto; margin: 0 0 15px">
                 <h3 style='color: $title_color; margin: 2px 0'> $title </h3>
@@ -275,17 +361,6 @@ class CoreException
                 $ERROR_BODY
             </div>
             DEBUG;
-
-            if($cli_mode) {
-                $body = strip_tags($body);
-                Console::log(" $title ", Style::bold);
-                print "---------------------\n";
-                Console::log($body, $cli_color);
-                print "---------------------\n";
-                print $stack_raw;
-
-                return $other['act'] ?? "kill";
-            }
         }
 
         $dir = LayConfig::server_data()->temp;
@@ -297,7 +372,7 @@ class CoreException
         }
 
         $date = date("Y-m-d H:i:s e");
-        $body = strip_tags($body);
+        $body = $body ? strip_tags($body) : "";
         $body = <<<DEBUG
         [$date] $title: 
         $body
@@ -356,17 +431,17 @@ class CoreException
         if(isset($opt['title']))
             $act = $this->container(
                 $opt['title'],
-                $opt['body_includes'],
+                $opt['body_includes'] ?? null,
                 [
                     "stack" => $trace,
                     "core" => $type,
                     "act" => @$opt['kill'] ? "kill" : "allow",
-                    "raw" => $opt['raw'],
-                    "show_internal_trace" => $opt['show_internal_trace'],
+                    "raw" => $opt['raw'] ?? null,
+                    "show_internal_trace" => $opt['show_internal_trace'] ?? null,
+                    "json_packet" => $opt['json_packet'] ?? null,
                 ]
             );
-
-        if(!isset($opt['title'])) {
+        else {
             $act = "kill";
             $this->container(
                 null,
