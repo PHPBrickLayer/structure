@@ -14,7 +14,8 @@ use BrickLayer\Lay\BobDBuilder\Interface\CmdLayout;
 use BrickLayer\Lay\Core\Traits\IsSingleton;
 use BrickLayer\Lay\Libs\LayDir;
 use BrickLayer\Lay\Libs\Symlink\LaySymlink;
-use BrickLayer\Lay\Libs\Symlink\SymlinkTypes;
+use BrickLayer\Lay\Libs\Symlink\SymlinkWindowsType;
+use BrickLayer\Lay\Libs\Symlink\SymlinkTrackType;
 
 class Symlink implements CmdLayout
 {
@@ -68,75 +69,29 @@ class Symlink implements CmdLayout
 
     private function init_db() : void
     {
-        self::$link_db = $this->plug->server->root . "symlinks.json";
+        self::$link_db = LaySymlink::set_link_db("project_symlinks.json");
+
+        //TODO: Delete this section after legacy projects have been updated
+        $old_links = $this->plug->server->root . "symlinks.json";
+
+        if(file_exists($old_links))
+            rename($old_links, self::$link_db);
+        //TODO: END Deletion
     }
 
-    private function track_link(string $src, string $dest, string $link_type) : void
+    private function track_link(string $src, string $dest, SymlinkTrackType $link_type) : void
     {
-        $new_link = [
-            "type" => $link_type,
-            "src" => str_replace(["/","\\"], DIRECTORY_SEPARATOR, $src),
-            "dest" => str_replace(["/","\\"], DIRECTORY_SEPARATOR, $dest),
-        ];
-
-        $links = [];
-
-        if(file_exists(self::$link_db))
-            $links = json_decode(file_get_contents(self::$link_db), true);
-
-        foreach ($links as $link) {
-            if($new_link['type'] == $link['type'] && $new_link['dest'] == $link['dest'])
-                return;
-        }
-
-        $links[] = $new_link;
-
-        file_put_contents(self::$link_db, json_encode($links));
+        LaySymlink::track_link($src, $dest, $link_type);
     }
 
     public function refresh_link() : void
     {
-        if(!file_exists(self::$link_db))
-            return;
-
-        $links = json_decode(file_get_contents(self::$link_db), true);
-
-        foreach ($links as $link) {
-            if(empty($link['src'])) {
-                new BobExec("link:{$link['type']} {$link['dest']} --force --silent");
-                continue;
-            }
-
-            new BobExec("link:{$link['type']} {$link['src']} {$link['dest']} --force --silent");
-        }
+        LaySymlink::refresh_link(true);
     }
 
     public function prune_link() : void
     {
-        if(!file_exists(self::$link_db))
-            return;
-
-        $links = json_decode(file_get_contents(self::$link_db), true);
-
-        foreach ($links as $i => $link) {
-            $src = $this->plug->server->root . $link['src'];
-            $dest = $this->plug->server->root . $link['dest'];
-
-            if($link['type'] == "htaccess")
-                $dest = $this->plug->server->domains . $link['dest'] . ".htaccess";
-
-            if(!is_link($dest))
-                unset($links[$i]);
-
-            if(!is_file($src) and !is_dir($src)) {
-                unset($links[$i]);
-
-                if (is_link($dest))
-                    LayDir::unlink($dest);
-            }
-        }
-
-        file_put_contents(self::$link_db, json_encode($links));
+        LaySymlink::prune_link(true);
     }
 
     public function unlink() : void

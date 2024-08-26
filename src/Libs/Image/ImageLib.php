@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace BrickLayer\Lay\Libs\Image;
 
 use BrickLayer\Lay\Libs\Image\Enums\ImageErrorType;
+use BrickLayer\Lay\Libs\LayFn;
 use BrickLayer\Lay\Libs\String\Enum\EscapeType;
 use BrickLayer\Lay\Libs\String\Escape;
 use JetBrains\PhpStorm\ArrayShape;
@@ -195,11 +196,7 @@ final class ImageLib {
             ];
         };
 
-        if(!is_dir($directory)) {
-            umask(0);
-            if(!@mkdir($directory, $permission, true))
-                $this->exception("Failed to create directory on location: ($directory); access denied; modify permissions and try again");
-        }
+        LayFn::mkdir($directory, $permission, true);
 
         $file = $_FILES[$post_name];
 

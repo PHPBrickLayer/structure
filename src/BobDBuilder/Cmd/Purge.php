@@ -23,7 +23,7 @@ class Purge implements CmdLayout
     public function _init(EnginePlug $plug): void
     {
         $this->plug = $plug;
-        $this->internal_dir = $this->plug->server->lay . "__internal" . $this->plug->s;
+        $this->internal_dir = $this->plug->server->framework . "__internal" . $this->plug->s;
 
         $plug->add_arg($this, ["purge:domain"], 'purge_domain', 0);
         $plug->add_arg($this, ["purge:brick"], 'purge_brick', 0);

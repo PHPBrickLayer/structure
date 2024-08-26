@@ -2,7 +2,7 @@
 
 namespace BrickLayer\Lay\Libs\Symlink;
 
-enum SymlinkTypes : string
+enum SymlinkWindowsType : string
 {
     case HARD = "/H";
     case SOFT = "/D";

@@ -3,6 +3,7 @@
 namespace BrickLayer\Lay\BobDBuilder\Cmd\Traits\Symlink;
 
 use BrickLayer\Lay\Libs\Symlink\LaySymlink;
+use BrickLayer\Lay\Libs\Symlink\SymlinkTrackType;
 
 trait Htaccess
 {
@@ -37,7 +38,7 @@ trait Htaccess
         LaySymlink::remove($dest);
         LaySymlink::make($src, $dest);
 
-        $this->track_link("", $domain, "htaccess");
+        $this->track_link("", $domain, SymlinkTrackType::HTACCESS);
 
         $plug->write_success("htaccess successfully linked to: *$dest*");
     }

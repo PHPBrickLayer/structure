@@ -23,9 +23,10 @@ trait Resources {
         $obj = new \stdClass();
 
         $obj->lay_static        =   $dir  .   "vendor"    .   $slash .    "bricklayer" . $slash .   "structure" . $slash . "src" . $slash . "static" . $slash;
-        $obj->lay               =   $dir  .   "vendor"    .   $slash .    "bricklayer" . $slash .   "structure" . $slash;
+        $obj->framework         =   $dir  .   "vendor"    .   $slash .    "bricklayer" . $slash .   "structure" . $slash;
         $obj->root              =   $dir;
-        $obj->temp              =   $dir  .   ".lay_temp" .   $slash;
+        $obj->lay               =   $dir  .   ".lay" .  $slash;
+        $obj->temp              =   $obj->lay             .   "temp" .   $slash;
         $obj->bricks            =   $dir  .   "bricks"    .   $slash;
         $obj->db                =   $dir  .   "db"        .   $slash;
         $obj->utils             =   $dir  .   "utils"     .   $slash;
@@ -67,6 +68,7 @@ trait Resources {
     #[ObjectShape([
         "lay" => 'string',
         "lay_static" => 'string',
+        "framework" => 'string',
         "root" => 'string',
         "temp" => 'string',
         "bricks" => 'string',
@@ -132,6 +134,28 @@ trait Resources {
                 umask(0);
                 mkdir($temp_dir, 0755, true);
             }
+
+            //TODO: Delete this after all legacy projects have been updated
+            // START
+            $old_temp_dir = self::server_data()->root . ".lay_temp";
+
+            if(is_dir($old_temp_dir)) {
+                $new_dir_empty = true;
+
+                $d = dir($temp_dir);
+                while (false !== ($entry = $d->read())) {
+                    if($entry == "." || $entry == "..")
+                    $new_dir_empty = false;
+                }
+
+                if(is_dir($temp_dir) && $new_dir_empty) {
+                    rmdir($temp_dir);
+                    rename($old_temp_dir, $temp_dir);
+                }
+            }
+
+            //TODO: Delete this after all legacy projects have been updated
+            //END
 
             return $temp_dir;
         }
