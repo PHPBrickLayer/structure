@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 namespace BrickLayer\Lay\Core\Traits;
+use BrickLayer\Lay\Libs\LayFn;
 use Dotenv\Dotenv;
 use JetBrains\PhpStorm\ArrayShape;
 use JetBrains\PhpStorm\ExpectedValues;
@@ -36,10 +37,11 @@ trait Resources {
         $obj->uploads           =   $dir  .   "web"       .   $slash .    "uploads" . $slash;
         $obj->uploads_no_root   =   "uploads" . $slash;
 
-        self::mk_tmp_dir($obj->temp);
+        self::internal_mk_tmp_dir($obj->temp, $obj->root);
 
         self::$server = $obj;
     }
+
     protected static function set_internal_site_data(array $options) : void {
         $to_object = function (&$value) : void {
             $value = (object) $value;
@@ -128,44 +130,33 @@ trait Resources {
         return self::$CLIENT_VALUES;
     }
 
-    public static function mk_tmp_dir (?string $temp_dir = null) : string {
-        if($temp_dir) {
-            if(!is_dir($temp_dir)) {
-                umask(0);
-                mkdir($temp_dir, 0755, true);
+    private static function internal_mk_tmp_dir(string $temp_dir, string $root) : void
+    {
+        LayFn::mkdir($temp_dir, 0755, true);
+
+        //TODO: Delete this after all legacy projects have been updated. Delete the root arg as well
+        // START
+        $old_temp_dir = $root . ".lay_temp";
+
+        if(is_dir($old_temp_dir)) {
+            $new_dir_is_empty = true;
+
+            LayFn::read_dir($temp_dir, fn($file) => $new_dir_is_empty = false);
+
+            if($new_dir_is_empty) {
+                rmdir($temp_dir);
+                rename($old_temp_dir, $temp_dir);
             }
-
-            //TODO: Delete this after all legacy projects have been updated
-            // START
-            $old_temp_dir = self::server_data()->root . ".lay_temp";
-
-            if(is_dir($old_temp_dir)) {
-                $new_dir_empty = true;
-
-                $d = dir($temp_dir);
-                while (false !== ($entry = $d->read())) {
-                    if($entry == "." || $entry == "..")
-                    $new_dir_empty = false;
-                }
-
-                if(is_dir($temp_dir) && $new_dir_empty) {
-                    rmdir($temp_dir);
-                    rename($old_temp_dir, $temp_dir);
-                }
-            }
-
-            //TODO: Delete this after all legacy projects have been updated
-            //END
-
-            return $temp_dir;
         }
 
+        //TODO: Delete this after all legacy projects have been updated
+        //END
+    }
+
+    public static function mk_tmp_dir () : string {
         $dir = self::server_data()->temp;
 
-        if(!is_dir($dir)) {
-            umask(0);
-            mkdir($dir, 0755, true);
-        }
+        LayFn::mkdir($dir, 0755, true);
 
         return $dir;
     }

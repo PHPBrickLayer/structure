@@ -56,7 +56,7 @@ class LaySymlink {
      */
     public static function set_link_db(string $json_filename) : string
     {
-        return self::$link_db = self::symlink_dir() . LayFn::rtrim_word($json_filename, ".json");
+        return self::$link_db = self::symlink_dir() . LayFn::rtrim_word($json_filename, ".json") . ".json";
     }
 
     private static function link_isset() : void
