@@ -3,7 +3,8 @@
 namespace BrickLayer\Lay\BobDBuilder\Cmd\Traits\Symlink;
 
 use BrickLayer\Lay\Libs\Symlink\LaySymlink;
-use BrickLayer\Lay\Libs\Symlink\SymlinkTypes;
+use BrickLayer\Lay\Libs\Symlink\SymlinkWindowsType;
+use BrickLayer\Lay\Libs\Symlink\SymlinkTrackType;
 
 trait Dir
 {
@@ -40,9 +41,9 @@ trait Dir
         }
 
         LaySymlink::remove($dest);
-        LaySymlink::make($src, $dest, SymlinkTypes::SOFT);
+        LaySymlink::make($src, $dest, SymlinkWindowsType::SOFT);
 
-        $this->track_link($link[0], $link[1], "dir");
+        $this->track_link($link[0], $link[1], SymlinkTrackType::DIRECTORY);
 
         $this->plug->write_success(
             "Directory link created successfully!\n"

@@ -3,6 +3,7 @@
 namespace BrickLayer\Lay\BobDBuilder\Cmd\Traits\Symlink;
 
 use BrickLayer\Lay\Libs\Symlink\LaySymlink;
+use BrickLayer\Lay\Libs\Symlink\SymlinkTrackType;
 
 trait File
 {
@@ -37,7 +38,7 @@ trait File
         LaySymlink::remove($dest);
         LaySymlink::make($src, $dest);
 
-        $this->track_link($link[0], $link[1], "file");
+        $this->track_link($link[0], $link[1], SymlinkTrackType::FILE);
 
         $this->plug->write_success(
             "Directory link created successfully!\n"

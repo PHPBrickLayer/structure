@@ -100,9 +100,14 @@ class Deploy implements CmdLayout
 
     public function batch_minification(string $src_dir, string $output_dir): void
     {
-        $ignore = $this->ignore ? explode(",", $this->ignore) : [];
         $copy_only = $this->copy_only ? explode(",", $this->copy_only) : [];
-        $core_ignore = ["node_modules", "scss"];
+        $ignore = $this->ignore ? explode(",", $this->ignore) : [];
+        $ignore = ["node_modules", "scss", ...$ignore];
+        $gen_regex = function ($entry) : string {
+            $regex_pattern = preg_quote($entry, '/');
+            $regex_pattern = str_replace('\*', '[^/]*', $regex_pattern);
+            return '#' . $regex_pattern . '$#';
+        };
 
         $error = [];
         $changes = 0;
@@ -133,15 +138,11 @@ class Deploy implements CmdLayout
             },
 
             // After the file has been copied, work on it if it meets our criteria
-            post_copy: function ($file,$parent_dir,$output_dir) use ($is_css, $is_js, &$error, &$changes, $copy_only) {
+            post_copy: function ($file,$parent_dir,$output_dir) use ($is_css, $is_js, &$error, &$changes, $copy_only, $gen_regex) {
 
                 // Check if directory matches one that needs to be copied only
                 foreach ($copy_only as $copy) {
-                    $regex_pattern = preg_quote($copy, '/');
-                    $regex_pattern = str_replace('\*', '[^/]*', $regex_pattern);
-                    $regex_pattern = '#' . $regex_pattern . '$#';
-
-                    preg_match($regex_pattern, $parent_dir, $match);
+                    preg_match($gen_regex($copy), $parent_dir, $match);
 
                     if($match) {
                         $changes++;
@@ -185,11 +186,20 @@ class Deploy implements CmdLayout
             },
 
             // Skip file if condition is true
-            skip_if: fn($file) => (
-                in_array($file, $core_ignore,true) ||
-                in_array($file, $ignore,true) ||
-                (function_exists('fnmatch') && fnmatch('.*',$file))
-            ),
+            skip_if: function($file, $parent_dir) use ($ignore, $gen_regex) {
+                foreach ($ignore as $entry) {
+                    preg_match($gen_regex($entry), $parent_dir, $match);
+
+                    if ($match)
+                        return true;
+                }
+
+                return false;
+            },
+
+            use_symlink: true,
+
+            symlink_db_filename: "static_assets.json",
 
         );
 

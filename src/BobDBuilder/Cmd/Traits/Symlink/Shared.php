@@ -3,7 +3,8 @@
 namespace BrickLayer\Lay\BobDBuilder\Cmd\Traits\Symlink;
 
 use BrickLayer\Lay\Libs\Symlink\LaySymlink;
-use BrickLayer\Lay\Libs\Symlink\SymlinkTypes;
+use BrickLayer\Lay\Libs\Symlink\SymlinkWindowsType;
+use BrickLayer\Lay\Libs\Symlink\SymlinkTrackType;
 
 trait Shared
 {
@@ -47,9 +48,9 @@ trait Shared
         }
 
         LaySymlink::remove($dest);
-        LaySymlink::make($src, $dest, SymlinkTypes::SOFT);
+        LaySymlink::make($src, $dest, SymlinkWindowsType::SOFT);
 
-        $this->track_link("", $domain, "shared");
+        $this->track_link("", $domain, SymlinkTrackType::SHARED);
 
         $plug->write_success("*shared* directory successfully linked to: *$dest*");
     }

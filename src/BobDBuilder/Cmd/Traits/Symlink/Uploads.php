@@ -3,7 +3,8 @@
 namespace BrickLayer\Lay\BobDBuilder\Cmd\Traits\Symlink;
 
 use BrickLayer\Lay\Libs\Symlink\LaySymlink;
-use BrickLayer\Lay\Libs\Symlink\SymlinkTypes;
+use BrickLayer\Lay\Libs\Symlink\SymlinkWindowsType;
+use BrickLayer\Lay\Libs\Symlink\SymlinkTrackType;
 
 trait Uploads
 {
@@ -43,9 +44,9 @@ trait Uploads
         }
 
         LaySymlink::remove($dest);
-        LaySymlink::make($source, $dest, SymlinkTypes::SOFT);
+        LaySymlink::make($source, $dest, SymlinkWindowsType::SOFT);
 
-        $this->track_link("", $domain, "uploads");
+        $this->track_link("", $domain, SymlinkTrackType::UPLOADS);
 
         $plug->write_success("Uploads folder successfully linked to: *$dest*");
     }
