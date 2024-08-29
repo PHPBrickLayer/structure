@@ -20,10 +20,11 @@ class Console {
     /**
      * Logs a string to console.
      * @param string $text Input String
-     * @param Foreground $color Text Color
+     * @param Foreground|Style $color Text Color
      * @param Background|null $bg_color Background Color
      * @param Style|null $style Font style
      * @param boolean $newline Append EOF?
+     * @param bool $maintain_line
      * @return void
      */
     public static function log(string $text = '', Foreground|Style $color = Style::normal, ?Background $bg_color = null, ?Style $style = null, bool $newline = true, bool $maintain_line = false) : void

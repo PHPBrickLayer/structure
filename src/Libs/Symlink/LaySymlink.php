@@ -24,16 +24,6 @@ class LaySymlink {
 
     public static function make(string $src, string $dest, ?SymlinkWindowsType $type = null) : void
     {
-        $exe = fn() => Exception::new()->use_exception(
-            "SymlinkFailed",
-            "Could not successfully create a symbolic link. \n"
-            . "SRC: $src \n"
-            . "DEST: $dest \n"
-            . "Kindly confirm if the SRC exists and the destination's directory exists\n"
-            . "If DEST is a file, confirm if the attached directory exists in the destination"
-            ,
-        );
-
         $src = str_replace(['/', DIRECTORY_SEPARATOR], DIRECTORY_SEPARATOR, $src);
         $dest = str_replace(['/', DIRECTORY_SEPARATOR], DIRECTORY_SEPARATOR, $dest);
 
@@ -47,7 +37,15 @@ class LaySymlink {
         }
 
         if(!@symlink($src, $dest))
-            $exe();
+            Exception::new()->use_exception(
+                "SymlinkFailed",
+                "Could not successfully create a symbolic link. \n"
+                . "SRC: $src \n"
+                . "DEST: $dest \n"
+                . "DEST may exist already.\n"
+                . "If DEST is a file, confirm if the attached directory exists in the destination"
+                ,
+            );
     }
 
     public static function remove(string $link) : void
@@ -165,8 +163,6 @@ class LaySymlink {
             }
 
             file_put_contents($db_file, json_encode($links));
-
-            print "\n";
         };
 
         if(!$recursive && empty($this->json_filename))

@@ -2,6 +2,7 @@
 
 namespace BrickLayer\Lay\BobDBuilder\Cmd;
 
+use BrickLayer\Lay\BobDBuilder\BobExec;
 use BrickLayer\Lay\BobDBuilder\EnginePlug;
 use BrickLayer\Lay\BobDBuilder\Interface\CmdLayout;
 use BrickLayer\Lay\Core\Enums\CustomContinueBreak;
@@ -9,6 +10,7 @@ use BrickLayer\Lay\Libs\LayCache;
 use BrickLayer\Lay\Libs\LayDate;
 use BrickLayer\Lay\Libs\LayDir;
 use BrickLayer\Lay\Libs\Symlink\LaySymlink;
+use DirectoryIterator;
 use Exception;
 
 class Deploy implements CmdLayout
@@ -82,8 +84,10 @@ class Deploy implements CmdLayout
 
         $this->no_cache = $this->plug->extract_tags(["--no-cache", "-nc"], true)[0] ?? false;
 
-        if($this->no_cache)
+        if($this->no_cache) {
             $this->talk("- *--no-cache* detected. Entire project will be compressed...");
+            new BobExec("purge:static_prod --silent");
+        }
 
         if($this->git_only) {
             $this->talk("- Pushing to git only *--git-only* tag detected");
@@ -97,7 +101,6 @@ class Deploy implements CmdLayout
         $this->compress_shared_static();
         $this->compress_static();
 
-//        LaySymlink::set_link_db("static_assets.json");
         (new LaySymlink(""))->prune_link(true);
 
         $this->push_with_git();
@@ -124,12 +127,12 @@ class Deploy implements CmdLayout
         $is_css = fn($file) => strtolower(substr(trim($file),-4, 4)) === ".css";
         $is_js = fn($file) => strtolower(substr(trim($file),-3, 3)) === ".js";
 
-        (new LayDir())->copy(
+        LayDir::copy(
             $src_dir, $output_dir,
 
             // Check if the file was modified, else store last modified time
             // Also check if current file is a css or js file and tell LayDir to copy or symlink
-            pre_copy: function($file, $src_dir, $dest_dir) use ($is_css, $is_js, &$track_changes) {
+            pre_copy: function($file, $src_dir) use ($is_css, $is_js, &$track_changes) {
                 try{
                     $key = $src_dir . DIRECTORY_SEPARATOR . $file;
                     $last_modified = filemtime($key);
@@ -311,19 +314,19 @@ class Deploy implements CmdLayout
 
     public function compress_static() : void
     {
-        foreach (scandir($this->plug->server->domains) as $domain) {
-            $static = $this->plug->server->domains . $domain . DIRECTORY_SEPARATOR . "static";
-
-            if(is_link($static)) {
-                $this->talk("- Symlinked static directory detected: *$dev* skipping directory");
-                continue;
-            }
+        LayDir::read($this->plug->server->domains, function ($domain, $src, DirectoryIterator $handler) {
+            $static = $src . $domain . DIRECTORY_SEPARATOR . "static";
 
             $dev = $static . DIRECTORY_SEPARATOR . "dev";
             $prod = $static . DIRECTORY_SEPARATOR . "prod";
 
-            if($domain == "." || $domain == ".." || !is_dir($dev))
-                continue;
+            if($handler->isLink()) {
+                $this->talk("- Symlinked static directory detected: *$dev* skipping directory");
+                return;
+            }
+
+            if(!is_dir($dev))
+                return;
 
             $this->talk("- Compressing files in *$dev*");
 
@@ -336,7 +339,7 @@ class Deploy implements CmdLayout
                 LayDir::unlink($prod);
 
             $this->batch_minification($dev, $prod);
-        }
+        });
     }
 
     public function push_with_git() : void
