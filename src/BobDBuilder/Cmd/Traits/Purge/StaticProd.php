@@ -2,7 +2,7 @@
 
 namespace BrickLayer\Lay\BobDBuilder\Cmd\Traits\Purge;
 
-use BrickLayer\Lay\BobDBuilder\BobExec;
+use BrickLayer\Lay\Core\Enums\CustomContinueBreak;
 use BrickLayer\Lay\Libs\LayCache;
 use BrickLayer\Lay\Libs\LayDir;
 
@@ -18,19 +18,21 @@ trait StaticProd
             $this->plug->write_fail("Domain directory: *{$this->plug->server->domains}* does not exists!");
 
         $worked = false;
+        $shared = $this->plug->server->shared . "static" . DIRECTORY_SEPARATOR . "prod";
 
-        foreach (scandir($this->plug->server->domains) as $domain) {
+        if(is_dir($shared)) {
+            $this->plug->write_talk("Directory *shared*", ['silent' => true]);
+            LayDir::unlink($shared);
+            $worked = true;
+            $this->plug->write_talk(" - Removed $shared", ['silent' => true]);
+        }
+
+        LayDir::read($this->plug->server->domains, function($domain, $directory) use (&$worked) {
             if(
-                $domain == "Api"
-                ||  $domain == "GitAutoDeploy"
-                ||  $domain == "."
-                ||  $domain == ".."
-                || !is_dir($this->plug->server->domains . $domain)
-            ) continue;
+                $domain == "Api" ||  $domain == "GitAutoDeploy" || !is_dir($directory . $domain)
+            ) return CustomContinueBreak::CONTINUE;
 
-
-            $static = $this->plug->server->domains . $domain . DIRECTORY_SEPARATOR . "static" . DIRECTORY_SEPARATOR . "prod";
-            $shared = $this->plug->server->shared . "static" . DIRECTORY_SEPARATOR . "prod";
+            $static = $directory . $domain . DIRECTORY_SEPARATOR . "static" . DIRECTORY_SEPARATOR . "prod";
 
             $this->plug->write_talk("Domain *$domain*", ['silent' => true]);
 
@@ -40,14 +42,8 @@ trait StaticProd
                 $this->plug->write_talk(" - Removed $static", ['silent' => true]);
             }
 
-            if(is_dir($shared)) {
-                LayDir::unlink($shared);
-                $worked = true;
-                $this->plug->write_talk(" - Removed $shared", ['silent' => true]);
-            }
-
             print "\n";
-        }
+        });
 
         if(!$worked) {
             $this->plug->write_talk("No operations carried out. Directories may have been deleted already", ['silent' => true]);

@@ -8,6 +8,7 @@ use BrickLayer\Lay\Core\Enums\CustomContinueBreak;
 use BrickLayer\Lay\Libs\LayCache;
 use BrickLayer\Lay\Libs\LayDate;
 use BrickLayer\Lay\Libs\LayDir;
+use BrickLayer\Lay\Libs\Symlink\LaySymlink;
 use Exception;
 
 class Deploy implements CmdLayout
@@ -95,6 +96,10 @@ class Deploy implements CmdLayout
         $this->compress_lay();
         $this->compress_shared_static();
         $this->compress_static();
+
+//        LaySymlink::set_link_db("static_assets.json");
+        (new LaySymlink(""))->prune_link(true);
+
         $this->push_with_git();
     }
 
@@ -102,10 +107,11 @@ class Deploy implements CmdLayout
     {
         $copy_only = $this->copy_only ? explode(",", $this->copy_only) : [];
         $ignore = $this->ignore ? explode(",", $this->ignore) : [];
-        $ignore = ["node_modules", "scss", ...$ignore];
+        $ignore = ["node_modules", "scss", ".DS_Store", ...$ignore];
+
         $gen_regex = function ($entry) : string {
             $regex_pattern = preg_quote($entry, '/');
-            $regex_pattern = str_replace('\*', '[^/]*', $regex_pattern);
+            $regex_pattern = str_replace('\/\*', '(?:\/[^\/]*)*', $regex_pattern);
             return '#' . $regex_pattern . '$#';
         };
 
@@ -118,11 +124,12 @@ class Deploy implements CmdLayout
         $is_css = fn($file) => strtolower(substr(trim($file),-4, 4)) === ".css";
         $is_js = fn($file) => strtolower(substr(trim($file),-3, 3)) === ".js";
 
-        LayDir::copy(
+        (new LayDir())->copy(
             $src_dir, $output_dir,
 
             // Check if the file was modified, else store last modified time
-            pre_copy: function($file, $src_dir) use ($is_css, $is_js, $cache, &$track_changes) {
+            // Also check if current file is a css or js file and tell LayDir to copy or symlink
+            pre_copy: function($file, $src_dir, $dest_dir) use ($is_css, $is_js, &$track_changes) {
                 try{
                     $key = $src_dir . DIRECTORY_SEPARATOR . $file;
                     $last_modified = filemtime($key);
@@ -131,6 +138,9 @@ class Deploy implements CmdLayout
                         return CustomContinueBreak::CONTINUE;
 
                     $track_changes[$key] = $last_modified;
+
+                    if( $is_css($file) || $is_js($file) )
+                        return "CONTAINS_STATIC";
 
                 } catch (Exception){}
 
@@ -142,11 +152,11 @@ class Deploy implements CmdLayout
 
                 // Check if directory matches one that needs to be copied only
                 foreach ($copy_only as $copy) {
-                    preg_match($gen_regex($copy), $parent_dir, $match);
+                    preg_match($gen_regex($copy), $parent_dir . DIRECTORY_SEPARATOR . $file, $match);
 
                     if($match) {
                         $changes++;
-                        return CustomContinueBreak::CONTINUE;
+                        return CustomContinueBreak::BREAK;
                     }
                 }
 
@@ -187,19 +197,23 @@ class Deploy implements CmdLayout
 
             // Skip file if condition is true
             skip_if: function($file, $parent_dir) use ($ignore, $gen_regex) {
-                foreach ($ignore as $entry) {
-                    preg_match($gen_regex($entry), $parent_dir, $match);
+                $skip = false;
 
-                    if ($match)
-                        return true;
+                foreach ($ignore as $entry) {
+                    preg_match($gen_regex($entry), $parent_dir . DIRECTORY_SEPARATOR . $file, $match);
+
+                    if ($match) {
+                        $skip = true;
+                        break;
+                    }
                 }
 
-                return false;
+                return $skip;
             },
 
             use_symlink: true,
 
-            symlink_db_filename: "static_assets.json",
+            symlink_db_filename: "static_assets.json"
 
         );
 

@@ -3,13 +3,24 @@ declare(strict_types=1);
 namespace BrickLayer\Lay\Libs\Symlink;
 
 use BrickLayer\Lay\BobDBuilder\BobExec;
+use BrickLayer\Lay\BobDBuilder\Helper\Console\Console;
+use BrickLayer\Lay\BobDBuilder\Helper\Console\Format\Foreground;
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Libs\LayDir;
 use BrickLayer\Lay\Libs\LayFn;
 
 class LaySymlink {
-    private static string $link_db;
+    private string $json_filename;
+
+    /**
+     * Where Lay should track all the symlinks created by this method
+     * @example "static_assets.json"
+     * @param string $json_filename
+     */
+    public function __construct(string $json_filename) {
+        $this->json_filename = self::symlink_dir() . LayFn::rtrim_word($json_filename, ".json") . ".json";
+    }
 
     public static function make(string $src, string $dest, ?SymlinkWindowsType $type = null) : void
     {
@@ -18,9 +29,13 @@ class LaySymlink {
             "Could not successfully create a symbolic link. \n"
             . "SRC: $src \n"
             . "DEST: $dest \n"
-            . "Kindly confirm if the src exists and the destination's directory exists"
+            . "Kindly confirm if the SRC exists and the destination's directory exists\n"
+            . "If DEST is a file, confirm if the attached directory exists in the destination"
             ,
         );
+
+        $src = str_replace(['/', DIRECTORY_SEPARATOR], DIRECTORY_SEPARATOR, $src);
+        $dest = str_replace(['/', DIRECTORY_SEPARATOR], DIRECTORY_SEPARATOR, $dest);
 
         if(LayConfig::new()->get_os() == "WINDOWS") {
             $type = $type ? $type->value : "";
@@ -43,36 +58,18 @@ class LaySymlink {
     private static function symlink_dir() : string
     {
         $x = LayConfig::server_data()->lay . "symlinks" . DIRECTORY_SEPARATOR;
-        LayFn::mkdir($x, 0755, true);
+        LayDir::make($x, 0755, true);
 
         return $x;
     }
 
-    /**
-     * Where Lay should track all the symlinks created by this method
-     * @example "static_assets.json"
-     * @param string $json_filename
-     * @return string file path
-     */
-    public static function set_link_db(string $json_filename) : string
+    public function current_db() : string
     {
-        return self::$link_db = self::symlink_dir() . LayFn::rtrim_word($json_filename, ".json");
+        return $this->json_filename;
     }
 
-    private static function link_isset() : void
+    public function track_link(string $src, string $dest, SymlinkTrackType $link_type) : void
     {
-        if(isset(self::$link_db))
-            Exception::throw_exception(
-                "You did not set the db file to track symlinks. Use `LaySymlink::set_link_db` and 
-                put the name of the file you want lay to use for tracking your symbolic links",
-                "NoLinkDBFile"
-            );
-    }
-
-    public static function track_link(string $src, string $dest, SymlinkTrackType $link_type) : void
-    {
-        self::link_isset();
-
         // Remove absolute path
         $root = LayConfig::server_data()->root;
         $src = str_replace($root, "", $src);
@@ -86,8 +83,8 @@ class LaySymlink {
 
         $links = [];
 
-        if(file_exists(self::$link_db))
-            $links = json_decode(file_get_contents(self::$link_db), true);
+        if(file_exists($this->json_filename))
+            $links = json_decode(file_get_contents($this->json_filename), true);
 
         foreach ($links as $link) {
             if($new_link['type'] == $link['type'] && $new_link['dest'] == $link['dest'])
@@ -96,10 +93,10 @@ class LaySymlink {
 
         $links[] = $new_link;
 
-        file_put_contents(self::$link_db, json_encode($links));
+        file_put_contents($this->json_filename, json_encode($links));
     }
 
-    public static function refresh_link(bool $recursive = false) : void
+    public function refresh_link(bool $recursive = false) : void
     {
         $refresh = function ($db_file) {
             if(!file_exists($db_file))
@@ -118,21 +115,20 @@ class LaySymlink {
 
         };
 
-        if(!$recursive && !isset(self::$link_db))
-            Exception::throw_exception("Trying to refresh symlink for a single file but `set_link_db` was not used to specify the symlink file to refresh");
+        if(!$recursive && empty($this->json_filename))
+            Exception::throw_exception("Trying to refresh symlink for a single file but `json_filename` is empty");
 
-        if(isset(self::$link_db) && !$recursive) {
-            $refresh(self::$link_db);
+        if(!$recursive) {
+            $refresh($this->json_filename);
             return;
         }
 
-        LayFn::read_dir(self::symlink_dir(), fn ($file) => $refresh($file));
+        LayDir::read(self::symlink_dir(), fn ($file, $src) => $refresh($src . $file));
     }
 
-    public static function prune_link(bool $recursive = false) : void
+    public function prune_link(bool $recursive = false) : void
     {
         $prune = function ($db_file) {
-
             if(!file_exists($db_file))
                 return;
 
@@ -140,35 +136,47 @@ class LaySymlink {
             $root = LayConfig::server_data()->root;
             $domains = LayConfig::server_data()->domains;
 
+            Console::log(" [x] Pruning Links for: $db_file", Foreground::light_cyan);
+
             foreach ($links as $i => $link) {
                 $src = $root . $link['src'];
                 $dest = $root . $link['dest'];
+                $unlinked = false;
 
                 if($link['type'] == "htaccess")
                     $dest = $domains . $link['dest'] . ".htaccess";
 
-                if(!is_link($dest))
+                if(!is_link($dest)) {
                     unset($links[$i]);
+                    $unlinked = true;
+                }
 
                 if(!is_file($src) and !is_dir($src)) {
                     unset($links[$i]);
 
                     if (is_link($dest))
                         LayDir::unlink($dest);
+
+                    $unlinked = true;
                 }
+
+                if($unlinked)
+                    Console::log("   - Current File: $dest", Foreground::light_purple, newline: false, maintain_line: true);
             }
 
-            file_put_contents(self::$link_db, json_encode($links));
+            file_put_contents($db_file, json_encode($links));
+
+            print "\n";
         };
 
-        if(!$recursive && !isset(self::$link_db))
-            Exception::throw_exception("Trying to prune symlink for a single file but `set_link_db` was not used to specify the symlink file to prune");
+        if(!$recursive && empty($this->json_filename))
+            Exception::throw_exception("Trying to prune symlinks for a single file but `json_filename` was not specified");
 
-        if(isset(self::$link_db) and !$recursive) {
-            $prune(self::$link_db);
+        if(!$recursive) {
+            $prune($this->json_filename);
             return;
         }
 
-        LayFn::read_dir(self::symlink_dir(), fn ($file) => $prune($file));
+        LayDir::read(self::symlink_dir(), fn ($file, $src) => $prune($src . $file));
     }
 }

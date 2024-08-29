@@ -11,6 +11,8 @@ use BrickLayer\Lay\BobDBuilder\Interface\CmdLayout;
 use BrickLayer\Lay\Core\Enums\CustomContinueBreak;
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Libs\LayDir;
+use DirectoryIterator;
 use Error;
 use ReflectionClass;
 use ReflectionException;
@@ -97,13 +99,9 @@ class EnginePlug
         array_pop($namespace);
         $namespace = implode("\\", $namespace) . "\\Cmd";
 
-        foreach (scandir(__DIR__ . $this->s . "Cmd") as $class) {
-            if (
-                $class == "." ||
-                $class == ".." ||
-                is_dir(__DIR__ . $this->s . "Cmd" . $this->s . $class)
-            )
-                continue;
+        LayDir::read(__DIR__ . $this->s . "Cmd", function ($class, $src, DirectoryIterator $handler) use ($namespace) {
+            if ( $handler->isDir() )
+                return CustomContinueBreak::CONTINUE;
 
             $cmd_class = $namespace . "\\" . explode(".php", $class)[0];
 
@@ -134,7 +132,7 @@ class EnginePlug
                 $this->failed();
                 Exception::throw_exception($e->getMessage(), "BobError", exception: $e);
             }
-        }
+        });
     }
 
     public function run(int $index, string $arg): CustomContinueBreak
