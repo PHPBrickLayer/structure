@@ -25,6 +25,7 @@ trait StaticProd
             LayDir::unlink($shared);
             $worked = true;
             $this->plug->write_talk(" - Removed $shared", ['silent' => true]);
+            print "\n";
         }
 
         LayDir::read($this->plug->server->domains, function($domain, $directory) use (&$worked) {

@@ -91,16 +91,13 @@ class LayDir {
         if($symlink_db_filename)
             self::$symlink = new LaySymlink($symlink_db_filename);
 
-        $has_files = false;
-        $all_symlinks = false;
         $has_js_css = false;
-        $dir_files_symlinked = false;
 
         $action = self::read($src_dir, function ($file, $src_dir, DirectoryIterator $handler) use (
             $dest_dir, $permissions, $recursive,
             $skip_if, $pre_copy, $post_copy,
             $use_symlink, $symlink_db_filename,
-            &$has_files, &$has_js_css, &$all_symlinks, &$dir_files_symlinked
+            &$has_js_css
         ) {
             $s = DIRECTORY_SEPARATOR;
 
@@ -119,16 +116,6 @@ class LayDir {
                     $use_symlink, $symlink_db_filename
                 );
 
-                $dir_files_symlinked = true;
-
-                if(self::read($current_dest, function ($entry, $src, DirectoryIterator $entry_handler) use (&$dir_files_symlinked) {
-                    if(!$entry_handler->isLink())
-                        $dir_files_symlinked = false;
-                }, false))
-
-                    if(!self::is_empty($current_dest))
-                        $has_files = true;
-
                 return CustomContinueBreak::FLOW;
             }
 
@@ -143,17 +130,13 @@ class LayDir {
             if ($pre_copy_result == CustomContinueBreak::BREAK)
                 return CustomContinueBreak::BREAK;
 
-            $has_files = true;
-
-            if($pre_copy_result == "CONTAINS_STATIC") {
+            if($pre_copy_result == "CONTAINS_STATIC")
                 $has_js_css = true;
-                $all_symlinks = false;
-            }
 
             if($use_symlink and !$has_js_css) {
+                self::unlink($current_dest);
                 self::$symlink::make($current_src, $current_dest);
-
-                self::$symlink::track_link( $current_src, $current_dest, SymlinkTrackType::FILE );
+                self::$symlink->track_link( $current_src, $current_dest, SymlinkTrackType::FILE );
             }
             else {
 
@@ -167,18 +150,30 @@ class LayDir {
         if($action == CustomContinueBreak::CONTINUE)
             return;
 
-        if(!$has_files) {
+        if(self::is_empty($dest_dir)) {
             self::unlink($dest_dir);
             return;
         }
 
-        if($has_js_css || !$all_symlinks)
+        if($has_js_css)
             return;
 
-        if($use_symlink && $dir_files_symlinked) {
-            self::unlink($dest_dir);
-            self::$symlink::make( $src_dir, $dest_dir );
-            self::$symlink::track_link( $src_dir, $dest_dir, SymlinkTrackType::DIRECTORY );
+
+        if($use_symlink) {
+            $all_symlinks = true;
+
+            self::read($dest_dir, function ($entry, $src, DirectoryIterator $entry_handler) use (&$all_symlinks) {
+                if (!$entry_handler->isLink()) {
+                    $all_symlinks = false;
+                    return CustomContinueBreak::BREAK;
+                }
+            }, false);
+
+            if ($all_symlinks) {
+                self::unlink($dest_dir);
+                self::$symlink::make($src_dir, $dest_dir);
+                self::$symlink->track_link($src_dir, $dest_dir, SymlinkTrackType::DIRECTORY);
+            }
         }
     }
 
