@@ -3,7 +3,7 @@ declare(strict_types=1);
 namespace BrickLayer\Lay\Libs\Image;
 
 use BrickLayer\Lay\Libs\Image\Enums\ImageErrorType;
-use BrickLayer\Lay\Libs\LayFn;
+use BrickLayer\Lay\Libs\LayDir;
 use BrickLayer\Lay\Libs\String\Enum\EscapeType;
 use BrickLayer\Lay\Libs\String\Escape;
 use JetBrains\PhpStorm\ArrayShape;
@@ -196,7 +196,7 @@ final class ImageLib {
             ];
         };
 
-        LayFn::mkdir($directory, $permission, true);
+        LayDir::make($directory, $permission, true);
 
         $file = $_FILES[$post_name];
 

@@ -8,10 +8,11 @@ use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Libs\Symlink\LaySymlink;
 use BrickLayer\Lay\Libs\Symlink\SymlinkTrackType;
 use Closure;
+use DirectoryIterator;
 
 class LayDir {
     public static bool $result;
-    private static string $link_db;
+    private static LaySymlink $symlink;
 
     /**
      * @param string $dir Directory to be deleted
@@ -63,6 +64,7 @@ class LayDir {
      * @param bool $recursive
      * @param Closure|null $skip_if
      * @param bool $use_symlink Use symbolic link instead of copying files and folders
+     * @param string|null $symlink_db_filename
      * @return void
      * @throws \Exception
      */
@@ -81,49 +83,53 @@ class LayDir {
         if (!is_dir($src_dir))
             Exception::throw_exception("Source directory [$src_dir] is not a directory", "InvalidSrcDir");
 
-        if (!is_dir($dest_dir)) {
-            umask(0);
-            mkdir($dest_dir, $permissions, $recursive);
-        }
+        if($use_symlink && empty($symlink_db_filename))
+            Exception::throw_exception("You want to use symlink instead of direct copy, but you didn't specify `symlink_db_filename`", "NoSymlinkDB");
 
-        $dir = opendir($src_dir);
-        $s = DIRECTORY_SEPARATOR;
+        self::make($dest_dir, $permissions, $recursive);
 
         if($symlink_db_filename)
-            LaySymlink::set_link_db($symlink_db_filename);
+            self::$symlink = new LaySymlink($symlink_db_filename);
 
-        while (($file = readdir($dir)) !== false) {
-            if ($file === '.' || $file === '..' || (!is_null($skip_if) && $skip_if($file, $src_dir, $dest_dir)))
-                continue;
+        $has_files = false;
+        $all_symlinks = false;
+        $has_js_css = false;
+        $dir_files_symlinked = false;
 
-            if (is_dir("$src_dir{$s}$file")) {
-                if($use_symlink) {
-                    LaySymlink::make(
-                        $src_dir . $s . $file,
-                        $dest_dir . $s . $file
-                    );
+        $action = self::read($src_dir, function ($file, $src_dir, DirectoryIterator $handler) use (
+            $dest_dir, $permissions, $recursive,
+            $skip_if, $pre_copy, $post_copy,
+            $use_symlink, $symlink_db_filename,
+            &$has_files, &$has_js_css, &$all_symlinks, &$dir_files_symlinked
+        ) {
+            $s = DIRECTORY_SEPARATOR;
 
-                    LaySymlink::track_link(
-                        $src_dir . $s . $file,
-                        $dest_dir . $s . $file,
-                        SymlinkTrackType::DIRECTORY
-                    );
+            if (is_callable($skip_if) && $skip_if($file, $src_dir, $dest_dir))
+                return CustomContinueBreak::CONTINUE;
 
-                    continue;
-                }
+            $current_src = $src_dir . $s . $file;
+            $current_dest = $dest_dir . $s . $file;
 
+            if ($handler->isDir()) {
                 self::copy(
-                    $src_dir . $s . $file,
-                    $dest_dir . $s . $file,
-                    $pre_copy,
-                    $post_copy,
-                    $permissions,
-                    $recursive,
+                    $current_src, $current_dest,
+                    $pre_copy, $post_copy,
+                    $permissions, $recursive,
                     $skip_if,
-                    $use_symlink,
-                    $symlink_db_filename
+                    $use_symlink, $symlink_db_filename
                 );
-                continue;
+
+                $dir_files_symlinked = true;
+
+                if(self::read($current_dest, function ($entry, $src, DirectoryIterator $entry_handler) use (&$dir_files_symlinked) {
+                    if(!$entry_handler->isLink())
+                        $dir_files_symlinked = false;
+                }, false))
+
+                    if(!self::is_empty($current_dest))
+                        $has_files = true;
+
+                return CustomContinueBreak::FLOW;
             }
 
             $pre_copy_result = null;
@@ -132,34 +138,129 @@ class LayDir {
                 $pre_copy_result = $pre_copy($file, $src_dir, $dest_dir);
 
             if ($pre_copy_result == CustomContinueBreak::CONTINUE)
-                continue;
+                return CustomContinueBreak::CONTINUE;
 
             if ($pre_copy_result == CustomContinueBreak::BREAK)
-                break;
+                return CustomContinueBreak::BREAK;
 
-            if(!$use_symlink)
-                copy(
-                    $src_dir . $s . $file,
-                    $dest_dir . $s . $file
-                );
+            $has_files = true;
+
+            if($pre_copy_result == "CONTAINS_STATIC") {
+                $has_js_css = true;
+                $all_symlinks = false;
+            }
+
+            if($use_symlink and !$has_js_css) {
+                self::$symlink::make($current_src, $current_dest);
+
+                self::$symlink::track_link( $current_src, $current_dest, SymlinkTrackType::FILE );
+            }
             else {
-                LaySymlink::make(
-                    $src_dir . $s . $file,
-                    $dest_dir . $s . $file
-                );
 
-                LaySymlink::track_link(
-                    $src_dir . $s . $file,
-                    $dest_dir . $s . $file,
-                    SymlinkTrackType::FILE
-                );
+                copy($current_src, $current_dest);
             }
 
             if(is_callable($post_copy))
                 $post_copy($file, $src_dir, $dest_dir);
+        });
+
+        if($action == CustomContinueBreak::CONTINUE)
+            return;
+
+        if(!$has_files) {
+            self::unlink($dest_dir);
+            return;
         }
 
-        closedir($dir);
+        if($has_js_css || !$all_symlinks)
+            return;
+
+        if($use_symlink && $dir_files_symlinked) {
+            self::unlink($dest_dir);
+            self::$symlink::make( $src_dir, $dest_dir );
+            self::$symlink::track_link( $src_dir, $dest_dir, SymlinkTrackType::DIRECTORY );
+        }
+    }
+
+    /**
+     * Make a directory if it doesn't exist. Throws error if application doesn't have permission to access the location
+     * @param string $directory
+     * @param int $permission
+     * @param bool $recursive
+     * @param $context
+     * @return bool
+     * @throws \Exception
+     */
+    public static function make(
+        string $directory,
+        int $permission = 0755,
+        bool $recursive = false,
+               $context = null
+    ) : bool
+    {
+        if(!is_dir($directory)) {
+            umask(0);
+            if(!@mkdir($directory, $permission, $recursive, $context))
+                Exception::throw_exception("Failed to create directory on location: ($directory); access denied; modify permissions and try again", "CouldNotMkDir");
+        }
+
+        return true;
+    }
+
+    /**
+     * @param string $directory
+     * @param callable (string, string, DirectoryIterator) : CustomContinueBreak $action
+     * @param bool $throw_error
+     * @return CustomContinueBreak
+     * @throws \Exception
+     */
+    public static function read(string $directory, callable $action, bool $throw_error = true) : CustomContinueBreak
+    {
+        if(!is_dir($directory)) {
+            if($throw_error)
+                Exception::throw_exception(
+                    "You are attempting to read a directory [$directory] that doesn't exist!",
+                    "DirDoesNotExist"
+                );
+
+            return CustomContinueBreak::CONTINUE;
+        }
+
+        $dir_handler = new DirectoryIterator($directory);
+        $result = CustomContinueBreak::FLOW;
+
+        while ($dir_handler->valid()) {
+
+            if(!$dir_handler->isDot())
+                $result = $action($dir_handler->current()->getFilename(), $directory, $dir_handler);
+
+            if($result == CustomContinueBreak::BREAK)
+                break;
+
+            $dir_handler->next();
+        }
+
+        if($result == CustomContinueBreak::BREAK)
+            return CustomContinueBreak::BREAK;
+
+        return CustomContinueBreak::FLOW;
+    }
+
+    public static function is_empty(string $directory) : bool
+    {
+        $empty = true;
+
+        self::read (
+            $directory,
+            function ($file, $dir, DirectoryIterator $dir_handler) use (&$empty) {
+                $empty = false;
+                $dir_handler->current();
+                return CustomContinueBreak::BREAK;
+            },
+            false
+        );
+
+        return $empty;
     }
 
 

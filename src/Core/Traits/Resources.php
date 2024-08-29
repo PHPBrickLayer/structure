@@ -1,12 +1,8 @@
 <?php
 declare(strict_types=1);
 namespace BrickLayer\Lay\Core\Traits;
-use BrickLayer\Lay\Libs\LayFn;
+use BrickLayer\Lay\Libs\LayDir;
 use Dotenv\Dotenv;
-use JetBrains\PhpStorm\ArrayShape;
-use JetBrains\PhpStorm\ExpectedValues;
-use BrickLayer\Lay\Core\Exception;
-use BrickLayer\Lay\Libs\LayObject;
 use JetBrains\PhpStorm\ObjectShape;
 
 trait Resources {
@@ -132,16 +128,14 @@ trait Resources {
 
     private static function internal_mk_tmp_dir(string $temp_dir, string $root) : void
     {
-        LayFn::mkdir($temp_dir, 0755, true);
+        LayDir::make($temp_dir, 0755, true);
 
         //TODO: Delete this after all legacy projects have been updated. Delete the root arg as well
         // START
         $old_temp_dir = $root . ".lay_temp";
 
         if(is_dir($old_temp_dir)) {
-            $new_dir_is_empty = true;
-
-            LayFn::read_dir($temp_dir, fn($file) => $new_dir_is_empty = false);
+            $new_dir_is_empty = LayDir::is_empty($temp_dir);
 
             if($new_dir_is_empty) {
                 rmdir($temp_dir);
@@ -156,7 +150,7 @@ trait Resources {
     public static function mk_tmp_dir () : string {
         $dir = self::server_data()->temp;
 
-        LayFn::mkdir($dir, 0755, true);
+        LayDir::make($dir, 0755, true);
 
         return $dir;
     }

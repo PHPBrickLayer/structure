@@ -11,16 +11,15 @@ use BrickLayer\Lay\BobDBuilder\Cmd\Traits\Symlink\Shared;
 use BrickLayer\Lay\BobDBuilder\Cmd\Traits\Symlink\Uploads;
 use BrickLayer\Lay\BobDBuilder\EnginePlug;
 use BrickLayer\Lay\BobDBuilder\Interface\CmdLayout;
-use BrickLayer\Lay\Core\Traits\IsSingleton;
 use BrickLayer\Lay\Libs\LayDir;
 use BrickLayer\Lay\Libs\Symlink\LaySymlink;
-use BrickLayer\Lay\Libs\Symlink\SymlinkWindowsType;
 use BrickLayer\Lay\Libs\Symlink\SymlinkTrackType;
 
 class Symlink implements CmdLayout
 {
     private EnginePlug $plug;
     private static string $link_db;
+    private static LaySymlink $lay_symlink;
 
     public function __construct(?EnginePlug $plug = null)
     {
@@ -69,7 +68,8 @@ class Symlink implements CmdLayout
 
     private function init_db() : void
     {
-        self::$link_db = LaySymlink::set_link_db("project_symlinks.json");
+        self::$lay_symlink = new LaySymlink("project_symlinks.json");
+        self::$link_db = self::$lay_symlink->current_db();
 
         //TODO: Delete this section after legacy projects have been updated
         $old_links = $this->plug->server->root . "symlinks.json";
@@ -81,17 +81,17 @@ class Symlink implements CmdLayout
 
     private function track_link(string $src, string $dest, SymlinkTrackType $link_type) : void
     {
-        LaySymlink::track_link($src, $dest, $link_type);
+        self::$lay_symlink->track_link($src, $dest, $link_type);
     }
 
     public function refresh_link() : void
     {
-        LaySymlink::refresh_link(true);
+        self::$lay_symlink->refresh_link(true);
     }
 
     public function prune_link() : void
     {
-        LaySymlink::prune_link(true);
+        self::$lay_symlink->prune_link(true);
     }
 
     public function unlink() : void
