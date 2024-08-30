@@ -191,11 +191,17 @@ trait Config
             $all = getallheaders();
         else {
             $all = [];
+
             foreach ($_SERVER as $k => $server) {
                 if(!str_starts_with($k, "HTTP_"))
                     continue;
-                $k = str_replace("_", " ", $k);
-                $k = ucwords($k);
+
+                $k = str_replace(["http_", "_"], ["", " "], strtolower($k));
+                $k = str_replace(" ", "-", ucwords($k));
+
+                if($k == "Dnt")
+                    $k = strtoupper($k);
+
                 $all[$k] = $server;
             }
         }
