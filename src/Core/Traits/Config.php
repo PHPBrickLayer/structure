@@ -187,6 +187,7 @@ trait Config
      */
     public static function get_header(string $key): mixed
     {
+        //TODO: This throws error when phinx is trying migrate and there is no database
         $all = getallheaders();
 
         if ($key === "*") return $all;
