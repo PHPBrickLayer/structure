@@ -119,17 +119,17 @@ trait AutoDeploy
                 return;
             }
 
-            \$log = "-- Submodule Init: " . shell_exec("git submodule init 2>&1 &") . " \n";
-            \$log .= "-- Git Checkout: " . shell_exec("git checkout \$main_branch 2>&1 &") . "\n";
-            \$log .= "-- Submodule Pull: " . shell_exec('git pull --recurse-submodules 2>&1 &') . "\n";
+            \$log = "-- Submodule Init: " . shell_exec("git submodule init 2>&1 &") . " \\n";
+            \$log .= "-- Git Checkout: " . shell_exec("git checkout \$main_branch 2>&1 &") . "\\n";
+            \$log .= "-- Submodule Pull: " . shell_exec('git pull --recurse-submodules 2>&1 &') . "\\n";
             \$log .= "-- Git Fetch: " . shell_exec('git fetch --all 2>&1 &') . "\n";
-            \$log .= "-- Git Reset: " . shell_exec("git reset --hard origin/\$main_branch 2>&1 &") . "\n";
+            \$log .= "-- Git Reset: " . shell_exec("git reset --hard origin/\$main_branch 2>&1 &") . "\\n";
             
-            \$log .= "\n";
-            \$log .= "-- Symlinks are being refreshed\n";
+            \$log .= "\\n";
+            \$log .= "-- Symlinks are being refreshed\\n";
             
             \$bob = LayConfig::server_data()->root . "bob";
-            \$log .= "-- Link Refresh: " . shell_exec("php \$bob link:refresh 2>&1 &") . "\n";
+            \$log .= "-- Link Refresh: " . shell_exec("php \$bob link:refresh 2>&1 &") . "\\n";
             
             // push composer deployment for later execution to avoid 504 (timeout error)
             \$log .= "-- Cronjob: " . LayCron::new()
@@ -139,7 +139,7 @@ trait AutoDeploy
                 ->new_job("bob up_composer")['msg']
             ;
             
-            x_hook_logger($log);
+            x_hook_logger(\$log);
             print "Done!";
             FILE
         );
