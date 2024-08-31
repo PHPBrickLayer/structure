@@ -203,6 +203,9 @@ class LayDir {
 
 
         if($use_symlink) {
+            if(self::in_link($dest_dir))
+                return;
+
             $all_symlinks = true;
 
             self::read($dest_dir, function ($entry, $src, DirectoryIterator $entry_handler) use (&$all_symlinks) {
