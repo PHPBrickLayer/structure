@@ -56,6 +56,49 @@ class LayDir {
     }
 
     /**
+     * Checks if a file is inside a symlink
+     * @param string $file
+     * @return bool
+     */
+    public static function in_link(string $file) : bool
+    {
+        $server = LayConfig::server_data();
+
+        $root = $server->root;
+        $file = str_replace(["/", DIRECTORY_SEPARATOR], DIRECTORY_SEPARATOR, $file);
+        $file =  $root . LayFn::ltrim_word($file, $root);
+
+        $ignore = [
+            $server->web,
+            $server->domains,
+            $server->bricks,
+        ];
+
+        if(!file_exists($file))
+            Exception::throw_exception("File [$file] does not exist", "FileNotFound");
+
+        if(is_link($file))
+            return true;
+
+        $file_arr = explode(DIRECTORY_SEPARATOR, $file);
+        array_pop($file_arr);
+
+        for ($i = 0; $i < count($file_arr); $i ++) {
+            $file = implode(DIRECTORY_SEPARATOR, $file_arr);
+
+            if(in_array($file, $ignore))
+                return false;
+
+            if(is_link($file))
+                return true;
+
+            array_pop($file_arr);
+        }
+
+        return false;
+    }
+
+    /**
      * @param string $src_dir
      * @param string $dest_dir
      * @param Closure|null $pre_copy
@@ -133,7 +176,7 @@ class LayDir {
             if($pre_copy_result == "CONTAINS_STATIC")
                 $has_js_css = true;
 
-            if($use_symlink and !$has_js_css) {
+            if($use_symlink and !$has_js_css && !self::in_link($current_dest)) {
                 self::unlink($current_dest);
                 self::$symlink::make($current_src, $current_dest);
                 self::$symlink->track_link( $current_src, $current_dest, SymlinkTrackType::FILE );
