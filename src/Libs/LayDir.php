@@ -75,7 +75,7 @@ class LayDir {
         ];
 
         if(!file_exists($file))
-            Exception::throw_exception("File [$file] does not exist", "FileNotFound");
+            return false;
 
         if(is_link($file))
             return true;
