@@ -144,6 +144,12 @@ class LaySymlink {
                 if($link['type'] == "htaccess")
                     $dest = $domains . $link['dest'] . ".htaccess";
 
+                // Remove records of links that don't exist in the file system
+                if(!is_link($dest)) {
+                    unset($links[$i]);
+                    $unlinked = true;
+                }
+
                 if(!is_file($src) and !is_dir($src)) {
                     unset($links[$i]);
 

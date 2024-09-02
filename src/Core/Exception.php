@@ -29,4 +29,9 @@ abstract class Exception {
         self::new()->hide_x_info();
     }
 
+    public static function always_log() : void
+    {
+        self::new()->log_always();
+    }
+
 }

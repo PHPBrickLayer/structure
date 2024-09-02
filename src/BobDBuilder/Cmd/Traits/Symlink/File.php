@@ -41,9 +41,9 @@ trait File
         $this->track_link($link[0], $link[1], SymlinkTrackType::FILE);
 
         $this->plug->write_success(
-            "Directory link created successfully!\n"
-            . "Source Directory: *$src*\n"
-            . "Destination Directory: *$dest*"
+            "FILE symlinked!\n"
+            . "SRC: *$src*\n"
+            . "DEST: *$dest*"
         );
     }
 }
