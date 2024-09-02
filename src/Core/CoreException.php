@@ -26,10 +26,11 @@ class CoreException
     private static bool $show_x_info = true;
     private bool $throw_500 = true;
     private bool $throw_as_json = true;
+    private bool $always_log = false;
 
     public function capture_errors(bool $turn_warning_to_errors = false) : void
     {
-        set_error_handler(function (int $err_no, string $err_str, string $err_file, int $err_line) use($turn_warning_to_errors)
+        $fn = function (int $err_no, string $err_str, string $err_file, int $err_line) use($turn_warning_to_errors)
         {
             if(error_reporting() != E_ALL)
                 return false;
@@ -56,7 +57,10 @@ class CoreException
             );
 
             return true;
-        }, E_ALL|E_STRICT);
+        };
+
+        set_error_handler($fn, E_ALL|E_STRICT);
+        set_exception_handler($fn);
     }
 
     public function get_env(): string
@@ -125,6 +129,11 @@ class CoreException
         self::$show_x_info = false;
     }
 
+    public function log_always() : void
+    {
+        $this->always_log = true;
+    }
+
 
     /**
      * @throws \Exception
@@ -148,7 +157,7 @@ class CoreException
         ];
 
         if($show_error)
-            $opts["title"] = $show_error ? "KillWithTrace" : null;
+            $opts["title"] = "KilledWithTrace";
 
         $this->show_exception($opts);
     }
@@ -304,6 +313,8 @@ class CoreException
                 "packet" => $other['json_packet']['others'] ?? [],
             ];
 
+            $error_json['packet']['more_info'] = str_replace(["\n"], " ", ($body ? strip_tags($body) : ""));
+
             if(self::$show_x_info) {
                 $error_json["x_info"] = [
                     "env" => $env,
@@ -326,14 +337,17 @@ class CoreException
             header("HTTP/1.1 $code " . $error_json['message']);
             header("Content-Type: application/json");
             echo json_encode($error_json);
-            return $other['act'] ?? "allow";
+
+            if(!$this->always_log)
+                return $other['act'] ?? "allow";
         }
+        else {
 
-        if($title)
-            self::$message = $title . " \n" . ($body ? strip_tags($body) : "");
+            if ($title)
+                self::$message = $title . " \n" . ($body ? strip_tags($body) : "");
 
-        if ($display) {
-            $ERROR_BODY = <<<DEBUG
+            if ($display) {
+                $ERROR_BODY = <<<DEBUG
                 <details style='padding-left: 5px; margin: 5px 0 10px'>
                     <summary style="margin-bottom: 10px"><span style="font-size: 20px; font-weight: bold; cursor: pointer;">X-INFO</span></summary>
                     <b>ENV:</b> <span style="color: #dea303">$env</span> <br>
@@ -351,16 +365,17 @@ class CoreException
                 $internal_traces
                 DEBUG;
 
-            if(!$title)
-                $display = '<div style="min-height: 300px; background:#1d2124;padding:10px;color:#fffffa;overflow:auto;">' . $ERROR_BODY .'</div>';
-            else
-                $display = <<<DEBUG
+                if (!$title)
+                    $display = '<div style="min-height: 300px; background:#1d2124;padding:10px;color:#fffffa;overflow:auto;">' . $ERROR_BODY . '</div>';
+                else
+                    $display = <<<DEBUG
             <div style="min-height: 300px; background:#1d2124;padding:10px;color:#fffffa;overflow:auto; margin: 0 0 15px">
                 <h3 style='color: $title_color; margin: 2px 0'> $title </h3>
                 <div style='color: $body_color; font-weight: bold; margin: 5px 0;'> $body </div><br>
                 $ERROR_BODY
             </div>
             DEBUG;
+            }
         }
 
         $dir = LayConfig::server_data()->temp;
