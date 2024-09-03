@@ -364,6 +364,11 @@ class Deploy implements CmdLayout
 
         $branch = shell_exec("git branch --show-current");
 
+        exec(<<<CMD
+            git add -A 2>&1 &&
+            git commit -m "$msg" 2>&1  
+        CMD, $output);
+
         if(str_contains(exec("cd $root | git pull | git submodule update --remote --merge 2>&1"), "error: ")) {
             exec(<<<CMD
                 git add -A 2>&1 &&
@@ -371,13 +376,6 @@ class Deploy implements CmdLayout
             CMD, $output);
 
             exec("cd $root | git pull 2>&1", $output);
-
-            $dont_commit = true;
-        }
-
-        if(!isset($dont_commit)) {
-            exec("git add . 2>&1", $output);
-            exec("git commit -m \"$msg\" 2>&1", $output);
         }
 
         $this->talk(" (-) *Git Says*");

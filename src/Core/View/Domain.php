@@ -176,9 +176,6 @@ class Domain {
         self::$current_route_details['plaster'] = self::$current_route_details['domain_root'] . "plaster" . DIRECTORY_SEPARATOR;
         self::$current_route_details['layout'] = self::$current_route_details['domain_root'] . "layout" . DIRECTORY_SEPARATOR;
 
-        \BrickLayer\Lay\Libs\LayFn::dump_json(self::$current_route_details);
-        die;
-
         if($is_api > 0)
             self::$current_route_details['domain_is_api'] = true;
 
