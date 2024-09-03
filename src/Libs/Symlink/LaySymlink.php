@@ -82,7 +82,7 @@ class LaySymlink {
         $links = [];
 
         if(file_exists($this->json_filename))
-            $links = json_decode(file_get_contents($this->json_filename), true);
+            $links = json_decode(file_get_contents($this->json_filename), true) ?? [];
 
         foreach ($links as $link) {
             if($new_link['type'] == $link['type'] && $new_link['dest'] == $link['dest'])
@@ -133,6 +133,7 @@ class LaySymlink {
             $links = json_decode(file_get_contents($db_file), true);
             $root = LayConfig::server_data()->root;
             $domains = LayConfig::server_data()->domains;
+            $refreshed_links = [];
 
             Console::log(" [x] Pruning Links for: $db_file", Foreground::light_cyan);
 
@@ -160,10 +161,12 @@ class LaySymlink {
                 }
 
                 if($unlinked)
-                    Console::log("   - Current File: $dest", Foreground::light_purple, newline: false, maintain_line: true);
+                    Console::log("   - Pruned: $dest", Foreground::light_purple, newline: false, maintain_line: true);
+                else
+                    $refreshed_links[] = $link;
             }
 
-            file_put_contents($db_file, json_encode($links));
+            file_put_contents($db_file, json_encode($refreshed_links));
         };
 
         if(!$recursive && empty($this->json_filename))
