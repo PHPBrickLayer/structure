@@ -6,6 +6,7 @@ namespace BrickLayer\Lay\Core\View;
 use BrickLayer\Lay\Core\Enums\LayServerType;
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\View\Annotate\CurrentRouteData;
+use BrickLayer\Lay\Libs\LayFn;
 use JetBrains\PhpStorm\ExpectedValues;
 use BrickLayer\Lay\Core\Enums\CustomContinueBreak;
 use BrickLayer\Lay\Core\LayConfig;
@@ -129,8 +130,8 @@ class Domain {
 
     private function activate_domain(string $id, string $pattern, string $builder) : void {
         $route = $this->get_current_route();
-        $route = explode($pattern, $route, 2);
-        $route = ltrim(end($route), "/");
+        $route = LayFn::ltrim_word($route, $pattern);
+        $route = ltrim($route, "/");
         $route_as_array = explode("/", $route);
 
         if(self::$domain_type == DomainType::LOCAL && $route_as_array[0] === "api") {
@@ -174,6 +175,9 @@ class Domain {
         self::$current_route_details['domain_root'] = LayConfig::server_data()->root . implode(DIRECTORY_SEPARATOR, $file) . DIRECTORY_SEPARATOR;
         self::$current_route_details['plaster'] = self::$current_route_details['domain_root'] . "plaster" . DIRECTORY_SEPARATOR;
         self::$current_route_details['layout'] = self::$current_route_details['domain_root'] . "layout" . DIRECTORY_SEPARATOR;
+
+        \BrickLayer\Lay\Libs\LayFn::dump_json(self::$current_route_details);
+        die;
 
         if($is_api > 0)
             self::$current_route_details['domain_is_api'] = true;
