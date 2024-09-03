@@ -142,8 +142,17 @@ class LaySymlink {
                 $dest = $root . $link['dest'];
                 $unlinked = false;
 
-                if($link['type'] == "htaccess")
-                    $dest = $domains . $link['dest'] . ".htaccess";
+                switch ($link['type']) {
+                    case "file": case "dir": break;
+
+                    default:
+                        $dest = $domains . $link['dest'] . $link['type'];
+                        break;
+
+                    case "htaccess":
+                        $dest = $domains . $link['dest'] . ".htaccess";
+                        break;
+                }
 
                 // Remove records of links that don't exist in the file system
                 if(!is_link($dest)) {
@@ -161,7 +170,7 @@ class LaySymlink {
                 }
 
                 if($unlinked)
-                    Console::log("   - Pruned: $dest", Foreground::light_purple, newline: false, maintain_line: true);
+                    Console::log("   - Pruned: $dest", Foreground::white);
                 else
                     $refreshed_links[] = $link;
             }
