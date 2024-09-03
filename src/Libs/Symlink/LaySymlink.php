@@ -82,7 +82,7 @@ class LaySymlink {
         $links = [];
 
         if(file_exists($this->json_filename))
-            $links = json_decode(file_get_contents($this->json_filename), true);
+            $links = json_decode(file_get_contents($this->json_filename), true) ?? [];
 
         foreach ($links as $link) {
             if($new_link['type'] == $link['type'] && $new_link['dest'] == $link['dest'])
