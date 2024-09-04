@@ -6,17 +6,15 @@ abstract class ViewCast
 {
     public readonly ViewBuilder $builder;
 
-    public function __construct()
+    final public function __construct()
     {
         if(!isset($this->builder))
             $this->builder = ViewBuilder::new();
     }
 
-    public function init_pages(): void
+    final protected function route(string $route, string ...$aliases) : ViewBuilder
     {
-        $this->builder->init_start()
-            ->page('section', 'app');
-        $this->builder->init_end();
+        return $this->builder->route($route, ...$aliases);
     }
 
     final public function init(): void
@@ -29,6 +27,13 @@ abstract class ViewCast
         $this->pages();
 
         $this->builder->end();
+    }
+
+    public function init_pages(): void
+    {
+        $this->builder->init_start()
+            ->page('section', 'app');
+        $this->builder->init_end();
     }
 
     public function pages(): void
