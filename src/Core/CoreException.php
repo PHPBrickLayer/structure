@@ -30,7 +30,7 @@ class CoreException
 
     public function capture_errors(bool $turn_warning_to_errors = false) : void
     {
-        $fn = function (int $err_no, string $err_str, string $err_file, int $err_line) use($turn_warning_to_errors)
+        set_error_handler(function (int $err_no, string $err_str, string $err_file, int $err_line) use ($turn_warning_to_errors)
         {
             if(error_reporting() != E_ALL)
                 return false;
@@ -57,10 +57,16 @@ class CoreException
             );
 
             return true;
-        };
+        }, E_ALL|E_STRICT);
 
-        set_error_handler($fn, E_ALL|E_STRICT);
-        set_exception_handler($fn);
+        set_exception_handler(function ($exception) {
+            $this->use_exception(
+                "LayException",
+                $exception->getMessage(),
+                raw: ["err_code" => $exception->getCode()],
+                exception: $exception,
+            );
+        });
     }
 
     public function get_env(): string

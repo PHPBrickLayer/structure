@@ -170,7 +170,7 @@ class LaySymlink {
                 }
 
                 if($unlinked)
-                    Console::log("   - Pruned: $dest", Foreground::white);
+                    Console::log("   ~ Pruned: $dest", Foreground::white);
                 else
                     $refreshed_links[] = $link;
             }
