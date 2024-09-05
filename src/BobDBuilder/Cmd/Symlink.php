@@ -11,6 +11,7 @@ use BrickLayer\Lay\BobDBuilder\Cmd\Traits\Symlink\Shared;
 use BrickLayer\Lay\BobDBuilder\Cmd\Traits\Symlink\Uploads;
 use BrickLayer\Lay\BobDBuilder\EnginePlug;
 use BrickLayer\Lay\BobDBuilder\Interface\CmdLayout;
+use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Libs\LayDir;
 use BrickLayer\Lay\Libs\Symlink\LaySymlink;
 use BrickLayer\Lay\Libs\Symlink\SymlinkTrackType;
@@ -68,11 +69,16 @@ class Symlink implements CmdLayout
 
     private function init_db() : void
     {
-        self::$lay_symlink = new LaySymlink("project_symlinks.json");
+        self::$lay_symlink = new LaySymlink("zz_project_symlinks.json");
         self::$link_db = self::$lay_symlink->current_db();
 
         //TODO: Delete this section after legacy projects have been updated
         $old_links = $this->plug->server->root . "symlinks.json";
+
+        if(file_exists($old_links))
+            rename($old_links, self::$link_db);
+
+        $old_links = LayConfig::server_data()->lay . "symlinks" . DIRECTORY_SEPARATOR . "project_symlinks.json";
 
         if(file_exists($old_links))
             rename($old_links, self::$link_db);
