@@ -181,6 +181,7 @@ final class ViewEngine {
             <meta property="lay:url" id="LAY-PAGE-URL" content="$page->route">
             <meta property="lay:domain" id="LAY-DOMAIN-NAME" content="{$client->domain->domain_name}">
             <meta property="lay:domain_id" id="LAY-DOMAIN-ID" content="{$client->domain->domain_id}">
+            <meta property="lay:meta:host" id="LAY-HOST" content="{$client->domain->host}">
             <meta property="lay:meta:api" id="LAY-API" content="$lay_api">
             <meta property="lay:meta:upload" id="LAY-UPLOAD" content="$client->upload">
             <meta property="lay:meta:shared_root" id="LAY-SHARED-ROOT" content="{$client->shared->root}">

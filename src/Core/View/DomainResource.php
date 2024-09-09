@@ -109,6 +109,7 @@ class DomainResource
      *          root: string
      *     },
      *     domain: object{
+     *      host: string,
      *      route: string,
      *      route_as_array: array,
      *      route_has_end_slash: bool,

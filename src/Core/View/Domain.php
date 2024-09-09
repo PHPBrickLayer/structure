@@ -162,6 +162,7 @@ class Domain {
         if(isset(self::$indexed_domain))
             $uri = "";
 
+        self::$current_route_details['host'] = $_SERVER['HTTP_HOST'];
         self::$current_route_details['route'] = $route ?: "index";
         self::$current_route_details['route_as_array'] = $route_as_array;
         self::$current_route_details['route_has_end_slash'] = self::$current_route_has_end_slash;
