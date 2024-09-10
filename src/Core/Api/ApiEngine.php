@@ -1109,7 +1109,7 @@ final class ApiEngine {
         $version_active = isset(self::$version) ? "<div>Version: <span style='color: #fff'>" . self::$version . "</span></div>" : null;
         $prefix_active = isset(self::$prefix) ? "<div>Active Prefix: <span style='color: #fff'>" . self::$prefix . "</span></div>" : null;
         $uris = "";
-        $method = self::$active_request_method;
+        $method = self::$active_request_method ?? self::$request_header['Access-Control-Request-Method'] ?? "GET";
         $mode = self::$DEBUG_MODE ? "true" : "false";
         $send_json_error = !isset(LayConfig::user_agent()['browser']);
         $json_error = [];
