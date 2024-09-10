@@ -19,7 +19,7 @@ abstract class ApiHooks
 
     public readonly ApiEngine $engine;
 
-    public function __construct(
+    final public function __construct(
         private bool $prefetch = true,
         private bool $print_end_result = true,
         private bool $pre_connect = true,
@@ -33,26 +33,51 @@ abstract class ApiHooks
         }
     }
 
-    public function prefetch(bool $option) : void
+    final public function prefetch(bool $option) : void
     {
         $this->prefetch = $option;
     }
 
-    public function print_result(bool $option) : void
+    final public function print_result(bool $option) : void
     {
         $this->print_end_result = $option;
     }
 
-    public function preconnect(bool $option) : void
+    final public function preconnect(bool $option) : void
     {
         $this->pre_connect = $option;
+    }
+
+    final public function get(string $request_uri, ApiReturnType $return_type = ApiReturnType::JSON) : ApiEngine
+    {
+        return $this->engine->get($request_uri, $return_type);
+    }
+
+    final public function post(string $request_uri, ApiReturnType $return_type = ApiReturnType::JSON) : ApiEngine
+    {
+        return $this->engine->post($request_uri, $return_type);
+    }
+
+    final public function put(string $request_uri, ApiReturnType $return_type = ApiReturnType::JSON) : ApiEngine
+    {
+        return $this->engine->put($request_uri, $return_type);
+    }
+
+    final public function head(string $request_uri, ApiReturnType $return_type = ApiReturnType::JSON) : ApiEngine
+    {
+        return $this->engine->head($request_uri, $return_type);
+    }
+
+    final public function delete(string $request_uri, ApiReturnType $return_type = ApiReturnType::JSON) : ApiEngine
+    {
+        return $this->engine->delete($request_uri, $return_type);
     }
 
     public function pre_init() : void {}
 
     public function post_init() : void {}
 
-    public final function init() : void
+    final public function init() : void
     {
         $this->pre_init();
 
@@ -73,7 +98,7 @@ abstract class ApiHooks
         $this->load_brick_hooks();
     }
 
-    public final function load_brick_hooks(string ...$class_to_ignore) : void
+    final public function load_brick_hooks(string ...$class_to_ignore) : void
     {
         $bricks_root = LayConfig::server_data()->bricks;
 
@@ -112,7 +137,7 @@ abstract class ApiHooks
         }
     }
 
-    public final function get_all_endpoints() : array
+    final public function get_all_endpoints() : array
     {
         $this->engine::set_debug_dump_mode();
         $this->engine::fetch();
@@ -121,7 +146,7 @@ abstract class ApiHooks
     }
 
     #[NoReturn]
-    public final function dump_endpoints_as_json() : void
+    final public function dump_endpoints_as_json() : void
     {
         $this->engine::set_response_header(ApiStatus::OK, ApiReturnType::JSON);
         echo json_encode($this->get_all_endpoints());

@@ -283,7 +283,7 @@ trait Config
         if ($public_ip && $now < $public_ip['exp']) return $public_ip['ip'];
 
         if (self::$ENV_IS_DEV && self::new()->has_internet()) {
-            $_SESSION[self::$SESSION_KEY][$IP_KEY] = ["ip" => $_SESSION[self::$SESSION_KEY][$IP_KEY] = file_get_contents("https://api.ipify.io"), "exp" => strtotime('3 hours')];
+            $_SESSION[self::$SESSION_KEY][$IP_KEY] = ["ip" => $_SESSION[self::$SESSION_KEY][$IP_KEY] = file_get_contents("https://api.ipify.io") ?: "127.0.0.1", "exp" => strtotime('3 hours')];
 
             return $_SESSION[self::$SESSION_KEY][$IP_KEY]['ip'];
         }

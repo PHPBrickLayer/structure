@@ -16,6 +16,7 @@ $lay.page = {
     routeArray : JSON.parse($id("LAY-ROUTE-AS-ARRAY").content),
 }
 $lay.src = {
+    host : $id("LAY-HOST").content,
     base : $id("LAY-PAGE-BASE").href,
     api : $id('LAY-API').content,
     serve : $id('LAY-API').content,

@@ -108,6 +108,7 @@ final class ApiEngine {
      * @var bool
      */
     private static bool $use_lay_exception = true;
+    private static bool $allow_index_access = true;
 
     /**
      * Becomes true if a route is found
@@ -320,6 +321,9 @@ final class ApiEngine {
         if(self::$route_found || self::$request_complete || !$this->correct_request_method(false))
             return $this;
 
+        if(!self::$allow_index_access && self::$request_uri[0] == "")
+            return $this;
+
         self::$uri_variables = [];
         self::$method_return_type = $return_type;
 
@@ -339,6 +343,15 @@ final class ApiEngine {
 
         if(isset(self::$version))
             self::$current_request_uri = [...[self::$version], ...self::$current_request_uri];
+
+        // Make it possible to access /api/ and just prefixes or just versions, like /api/v1/
+        if(self::$allow_index_access && $last_item == "") {
+            array_pop(self::$current_request_uri);
+            $last_item = end(self::$request_uri);
+
+            if(count(self::$request_uri) == 1 && empty(self::$current_request_uri))
+                self::$current_request_uri = self::$request_uri;
+        }
 
         if(count(self::$request_uri) !== count(self::$current_request_uri))
             return $this;
@@ -1047,6 +1060,11 @@ final class ApiEngine {
     {
         self::$DEBUG_MODE = true;
         self::update_global_props("DEBUG_MODE", self::$DEBUG_MODE);
+    }
+
+    public static function disable_index_access() : void
+    {
+        self::$allow_index_access = false;
     }
 
     /**
