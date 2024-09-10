@@ -178,8 +178,8 @@ trait Config
     {
         $header = self::get_header("*");
 
-        $exists = preg_match('~(bot|crawl)~i', $header['From'] ?? "", flags: PREG_UNMATCHED_AS_NULL);
-        $exists += preg_match('~(bot|crawl)~i', $header["User-Agent"], flags: PREG_UNMATCHED_AS_NULL);
+        $exists = preg_match('~(bot|crawl)~i', $header['From'] ?? $header['from'] ?? "", flags: PREG_UNMATCHED_AS_NULL);
+        $exists += preg_match('~(bot|crawl)~i', $header["User-Agent"] ?? $header["user-agent"] ?? 'bot', flags: PREG_UNMATCHED_AS_NULL);
 
         return (bool) $exists;
     }
