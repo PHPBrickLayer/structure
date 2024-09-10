@@ -340,6 +340,15 @@ final class ApiEngine {
         if(isset(self::$version))
             self::$current_request_uri = [...[self::$version], ...self::$current_request_uri];
 
+        // Make it possible to access /api/ and just prefixes or just versions, like /api/v1/
+        if($last_item == "") {
+            array_pop(self::$current_request_uri);
+            $last_item = end(self::$request_uri);
+
+            if(count(self::$request_uri) == 1 && empty(self::$current_request_uri))
+                self::$current_request_uri = self::$request_uri;
+        }
+
         if(count(self::$request_uri) !== count(self::$current_request_uri))
             return $this;
 
