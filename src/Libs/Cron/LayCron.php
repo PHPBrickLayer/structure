@@ -19,6 +19,7 @@ final class LayCron
     private static string $time_zone  = "Africa/Lagos";
     private string $output_file;
     private bool $just_once_set = false;
+
     private array $exec_output = [
         "exec" => true,
         "msg" => "Job exists, using old schedule!"
@@ -243,15 +244,45 @@ final class LayCron
         file_put_contents($this->output_file, $output . PHP_EOL, FILE_APPEND);
     }
 
+    /**
+     * Create a job that is scoped in the project.
+     * The script to run has to be a php file, because the php binary will be prefixed.
+     * Any script you add should be located with the project directory scope.
+     * **Schedule** has to be set using any of the provided methods in this class
+     *
+     * @example bob composer_up
+     * @param string $job
+     * @return array
+     * @psalm-return array{
+     *      exec: bool,
+     *      msg: string
+     *  }
+     */
     public function new_job(string $job) : array {
         $this->add_job($this->make_job($job));
         return $this->exec_output;
     }
 
+    /**
+     * @param string $job
+     * @return void
+     */
     public function print_job(string $job) : void {
         echo $this->make_job($job) . '<br/>';
     }
 
+    /**
+     * Create a job via raw command. You will specify the schedule and the script by yourself.
+     *
+     * @example * * * * * /var/www/html/remind-me.py
+     * @param string $command
+     * @param bool $add_eol
+     * @return array
+     * @psalm-return array{
+     *      exec: bool,
+     *      msg: string
+     *  }
+     */
     public function exec(string $command, bool $add_eol = true) : array {
         $this->add_job($command . ($add_eol ? PHP_EOL : ''));
         return $this->exec_output;
@@ -263,6 +294,11 @@ final class LayCron
         return $this;
     }
 
+    /**
+     * (experimental) The email a cron report should be sent to
+     * @param string $email
+     * @return $this
+     */
     public function report_email(string $email) : self {
         $this->report_email = $email;
         return $this;
@@ -272,8 +308,15 @@ final class LayCron
         return $this->db_job_all();
     }
 
-    public function get_job(string|int $uid) : ?string {
-        return $this->db_job_by_id($uid);
+    public function get_job(string|int $uid, bool $add_schedule = true) : ?string {
+        $job = $this->db_job_by_id($uid);
+
+        if($job){
+            $x = explode(" ", $job, 6);
+            $job = end($x);
+        }
+
+        return $job;
     }
 
     public function get_crontab() : string {
@@ -319,7 +362,7 @@ final class LayCron
      * @link https://crontab.guru/examples.html for examples
      * @return $this
      */
-    public function raw_schedule(?string $minute = null, ?string $hour = null, ?string $day_of_the_month = null, ?string $month = null, ?string $day_of_the_week = null) : self {
+    public function schedule(?string $minute = null, ?string $hour = null, ?string $day_of_the_month = null, ?string $month = null, ?string $day_of_the_week = null) : self {
         $this->minute = $minute ?? $this->minute;
         $this->hour = $hour ?? $this->hour;
         $this->day_of_the_month = $day_of_the_month ?? $this->day_of_the_month;
@@ -332,24 +375,24 @@ final class LayCron
     /**
      * Schedules jobs for every number of minutes indicated.
      * @param int $minute
-     * @example `5` minutes = every `5` minutes. i.e 5, 10, 15...n
-     * @see raw_schedule
      * @return $this
+     *@see schedule
+     * @example `5` minutes = every `5` minutes. i.e 5, 10, 15...n
      */
     public function every_minute(int $minute = 1) : self {
-        $this->raw_schedule(minute: "*/$minute");
+        $this->schedule(minute: "*/$minute");
         return $this;
     }
 
     /**
      * Schedules jobs for every number of hours indicated.
      * @param int $hour
-     * @example `2` hour = every `2` hours. i.e 2, 4, 6, 8...n
-     * @see raw_schedule
      * @return $this
+     *@see schedule
+     * @example `2` hour = every `2` hours. i.e 2, 4, 6, 8...n
      */
     public function every_hour(int $hour = 1) : self {
-        $this->raw_schedule(hour: "*/$hour");
+        $this->schedule(hour: "*/$hour");
         return $this;
     }
 
@@ -362,12 +405,12 @@ final class LayCron
      * @param int $minute
      * @param bool $am
      * @return $this
-     * @see raw_schedule
+     * @see schedule
      */
     public function daily(int $hour = 12, int $minute = 0, bool $am = true) : self {
         $am = $am ? "am" : "pm";
         $date = explode(" ", date("G i", strtotime("$hour:$minute$am")));
-        $this->raw_schedule(minute: $date[1], hour: $date[0]);
+        $this->schedule(minute: $date[1], hour: $date[0]);
         return $this;
     }
 
@@ -376,12 +419,12 @@ final class LayCron
      * To tweak the time, you need to call the appropriate methods when building your job.
      * @param string $day_of_the_week accepts: mon, monday, Monday;
      * it could be a range or comma-separated values.
-     * @see raw_schedule
      * @return $this
+     * @see schedule
      * @example `->weekly('mon - fri, sun')`
      */
     public function weekly(string $day_of_the_week) : self {
-        $this->raw_schedule(day_of_the_week: $this->handle_ranges_and_more($day_of_the_week, "w"));
+        $this->schedule(day_of_the_week: $this->handle_ranges_and_more($day_of_the_week, "w"));
         return $this;
     }
 
@@ -390,13 +433,13 @@ final class LayCron
      * To tweak the day and time, you need to call the appropriate methods when building your job.
      * @param string|int $days_of_the_month accepts: 1 - 31;
      * it could be an int, a range or comma-separated values.
-     * @see raw_schedule
      * @return $this
      * @throws \Exception
+     *@see schedule
      */
     public function monthly(string|int $days_of_the_month = 1) : self {
         if(!is_int($days_of_the_month)) {
-            $this->raw_schedule(day_of_the_month: $this->handle_ranges_and_more($days_of_the_month, "j"));
+            $this->schedule(day_of_the_month: $this->handle_ranges_and_more($days_of_the_month, "j"));
             return $this;
         }
 
@@ -406,7 +449,7 @@ final class LayCron
         if ($days_of_the_month < 1)
             Exception::throw_exception("Argument #1: Day of the month cannot be less than 1", "CronBoundExceeded");
 
-        $this->raw_schedule(day_of_the_month: $days_of_the_month);
+        $this->schedule(day_of_the_month: $days_of_the_month);
         return $this;
     }
 
@@ -415,11 +458,11 @@ final class LayCron
      * To tweak the day, month, and time, you need to call the appropriate methods when building your job.
      * @param string $months accepts: Jan, jan, January
      * it could be a range or comma-separated values.
-     * @see raw_schedule
      * @return $this
+     *@see schedule
      */
     public function yearly(string $months) : self {
-        $this->raw_schedule(month: $this->handle_ranges_and_more($months, "n"));
+        $this->schedule(month: $this->handle_ranges_and_more($months, "n"));
         return $this;
     }
 

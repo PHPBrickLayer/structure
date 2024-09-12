@@ -285,7 +285,8 @@ trait Config
         $public_ip = $_SESSION[self::$SESSION_KEY][$IP_KEY] ?? null;
         $now = strtotime("now");
 
-        if ($public_ip && $now < $public_ip['exp']) return $public_ip['ip'];
+        if ($public_ip && $public_ip['ip'] && $now < $public_ip['exp'])
+            return $public_ip['ip'];
 
         if (self::$ENV_IS_DEV && self::new()->has_internet()) {
             $_SESSION[self::$SESSION_KEY][$IP_KEY] = ["ip" => $_SESSION[self::$SESSION_KEY][$IP_KEY] = file_get_contents("https://api.ipify.io") ?: "127.0.0.1", "exp" => strtotime('3 hours')];
@@ -294,6 +295,7 @@ trait Config
         }
 
         $ip_address = $_SERVER['REMOTE_ADDR'] ?? null;
+
         foreach (['HTTP_CLIENT_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_FORWARDED', 'HTTP_X_CLUSTER_CLIENT_IP', 'HTTP_FORWARDED_FOR', 'HTTP_FORWARDED', 'REMOTE_ADDR'] as $key) {
             if (array_key_exists($key, $_SERVER) === true) {
                 foreach (explode(',', $_SERVER[$key]) as $ip_address) {
@@ -304,6 +306,8 @@ trait Config
             }
 
         }
+
+        $ip_address ??= "127.0.0.1-cli";
 
         $_SESSION[self::$SESSION_KEY][$IP_KEY] = ["ip" => $ip_address, "exp" => strtotime('1 hour')];
 

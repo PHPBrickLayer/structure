@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
+
 namespace BrickLayer\Lay\Core\Traits;
+
 use BrickLayer\Lay\Core\Enums\LayMode;
 use BrickLayer\Lay\Core\Enums\LayServerType;
 use stdClass;
@@ -10,7 +12,7 @@ trait Init {
     private static string $proto;
     private static string $base_no_proto;
     private static string $base_no_proto_no_www;
-//    private static string $env_host;
+
     private static LayMode $LAY_MODE;
     private static bool $INITIALIZED = false;
     private static bool $FIRST_CLASS_CITI_ACTIVE = false;
@@ -62,10 +64,8 @@ trait Init {
         // Don't bother running any process if document root is not set.
         // This means the framework is being accessed from the cli,
         // we don't want to run unnecessary compute and waste resources.
-        if(empty($_SERVER['DOCUMENT_ROOT'])) {
+        if(empty($_SERVER['DOCUMENT_ROOT']))
             self::$LAY_MODE = LayMode::CLI;
-            return;
-        }
 
         $slash          = DIRECTORY_SEPARATOR;
         $base           = str_replace("/", $slash, $_SERVER['DOCUMENT_ROOT']);
@@ -79,7 +79,7 @@ trait Init {
         }
 
         $pin            = rtrim($pin, "/");
-        $base           = explode($pin, $string);
+        $base           = $pin ? explode($pin, $string) : ["__CLI_MODE__", "__CLI_MODE_2__"];
 
         $options['using_web'] = str_starts_with($base[1], "/web");
         $options['using_domain'] = str_starts_with($base[1], "/web/domain");
@@ -136,16 +136,6 @@ trait Init {
     private static function initialize() : self {
         self::init_first_class();
 
-        if(self::get_mode() == LayMode::CLI) {
-            self::new();
-            self::$INITIALIZED = true;
-
-            self::set_internal_res_server(self::$dir);
-            self::load_env();
-            self::autoload_project_classes();
-            return self::new()->init_orm(true);
-        }
-
         $options = self::$layConfigOptions ?? [];
 
         $options = [
@@ -188,13 +178,17 @@ trait Init {
 
         $options['mail'][0] = $options['mail'][0] ?? "info@" . self::$base_no_proto;
 
+        self::$INITIALIZED = true;
+
         self::set_web_root($options);
         self::set_internal_site_data($options);
         self::set_internal_res_server(self::$dir);
         self::load_env();
         self::autoload_project_classes();
 
-        self::$INITIALIZED = true;
+        if(self::get_mode() == LayMode::CLI)
+            self::new()->init_orm(true);
+
         return self::$instance;
     }
 
