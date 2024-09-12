@@ -24,6 +24,9 @@ class Domain {
     private static string $indexed_domain;
     private static bool $current_route_has_end_slash = false;
 
+    private static bool $list_domain_only = false;
+    private static bool $cli_mode = false;
+
     private static bool $lay_init = false;
     private static LayConfig $layConfig;
     private static object $site_data;
@@ -35,7 +38,7 @@ class Domain {
     private static DomainType $domain_type;
 
     private static function init_lay() : void {
-        if(self::$lay_init)
+        if(self::$lay_init || self::$list_domain_only)
             return;
 
         LayConfig::is_init();
@@ -46,7 +49,7 @@ class Domain {
     }
 
     private static function init_cache_domain() : void {
-        if(self::$cache_domain_set)
+        if(self::$cache_domain_set || self::$list_domain_only)
             return;
 
         self::$cache_domain_set = true;
@@ -162,7 +165,9 @@ class Domain {
         if(isset(self::$indexed_domain))
             $uri = "";
 
-        self::$current_route_details['host'] = $_SERVER['HTTP_HOST'];
+        $host = self::$cli_mode ? "CLI" : $_SERVER['HTTP_HOST'];
+
+        self::$current_route_details['host'] = $host;
         self::$current_route_details['route'] = $route ?: "index";
         self::$current_route_details['route_as_array'] = $route_as_array;
         self::$current_route_details['route_has_end_slash'] = self::$current_route_has_end_slash;
@@ -191,6 +196,9 @@ class Domain {
 
         if(file_exists(self::$current_route_details['domain_root'] . "foundation.php"))
             include_once self::$current_route_details['domain_root'] . "foundation.php";
+
+        if(self::$cli_mode)
+            return;
 
         // Make lazy CORS configuration become active after loading all foundation files incase there was an overwrite
         LayConfig::call_lazy_cors();
@@ -267,6 +275,9 @@ class Domain {
      * @return string
      */
     private function get_current_route() : string {
+        if(self::$list_domain_only)
+            return "__LIST_ONLY__";
+
         self::init_lay();
 
         if(isset(self::$current_route))
@@ -370,6 +381,9 @@ class Domain {
         return CustomContinueBreak::FLOW;
     }
     private function match_cached_domains() : bool {
+        if(self::$list_domain_only)
+            return false;
+
         if(!$this->is_all_domain_cached())
             return false;
 
@@ -425,9 +439,23 @@ class Domain {
         }
     }
 
-    public function create(string $id, string $builder, array $patterns = ["*"]) : void {
+    public function create(string $id, string $builder, array $patterns = ["*"], bool $cli_mode = false) : void {
         self::init_lay();
         self::init_cache_domain();
+
+        if($cli_mode) {
+            self::$indexed_domain = $id;
+            self::$cli_mode = true;
+            $_SERVER['REQUEST_URI'] ??= $patterns[0];
+
+            $this->cache_domain_details([
+                "id" => $id,
+                "patterns" => $patterns,
+                "builder" => $builder
+            ]);
+
+            $this->all_domain_is_cached();
+        }
 
         $this->get_current_route();
 
@@ -441,6 +469,15 @@ class Domain {
         ]);
 
         $this->cache_patterns($id, $patterns);
+    }
+
+    public function list() : array
+    {
+        self::$list_domain_only = true;
+
+        include_once LayConfig::server_data()->web . "index.php";
+
+        return self::$domain_ram[DomainCacheKeys::List->value];
     }
 
     public function index(string $id) : void
