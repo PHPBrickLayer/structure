@@ -50,7 +50,15 @@ $lay.fn = {
         osNote(successMsg,"success")
         return true
     },
-    rowEntrySave: row => `<span style="display: none" class="d-none entry-row-info">${JSON.stringify(row).replace(/&quot;/g,'\\"')}</span>`,
+    rowEntrySave: row => `<span style="display: none" class="d-none entry-row-info">${
+        JSON.stringify(row)
+            .replace(/&quot;/g,'\\"')
+            .replace(/(<[^>]+>)/g, (match) => {
+                return match
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;');
+            })
+    }</span>`,
     /**
      * Activate the action buttons on a table automatically using the `table-actions` class
      * @param actionsObject
@@ -113,7 +121,14 @@ $lay.fn = {
 
                             return new Function('', `return ${fn}`).call(this)
                         },
-                        info: !$sel(".entry-row-info", parentElement) ? "" : JSON.parse($html($sel(".entry-row-info", parentElement)))
+                        info: !$sel(".entry-row-info", parentElement) ? "" : JSON.parse(
+                            $html($sel(".entry-row-info", parentElement))
+                                .replace(/(&lt;[^&]+?&gt;)/g, (match) => {
+                                    return match
+                                        .replace(/&lt;/g, '<')
+                                        .replace(/&gt;/g, '>');
+                                })
+                        )
                     })
                 }
             })
