@@ -308,15 +308,30 @@ final class LayCron
         return $this->db_job_all();
     }
 
-    public function get_job(string|int $uid, bool $add_schedule = true) : ?string {
+    /**
+     * @param string|int $uid
+     * @param bool $add_schedule
+     * @return array|null
+     * @psalm-return array{
+     *     schedule: string,
+     *     binary: string,
+     *     script: string
+     * }
+     */
+    public function get_job(string|int $uid) : ?array {
         $job = $this->db_job_by_id($uid);
 
-        if($job){
-            $x = explode(" ", $job, 6);
-            $job = end($x);
-        }
+        if(!$job)
+            return null;
 
-        return $job;
+        $x = explode(" ", $job, 7);
+        $job = end($x);
+
+        return [
+            "schedule" => "$x[0] $x[1] $x[2] $x[3] $x[4]",
+            "binary" => $x[5],
+            "script" => $x[6],
+        ];
     }
 
     public function get_crontab() : string {

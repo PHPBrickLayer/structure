@@ -191,7 +191,7 @@ class CoreException
         $env = $this->get_env();
         $display = $env == "DEVELOPMENT" || $other['core'] == "view";
         $cli_mode = LayConfig::get_mode() === LayMode::CLI;
-        $use_json = $this->throw_as_json && !isset(LayConfig::user_agent()['browser']);
+        $use_json = $this->throw_as_json && !isset(LayConfig::user_agent()['browser']) && !$cli_mode;
         $show_internal_trace = $other['show_internal_trace'] ?? self::$show_internal_trace;
 
         if (!empty(@$other['raw'])) {
