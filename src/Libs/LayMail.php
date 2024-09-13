@@ -39,16 +39,38 @@ abstract class LayMail {
     private bool $use_smtp = true;
     private bool $debug = false;
     private bool $send_on_dev_env = false;
+    private string $log_data;
+
+    private function collect_log(string $string, int $level) : void
+    {
+        $this->log_data .= "[X] $level >> $string\n";
+    }
+
+    private function dump_log() : void
+    {
+        $log = LayConfig::server_data()->temp . "emails" . DIRECTORY_SEPARATOR;
+        LayDir::make($log, 0755, true);
+
+        $log .= date("Y-m-d-H-i-s" . rand(0, 9)) . ".log";
+
+        file_put_contents($log, "[" . date("Y-m-d H:i:s e") . "]\n" . $this->log_data);
+    }
 
     private function connect_smtp() : void {
         if(!$this->use_smtp)
             return;
 
-        if ($this->debug)
-            self::$mail_link->SMTPDebug = SMTP::DEBUG_SERVER;            //Enable verbose debug output
-
+        self::$mail_link->SMTPDebug = SMTP::DEBUG_SERVER;            //Enable verbose debug output
         self::$mail_link->isSMTP();                                      // Send using SMTP
         self::$mail_link->SMTPAuth   = true;                             // Enable SMTP authentication
+
+        if ($this->debug)
+            self::$mail_link->Debugoutput = "html";
+        else {
+            $this->log_data = "";
+            self::$mail_link->Debugoutput = fn($str, $level) => $this->collect_log($str, $level);
+        }
+
         try {
             self::$mail_link->SMTPSecure = self::$credentials['protocol'];   // Enable implicit TLS encryption
             self::$mail_link->Host       = self::$credentials['host'];       // Set the SMTP server to send through
@@ -272,8 +294,11 @@ abstract class LayMail {
         try {
             $this->connect_smtp();
 
-            if(LayConfig::$ENV_IS_PROD || $this->send_on_dev_env)
-                return self::$mail_link->send();
+            if(LayConfig::$ENV_IS_PROD || $this->send_on_dev_env) {
+                $send = self::$mail_link->send();
+                $this->dump_log();
+                return $send;
+            }
 
             return true;
 
@@ -295,27 +320,28 @@ abstract class LayMail {
 
     public function email_template(string $message) : string {
         $data = LayConfig::site_data();
-        $logo = DomainResource::get()->shared->img_default->logo;
+        $domain_res = DomainResource::get();
+        $logo = $domain_res->shared->img_default->logo;
         $company_name = $data->name->short;
-        $copyright = $data->copy;
+        $copyright = $domain_res->copyright ?? $data->copy;
         $text_color = "#000000";
         $bg_color = "transparent";
 
         return <<<MSG
-                <html lang="en"><body>
-                    <div style="background: $bg_color; color: $text_color; padding: 20px; min-height: 400px; max-width: 80%; margin: auto">
-                        <div style="text-align: center; background: $bg_color; padding: 10px 5px">
-                            <img src="$logo" alt="$company_name Logo" style="max-width: 85%; padding: 10px 10px 0">
-                        </div>
-                        <div style="
-                            margin: 10px auto;
-                            padding: 15px 0;
-                            font-size: 16px;
-                            line-height: 1.6;
-                        ">$message</div>
-                        <p style="text-align: center; font-size: 12px">$copyright</p>
+            <html lang="en"><body>
+                <div style="background: $bg_color; color: $text_color; padding: 20px; min-height: 400px; max-width: 80%; margin: auto">
+                    <div style="text-align: center; background: $bg_color; padding: 10px 5px">
+                        <img src="$logo" alt="$company_name Logo" style="max-width: 85%; padding: 10px 10px 0">
                     </div>
-                </body></html>
-            MSG;
+                    <div style="
+                        margin: 10px auto;
+                        padding: 15px 0;
+                        font-size: 16px;
+                        line-height: 1.6;
+                    ">$message</div>
+                    <p style="text-align: center; font-size: 12px">$copyright</p>
+                </div>
+            </body></html>
+        MSG;
     }
 }

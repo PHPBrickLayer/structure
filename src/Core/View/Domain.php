@@ -165,7 +165,7 @@ class Domain {
         if(isset(self::$indexed_domain))
             $uri = "";
 
-        $host = self::$cli_mode ? "CLI" : $_SERVER['HTTP_HOST'];
+        $host = self::$cli_mode ? ($_ENV['LAY_CUSTOM_HOST'] ?? "CLI") : $_SERVER['HTTP_HOST'];
 
         self::$current_route_details['host'] = $host;
         self::$current_route_details['route'] = $route ?: "index";

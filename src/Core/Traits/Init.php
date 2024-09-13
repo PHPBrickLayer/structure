@@ -79,7 +79,7 @@ trait Init {
         }
 
         $pin            = rtrim($pin, "/");
-        $base           = $pin ? explode($pin, $string) : ["__CLI_MODE__", "__CLI_MODE_2__"];
+        $base           = $pin ? explode($pin, $string) : ["", ""];
 
         $options['using_web'] = str_starts_with($base[1], "/web");
         $options['using_domain'] = str_starts_with($base[1], "/web/domain");
@@ -91,12 +91,12 @@ trait Init {
         self::$layConfigOptions['header']['using_web'] = $options['using_web'];
 
         $base           = str_replace($slash, "/", end($base));
-        $http_host      = $_SERVER['HTTP_HOST'] ?? "cli";
-        $env_host       = $_SERVER['REMOTE_ADDR'] ?? "cli";
+        $http_host      = $_SERVER['HTTP_HOST'] ?? $_ENV['LAY_CUSTOM_HOST'] ?? "cli";
+        $env_host       = $_SERVER['REMOTE_ADDR'] ?? $_ENV['LAY_CUSTOM_REMOTE_ADDR'] ?? "cli";
         $proto          = ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? $_SERVER['REQUEST_SCHEME'] ?? 'http') . "://";
         $base_no_proto  = rtrim(str_replace($slash,"/", $base),"/");
 
-        if($http_host != "cli")
+        if($http_host != "cli" && !isset($_ENV['LAY_CUSTOM_HOST']))
             self::$LAY_MODE = LayMode::HTTP;
 
         self::$proto = $proto;
@@ -216,6 +216,7 @@ trait Init {
             return self::$LAY_MODE;
 
         self::$LAY_MODE = LayMode::HTTP;
+
 
         if(empty($_SERVER['DOCUMENT_ROOT']) || !isset($_SERVER['HTTP_HOST']))
             self::$LAY_MODE = LayMode::CLI;
