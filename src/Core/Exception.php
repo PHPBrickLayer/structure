@@ -34,4 +34,9 @@ abstract class Exception {
         self::new()->log_always();
     }
 
+    public static function log(string $message, $exception = null) : void
+    {
+        self::throw_exception($message, "ManualLog", kill: false, exception: $exception);
+    }
+
 }

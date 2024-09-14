@@ -84,7 +84,7 @@ trait Brick
             <?php
             declare(strict_types=1);
             
-            namespace bricks\\$brick\Api;
+            namespace Bricks\\$brick\Api;
             
             use BrickLayer\Lay\Core\Api\ApiEngine;
             use BrickLayer\Lay\Core\Api\ApiHooks;
@@ -121,7 +121,7 @@ trait Brick
             <?php
             declare(strict_types=1);
             
-            namespace bricks\\$brick\Model;
+            namespace Bricks\\$brick\Model;
             
             use JetBrains\PhpStorm\ArrayShape;
             use BrickLayer\Lay\Orm\SQL;
@@ -171,11 +171,11 @@ trait Brick
             <?php
             declare(strict_types=1);
             
-            namespace bricks\\$brick\Controller;
+            namespace Bricks\\$brick\Controller;
             
             $import
             
-            use bricks\\$brick\Model\\$brick;
+            use Bricks\\$brick\Model\\$brick;
             
             class $brick_plural
             {

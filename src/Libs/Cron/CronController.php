@@ -2,55 +2,53 @@
 
 namespace BrickLayer\Lay\Libs\Cron;
 
-use BrickLayer\Lay\Core\Api\Enums\ApiStatus;
 use BrickLayer\Lay\Core\Traits\IsSingleton;
+use BrickLayer\Lay\Libs\Abstract\TableAbstract;
 use BrickLayer\Lay\Libs\LayDate;
-use BrickLayer\Lay\Libs\LayObject;
-use BrickLayer\Lay\Libs\String\Enum\EscapeType;
-use BrickLayer\Lay\Libs\String\Escape;
 
-class CronController
+class CronController extends TableAbstract
 {
     use IsSingleton;
 
-    private const JOB_CLI_KEY = "--job-uuid";
-    private static string $created_by;
+    public const JOB_CLI_KEY = "--job-uuid";
 
-    ////               ////
-    ///     HELPERS    ////
+
+    ////                 ////
+    ///     MODEL       ////
     ///                ////
 
-    private static function resolve(int|ApiStatus $code = 409, ?string $message = null, ?array $data = null): array
-    {
-        $code = is_int($code) ? $code : $code->value;
+    protected static string $table = "lay_cron_jobs";
+    protected static string $SESSION_KEY = "LAY_CRON_JOBS";
 
-        return [
-            "code" => $code,
-            "msg" => $message ?? "Request could not be processed at the moment, please try again later",
-            "data" => $data
-        ];
+    protected static function table_creation_query() : void
+    {
+        self::orm()->query("CREATE TABLE IF NOT EXISTS `" . self::$table . "` (
+              `id` char(36) UNIQUE PRIMARY KEY,
+              `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+              `updated_at` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
+              `created_by` char(36) DEFAULT NULL,
+              `updated_by` char(36) DEFAULT NULL,
+              `deleted` int(1) DEFAULT 0,
+              `deleted_at` datetime DEFAULT NULL,
+              `deleted_by` char(36) DEFAULT NULL,
+              `schedule` varchar(100) DEFAULT NULL,
+              `script` varchar(200) DEFAULT NULL,
+              `use_php` int(1) DEFAULT 1,
+              `active` int(11) DEFAULT 1,
+              `last_run` datetime DEFAULT NULL
+            )
+        ");
     }
 
-    private static function cleanse(mixed &$value, EscapeType $type = EscapeType::STRIP_TRIM_ESCAPE, bool $strict = true)
+    public function job_exists(string $script, string $schedule) : bool
     {
-        $value = $value ? Escape::clean($value, $type, ['strict' => $strict]) : "";
-        return $value;
+        self::init();
+
+        return (bool) self::orm(self::$table)
+            ->where("deleted=0 AND `script`='$script' AND schedule='$schedule'")
+            ->count_row("id");
     }
 
-    private static function get_json(bool $throw_error = true): bool|null|object
-    {
-        return LayObject::new()->get_json($throw_error);
-    }
-
-    public static function created_by(string $actor_id) : void
-    {
-        self::$created_by = $actor_id;
-    }
-
-    public static function model(): CronModel
-    {
-        return CronModel::new();
-    }
 
     ////               ////
     ///     Methods    ////
@@ -63,12 +61,20 @@ class CronController
         self::cleanse($job_id);
 
         if (!LayCron::new()->unset($job_id)) {
-            self::model()->delete_job($job_id, self::$created_by);
+            $this->delete_record($job_id, self::$created_by);
             return self::resolve(2, "Could not delete job, maybe job has been deleted already");
         }
 
-        if (self::model()->delete_job($job_id, self::$created_by))
+        if ($this->delete_record($job_id, self::$created_by))
             return self::resolve(1, "Cron job deleted successfully");
+
+        return self::resolve();
+    }
+
+    public function prune_table() : array
+    {
+        if($this->empty_trash())
+            return self::resolve(1, "Deleted jobs have been removed from the DB");
 
         return self::resolve();
     }
@@ -84,10 +90,10 @@ class CronController
         self::cleanse($post->script);
         self::cleanse($post->use_php, strict: false);
 
-        if (self::model()->job_exists($post->script, $post->schedule))
+        if ($this->job_exists($post->script, $post->schedule))
             return self::resolve(1, "Job exists already!");
 
-        $id = self::model()->uuid();
+        $id = $this->uuid();
         $raw_script .= " " . self::JOB_CLI_KEY . " " . $id;
 
         $cron = LayCron::new()->job_id($id);
@@ -101,7 +107,7 @@ class CronController
             return self::resolve(0, $res['msg']);
 
         if (
-            !self::model()->new_job([
+            !$this->new_record([
                 "id" => $id,
                 "script" => $post->script,
                 "schedule" => $post->schedule,
@@ -127,7 +133,7 @@ class CronController
 
     public function update_last_run(string $job_id): void
     {
-        self::model()->edit_job($job_id, [
+        $this->edit_record($job_id, [
             "last_run" => LayDate::date()
         ]);
     }
@@ -151,7 +157,7 @@ class CronController
             return self::resolve(2, "Could not pause job, maybe job has been paused already");
 
         if(
-            self::model()->edit_job($job_id, [
+            $this->edit_record($job_id, [
                 "active" => '0'
             ], self::$created_by)
         ) return self::resolve(1, "Script paused successfully");
@@ -178,7 +184,7 @@ class CronController
             return self::resolve(0, $res['msg']);
 
         if(
-            self::model()->edit_job($job_id, [
+            $this->edit_record($job_id, [
                 "active" => 1,
             ], self::$created_by)
         ) return self::resolve(1, "Script executed successfully");
@@ -188,13 +194,18 @@ class CronController
 
     public function list(): array
     {
-        return self::model()->job_list();
+        return $this->record_list();
+    }
+
+    public function list_by_page(int $page = 1): array
+    {
+        return $this->record_list($page);
     }
 
     public function get_job(string $id) : array
     {
         self::cleanse($id);
-        return self::model()->job_by_id($id);
+        return $this->record_by_id($id);
     }
 
 

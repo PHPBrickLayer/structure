@@ -402,7 +402,7 @@ class CoreException
 
         file_put_contents($file_log, $body, FILE_APPEND);
 
-        echo $display ?: "Your attention is needed at the backend, check your Lay error logs for details";
+        echo $display ?: "Check logs for details. Error encountered";
 
         return $other['act'] ?? "allow";
     }

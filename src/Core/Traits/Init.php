@@ -194,6 +194,8 @@ trait Init {
 
     public static function autoload_project_classes(): void
     {
+        return;
+
         spl_autoload_register(function ($className) {
             $location = str_replace('\\', DIRECTORY_SEPARATOR, $className);
 
