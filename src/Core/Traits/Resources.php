@@ -22,8 +22,9 @@ trait Resources {
         $obj->lay_static        =   $dir  .   "vendor"    .   $slash .    "bricklayer" . $slash .   "structure" . $slash . "src" . $slash . "static" . $slash;
         $obj->framework         =   $dir  .   "vendor"    .   $slash .    "bricklayer" . $slash .   "structure" . $slash;
         $obj->root              =   $dir;
-        $obj->lay               =   $dir  .   ".lay" .  $slash;
+        $obj->lay               =   $dir  .   ".lay"      .  $slash;
         $obj->temp              =   $obj->lay             .   "temp" .   $slash;
+        $obj->workers           =   $obj->lay             .   "workers" .   $slash;
         $obj->bricks            =   $dir  .   "bricks"    .   $slash;
         $obj->db                =   $dir  .   "db"        .   $slash;
         $obj->utils             =   $dir  .   "utils"     .   $slash;
@@ -34,6 +35,7 @@ trait Resources {
         $obj->uploads_no_root   =   "uploads" . $slash;
 
         self::internal_mk_tmp_dir($obj->temp, $obj->root);
+        self::updated_workers($obj->workers, $obj->framework);
 
         self::$server = $obj;
     }
@@ -145,6 +147,22 @@ trait Resources {
 
         //TODO: Delete this after all legacy projects have been updated
         //END
+    }
+
+    private static function updated_workers(string $worker_dir, string $framework_root) : void
+    {
+        LayDir::make($worker_dir, 0755, true);
+
+        $worker = $worker_dir . "mail-processor.php";
+
+        if(!@$_SESSION[self::$SESSION_KEY]['workers']['mail'] && !file_exists($worker)) {
+            copy(
+                $framework_root . "workers" . DIRECTORY_SEPARATOR . "mail-processor.php",
+                $worker,
+            );
+
+            $_SESSION[self::$SESSION_KEY]['workers']['mail'] = true;
+        }
     }
 
     public static function mk_tmp_dir () : string {

@@ -114,7 +114,7 @@ trait Domain
             "Plaster.php",
             <<<FILE
             <?php
-            namespace web\domains\\$domain_name;
+            namespace Web\\$domain_name;
             
             use BrickLayer\Lay\Core\View\DomainResource;
             use BrickLayer\Lay\Core\View\ViewBuilder;
@@ -185,7 +185,7 @@ trait Domain
         $default_domain = $data[0] ?? <<<DEF
         Domain::new()->create(
             id: "default",
-            builder: \web\domains\Default\Plaster::class,
+            builder: \Web\Default\Plaster::class,
             patterns: ["*"],
         );
         DEF;
@@ -215,7 +215,7 @@ trait Domain
         $current_domain = <<<CUR
         Domain::new()->create(
             id: "$domain_id",
-            builder: \web\domains\\$domain\\Plaster::class,
+            builder: \Web\\$domain\\Plaster::class,
             patterns: [$pattern],
         );
         CUR;

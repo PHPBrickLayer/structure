@@ -4,9 +4,9 @@ declare(strict_types=1);
 namespace BrickLayer\Lay\Libs;
 
 use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Libs\Abstract\TableAbstract;
 use BrickLayer\Lay\Libs\String\Enum\EscapeType;
 use BrickLayer\Lay\Libs\String\Escape;
-use BrickLayer\Lay\Orm\SQL;
 
 /**
  * Store session as cookie through accurate environment storage and encrypted storage token.
@@ -15,59 +15,37 @@ use BrickLayer\Lay\Orm\SQL;
  * \Lay\libs\LayCookieStorage::check_db(): array;
  * \Lay\libs\LayCookieStorage::clear_from_db(): bool;
  */
-final class LayCookieStorage
+final class LayCookieStorage extends TableAbstract
 {
-    private const SESSION_KEY = "LAY_COOKIE_STORAGE";
-    private static string $session_user_cookie;
-    private static string $table = "lay_cookie_storages";
+    public static string $SESSION_KEY = "LAY_COOKIE_STORAGE";
+    protected static string $table = "lay_cookie_storages";
 
-    private static function init(): void
+    private static string $session_user_cookie;
+
+    protected static function init(): void
     {
         if (!isset(self::$session_user_cookie))
             self::$session_user_cookie = "lay_cok_" . Escape::clean(LayConfig::site_data()->name->short, EscapeType::P_URL);
 
-        $_SESSION[self::SESSION_KEY]  = $_SESSION[self::SESSION_KEY]  ?? [];
+        $_SESSION[self::$SESSION_KEY]  = $_SESSION[self::$SESSION_KEY]  ?? [];
 
         self::create_table();
     }
 
-    private static function create_table(): void
+    protected static function table_creation_query() : void
     {
-        if(@$_SESSION[self::SESSION_KEY]['table_exists'] || @$_SESSION[self::SESSION_KEY]['has_error'])
-            return;
-
-        $table = self::$table;
-
-        // check if table exists, but catch the error
-        self::orm()->open(self::$table)->catch()->clause("LIMIT 1")->just_exec()->select();
-
-        $query_info = self::orm()->query_info;
-
-        // Check if the above query had an error. If no error, table exists, else table doesn't exist
-        if ($query_info['has_error'] === false) {
-            $_SESSION[self::SESSION_KEY]["has_error"] = true;
-            return;
-        }
-
-        if($query_info['rows'] > 0) {
-            $_SESSION[self::SESSION_KEY]["table_exists"] = true;
-            return;
-        }
-
-        self::orm()->query("CREATE TABLE IF NOT EXISTS `$table` (
-                `id` varchar(36) UNIQUE PRIMARY KEY,
-                `created_by` varchar(36) NOT NULL,
+        self::orm()->query("CREATE TABLE IF NOT EXISTS `" . self::$table . "` (
+                `id` char(36) UNIQUE PRIMARY KEY,
+                `created_by` char(36) NOT NULL,
                 `created_at` datetime,
                 `deleted` int(1) DEFAULT 0 NOT NULL,
-                `deleted_by` varchar(36),
+                `deleted_by` char(36),
                 `deleted_at` datetime,
                 `env_info` text,
                 `auth` text,
                 `expire` datetime
             )
         ");
-
-        $_SESSION[self::SESSION_KEY]["table_exists"] = true;
     }
 
     private static function delete_expired_tokens(): void
@@ -122,16 +100,19 @@ final class LayCookieStorage
         self::init();
 
         if (!isset($_COOKIE[self::$session_user_cookie]))
-            return ["code" => 2, "msg" => "Cookie is not set", "data" => null];
+            return self::resolve(
+                2,
+                "Cookie is not set"
+            );
 
         if ($id = self::decrypt_cookie())
-            return [
-                "code" => 1,
-                "msg" => "Cookie found!",
-                "data" => self::get_user_token($id)
-            ];
+            return self::resolve(
+                1,
+                "Cookie Found!",
+                self::get_user_token($id),
+            );
 
-        return ["code" => 0, "msg" => "Could not decrypt, invalid token saved", "data" => null];
+        return self::resolve(message: "Could not decrypt, invalid token saved");
     }
 
     private static function decrypt_cookie(): ?string
@@ -151,18 +132,11 @@ final class LayCookieStorage
 
     private static function get_user_token(string $id): array
     {
-        $id = Escape::clean($id, EscapeType::STRIP_TRIM_ESCAPE, [
-            "strict" => true
-        ]);
+        self::cleanse($id);
 
         return self::orm()->open(self::$table)
             ->column("created_by, auth")
             ->then_select("WHERE id='$id'");
-    }
-
-    private static function orm(): SQL
-    {
-        return SQL::new();
     }
 
     private static function store_user_token(string $user_id): ?string
@@ -171,9 +145,10 @@ final class LayCookieStorage
         $env_info = self::browser_info();
         $expire = LayDate::date("30 days");
         $now = LayDate::date();
-        $user_id = Escape::clean($user_id, EscapeType::STRIP_TRIM_ESCAPE, ['strict' => true]);
+        self::cleanse($user_id);
 
         self::delete_expired_tokens();
+
         $id = $orm->uuid();
 
         $orm->open(self::$table)->then_insert([
@@ -186,12 +161,6 @@ final class LayCookieStorage
         ]);
 
         return $id;
-    }
-
-    private static function delete_user_token(string $token_id): void
-    {
-        $token_id = Escape::clean($token_id, EscapeType::TRIM_ESCAPE);
-        self::orm()->open(self::$table)->delete("id='$token_id'");
     }
 
     private static function destroy_cookie($name): void
@@ -213,8 +182,10 @@ final class LayCookieStorage
     {
         self::init();
 
-        if ($id = self::decrypt_cookie())
-            LayCookieStorage::delete_user_token($id);
+        if ($id = self::decrypt_cookie()) {
+            self::cleanse($id);
+            (new self())->delete_record($id);
+        }
 
         self::destroy_cookie(self::$session_user_cookie);
     }

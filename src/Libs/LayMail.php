@@ -3,12 +3,18 @@ declare(strict_types=1);
 namespace BrickLayer\Lay\Libs;
 
 use BrickLayer\Lay\Core\View\DomainResource;
+use BrickLayer\Lay\Libs\Mail\Mailer;
 use JetBrains\PhpStorm\ArrayShape;
 use JetBrains\PhpStorm\ExpectedValues;
 use BrickLayer\Lay\Core\LayConfig;
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\SMTP;
 
+/**
+ * @deprecated User Mailer instead.
+ * @see Mailer
+ * @uses \BrickLayer\Lay\Libs\Mail\Mailer
+ */
 abstract class LayMail {
     private static PHPMailer $mail_link;
     public const ENCODING_7BIT = PHPMailer::ENCODING_7BIT;
@@ -208,6 +214,8 @@ abstract class LayMail {
     }
 
     final public function queue() : ?bool {
+        trigger_error("This library has been depreciated. Use Mailer instead");
+
         if(!self::$credentials['host'])
             LayConfig::set_smtp();
 
@@ -295,6 +303,8 @@ abstract class LayMail {
             $this->connect_smtp();
 
             if(LayConfig::$ENV_IS_PROD || $this->send_on_dev_env) {
+                // TODO: Add a cron job to get all the email queue and send them one at a time
+                // based on priority
                 $send = self::$mail_link->send();
                 $this->dump_log();
                 return $send;
