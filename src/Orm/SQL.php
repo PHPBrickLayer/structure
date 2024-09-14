@@ -210,6 +210,7 @@ class SQL
             $exec = self::$link->query($query);
         } catch (Exception|\mysqli_sql_exception $e) {
             $has_error = true;
+
             if ($exec === false && $catch_error === false) {
                 $query_type = is_string($query_type) ? $query_type : $query_type->name;
                 $error = self::$link->error ?: null;
@@ -232,10 +233,11 @@ class SQL
 
         // init query info structure
         $this->query_info = [
-            "status" => OrmExecStatus::SUCCESS,
-            "has_data" => true,
+            "status" => $has_error ? OrmExecStatus::FAIL : OrmExecStatus::SUCCESS,
+            "has_data" => !$has_error,
             "data" => $exec,
             "has_error" => $has_error,
+            "error_caught" => $catch_error,
             "rows" => 0
         ];
 

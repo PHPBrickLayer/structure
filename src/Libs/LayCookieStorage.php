@@ -33,7 +33,7 @@ final class LayCookieStorage
 
     private static function create_table(): void
     {
-        if(@$_SESSION[self::SESSION_KEY]['table_exists'] || @$_SESSION[self::SESSION_KEY]['has_error'])
+        if(@$_SESSION[self::SESSION_KEY]['table_exists'] || @$_SESSION[self::SESSION_KEY]['table_created'])
             return;
 
         $table = self::$table;
@@ -45,7 +45,7 @@ final class LayCookieStorage
 
         // Check if the above query had an error. If no error, table exists, else table doesn't exist
         if ($query_info['has_error'] === false) {
-            $_SESSION[self::SESSION_KEY]["has_error"] = true;
+            $_SESSION[self::SESSION_KEY]["table_created"] = true;
             return;
         }
 
@@ -55,11 +55,11 @@ final class LayCookieStorage
         }
 
         self::orm()->query("CREATE TABLE IF NOT EXISTS `$table` (
-                `id` varchar(36) UNIQUE PRIMARY KEY,
-                `created_by` varchar(36) NOT NULL,
+                `id` char(36) UNIQUE PRIMARY KEY,
+                `created_by` char(36) NOT NULL,
                 `created_at` datetime,
                 `deleted` int(1) DEFAULT 0 NOT NULL,
-                `deleted_by` varchar(36),
+                `deleted_by` char(36),
                 `deleted_at` datetime,
                 `env_info` text,
                 `auth` text,
