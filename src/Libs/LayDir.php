@@ -250,7 +250,7 @@ class LayDir {
 
     /**
      * @param string $directory
-     * @param callable (string, string, DirectoryIterator) : CustomContinueBreak $action
+     * @param callable (string $file_name, string $directory, DirectoryIterator $dir_handler) : CustomContinueBreak $action
      * @param bool $throw_error
      * @return CustomContinueBreak
      * @throws \Exception
