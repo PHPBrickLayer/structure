@@ -1,6 +1,8 @@
 #!/usr/bin/env php
 <?php
 
+use BrickLayer\Lay\Libs\Cron\LayCron;
+use BrickLayer\Lay\Libs\LayDate;
 use BrickLayer\Lay\Libs\Mail\Mailer;
 use BrickLayer\Lay\Libs\Mail\MailerQueueHandler;
 use BrickLayer\Lay\Libs\Mail\MailerStatus;
@@ -24,8 +26,14 @@ foreach ($mailer->next_items() as $mail) {
     $skip_to_send = false;
 
     // If it is retrying, update status to SENDING and update total retries
-    if($mail['status'] == MailerStatus::RETRY) {
+    if($mail['status'] == MailerStatus::RETRY->name) {
         $skip_to_send = true;
+
+        if($mail['retries'] > $max_retries) {
+            $mailer->failed_to_send($mail['id']);
+            continue;
+        }
+
         $mailer->want_to_retry($mail['id'], $mail['retries']);
     }
 
@@ -34,8 +42,10 @@ foreach ($mailer->next_items() as $mail) {
     if(!$skip_to_send && !$mailer->want_to_send($mail['id'])) {
         $skip_to_send = true;
 
-        if($mail['retries'] > $max_retries)
+        if($mail['retries'] > $max_retries) {
             $mailer->failed_to_send($mail['id']);
+            continue;
+        }
         else
             $mailer->try_again($mail['id']);
     }
@@ -48,7 +58,7 @@ foreach ($mailer->next_items() as $mail) {
 
     $sender = $sender
         ->subject($mail['subject'])
-        ->body($mail['body'])
+        ->body($mail['body'], true)
         ->client($actors['client']['email'], $actors['client']['name'])
         ->server($actors['server']['email'], $actors['server']['name'])
         ->server_from($actors['server_from']['email'], $actors['server_from']['name'])
@@ -63,14 +73,25 @@ foreach ($mailer->next_items() as $mail) {
             $attachment["as_string"] ?? null,
         );
 
-    $action = $actors['send_to'] == "TO_CLIENT" ?
-        $sender->to_client(false) :
-        $sender->to_server(false);
+    $action = false;
 
-    if($action)
-        $mailer->email_sent($mail['id']);
-    else
-        $mailer->try_again($mail['id']);
+    try {
+        $action = $actors['send_to'] == "TO_CLIENT" ?
+            $sender->to_client(false) :
+            $sender->to_server(false);
+
+        if ($action)
+            $mailer->email_sent($mail['id']);
+        else
+            $mailer->try_again($mail['id']);
+
+    } catch (\Exception|\Error $e) {
+        $mailer->failed_to_send($mail['id']);
+        LayCron::new()->log_output(
+            "[" . LayDate::date() . "]\n" .
+            \BrickLayer\Lay\Core\Exception::text($e, false)
+        );
+    }
 }
 
 $mailer->stop_on_finish();

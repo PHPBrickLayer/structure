@@ -150,14 +150,11 @@ class Domain {
 
         $builder_class = $builder;
         $file = explode("\\", $builder);
-
-        array_pop($file);
-        $domain_file = $file;
-        array_shift($domain_file);
-        $domain_name = $domain_file[1];
+        $domain_name = $file[1];
+        $domain_root = "web" . DIRECTORY_SEPARATOR . "domains" . DIRECTORY_SEPARATOR . "$domain_name" . DIRECTORY_SEPARATOR;
 
         $data = LayConfig::site_data();
-        $domain_base = $data->use_domain_file ? implode("/", $domain_file) . "/" : "";
+        $domain_base = $data->use_domain_file ? "domains/$domain_name/" : "";
         $domain_base = str_replace("/Api/", "/" . ($_SERVER['HTTP_LAY_DOMAIN'] ?? $domain_name) . "/", $domain_base, $is_api);
 
         $uri = ($pattern != '*' ? $pattern . '/' : '');
@@ -178,7 +175,7 @@ class Domain {
         self::$current_route_details['domain_id'] = $id;
         self::$current_route_details['domain_uri'] = str_replace("/web/", "/", $data->domain) . $uri;
         self::$current_route_details['domain_base'] = $data->domain . $domain_base;
-        self::$current_route_details['domain_root'] = LayConfig::server_data()->root . implode(DIRECTORY_SEPARATOR, $file) . DIRECTORY_SEPARATOR;
+        self::$current_route_details['domain_root'] = LayConfig::server_data()->root . $domain_root;
         self::$current_route_details['plaster'] = self::$current_route_details['domain_root'] . "plaster" . DIRECTORY_SEPARATOR;
         self::$current_route_details['layout'] = self::$current_route_details['domain_root'] . "layout" . DIRECTORY_SEPARATOR;
 

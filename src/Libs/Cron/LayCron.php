@@ -57,7 +57,7 @@ final class LayCron
             file_put_contents($file, json_encode(self::DB_SCHEMA));
 
         if(!file_exists($this->output_file))
-            file_put_contents($this->output_file, '***** LAY CRON JOBS OUTPUT *****' . PHP_EOL);
+            file_put_contents($this->output_file, PHP_EOL);
 
         return $file;
     }
@@ -241,6 +241,7 @@ final class LayCron
 
     public function log_output(string $output) : void
     {
+        $this->cron_db();
         file_put_contents($this->output_file, $output . PHP_EOL, FILE_APPEND);
     }
 

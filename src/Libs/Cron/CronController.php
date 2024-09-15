@@ -3,12 +3,13 @@
 namespace BrickLayer\Lay\Libs\Cron;
 
 use BrickLayer\Lay\Core\Traits\IsSingleton;
-use BrickLayer\Lay\Libs\Abstract\TableAbstract;
+use BrickLayer\Lay\Libs\Abstract\TableTrait;
 use BrickLayer\Lay\Libs\LayDate;
 
-class CronController extends TableAbstract
+class CronController
 {
     use IsSingleton;
+    use TableTrait;
 
     public const JOB_CLI_KEY = "--job-uuid";
 

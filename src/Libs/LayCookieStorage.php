@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace BrickLayer\Lay\Libs;
 
 use BrickLayer\Lay\Core\LayConfig;
-use BrickLayer\Lay\Libs\Abstract\TableAbstract;
+use BrickLayer\Lay\Libs\Abstract\TableTrait;
 use BrickLayer\Lay\Libs\String\Enum\EscapeType;
 use BrickLayer\Lay\Libs\String\Escape;
 
@@ -15,8 +15,10 @@ use BrickLayer\Lay\Libs\String\Escape;
  * \Lay\libs\LayCookieStorage::check_db(): array;
  * \Lay\libs\LayCookieStorage::clear_from_db(): bool;
  */
-final class LayCookieStorage extends TableAbstract
+final class LayCookieStorage
 {
+    use TableTrait;
+
     public static string $SESSION_KEY = "LAY_COOKIE_STORAGE";
     protected static string $table = "lay_cookie_storages";
 

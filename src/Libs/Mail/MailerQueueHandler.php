@@ -4,7 +4,7 @@ namespace BrickLayer\Lay\Libs\Mail;
 
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\View\DomainResource;
-use BrickLayer\Lay\Libs\Abstract\TableAbstract;
+use BrickLayer\Lay\Libs\Abstract\TableTrait;
 use BrickLayer\Lay\Libs\Cron\CronController;
 use BrickLayer\Lay\Libs\Cron\LayCron;
 use BrickLayer\Lay\Libs\LayDate;
@@ -13,7 +13,9 @@ use JetBrains\PhpStorm\ArrayShape;
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\SMTP;
 
-class MailerQueueHandler extends TableAbstract {
+class MailerQueueHandler {
+
+    use TableTrait;
 
     protected static string $table = "lay_mailer_queue";
     protected static string $SESSION_KEY = "LAY_MAILER";
@@ -41,7 +43,7 @@ class MailerQueueHandler extends TableAbstract {
               `retries` int(1) DEFAULT 0,
               `time_sent` datetime DEFAULT NULL,
               PRIMARY KEY (`id`),
-              UNIQUE KEY `idx_status` (`status`)
+              KEY `idx_status` (`status`) USING BTREE
             )
         ");
     }
@@ -117,7 +119,7 @@ class MailerQueueHandler extends TableAbstract {
         LayCron::new()
             ->job_id(self::JOB_UID)
             ->every_minute()
-            ->new_job(".lay/workers/mailer-processor.php");
+            ->new_job(".lay/workers/mail-processor.php");
 
         return $res;
     }

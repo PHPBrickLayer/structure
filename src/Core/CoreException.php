@@ -9,7 +9,9 @@ use BrickLayer\Lay\BobDBuilder\Helper\Console\Format\Style;
 use BrickLayer\Lay\Core\Api\Enums\ApiStatus;
 use BrickLayer\Lay\Core\Enums\LayMode;
 use BrickLayer\Lay\Core\Traits\IsSingleton;
+use BrickLayer\Lay\Libs\LayDir;
 use BrickLayer\Lay\Orm\SQL;
+use http\Exception\RuntimeException;
 
 class CoreException
 {
@@ -20,7 +22,6 @@ class CoreException
         return self::instance();
     }
 
-    private static string $message;
     private static bool $already_caught = false;
     private static bool $show_internal_trace = true;
     private static bool $show_x_info = true;
@@ -39,7 +40,7 @@ class CoreException
 
             if($err_no === E_WARNING || $err_no === E_USER_WARNING) {
                 $this->use_exception(
-                    "LayWarning",
+                    "Warning",
                     $err_str . $eol
                     . "File: " . $err_file . ":$err_line" . $eol,
                     kill: $turn_warning_to_errors,
@@ -50,18 +51,17 @@ class CoreException
             }
 
             $this->use_exception(
-                "LayError",
+                "Error",
                 $err_str . $eol
                 . "File: " . $err_file . ":$err_line" . $eol,
                 raw: ["err_code" => $err_no]
             );
 
-            return true;
         }, E_ALL|E_STRICT);
 
         set_exception_handler(function ($exception) {
             $this->use_exception(
-                "LayException",
+                "Exception: Uncaught \\Error",
                 $exception->getMessage(),
                 raw: ["err_code" => $exception->getCode()],
                 exception: $exception,
@@ -85,11 +85,13 @@ class CoreException
         array $raw = [],
         bool $use_lay_error = true,
         array $opts = [],
-               $exception = null,
+        ?\Throwable $exception = null,
         bool $throw_500 = true,
         bool $error_as_json = true,
         ?array $json_packet = null,
-    ): void
+        bool $return_as_string = false,
+        bool $ascii = true,
+    ): ?array
     {
         if($exception) {
             $file_all = $exception->getFile();
@@ -110,10 +112,12 @@ class CoreException
         $this->throw_500 = $throw_500;
         $this->throw_as_json = $error_as_json;
 
-        $this->show_exception([
+        return $this->show_exception([
                 "title" => $title,
                 "body_includes" => $body,
                 "kill" => $kill,
+                "ascii" => $ascii,
+                "return_as_string" => $return_as_string,
                 "trace" => $trace,
                 "raw" => $raw,
                 "use_lay_error" => $use_lay_error,
@@ -168,7 +172,7 @@ class CoreException
         $this->show_exception($opts);
     }
 
-    private function container(?string $title, ?string $body, array $other = []): string
+    private function container(?string $title, ?string $body, array $other = []): array
     {
         $title_color = "#5656f5";
         $body_color = "#dea303";
@@ -189,6 +193,7 @@ class CoreException
         }
 
         $env = $this->get_env();
+        $return_as_string = $other['as_string'] ?: false;
         $display = $env == "DEVELOPMENT" || $other['core'] == "view";
         $cli_mode = LayConfig::get_mode() === LayMode::CLI;
         $use_json = $this->throw_as_json && !isset(LayConfig::user_agent()['browser']) && !$cli_mode;
@@ -303,13 +308,17 @@ class CoreException
 
         if($cli_mode) {
             $body = strip_tags($body);
-            Console::log(" $title ", Style::bold);
-            print "---------------------\n";
-            Console::log($body, $cli_color);
-            print "---------------------\n";
-            print $stack_raw;
+            $error = Console::text(" $title ", Style::bold, ascii: $other['ascii'] ?? true);
+            $error .= "---------------------\n";
+            $error .= Console::text($body, $cli_color, ascii: $other['ascii'] ?? true);
+            $error .= "---------------------\n";
+            $error .= $stack_raw;
 
-            return $other['act'] ?? "kill";
+            return [
+                "act" => $other['act'] ?? "kill",
+                "error" => $error,
+                "as_string" => $return_as_string
+            ];
         }
 
         if($use_json) {
@@ -342,16 +351,15 @@ class CoreException
 
             header("HTTP/1.1 $code " . $error_json['message']);
             header("Content-Type: application/json");
-            echo json_encode($error_json);
 
             if(!$this->always_log)
-                return $other['act'] ?? "allow";
+                return [
+                    "act" => $other['act'] ?? "allow",
+                    "error" => json_encode($error_json),
+                    "as_string" => $return_as_string
+                ];
         }
         else {
-
-            if ($title)
-                self::$message = $title . " \n" . ($body ? strip_tags($body) : "");
-
             if ($display) {
                 $ERROR_BODY = <<<DEBUG
                 <details style='padding-left: 5px; margin: 5px 0 10px'>
@@ -375,22 +383,19 @@ class CoreException
                     $display = '<div style="min-height: 300px; background:#1d2124;padding:10px;color:#fffffa;overflow:auto;">' . $ERROR_BODY . '</div>';
                 else
                     $display = <<<DEBUG
-            <div style="min-height: 300px; background:#1d2124;padding:10px;color:#fffffa;overflow:auto; margin: 0 0 15px">
-                <h3 style='color: $title_color; margin: 2px 0'> $title </h3>
-                <div style='color: $body_color; font-weight: bold; margin: 5px 0;'> $body </div><br>
-                $ERROR_BODY
-            </div>
-            DEBUG;
+                    <div style="min-height: 300px; background:#1d2124;padding:10px;color:#fffffa;overflow:auto; margin: 0 0 15px">
+                        <h3 style='color: $title_color; margin: 2px 0'> $title </h3>
+                        <div style='color: $body_color; font-weight: bold; margin: 5px 0;'> $body </div><br>
+                        $ERROR_BODY
+                    </div>
+                    DEBUG;
             }
         }
 
         $dir = LayConfig::server_data()->temp;
         $file_log = $dir . DIRECTORY_SEPARATOR . "exceptions.log";
 
-        if (!is_dir($dir)) {
-            umask(0);
-            mkdir($dir, 0755, true);
-        }
+        LayDir::make($dir, 0755, true);
 
         $date = date("Y-m-d H:i:s e");
         $body = $body ? strip_tags($body) : "";
@@ -402,9 +407,11 @@ class CoreException
 
         file_put_contents($file_log, $body, FILE_APPEND);
 
-        echo $display ?: "Check logs for details. Error encountered";
-
-        return $other['act'] ?? "allow";
+        return [
+            "act" => $other['act'] ?? "allow",
+            "error" => $display ?: "Check logs for details. Error encountered",
+            "as_string" => $return_as_string
+        ];
     }
 
     private function convertRaw($print_val, $replace, &$body): void
@@ -420,18 +427,21 @@ class CoreException
 
     /**
      * @throws \Exception
+     * @psalm-return array{
+     *     act: string,
+     *     error: string,
+     *     as_string: bool
+     * }
      */
-    private function show_exception($opt = []): void
+    private function show_exception($opt = []): ?array
     {
         if(self::$already_caught)
-            return;
+            return null;
 
         if(@LayConfig::get_mode() === LayMode::HTTP && $this->throw_500)
             header("HTTP/1.1 500 Internal Server Error");
 
         $use_lay_error = $opt['use_lay_error'] ?? true;
-        $trace = empty($opt['trace']) ? debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS) : $opt['trace'];
-
         $type = $opt['exception_type'];
 
         if (!$use_lay_error) {
@@ -446,8 +456,10 @@ class CoreException
                 throw new $exception_class($opt['body_includes'], $type);
             }
 
-            return;
+            return null;
         }
+
+        $trace = empty($opt['trace']) ? debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS) : $opt['trace'];
 
         if(isset($opt['title']))
             $act = $this->container(
@@ -457,31 +469,35 @@ class CoreException
                     "stack" => $trace,
                     "core" => $type,
                     "act" => @$opt['kill'] ? "kill" : "allow",
+                    "as_string" => $opt['return_as_string'],
+                    "ascii" => $opt['ascii'],
                     "raw" => $opt['raw'] ?? null,
                     "show_internal_trace" => $opt['show_internal_trace'] ?? null,
                     "json_packet" => $opt['json_packet'] ?? null,
                 ]
             );
         else {
-            $act = "kill";
-            $this->container(
+            $act = $this->container(
                 null,
                 null,
                 [
                     "stack" => $trace,
                     "core" => $type,
-                    "act" => $act,
+                    "act" => "kill",
                     "show_exception_trace" => $opt['show_exception_trace'],
                     "show_internal_trace" => $opt['show_internal_trace'],
                 ]
             );
         }
 
-        if ($act == "kill") {
+        if($act['as_string'])
+            return $act;
+
+        if ($act['act'] == "kill") {
             self::$already_caught = true;
-            error_reporting(0);
-            ini_set('error_log', false);
-            throw new \Exception(self::$message, 914);
+            echo $act['error'];
+            die;
         }
+
     }
 }
