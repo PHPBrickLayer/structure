@@ -17,6 +17,7 @@ use BrickLayer\Lay\BobDBuilder\Helper\Console\Format\Style;
  * (C) Jesse Donat https://github.com/donatj
  */
 class Console {
+
     /**
      * Logs a string to console.
      * @param string $text Input String
@@ -29,6 +30,31 @@ class Console {
      */
     public static function log(string $text = '', Foreground|Style $color = Style::normal, ?Background $bg_color = null, ?Style $style = null, bool $newline = true, bool $maintain_line = false) : void
     {
+        echo self::text($text, $color, $bg_color, $style, $newline, $maintain_line);
+    }
+
+    /**
+     * Returns a formatted ASCII string
+     *
+     * @param string $text Input String
+     * @param Foreground|Style $color Text Color
+     * @param Background|null $bg_color Background Color
+     * @param Style|null $style Font style
+     * @param boolean $newline Append EOF?
+     * @param bool $maintain_line
+     * @return string
+     */
+    public static function text(string $text = '', Foreground|Style $color = Style::normal, ?Background $bg_color = null, ?Style $style = null, bool $newline = true, bool $maintain_line = false, bool $ascii = false) : string
+    {
+        if(!$ascii) {
+            $newline = ($newline ? PHP_EOL : '');
+
+            if($maintain_line)
+                $newline = "\r";
+
+            return $text . $newline;
+        }
+
         $colored_string = "\033[" . $color->value . "m";
 
         if($bg_color)
@@ -43,7 +69,7 @@ class Console {
         if($maintain_line)
             $newline = "\r";
 
-        echo $start . $colored_string . $text . "\033[0m" . $newline;
+        return $start . $colored_string . $text . "\033[0m" . $newline;
     }
 
     /**

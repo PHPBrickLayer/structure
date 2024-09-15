@@ -35,6 +35,7 @@ class Mailer {
     private array $server_from;
     private string $body;
     private string $subject;
+    private bool $bypass_template = true;
     private bool $to_client = true;
     private bool $use_smtp = true;
     private bool $debug = false;
@@ -132,7 +133,9 @@ class Mailer {
         if(@empty($this->body))
             \BrickLayer\Lay\Core\Exception::throw_exception("Sending an email with an empty `body` is not allowed!", "EmptyRequiredField");
 
-        self::$mail_link->msgHTML($this->email_template($this->body));
+        $this->body = $this->bypass_template ? $this->body : $this->email_template($this->body);
+
+        self::$mail_link->msgHTML($this->body);
 
         self::$mail_link->addAddress($recipient['to'], $recipient['name']);
         self::$mail_link->setFrom($this->server_from['email'], $this->server_from['name']);
@@ -262,8 +265,9 @@ class Mailer {
         return $this;
     }
 
-    final public function body(string $email_body) : self {
+    final public function body(string $email_body, bool $bypass_template = false) : self {
         $this->body = $email_body;
+        $this->bypass_template = $bypass_template;
         return $this;
     }
 

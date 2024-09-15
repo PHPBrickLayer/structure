@@ -11,11 +11,9 @@ use BrickLayer\Lay\Libs\String\Enum\EscapeType;
 use BrickLayer\Lay\Libs\String\Escape;
 use BrickLayer\Lay\Orm\SQL;
 
-abstract class TableAbstract
+trait TableTrait
 {
-    protected static string $SESSION_KEY;
-    protected static string $table;
-    protected static string $created_by;
+    protected static ?string $created_by;
 
     final protected static function create_table() : void
     {
@@ -153,7 +151,7 @@ abstract class TableAbstract
         return LayObject::new()->get_json($throw_error);
     }
 
-    public static function created_by(string $actor_id) : void
+    public static function created_by(?string $actor_id) : void
     {
         self::$created_by = $actor_id;
     }

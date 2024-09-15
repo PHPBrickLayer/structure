@@ -110,7 +110,7 @@ abstract class ApiHooks
             )
                 continue;
 
-            $cmd_class = "bricks\\$brick\\Api\\Hook";
+            $cmd_class = "Bricks\\$brick\\Api\\Hook";
 
             if(in_array($cmd_class, $class_to_ignore, true))
                 continue;

@@ -157,7 +157,7 @@ trait Resources {
 
         if(!@$_SESSION[self::$SESSION_KEY]['workers']['mail'] && !file_exists($worker)) {
             copy(
-                $framework_root . "workers" . DIRECTORY_SEPARATOR . "mail-processor.php",
+                $framework_root . "__internal" . DIRECTORY_SEPARATOR . "workers" . DIRECTORY_SEPARATOR . "mail-processor.php",
                 $worker,
             );
 
