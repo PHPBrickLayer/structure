@@ -62,11 +62,13 @@ final class LayCron
             Exception::throw_exception("
             You can't use this class to create a cronjob in windows. 
             It might be added in the future, but it isn't there now. 
-            You can pass `true` to this method to supress this error.
+            You can pass `true` to this method to suppress this error.
             ");
         }
 
         exec("cat " . self::CRON_FILE, $out);
+
+        return implode(PHP_EOL, $out);
     }
 
     private function cron_db() : string {
@@ -375,6 +377,12 @@ final class LayCron
     public function clear_all() : void
     {
         $this->db_data_clear_all();
+    }
+
+    public function clear_log() : void
+    {
+        if(!file_exists($this->output_file))
+            file_put_contents($this->output_file, PHP_EOL);
     }
 
     /**

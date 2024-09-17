@@ -41,13 +41,13 @@ class CronController
         ");
     }
 
-    public function job_exists(string $script, string $schedule) : bool
+    public function job_exists(string $script, string $schedule) : array
     {
         self::init();
 
-        return (bool) self::orm(self::$table)
+        return self::orm(self::$table)
             ->where("deleted=0 AND `script`='$script' AND schedule='$schedule'")
-            ->count_row("id");
+            ->select();
     }
 
 
@@ -91,8 +91,10 @@ class CronController
         self::cleanse($post->script);
         self::cleanse($post->use_php, strict: false);
 
-        if ($this->job_exists($post->script, $post->schedule))
-            return self::resolve(1, "Job exists already!");
+        if ($job = $this->job_exists($post->script, $post->schedule)) {
+            $this->play_script($job['id']);
+            return self::resolve(1, "Job exists already! Reactivated successfully");
+        }
 
         $id = $this->uuid();
         $raw_script .= " " . self::JOB_CLI_KEY . " " . $id;
@@ -166,9 +168,9 @@ class CronController
             $script = $job['script'];
         }
 
-        exec("'$bin' $script $tag");
+        exec("'$bin' $script $tag", $out);
 
-        return self::resolve(1, "Script executed!");
+        return self::resolve(1, "Script executed! " . implode(PHP_EOL , $out ?? ''));
     }
 
     public function pause_script() : array
@@ -187,9 +189,9 @@ class CronController
         return self::resolve();
     }
 
-    public function play_script() : array
+    public function play_script(?string $job_id = null) : array
     {
-        $job_id = self::get_json()->id;
+        $job_id ??= self::get_json()->id;
         $job = $this->get_job($job_id);
 
         $raw_script = $job['script'] . " " . self::JOB_CLI_KEY . " " . $job_id;
