@@ -9,6 +9,7 @@ use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Libs\LayFn;
 use BrickLayer\Lay\Libs\LayMail;
+use BrickLayer\Lay\Libs\Mail\Mailer;
 use BrickLayer\Lay\Orm\SQL;
 use Closure;
 use JetBrains\PhpStorm\ArrayShape;
@@ -130,7 +131,7 @@ trait Config
 
     public static function set_smtp(): void
     {
-        LayMail::set_credentials();
+        Mailer::set_credentials();
     }
 
     public static function get_orm(bool $connect_db = false): SQL

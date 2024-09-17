@@ -49,6 +49,9 @@ class Mailer {
 
     private function dump_log() : void
     {
+        if(!isset($this->log_data))
+            return;
+
         $log = LayConfig::server_data()->temp . "emails" . DIRECTORY_SEPARATOR;
         LayDir::make($log, 0755, true);
 
@@ -79,7 +82,7 @@ class Mailer {
             self::$mail_link->Username   = self::$credentials['username'];
             self::$mail_link->Password   = self::$credentials['password'];
         }catch (\Exception $e){
-            \BrickLayer\Lay\Core\Exception::throw_exception("SMTP Credentials has not been setup. " . $e->getMessage(),"SMTPCredentialsError", stack_track: $e->getTrace(), exception: $e);
+            \BrickLayer\Lay\Core\Exception::throw_exception("SMTP Credentials has not been setup. " . $e->getMessage(),"SMTPCredentialsError", exception: $e);
         }
 
     }

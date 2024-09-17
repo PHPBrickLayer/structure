@@ -147,11 +147,28 @@ class CronController
 
         $job = LayCron::new()->get_job($job_id);
 
-        $x = explode(self::JOB_CLI_KEY, $job['script']);
-        $script = $x[0];
-        $tag = self::JOB_CLI_KEY . $x[1];
+        if($job) {
+            $bin = $job['binary'];
 
-        return self::resolve(1, "Script executed successfully. Response: " . exec("'{$job['binary']}' '$script' $tag"));
+            // Extract Job uuid and attach it to the tag variable
+            $sc_frag = explode(self::JOB_CLI_KEY, $job['script']);
+            $tag = self::JOB_CLI_KEY . " " . $sc_frag[1];
+
+            // Extract any further tags attached to the script so we can safely wrap the script in a single quote
+            $sc = explode(" ", $sc_frag[0], 2);
+            $script = "'$sc[0]' " . ($sc[1] ?? '');
+        }
+
+        else {
+            $job = $this->get_job($job_id);
+            $bin = $job['use_php'] == 1 ? LayCron::php_bin() : "";
+            $tag = self::JOB_CLI_KEY . " " . $job['id'];
+            $script = $job['script'];
+        }
+
+        exec("'$bin' $script $tag");
+
+        return self::resolve(1, "Script executed!");
     }
 
     public function pause_script() : array

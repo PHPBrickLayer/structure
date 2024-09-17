@@ -498,5 +498,6 @@ class CoreException
             die;
         }
 
+        return $act;
     }
 }
