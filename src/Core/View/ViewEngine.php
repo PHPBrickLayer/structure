@@ -10,6 +10,9 @@ use BrickLayer\Lay\Core\Traits\IsSingleton;
 use BrickLayer\Lay\Core\View\Tags\Link;
 use BrickLayer\Lay\Core\View\Tags\Script;
 
+//TODO: Find a way to generate static pages for domains
+// The static pages should be able to use classes when necessary for things that are dynamic like a blog page
+
 /**
  * Page Creator
  */

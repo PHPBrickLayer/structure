@@ -32,7 +32,7 @@ class LaySymlink {
             $type = is_dir($src) ? SymlinkWindowsType::SOFT->value : $type;
 
             // TODO: Study the behaviour of symlink on windows and catch the necessary errors
-            exec("mklink " . $type . " \"$dest\" \"$src\"");
+            exec("mklink " . $type . " '$dest' '$src'");
             return;
         }
 

@@ -120,7 +120,7 @@ final class LayCron
         $exec = @file_put_contents(self::CRON_FILE, $mailto . $cron_jobs);
 
         if($exec) {
-            exec("crontab " . self::CRON_FILE . " 2>&1", $out);
+            exec("crontab '" . self::CRON_FILE . "' 2>&1", $out);
             $exec = empty($out);
             $error = implode("\n", $out);
         }
@@ -326,7 +326,6 @@ final class LayCron
             return null;
 
         $x = explode(" ", $job, 7);
-        $job = end($x);
 
         return [
             "schedule" => "$x[0] $x[1] $x[2] $x[3] $x[4]",
