@@ -147,7 +147,11 @@ class CronController
 
         $job = LayCron::new()->get_job($job_id);
 
-        return self::resolve(1, "Script executed successfully. Response: " . exec($job['binary'] . " " . $job['script']));
+        $x = explode(self::JOB_CLI_KEY, $job['script']);
+        $script = $x[0];
+        $tag = self::JOB_CLI_KEY . $x[1];
+
+        return self::resolve(1, "Script executed successfully. Response: " . exec("'{$job['binary']}' '$script' $tag"));
     }
 
     public function pause_script() : array

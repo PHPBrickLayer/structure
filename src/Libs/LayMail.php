@@ -303,8 +303,6 @@ abstract class LayMail {
             $this->connect_smtp();
 
             if(LayConfig::$ENV_IS_PROD || $this->send_on_dev_env) {
-                // TODO: Add a cron job to get all the email queue and send them one at a time
-                // based on priority
                 $send = self::$mail_link->send();
                 $this->dump_log();
                 return $send;

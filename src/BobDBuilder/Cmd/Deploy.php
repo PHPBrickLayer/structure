@@ -180,14 +180,14 @@ class Deploy implements CmdLayout
                     "maintain_line" => true
                 ]);
 
-                // TODO: we can add a condition to optimize if it's an image, reduce the size to a reasonable dimension
+                //TODO: we can add a condition to optimize if it's an image, reduce the size to a reasonable dimension
                 // also we can make the quality of the photo 70
 
                 if($is_js($file))
-                    $return = exec("terser $file -c -m -o $output 2>&1 &",$current_error);
+                    $return = exec("terser '$file' -c -m -o '$output' 2>&1 &",$current_error);
 
                 if ($is_css($file))
-                    $return = exec("uglifycss $file --output $output 2>&1 &", $current_error);
+                    $return = exec("uglifycss '$file' --output '$output' 2>&1 &", $current_error);
 
                 if(!empty($current_error))
                     $error[] = ["file" => $file, "error" => join("\n", $current_error)];
@@ -354,7 +354,7 @@ class Deploy implements CmdLayout
         $root = $this->root;
 
         $is_repo = exec(<<<CMD
-            cd $root && 
+            cd '$root' && 
             git config --get remote.origin.url 2>&1
             2>&1
         CMD);
@@ -364,24 +364,26 @@ class Deploy implements CmdLayout
 
         $branch = shell_exec("git branch --show-current");
 
+        $msg = str_replace("'", "\'", $msg);
+
         exec(<<<CMD
             git add -A 2>&1 &&
-            git commit -m "$msg" 2>&1  
+            git commit -m '$msg' 2>&1  
         CMD, $output);
 
-        if(str_contains(exec("cd $root | git pull | git submodule update --remote --merge 2>&1"), "error: ")) {
+        if(str_contains(exec("cd '$root' | git pull | git submodule update --remote --merge 2>&1"), "error: ")) {
             exec(<<<CMD
                 git add -A 2>&1 &&
-                git commit -m "$msg" 2>&1  
+                git commit -m '$msg' 2>&1  
             CMD, $output);
 
-            exec("cd $root | git pull 2>&1", $output);
+            exec("cd '$root' | git pull 2>&1", $output);
         }
 
         $this->talk(" (-) *Git Says*");
 
-        exec("git push -u origin $branch > /dev/null &", $output);
-        exec("cd $root | git add . && git commit -m \"$msg\" && git push --recurse-submodules=on-demand > /dev/null &");
+        exec("git push -u origin '$branch' > /dev/null &", $output);
+        exec("cd '$root' | git add . && git commit -m '$msg' && git push --recurse-submodules=on-demand > /dev/null &");
 
         foreach ($output as $out){
             print "     " . $out . "\n";
