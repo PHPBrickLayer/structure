@@ -48,6 +48,27 @@ final class LayCron
         return self::$PHP_BIN = "/usr/bin/php";
     }
 
+    /**
+     * @param bool $suppress_win_exception
+     * @return string|bool
+     * @throws \Exception
+     */
+    public static function dump_crontab(bool $suppress_win_exception = false) : string|bool
+    {
+        if(LayConfig::get_os() == "WINDOWS") {
+            if($suppress_win_exception)
+                return false;
+
+            Exception::throw_exception("
+            You can't use this class to create a cronjob in windows. 
+            It might be added in the future, but it isn't there now. 
+            You can pass `true` to this method to supress this error.
+            ");
+        }
+
+        exec("cat " . self::CRON_FILE, $out);
+    }
+
     private function cron_db() : string {
         $dir = LayConfig::mk_tmp_dir();
         $file = $dir . "cron_jobs.json";
