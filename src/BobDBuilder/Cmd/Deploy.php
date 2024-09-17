@@ -382,7 +382,7 @@ class Deploy implements CmdLayout
 
         $this->talk(" (-) *Git Says*");
 
-        exec("git push -u origin '$branch' > /dev/null &", $output);
+        exec("git push -u origin $branch > /dev/null &", $output);
         exec("cd '$root' | git add . && git commit -m '$msg' && git push --recurse-submodules=on-demand > /dev/null &");
 
         foreach ($output as $out){
