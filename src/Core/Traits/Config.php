@@ -8,7 +8,6 @@ use BrickLayer\Lay\Core\Enums\LayServerType;
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Libs\LayFn;
-use BrickLayer\Lay\Libs\LayMail;
 use BrickLayer\Lay\Libs\Mail\Mailer;
 use BrickLayer\Lay\Orm\SQL;
 use Closure;
