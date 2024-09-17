@@ -495,6 +495,8 @@ class CoreException
 
         if ($act['act'] == "kill") {
             self::$already_caught = true;
+            error_reporting(0);
+
             echo $act['error'];
             die;
         }

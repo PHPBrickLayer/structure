@@ -497,4 +497,17 @@ class Domain {
     public function get_domain_by_id(string $id) : ?array {
         return $this->get_cached_domain_details($id);
     }
+
+    /**
+     * Clear the session key of a domain list.
+     * This is especially useful in the production server where Lay caches
+     * the list of domains to avoid the number of times it has to loop to get
+     * the correct domain
+     *
+     * @return void
+     */
+    public function clear_domain_cache() : void
+    {
+        unset($_SESSION[self::$domain_list_key]);
+    }
 }
