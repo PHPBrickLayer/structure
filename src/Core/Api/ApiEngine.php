@@ -15,6 +15,11 @@ use Closure;
 use BrickLayer\Lay\Core\Api\Enums\ApiRequestMethod;
 use BrickLayer\Lay\Core\Exception;
 
+// TODO: Cache api list. Find a way to cache the entire api list of the application,
+// so that on production, it doesn't have to loop on every request.
+// Developer should be able to create a cache for a particular domain, so the framework
+// doesn't have to loop through the entire api list to get maybe two apis for a particular domain
+// Cache could be a physical file created called api list or something of sorts, but something not so large though.
 final class ApiEngine {
     private static self $engine;
     private static bool $DEBUG_MODE = false;

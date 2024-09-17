@@ -30,7 +30,7 @@ class Console {
      */
     public static function log(string $text = '', Foreground|Style $color = Style::normal, ?Background $bg_color = null, ?Style $style = null, bool $newline = true, bool $maintain_line = false) : void
     {
-        echo self::text($text, $color, $bg_color, $style, $newline, $maintain_line);
+        echo self::text($text, $color, $bg_color, $style, $newline, $maintain_line, true);
     }
 
     /**
@@ -42,6 +42,7 @@ class Console {
      * @param Style|null $style Font style
      * @param boolean $newline Append EOF?
      * @param bool $maintain_line
+     * @param bool $ascii To add ascii characters to the formatted text. False by default
      * @return string
      */
     public static function text(string $text = '', Foreground|Style $color = Style::normal, ?Background $bg_color = null, ?Style $style = null, bool $newline = true, bool $maintain_line = false, bool $ascii = false) : string
