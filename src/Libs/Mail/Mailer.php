@@ -3,8 +3,6 @@ declare(strict_types=1);
 namespace BrickLayer\Lay\Libs\Mail;
 
 use BrickLayer\Lay\Core\LayConfig;
-use BrickLayer\Lay\Core\View\DomainResource;
-use BrickLayer\Lay\Libs\Cron\LayCron;
 use BrickLayer\Lay\Libs\LayDir;
 use JetBrains\PhpStorm\ArrayShape;
 use JetBrains\PhpStorm\ExpectedValues;
@@ -23,8 +21,8 @@ class Mailer {
         "password" => null,
         "default_sender_email" => null,
         "default_sender_name" => null,
-        "max_queue_items" => 5,
-        "max_queue_retries" => 3,
+        "max_queue_items" => null,
+        "max_queue_retries" => null,
     ];
 
     private array $attachment;
@@ -53,7 +51,7 @@ class Mailer {
             return;
 
         $log = LayConfig::server_data()->temp . "emails" . DIRECTORY_SEPARATOR;
-        LayDir::make($log, 0755, true);
+        LayDir::make($log, 0777, true);
 
         $log .= date("Y-m-d-H-i-s" . rand(0, 9)) . ".log";
 
@@ -197,15 +195,15 @@ class Mailer {
         ])] ?array $details = null
     ) : array {
         $details ??= [
-            "host" => $_ENV['SMTP_HOST'],
-            "port" => $_ENV['SMTP_PORT'],
-            "protocol" => $_ENV['SMTP_PROTOCOL'],
+            "host" => $_ENV['SMTP_HOST'] ?? 'localhost',
+            "port" => $_ENV['SMTP_PORT'] ?? 587,
+            "protocol" => $_ENV['SMTP_PROTOCOL'] ?? 'tls',
             "username" => $_ENV['SMTP_USERNAME'],
             "password" => $_ENV['SMTP_PASSWORD'],
-            "default_sender_name" => $_ENV['DEFAULT_SENDER_NAME'],
-            "default_sender_email" => $_ENV['DEFAULT_SENDER_EMAIL'],
-            "max_queue_items" => $_ENV['SMTP_MAX_QUEUE_ITEMS'],
-            "max_queue_retries" => $_ENV['SMTP_MAX_QUEUE_RETRIES'],
+            "default_sender_name" => $_ENV['DEFAULT_SENDER_NAME'] ?? null,
+            "default_sender_email" => $_ENV['DEFAULT_SENDER_EMAIL'] ?? null,
+            "max_queue_items" => $_ENV['SMTP_MAX_QUEUE_ITEMS'] ?? 5,
+            "max_queue_retries" => $_ENV['SMTP_MAX_QUEUE_RETRIES'] ?? 3,
         ];
 
         return self::$credentials = $details;
