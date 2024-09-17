@@ -508,6 +508,7 @@ class Domain {
      */
     public function clear_domain_cache() : void
     {
-        unset($_SESSION[self::$domain_list_key]);
+        if(isset($_SESSION[self::$domain_list_key]))
+            unset($_SESSION[self::$domain_list_key]);
     }
 }
