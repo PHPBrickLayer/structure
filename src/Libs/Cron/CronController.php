@@ -170,7 +170,7 @@ class CronController
 
         exec("'$bin' $script $tag", $out);
 
-        return self::resolve(1, "Script executed! " . implode(PHP_EOL , $out ?? ''));
+        return self::resolve(1, "Script executed!", ['output' => implode(PHP_EOL , $out ?? '')]);
     }
 
     public function pause_script() : array
