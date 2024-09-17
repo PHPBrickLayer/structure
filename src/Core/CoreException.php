@@ -10,8 +10,6 @@ use BrickLayer\Lay\Core\Api\Enums\ApiStatus;
 use BrickLayer\Lay\Core\Enums\LayMode;
 use BrickLayer\Lay\Core\Traits\IsSingleton;
 use BrickLayer\Lay\Libs\LayDir;
-use BrickLayer\Lay\Orm\SQL;
-use http\Exception\RuntimeException;
 
 class CoreException
 {
@@ -393,7 +391,7 @@ class CoreException
         }
 
         $dir = LayConfig::server_data()->temp;
-        $file_log = $dir . DIRECTORY_SEPARATOR . "exceptions.log";
+        $file_log = $dir . "exceptions.log";
 
         LayDir::make($dir, 0755, true);
 
@@ -405,11 +403,11 @@ class CoreException
         $stack_raw
         DEBUG;
 
-        file_put_contents($file_log, $body, FILE_APPEND);
+        $write = @file_put_contents($file_log, $body, FILE_APPEND);
 
         return [
             "act" => $other['act'] ?? "allow",
-            "error" => $display ?: "Check logs for details. Error encountered",
+            "error" => $display ?: ($write ? "Check logs for details. Error encountered" : "Error encountered, but could not write to log file due to insufficient permission!"),
             "as_string" => $return_as_string
         ];
     }
@@ -496,7 +494,6 @@ class CoreException
         if ($act['act'] == "kill") {
             self::$already_caught = true;
             error_reporting(0);
-
             echo $act['error'];
             die;
         }
