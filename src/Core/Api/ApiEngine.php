@@ -133,7 +133,7 @@ final class ApiEngine {
     private static bool $anonymous_group = false;
 
     /** [ENGINE SCOPE] **/
-    private const GLOBAL_API_CLASS = "web\\domains\\Api\\Plaster";
+    private const GLOBAL_API_CLASS = "Web\\Api\\Plaster";
     /**
      * The current API class Engine is processing
      * @var string
