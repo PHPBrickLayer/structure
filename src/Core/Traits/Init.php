@@ -126,6 +126,9 @@ trait Init {
             )
         );
 
+        if(self::get_mode() == LayMode::CLI && !isset($_SERVER['SSH_CONNECTION']))
+            self::$ENV_IS_PROD = false;
+
         self::$ENV_IS_DEV = !self::$ENV_IS_PROD;
 
         self::set_web_root($options);

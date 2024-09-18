@@ -279,7 +279,13 @@ trait Config
 
     public static function get_ip(): string
     {
-        if (self::get_mode() === LayMode::CLI) return "LAY_CLI_MODE";
+        if (self::get_mode() === LayMode::CLI) {
+
+            if(isset($_SERVER['SSH_CONNECTION']))
+                return explode(" ", $_SERVER['SSH_CONNECTION'], 2)[0];
+
+            return "LAY_CLI_MODE";
+        }
 
         $IP_KEY = "PUBLIC_IP";
         $public_ip = $_SESSION[self::$SESSION_KEY][$IP_KEY] ?? null;
