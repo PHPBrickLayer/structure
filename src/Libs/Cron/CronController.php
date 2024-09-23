@@ -47,7 +47,7 @@ class CronController
 
         return self::orm(self::$table)
             ->where("deleted=0 AND `script`='$script' AND schedule='$schedule'")
-            ->select();
+            ->then_select();
     }
 
 
