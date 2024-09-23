@@ -5,17 +5,106 @@ namespace BrickLayer\Lay\Orm\Traits;
 
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Libs\LayArray;
+use BrickLayer\Lay\Libs\String\Enum\EscapeType;
+use BrickLayer\Lay\Libs\String\Escape;
 use BrickLayer\Lay\Orm\Enums\OrmReturnType;
 use BrickLayer\Lay\Orm\SQL;
 use Closure;
 use Generator;
-use JetBrains\PhpStorm\ArrayShape;
 use JetBrains\PhpStorm\ExpectedValues;
 
 trait SelectorOOP
 {
     private static int $current_index = 0;
     private array $cached_options = [];
+
+    /**
+     * Forms a search query based on a relevance scale
+     *
+     * @param string $query
+     * @param array $columns
+     * @param string $select_as by default, it returns its result as relevance, so you can sort as that
+     * @param array $filter_list List of filler words than need to be removed
+     * @return string
+     * @example relevance_query (
+     * "Egypt minister",
+     * [
+     *  "blogs.title" => [
+     *      'full' => 10,
+     *      'keyword' => 8
+     *  ],
+     * "blogs.subtitle" => [
+     *      'full' => 8,
+     *      'keyword' => 5
+     *      ],
+     * "blogs.tags" => 3,
+     * "blogs.keyword" => 2,
+     * ]);
+     */
+    final public function relevance_query(
+        string $query,
+        array $columns,
+        string $select_as = "relevance",
+        array $filter_list = ["in","it","a","the","of","or","I","you","he","me","us","they","she","to","but","that","this","those","then"]
+    ) : string
+    {
+        $filter_words = function ($query) use ($filter_list) : array {
+            $words = [];
+
+            $c = 0;
+
+            foreach(explode(" ", trim($query)) as $key){
+                if (in_array($key, $filter_list))
+                    continue;
+
+                $words[] = $key;
+
+                if ($c > 14)
+                    break;
+
+                $c++;
+            }
+
+            return $words;
+        };
+
+        $query = trim($query);
+
+        if (mb_strlen($query) === 0)
+            return "";
+
+        $keywords = $filter_words($query);
+        $format = fn($token, $col, $score) =>  "if ($col LIKE '%$token%', $score, 0) + ";
+
+        $sql_text = "";
+
+        foreach ($columns as $col => $rule) {
+            $esc_query = Escape::clean($query, EscapeType::STRIP_TRIM_ESCAPE,);
+
+            $sql_text .= "(";
+
+            if (is_array($rule) && isset($rule['keyword'])) {
+                $score = $rule['full'] ?? $rule[0] ?? null;
+                $sql_text .= $score ? $format($esc_query, $col, $score) : "";
+            }
+            else {
+                $sql_text .= rtrim($format($esc_query, $col, $rule), "+ ") . ") + ";
+                continue;
+            }
+
+            foreach($keywords as $key) {
+                if(empty($key))
+                    continue;
+
+                $esc_query = Escape::clean($key, EscapeType::STRIP_TRIM_ESCAPE,);
+                $sql_text .= $format($esc_query, $col, $rule['keyword'] ?? $rule[1]);
+            }
+
+            $sql_text = rtrim($sql_text, "+ ") . ") + ";
+        }
+
+        return "( " . rtrim($sql_text, "+ ") . " ) as $select_as";
+    }
 
     final public function open(string $table): self
     {
@@ -30,25 +119,6 @@ trait SelectorOOP
     final public function table(string $table): self
     {
         return $this->store_vars('table', $table);
-    }
-
-    private function store_vars(string $key, mixed $value, $id1 = null, $id2 = null): self
-    {
-        $index = max(self::$current_index, 0);
-
-        if ($id1 === true)
-            $this->cached_options[$index][$key][] = $value;
-
-        elseif ($id1 && !$id2)
-            $this->cached_options[$index][$key][$id1] = $value;
-
-        elseif ($id1 && $id2)
-            $this->cached_options[$index][$key][$id1][$id2] = $value;
-
-        else
-            $this->cached_options[$index][$key] = $value;
-
-        return $this;
     }
 
     final public function value(string|array $values): self
@@ -126,7 +196,6 @@ trait SelectorOOP
 
         return $this->store_vars('bind_assoc', $assoc_array);
     }
-
 
     final public function group(string $condition): self
     {
@@ -238,6 +307,25 @@ trait SelectorOOP
         $this->no_null();
         $this->assoc();
         return $this->select();
+    }
+
+    private function store_vars(string $key, mixed $value, $id1 = null, $id2 = null): self
+    {
+        $index = max(self::$current_index, 0);
+
+        if ($id1 === true)
+            $this->cached_options[$index][$key][] = $value;
+
+        elseif ($id1 && !$id2)
+            $this->cached_options[$index][$key][$id1] = $value;
+
+        elseif ($id1 && $id2)
+            $this->cached_options[$index][$key][$id1][$id2] = $value;
+
+        else
+            $this->cached_options[$index][$key] = $value;
+
+        return $this;
     }
 
     /**
