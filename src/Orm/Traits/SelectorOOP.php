@@ -74,7 +74,17 @@ trait SelectorOOP
             return "";
 
         $keywords = $filter_words($query);
-        $format = fn($token, $col, $score) =>  "if ($col LIKE '%$token%', $score, 0) + ";
+
+        $format = function($token, $col, $score, $op = "LIKE") {
+            $op = $op ? strtolower($op) : null;
+
+            if($op == "=")
+                $op = "='$token'";
+            else
+                $op = "LIKE '%$token%'";
+
+            return "if ($col $op, $score, 0) + ";
+        };
 
         $sql_text = "";
 
@@ -83,21 +93,23 @@ trait SelectorOOP
 
             $sql_text .= "(";
 
-            if (is_array($rule) && isset($rule['keyword'])) {
+            if (is_array($rule)) {
                 $score = $rule['full'] ?? $rule[0] ?? null;
-                $sql_text .= $score ? $format($esc_query, $col, $score) : "";
+                $sql_text .= $score ? $format($esc_query, $col, $score, $rule['op'] ?? null) : "";
             }
             else {
                 $sql_text .= rtrim($format($esc_query, $col, $rule), "+ ") . ") + ";
                 continue;
             }
 
-            foreach($keywords as $key) {
-                if(empty($key))
-                    continue;
+            if(isset($rule['keyword'])) {
+                foreach ($keywords as $key) {
+                    if (empty($key))
+                        continue;
 
-                $esc_query = Escape::clean($key, EscapeType::STRIP_TRIM_ESCAPE,);
-                $sql_text .= $format($esc_query, $col, $rule['keyword'] ?? $rule[1]);
+                    $esc_query = Escape::clean($key, EscapeType::STRIP_TRIM_ESCAPE,);
+                    $sql_text .= $format($esc_query, $col, $rule['keyword'] ?? $rule[1]);
+                }
             }
 
             $sql_text = rtrim($sql_text, "+ ") . ") + ";
