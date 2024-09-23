@@ -66,7 +66,7 @@ final class LayCron
             ");
         }
 
-        exec("cat " . self::CRON_FILE, $out);
+        exec("source ~/.bashrc | cat " . self::CRON_FILE, $out);
 
         return implode(PHP_EOL, $out);
     }
