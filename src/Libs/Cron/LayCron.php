@@ -10,6 +10,7 @@ use BrickLayer\Lay\Libs\LayDate;
 final class LayCron
 {
     private const CRON_FILE = "/tmp/crontab.txt";
+    private const CRON_DB_FILE = "cron_jobs.json";
     private const DB_SCHEMA = [
         "mailto" => "",
         "jobs" => [],
@@ -66,14 +67,25 @@ final class LayCron
             ");
         }
 
-        exec("source ~/.bashrc | cat " . self::CRON_FILE, $out);
+        exec("cat " . self::CRON_FILE, $out);
 
         return implode(PHP_EOL, $out);
     }
 
+    public static function dump_db_file() : ?array
+    {
+        $dir = LayConfig::mk_tmp_dir();
+        $file = $dir . self::CRON_DB_FILE;
+
+        if(!file_exists($file))
+            return null;
+
+        return json_decode(file_get_contents($file), true);
+    }
+
     private function cron_db() : string {
         $dir = LayConfig::mk_tmp_dir();
-        $file = $dir . "cron_jobs.json";
+        $file = $dir . self::CRON_DB_FILE;
         $this->output_file = $dir . "cron_outputs.txt";
 
         if(!file_exists($file))
