@@ -3,6 +3,7 @@
 namespace BrickLayer\Lay\Libs\String;
 
 use BrickLayer\Lay\Core\Traits\IsSingleton;
+use DOMDocument;
 
 class WordCount
 {
@@ -39,8 +40,17 @@ class WordCount
 
     use IsSingleton;
 
+    /**
+     * @param string $words
+     * @return array
+     * @psalm-return array{
+     *     dom: DOMDocument,
+     *     total: int,
+     *     duration: int,
+     * }
+     */
     public function text(string $words) : array {
-        $dom = (new \DOMDocument('1.0'));
+        $dom = (new DOMDocument('1.0'));
 
         @$dom->loadHTML($words);
 
@@ -54,6 +64,7 @@ class WordCount
         $duration = $words + $img_count + $video_count + $audio_count + $this->extra_secs;
 
         return [
+            "dom" => $dom,
             "total" => $words,
             "duration" => ceil($duration/$this->words_per_minute)
         ];
