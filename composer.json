@@ -25,13 +25,14 @@
         "ext-json": "*",
         "ext-fileinfo": "*",
         "vlucas/phpdotenv": "^5.5.0",
-        "phpmailer/phpmailer": "^6.8.0"
+        "phpmailer/phpmailer": "^6.8.0",
     },
     "suggest" : {
         "ext-sqlite3": "If you need to use SQLite",
         "ext-gd": "For better image manipulation, using Libs\\LayImage class",
         "ext-exif": "For added support to image manipulation using LayImage",
         "ext-dom": "For Dom manipulation using Libs\\String\\WordCount class",
+        "ext-libxml": "For Dom manipulation using Libs\\String\\WordCount class",
         "ext-openssl": "For password hashing using Libs\\LayPassword",
         "aws/aws-sdk-php": "Required by Libs\\Aws\\* to work with AWS and related services like cloudflare R2 (^3.296)"
     },

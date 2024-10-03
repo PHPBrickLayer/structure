@@ -49,10 +49,10 @@ class WordCount
      *     duration: int,
      * }
      */
-    public function text(string $words) : array {
-        $dom = (new DOMDocument('1.0'));
+    public function text(string $words, string $encoding = "UTF-8") : array {
+        $dom = (new DOMDocument('1.0', $encoding));
 
-        @$dom->loadHTML($words);
+        @$dom->loadHTML('<?xml encoding="' . $encoding . '">' . $words, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
 
         $words = explode(" ", trim(strip_tags($words)));
         $words = count($words);
@@ -62,6 +62,12 @@ class WordCount
         $audio_count = $dom->getElementsByTagName("audio")->count() * $this->secs_allocated_to_audio;
 
         $duration = $words + $img_count + $video_count + $audio_count + $this->extra_secs;
+
+        foreach ($dom->childNodes as $item) {
+            if ($item->nodeType == XML_PI_NODE)
+                $dom->removeChild($item);
+        }
+        $dom->encoding = $encoding; // reset original encoding
 
         return [
             "dom" => $dom,
