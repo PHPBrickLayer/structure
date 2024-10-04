@@ -1,4 +1,7 @@
 /vendor/
+/web/uploads/
+/.lay/temp/
+/.lay/workers/
 
 # Logs
 .logs
