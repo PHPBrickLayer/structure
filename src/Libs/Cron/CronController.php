@@ -5,6 +5,7 @@ namespace BrickLayer\Lay\Libs\Cron;
 use BrickLayer\Lay\Core\Traits\IsSingleton;
 use BrickLayer\Lay\Libs\Abstract\TableTrait;
 use BrickLayer\Lay\Libs\LayDate;
+use BrickLayer\Lay\Libs\LayFn;
 
 class CronController
 {
@@ -125,13 +126,7 @@ class CronController
 
     public function extract_job_id(array $arg_values): ?string
     {
-        $job_key = array_search(self::JOB_CLI_KEY, $arg_values);
-        $job_id = null;
-
-        if ($job_key !== false)
-            $job_id = $arg_values[$job_key + 1];
-
-        return $job_id;
+        return LayFn::extract_cli_tag(self::JOB_CLI_KEY, true);
     }
 
     public function update_last_run(string $job_id): void

@@ -13,11 +13,20 @@ include_once __DIR__ . DIRECTORY_SEPARATOR . ".." . DIRECTORY_SEPARATOR . ".." .
 
 $mailer = new MailerQueueHandler();
 $max_retries = $_ENV['SMTP_MAX_QUEUE_RETRIES'] ?? 3;
+$send_on_dev = false;
 
 // Check if sending, and return if found
 
 if($mailer->is_still_sending())
     return;
+
+$send_on_dev = \BrickLayer\Lay\Libs\LayFn::extract_cli_tag("--send-on-dev", false);
+
+$sender = class_exists(\Utils\Email\Email::class) ?
+    \Utils\Email\Email::new() : new Mailer();
+
+if($send_on_dev)
+    $sender->send_on_dev_env();
 
 foreach ($mailer->next_items() as $mail) {
     // There should always be an Email class inside the utils/ directory.
@@ -52,9 +61,6 @@ foreach ($mailer->next_items() as $mail) {
 
     $actors = json_decode($mail['actors'], true);
     $attachment = json_decode($mail['attachment'], true);
-
-    $sender = class_exists(\Utils\Email\Email::class) ?
-        \Utils\Email\Email::new() : new Mailer();
 
     $sender = $sender
         ->subject($mail['subject'])

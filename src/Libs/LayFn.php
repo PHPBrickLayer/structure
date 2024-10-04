@@ -75,4 +75,26 @@ final class LayFn
         die;
     }
 
+    /**
+     * Extract the arguments passed to a script through the cli
+     *
+     * @param string $key
+     * @param bool $has_value when true, it means the tag has a value. Ex: --job-uid eec3ds-d2dc-ddd.
+     * Else: --invalidate-cache
+     *
+     * @return string|bool|int|null
+     */
+    public static function extract_cli_tag(string $key, bool $has_value): string|null|bool|int
+    {
+        global $argv;
+
+        $tag_key = array_search($key, $argv);
+        $value = null;
+
+        if ($tag_key !== false)
+            $value = $has_value ? $argv[$tag_key + 1] : true;
+
+        return $value;
+    }
+
 }
