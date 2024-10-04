@@ -5,6 +5,7 @@ namespace BrickLayer\Lay\BobDBuilder\Cmd;
 use BrickLayer\Lay\BobDBuilder\EnginePlug;
 use BrickLayer\Lay\BobDBuilder\Interface\CmdLayout;
 use BrickLayer\Lay\Libs\Cron\LayCron;
+use BrickLayer\Lay\Libs\LayDate;
 
 class Cron implements CmdLayout
 {
@@ -43,6 +44,9 @@ class Cron implements CmdLayout
 
         exec($job . " 2>&1 &", $out);
 
-        LayCron::new()->log_output(implode("\n", $out));
+        LayCron::new()->log_output(
+            "[" . LayDate::date() . "]\n" .
+            implode("\n", $out)
+        );
     }
 }

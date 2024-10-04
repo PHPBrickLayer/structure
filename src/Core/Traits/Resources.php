@@ -19,8 +19,9 @@ trait Resources {
 
         $obj = new \stdClass();
 
-        $obj->lay_static        =   $dir  .   "vendor"    .   $slash .    "bricklayer" . $slash .   "structure" . $slash . "src" . $slash . "static" . $slash;
-        $obj->framework         =   $dir  .   "vendor"    .   $slash .    "bricklayer" . $slash .   "structure" . $slash;
+        $obj->framework         =   $dir  .   "vendor"    .   $slash        .    "bricklayer"       . $slash .   "structure" . $slash;
+        $obj->lay_static        =   $obj->framework       . "src"           . $slash . "static"     . $slash;
+        $obj->framework_workers =   $obj->framework       . "__internal"    . $slash . "workers"    . $slash;
         $obj->root              =   $dir;
         $obj->lay               =   $dir  .   ".lay"      .  $slash;
         $obj->temp              =   $obj->lay             .   "temp" .   $slash;
@@ -34,8 +35,8 @@ trait Resources {
         $obj->uploads           =   $dir  .   "web"       .   $slash .    "uploads" . $slash;
         $obj->uploads_no_root   =   "uploads" . $slash;
 
+        //TODO: Delete the implementation and this section soon
         self::internal_mk_tmp_dir($obj->temp, $obj->root);
-        self::updated_workers($obj->workers, $obj->framework);
 
         self::$server = $obj;
     }
@@ -69,6 +70,8 @@ trait Resources {
         "lay" => 'string',
         "lay_static" => 'string',
         "framework" => 'string',
+        "framework_workers" => 'string',
+        "workers" => 'string',
         "root" => 'string',
         "temp" => 'string',
         "bricks" => 'string',
@@ -130,8 +133,6 @@ trait Resources {
 
     private static function internal_mk_tmp_dir(string $temp_dir, string $root) : void
     {
-        LayDir::make($temp_dir, 0755, true);
-
         //TODO: Delete this after all legacy projects have been updated. Delete the root arg as well
         // START
         $old_temp_dir = $root . ".lay_temp";
@@ -147,22 +148,6 @@ trait Resources {
 
         //TODO: Delete this after all legacy projects have been updated
         //END
-    }
-
-    private static function updated_workers(string $worker_dir, string $framework_root) : void
-    {
-        LayDir::make($worker_dir, 0755, true);
-
-        $worker = $worker_dir . "mail-processor.php";
-
-        if(!@$_SESSION[self::$SESSION_KEY]['workers']['mail'] && !file_exists($worker)) {
-            copy(
-                $framework_root . "__internal" . DIRECTORY_SEPARATOR . "workers" . DIRECTORY_SEPARATOR . "mail-processor.php",
-                $worker,
-            );
-
-            $_SESSION[self::$SESSION_KEY]['workers']['mail'] = true;
-        }
     }
 
     public static function mk_tmp_dir () : string {
