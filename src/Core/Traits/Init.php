@@ -189,6 +189,12 @@ trait Init {
         self::load_env();
         self::autoload_project_classes();
 
+        if(isset($_ENV['APP_ENV'])) {
+            $env = strtolower($_ENV['APP_ENV']);
+            self::$ENV_IS_PROD = !($env == "dev" || $env == "development");
+            self::$ENV_IS_DEV = !self::$ENV_IS_PROD;
+        }
+
         if(self::get_mode() == LayMode::CLI)
             self::new()->init_orm(true);
 

@@ -16,7 +16,6 @@ $max_retries = $_ENV['SMTP_MAX_QUEUE_RETRIES'] ?? 3;
 $send_on_dev = false;
 
 // Check if sending, and return if found
-
 if($mailer->is_still_sending())
     return;
 

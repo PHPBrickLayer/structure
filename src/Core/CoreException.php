@@ -194,7 +194,7 @@ class CoreException
         $return_as_string = $other['as_string'] ?: false;
         $display = $env == "DEVELOPMENT" || $other['core'] == "view";
         $cli_mode = LayConfig::get_mode() === LayMode::CLI;
-        $use_json = $this->throw_as_json && !isset(LayConfig::user_agent()['browser']) && !$cli_mode;
+        $use_json = $cli_mode ? false : ($this->throw_as_json && !isset(LayConfig::user_agent()['browser']));
         $show_internal_trace = $other['show_internal_trace'] ?? self::$show_internal_trace;
 
         if (!empty(@$other['raw'])) {
@@ -311,12 +311,6 @@ class CoreException
             $error .= Console::text($body, $cli_color, ascii: $other['ascii'] ?? true);
             $error .= "---------------------\n";
             $error .= $stack_raw;
-
-            return [
-                "act" => $other['act'] ?? "kill",
-                "error" => $error,
-                "as_string" => $return_as_string
-            ];
         }
 
         if($use_json) {
@@ -357,9 +351,9 @@ class CoreException
                     "as_string" => $return_as_string
                 ];
         }
-        else {
-            if ($display) {
-                $ERROR_BODY = <<<DEBUG
+
+        if (!$use_json && !$cli_mode && $display) {
+            $ERROR_BODY = <<<DEBUG
                 <details style='padding-left: 5px; margin: 5px 0 10px'>
                     <summary style="margin-bottom: 10px"><span style="font-size: 20px; font-weight: bold; cursor: pointer;">X-INFO</span></summary>
                     <b>ENV:</b> <span style="color: #dea303">$env</span> <br>
@@ -377,17 +371,16 @@ class CoreException
                 $internal_traces
                 DEBUG;
 
-                if (!$title)
-                    $display = '<div style="min-height: 300px; background:#1d2124;padding:10px;color:#fffffa;overflow:auto;">' . $ERROR_BODY . '</div>';
-                else
-                    $display = <<<DEBUG
+            if (!$title)
+                $display = '<div style="min-height: 300px; background:#1d2124;padding:10px;color:#fffffa;overflow:auto;">' . $ERROR_BODY . '</div>';
+            else
+                $display = <<<DEBUG
                     <div style="min-height: 300px; background:#1d2124;padding:10px;color:#fffffa;overflow:auto; margin: 0 0 15px">
                         <h3 style='color: $title_color; margin: 2px 0'> $title </h3>
                         <div style='color: $body_color; font-weight: bold; margin: 5px 0;'> $body </div><br>
                         $ERROR_BODY
                     </div>
                     DEBUG;
-            }
         }
 
         $dir = LayConfig::server_data()->temp;
@@ -407,7 +400,7 @@ class CoreException
 
         return [
             "act" => $other['act'] ?? "allow",
-            "error" => $display ?: ($write ? "Check logs for details. Error encountered" : "Error encountered, but could not write to log file due to insufficient permission!"),
+            "error" => $error ?? ($display ?: ($write ? "Check logs for details. Error encountered" : "Error encountered, but could not write to log file due to insufficient permission!")),
             "as_string" => $return_as_string
         ];
     }
