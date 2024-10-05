@@ -311,12 +311,6 @@ class CoreException
             $error .= Console::text($body, $cli_color, ascii: $other['ascii'] ?? true);
             $error .= "---------------------\n";
             $error .= $stack_raw;
-
-//            return [
-//                "act" => $other['act'] ?? "kill",
-//                "error" => $error,
-//                "as_string" => $return_as_string
-//            ];
         }
 
         if($use_json) {
