@@ -397,9 +397,7 @@ class Mailer {
     final public function queue(#[ExpectedValues([0,1,2,3,4,5])] int $priority = 0) : ?bool {
         $this->start_process();
 
-        $queue = new MailerQueueHandler();
-
-        return $queue->add_to_queue([
+        return (new MailerQueueHandler())->add_to_queue([
             "cc" => json_encode($this->cc ?? []),
             "bcc" => json_encode($this->bcc ?? []),
             "attachment" => json_encode($this->attachment ?? []),
