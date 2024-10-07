@@ -213,8 +213,10 @@ trait Config
 
         if ($key === "*") return $all;
 
-        if($key == "Bearer")
-            return $all['Authorization'] ? LayFn::ltrim_word($all['Authorization'], "Bearer ") : null;
+        if($key == "Bearer") {
+            $author = $all['Authorization'] ?? $all['authorization'] ?? $all['AUTHORIZATION'] ?? null;
+            return $author ? LayFn::ltrim_word($author, "Bearer ") : null;
+        }
 
         return $all[$key] ?? $all[strtolower($key)] ?? null;
     }
