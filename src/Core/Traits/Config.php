@@ -203,22 +203,47 @@ trait Config
 
                 $k = str_replace(["http_", "_"], ["", " "], strtolower($k));
                 $k = str_replace(" ", "-", ucwords($k));
+                $k_lower = strtolower($k);
 
-                if($k == "Dnt")
+                if($k_lower == "dnt")
                     $k = strtoupper($k);
 
-                $all[$k] = $server;
+                $all[$k_lower] = $server;
             }
         }
 
+        $authorization_header = function ($all): ?array {
+            $auth = $all['Authorization'] ?? $all['authorization'] ?? $all['AUTHORIZATION'] ?? null;
+
+            if(!$auth)
+                return null;
+
+            $auth = explode(" ", $auth, 2);
+
+            return [
+                "scheme" => $auth[0],
+                "data" => $auth[1] ?? null,
+            ];
+        };
+
         if ($key === "*") return $all;
 
-        if($key == "Bearer") {
-            $author = $all['Authorization'] ?? $all['authorization'] ?? $all['AUTHORIZATION'] ?? null;
-            return $author ? LayFn::ltrim_word($author, "Bearer ") : null;
+        $key_lower = strtolower($key);
+
+        if($key_lower == "authorization")
+            return $authorization_header($all);
+
+        if($key_lower == "bearer" || $key_lower == "basic" || $key_lower == "digest") {
+            $auth = $authorization_header($all);
+
+            if(!$auth)
+                return null;
+
+            return $auth['data'];
         }
 
-        return $all[$key] ?? $all[strtolower($key)] ?? null;
+
+        return $all[$key] ?? $all[$key_lower] ?? $all[strtoupper($key)] ?? null;
     }
 
     #[ArrayShape([
