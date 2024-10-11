@@ -78,7 +78,7 @@ class MailerQueueHandler {
         return self::orm(self::$table)
             ->where("id='$id' AND deleted=0")
             ->column([
-                "status" => MailerStatus::SENDING,
+                "status" => MailerStatus::SENDING->name,
                 "retries" => $retries + 1
             ])
             ->edit();
