@@ -102,6 +102,7 @@ trait Resources {
         "domain" => 'string',
         "domain_no_proto" => 'string',
         "domain_no_proto_no_www" => 'string',
+        "server_mocked" => 'bool',
         "author" => 'string',
         "global_api" => 'string',
         "name" => 'object[long, short]',
