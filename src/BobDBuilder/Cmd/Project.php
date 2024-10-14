@@ -5,7 +5,9 @@ namespace BrickLayer\Lay\BobDBuilder\Cmd;
 use BrickLayer\Lay\BobDBuilder\BobExec;
 use BrickLayer\Lay\BobDBuilder\EnginePlug;
 use BrickLayer\Lay\BobDBuilder\Interface\CmdLayout;
+use BrickLayer\Lay\Libs\ID\Gen;
 use BrickLayer\Lay\Libs\LayDir;
+use BrickLayer\Lay\Libs\LayFn;
 
 class Project implements CmdLayout
 {
@@ -53,6 +55,10 @@ class Project implements CmdLayout
             $server->framework . ".gitignore",
             $server->lay . ".gitignore",
         );
+
+        // generate an identity for the project if it doesn't exist
+        if(!file_exists($server->lay . "identity"))
+            file_put_contents($server . "identity", Gen::uuid(32));
 
         // Create Lay dependent directories if they don't exist
         LayDir::make($server->temp, 0755, true);
