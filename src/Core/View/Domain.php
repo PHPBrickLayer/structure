@@ -26,6 +26,7 @@ class Domain {
 
     private static bool $list_domain_only = false;
     private static bool $cli_mode = false;
+    private static bool $mocking_domain = false;
 
     private static bool $lay_init = false;
     private static LayConfig $layConfig;
@@ -199,6 +200,9 @@ class Domain {
 
         // Make lazy CORS configuration become active after loading all foundation files incase there was an overwrite
         LayConfig::call_lazy_cors();
+
+        if(self::$mocking_domain)
+            return;
 
         try{
             $builder = new ReflectionClass($builder);
@@ -466,6 +470,18 @@ class Domain {
         ]);
 
         $this->cache_patterns($id, $patterns);
+    }
+
+    public function mock(string $domain_id, ?string $host = null, bool $use_https = true) : void
+    {
+        self::$mocking_domain = true;
+        $_SERVER['REQUEST_URI'] = "";
+        $this->index($domain_id);
+
+        if($host)
+            LayConfig::mock_server($host, $use_https);
+
+        include_once LayConfig::server_data()->web . "index.php";
     }
 
     public function list() : array

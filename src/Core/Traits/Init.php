@@ -15,6 +15,7 @@ trait Init {
 
     private static LayMode $LAY_MODE;
     private static bool $INITIALIZED = false;
+    private static bool $MOCKED = false;
     private static bool $FIRST_CLASS_CITI_ACTIVE = false;
 
     protected static string $dir;
@@ -35,11 +36,21 @@ trait Init {
         $options['base_no_proto'] = self::$base_no_proto;
         $options['base_no_proto_no_www'] = self::$base_no_proto_no_www;
 
+        $options['server_mocked'] = false;
         $web =  "";
 
         if(!$options['using_domain']) {
             $web = $options['using_web'] ? "" : "web/";
             $options['use_domain_file'] = true;
+        }
+
+        if(self::$MOCKED) {
+            $options['server_mocked'] = true;
+            $options['use_domain_file'] = false;
+
+            $web = "";
+            $options['using_web'] = "";
+            $options['using_domain'] = "";
         }
 
         $options['domain'] = self::$base . ( $web ?: "" );
@@ -57,7 +68,7 @@ trait Init {
             )[0] . $s;
     }
 
-    private static function first_class_citizens() : void {
+    private static function first_class_citizens(bool $use_https = false) : void {
         self::$FIRST_CLASS_CITI_ACTIVE = true;
         self::set_dir();
 
@@ -93,7 +104,7 @@ trait Init {
         $base           = str_replace($slash, "/", end($base));
         $http_host      = $_SERVER['HTTP_HOST'] ?? $_ENV['LAY_CUSTOM_HOST'] ?? "cli";
         $env_host       = $_SERVER['REMOTE_ADDR'] ?? $_ENV['LAY_CUSTOM_REMOTE_ADDR'] ?? "cli";
-        $proto          = ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? $_SERVER['REQUEST_SCHEME'] ?? 'http') . "://";
+        $proto          = ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? $_SERVER['REQUEST_SCHEME'] ?? ($use_https ? 'https' : 'http')) . "://";
         $base_no_proto  = rtrim(str_replace($slash,"/", $base),"/");
 
         if($http_host != "cli" && !isset($_ENV['LAY_CUSTOM_HOST']))
@@ -233,5 +244,13 @@ trait Init {
             self::$LAY_MODE = LayMode::CLI;
 
         return self::$LAY_MODE;
+    }
+
+    public static function mock_server(string $host, bool $use_https) : void
+    {
+        $_ENV['LAY_CUSTOM_HOST'] = $host;
+        $_ENV['LAY_CUSTOM_REMOTE_ADDR'] = "lay_remote_addr";
+        self::$MOCKED = true;
+        self::first_class_citizens($use_https);
     }
 }
