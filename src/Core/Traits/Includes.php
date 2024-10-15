@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace BrickLayer\Lay\Core\Traits;
 use BrickLayer\Lay\Core\Exception;
+use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\View\DomainResource;
 use BrickLayer\Lay\Libs\LayArray;
 use BrickLayer\Lay\Libs\LayObject;
@@ -30,6 +31,18 @@ trait Includes {
                 break;
             case "view":
                 $type = ".view";
+                $type_root = $replace($domain->plaster);
+                break;
+            case "project":
+                $type = "";
+                $type_root = LayConfig::server_data()->root;
+                break;
+            case "layout":
+                $type = "";
+                $type_root = $replace($domain->layout);
+                break;
+            case "plaster":
+                $type = "";
                 $type_root = $replace($domain->plaster);
                 break;
         }
