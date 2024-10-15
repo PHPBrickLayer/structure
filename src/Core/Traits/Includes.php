@@ -8,13 +8,13 @@ use BrickLayer\Lay\Libs\LayArray;
 use BrickLayer\Lay\Libs\LayObject;
 
 trait Includes {
-    public function inc_file(?string $file, string $type = "inc", bool $once = true, bool $as_string = false, ?array $local = [], bool $use_refering_domain = true) : ?string
+    public function inc_file(?string $file, string $type = "inc", bool $once = true, bool $as_string = false, ?array $local = [], bool $use_referring_domain = true) : ?string
     {
         self::is_init();
 
         $domain = DomainResource::get()->domain;
 
-        $replace = fn($src) => !$use_refering_domain ? $src : str_replace(
+        $replace = fn($src) => !$use_referring_domain ? $src : str_replace(
             DIRECTORY_SEPARATOR . $domain->domain_name . DIRECTORY_SEPARATOR,
             DIRECTORY_SEPARATOR . $domain->domain_referrer . DIRECTORY_SEPARATOR,
             $src
