@@ -12,7 +12,7 @@ use BrickLayer\Lay\Libs\FileUpload\Traits\Image;
 use JetBrains\PhpStorm\ArrayShape;
 
 final class FileUpload {
-    public array $response;
+    public ?array $response = null;
 
     protected FileUploadStorage $storage;
 
@@ -23,8 +23,8 @@ final class FileUpload {
      * @throws \Exception
      */
     public function __construct(
-        protected FileUploadType $upload_type,
-        array $opts
+        protected ?FileUploadType $upload_type = null,
+        array $opts = []
     )
     {
         if($this->upload_type == FileUploadType::IMG)
