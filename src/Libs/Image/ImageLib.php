@@ -2,14 +2,15 @@
 declare(strict_types=1);
 namespace BrickLayer\Lay\Libs\Image;
 
-use BrickLayer\Lay\Libs\Image\Enums\ImageErrorType;
+use BrickLayer\Lay\Core\Exception;
+use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Core\Traits\IsSingleton;
+use BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadErrors;
+use BrickLayer\Lay\Libs\FileUpload\FileUpload;
 use BrickLayer\Lay\Libs\LayDir;
 use BrickLayer\Lay\Libs\String\Enum\EscapeType;
 use BrickLayer\Lay\Libs\String\Escape;
 use JetBrains\PhpStorm\ArrayShape;
-use BrickLayer\Lay\Core\Exception;
-use BrickLayer\Lay\Core\LayConfig;
-use BrickLayer\Lay\Core\Traits\IsSingleton;
 
 final class ImageLib {
     private int $img_file_size;
@@ -118,7 +119,7 @@ final class ImageLib {
     #[ArrayShape([
         'uploaded' => 'bool',
         'error' => 'string',
-        'error_type' => "BrickLayer\\Lay\\Libs\\Image\\Enums\\ImageErrorType",
+        'error_type' => "BrickLayer\\Lay\\Libs\\FileUpload\\Enums\\FileUploadErrors",
         'url' => 'string',
         'size' => 'int',
         'width' => 'int',
@@ -139,6 +140,8 @@ final class ImageLib {
         array $options
     ): array
     {
+        trigger_error("This class has been depreciated, use " . FileUpload::class);
+
         extract($options);
         $copy_tmp_file = $copy_tmp_file ?? false;
         $permission = $permission ?? 0755;
@@ -151,7 +154,7 @@ final class ImageLib {
             return [
                 "uploaded" => false,
                 "error" => "$post_name is not set",
-                "error_type" => ImageErrorType::FILE_NOT_SET
+                "error_type" => FileUploadErrors::FILE_NOT_SET
             ];
 
         $directory = rtrim($directory,DIRECTORY_SEPARATOR);
@@ -204,7 +207,7 @@ final class ImageLib {
             return [
                 "uploaded" => false,
                 "error" => "File was not received. Ensure the file is not above the set max file size. Try a file with a lower file size",
-                "error_type" => ImageErrorType::TMP_FILE_EMPTY
+                "error_type" => FileUploadErrors::TMP_FILE_EMPTY
             ];
 
         if($file_limit && $this->file_size($file['tmp_name']) > $file_limit) {
@@ -217,7 +220,7 @@ final class ImageLib {
 
             return [
                 "uploaded" => false,
-                "error_type" => ImageErrorType::EXCEEDS_FILE_LIMIT,
+                "error_type" => FileUploadErrors::EXCEEDS_FILE_LIMIT,
                 "error" => "File is above the set limit: $file_limit",
             ];
         }
