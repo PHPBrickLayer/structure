@@ -58,7 +58,7 @@ class Project implements CmdLayout
 
         // generate an identity for the project if it doesn't exist
         if(!file_exists($server->lay . "identity"))
-            file_put_contents($server . "identity", Gen::uuid(32));
+            file_put_contents($server->lay . "identity", Gen::uuid(32));
 
         // Create Lay dependent directories if they don't exist
         LayDir::make($server->temp, 0755, true);
