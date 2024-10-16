@@ -42,8 +42,10 @@ class Bucket
                 'Key' => $to,
                 'SourceFile' => $from
             ]);
+
             return $contents->get("@metadata") ?? [];
-        } catch (Error|Exception $e) {
+
+        } catch (Error|Exception|Aws\S3\Exception\S3Exception $e) {
             LayAws::exception("LayBucketUploadError", $e->getMessage());
         }
 

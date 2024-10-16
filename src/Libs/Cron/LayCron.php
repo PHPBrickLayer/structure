@@ -7,6 +7,8 @@ use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Libs\LayArray;
 use BrickLayer\Lay\Libs\LayDate;
 
+//TODO: Attach a project ID to all cron jobs, so that the system can identify all jobs created by a particular project
+//The id is the one generated for each lay project
 final class LayCron
 {
     private const CRON_FILE = "/tmp/crontab.txt";
@@ -200,6 +202,7 @@ final class LayCron
 
     private function add_job(string $job) : void {
         $add = str_contains(shell_exec("crontab -l 2>&1"), "no crontab for");
+        $job .= " --LAY_APP_ID '" . LayConfig::app_id() ."'";
 
         if(!$add && !$this->db_job_exists($job)['found']) {
             if(isset($this->job_id))

@@ -153,6 +153,17 @@ trait Config
         return self::$COMPRESS_HTML;
     }
 
+    public static function app_id(): ?string
+    {
+        self::is_init();
+        $id = self::server_data()->lay . "identity";
+
+        if(file_exists($id))
+            return file_get_contents($id);
+
+        return null;
+    }
+
     public static function close_orm(?mysqli $link = null): void
     {
         self::is_init();

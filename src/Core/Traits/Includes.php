@@ -2,18 +2,19 @@
 declare(strict_types=1);
 namespace BrickLayer\Lay\Core\Traits;
 use BrickLayer\Lay\Core\Exception;
+use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\View\DomainResource;
 use BrickLayer\Lay\Libs\LayArray;
 use BrickLayer\Lay\Libs\LayObject;
 
 trait Includes {
-    public function inc_file(?string $file, string $type = "inc", bool $once = true, bool $as_string = false, ?array $local = [], bool $use_refering_domain = true) : ?string
+    public function inc_file(?string $file, string $type = "inc", bool $once = true, bool $as_string = false, ?array $local = [], bool $use_referring_domain = true) : ?string
     {
         self::is_init();
 
         $domain = DomainResource::get()->domain;
 
-        $replace = fn($src) => !$use_refering_domain ? $src : str_replace(
+        $replace = fn($src) => !$use_referring_domain ? $src : str_replace(
             DIRECTORY_SEPARATOR . $domain->domain_name . DIRECTORY_SEPARATOR,
             DIRECTORY_SEPARATOR . $domain->domain_referrer . DIRECTORY_SEPARATOR,
             $src
@@ -30,6 +31,18 @@ trait Includes {
                 break;
             case "view":
                 $type = ".view";
+                $type_root = $replace($domain->plaster);
+                break;
+            case "project":
+                $type = "";
+                $type_root = LayConfig::server_data()->root;
+                break;
+            case "layout":
+                $type = "";
+                $type_root = $replace($domain->layout);
+                break;
+            case "plaster":
+                $type = "";
                 $type_root = $replace($domain->plaster);
                 break;
         }
