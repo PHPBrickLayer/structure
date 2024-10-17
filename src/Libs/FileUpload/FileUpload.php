@@ -88,7 +88,7 @@ final class FileUpload {
     )
     {
         $req = $this->check_all_requirements(
-            post_name: $opts['post_name'],
+            post_name: $opts['post_name'] ?? null,
             custom_mime:  $opts['custom_mime'] ?? null,
             extension_list:  $opts['extension_list'] ?? null,
         );
@@ -193,13 +193,16 @@ final class FileUpload {
      * @throws \Exception
      */
     private function check_all_requirements(
-        string                          $post_name,
+        ?string                          $post_name,
         ?int                            $file_limit = null,
         FileUploadExtension|null|string $extension = null,
         ?array                          $custom_mime = null,
         ?array                          $extension_list = null,
     ) : ?array
     {
+        if(!$post_name)
+            return null;
+
         if(!isset($_FILES[$post_name]))
             return $this->upload_response (
                 false,
