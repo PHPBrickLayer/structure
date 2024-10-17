@@ -84,15 +84,18 @@ final class LayFn
      *
      * @return string|bool|int|null
      */
-    public static function extract_cli_tag(string $key, bool $has_value): string|null|bool|int
+    public static function extract_cli_tag(string $key, bool $has_value, ?string $argument = null): string|null|bool|int
     {
-        global $argv;
+        $arg_values = $GLOBALS['argv'] ?? null;
 
-        $tag_key = array_search($key, $argv);
+        if($argument)
+            $arg_values = explode(" ", $argument);
+
+        $tag_key = array_search($key, $arg_values);
         $value = null;
 
         if ($tag_key !== false)
-            $value = $has_value ? $argv[$tag_key + 1] : true;
+            $value = $has_value ? $arg_values[$tag_key + 1] : true;
 
         return $value;
     }

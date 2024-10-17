@@ -245,7 +245,7 @@ final class FileUpload {
 
             foreach ($extension_list as $list) {
                 if(!($list instanceof FileUploadExtension)) {
-                    $extension_list = var_export($extension_list, true);
+                    $extension_list = implode(",", $extension_list);
                     $this->exception("extension_list must be of type " . FileUploadExtension::class . "; extension_list: [$extension_list]. File Mime: [$mime]");
                 }
 
@@ -256,7 +256,7 @@ final class FileUpload {
             }
 
             if(!$found) {
-                $extension_list = var_export($extension_list, true);
+                $extension_list = implode(",", $extension_list);
 
                 return $this->upload_response(
                     false,

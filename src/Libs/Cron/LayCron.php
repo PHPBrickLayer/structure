@@ -6,6 +6,7 @@ use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Libs\LayArray;
 use BrickLayer\Lay\Libs\LayDate;
+use BrickLayer\Lay\Libs\LayFn;
 
 //TODO: Attach a project ID to all cron jobs, so that the system can identify all jobs created by a particular project
 //The id is the one generated for each lay project
@@ -13,6 +14,7 @@ final class LayCron
 {
     private const CRON_FILE = "/tmp/crontab.txt";
     private const CRON_DB_FILE = "cron_jobs.json";
+    private const APP_ID_KEY = "--LAY_APP_ID";
     private const DB_SCHEMA = [
         "mailto" => "",
         "jobs" => [],
@@ -149,12 +151,43 @@ final class LayCron
         return (bool) file_put_contents($this->cron_db(), json_encode($data));
     }
 
+    private function project_server_jobs(string $mailto, string $cron_jobs) : string
+    {
+        $server_jobs = file_get_contents(self::CRON_FILE);
+
+        $all_jobs = "";
+        $app_id = LayConfig::app_id();
+
+        foreach (explode(PHP_EOL, $server_jobs) as $i => $job) {
+            if($i == 0 && $job == 'MAILTO=""') {
+                $all_jobs .= $mailto;
+                continue;
+            }
+
+            if(LayFn::extract_cli_tag(self::APP_ID_KEY, true, $job) != $app_id) {
+                $all_jobs .= $job . PHP_EOL;
+            }
+        }
+
+        if(empty($all_jobs))
+            $all_jobs = $mailto;
+
+        $all_jobs .= $cron_jobs;
+
+        return $all_jobs;
+    }
+
     private function crontab_save() : bool {
         $mailto = $this->report_email ? 'MAILTO=' . $this->report_email : 'MAILTO=""';
         $mailto .= PHP_EOL;
         $cron_jobs = implode("", $this->jobs_list);
 
-        $exec = @file_put_contents(self::CRON_FILE, $mailto . $cron_jobs);
+        $data = $this->project_server_jobs(
+            mailto: $mailto,
+            cron_jobs: $cron_jobs
+        );
+
+        $exec = @file_put_contents(self::CRON_FILE, $data);
 
         if($exec) {
             exec("crontab '" . self::CRON_FILE . "' 2>&1", $out);
@@ -202,7 +235,7 @@ final class LayCron
 
     private function add_job(string $job) : void {
         $add = str_contains(shell_exec("crontab -l 2>&1"), "no crontab for");
-        $job .= " --LAY_APP_ID '" . LayConfig::app_id() ."'";
+        $job .= rtrim($job, PHP_EOL) . " " . self::APP_ID_KEY . " '" . LayConfig::app_id() ."'" . PHP_EOL;
 
         if(!$add && !$this->db_job_exists($job)['found']) {
             if(isset($this->job_id))
