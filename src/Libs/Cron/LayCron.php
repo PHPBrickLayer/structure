@@ -56,7 +56,7 @@ final class LayCron
      * @return string|bool
      * @throws \Exception
      */
-    public static function dump_crontab(bool $suppress_win_exception = false) : string|bool
+    public static function dump_crontab(bool $project_scope = true, bool $suppress_win_exception = false) : string|bool
     {
         if(LayConfig::get_os() == "WINDOWS") {
             if($suppress_win_exception)
@@ -69,7 +69,7 @@ final class LayCron
             ");
         }
 
-        $out = self::new()->get_crontab();
+        $out = self::new()->get_crontab($project_scope);
 
         if(!$out)
             return false;
@@ -156,7 +156,7 @@ final class LayCron
     {
         $all_jobs = "";
         $app_id = LayConfig::app_id();
-        $server_jobs = $this->get_crontab() ?? [];
+        $server_jobs = $this->get_crontab(false) ?? [];
 
         foreach ($server_jobs as $i => $job) {
             if(empty($job))
@@ -407,12 +407,30 @@ final class LayCron
         ];
     }
 
-    public function get_crontab() : ?array
+    public function get_crontab(bool $project_scope = true) : ?array
     {
-        exec("crontab -l 2>&1", $out);
+        exec("crontab -l 2>&1", $jobs);
 
-        if(str_contains($out[0], "no crontab for"))
+        if(str_contains($jobs[0], "no crontab for"))
             return null;
+
+        if(!$project_scope)
+            return $jobs;
+
+        $out = [$jobs[0]];
+
+        $app_id = LayConfig::app_id();
+
+        foreach ($jobs as $i => $job) {
+            if($i == 0 && str_starts_with($job, "MAILTO"))
+                continue;
+
+            $job_app_id = LayFn::extract_cli_tag(self::APP_ID_KEY, true, $job);
+            $job_app_id = $job_app_id ? trim($job_app_id, "'") : $job_app_id;
+
+            if($app_id == $job_app_id)
+                $out[] = $job;
+        }
 
         return $out;
     }
