@@ -273,25 +273,39 @@ final class FileUpload {
             $mime = mime_content_type($file);
 
             if(!$custom_mime) {
-                $pass = match ($extension) {
-                    FileUploadExtension::PDF => $mime == FileUploadExtension::PDF->value,
-                    FileUploadExtension::CSV => $mime == FileUploadExtension::CSV->value,
+                $pass = false;
+                $test_multiple = function (FileUploadExtension ...$ext) use ($extension, $mime) : bool {
+                    if(!in_array($extension, $ext, true))
+                        return false;
 
-                    FileUploadExtension::ZIP,
-                    FileUploadExtension::ZIP_OLD =>
-                        $mime == FileUploadExtension::ZIP->value || $mime == FileUploadExtension::ZIP_OLD->value,
+                    $pass = false;
 
-                    FileUploadExtension::EXCEL,
-                    FileUploadExtension::EXCEL_OLD =>
-                        $mime == FileUploadExtension::EXCEL_OLD->value || $mime == FileUploadExtension::EXCEL->value,
+                    foreach ($ext as $e) {
+                        if($pass)
+                            break;
 
-                    FileUploadExtension::PNG =>  $mime == FileUploadExtension::PNG->value,
-                    FileUploadExtension::JPEG => $mime == FileUploadExtension::JPEG->value,
-                    FileUploadExtension::HEIC => $mime == FileUploadExtension::HEIC->value,
+                        $pass = $mime == $e->value;
+                    }
+
+                    return $pass;
                 };
+
+                foreach (FileUploadExtension::cases() as $case) {
+                    if($pass)
+                        break;
+
+                    if($pass = $test_multiple(FileUploadExtension::ZIP, FileUploadExtension::ZIP_OLD))
+                        break;
+
+                    if($pass = $test_multiple(FileUploadExtension::EXCEL, FileUploadExtension::EXCEL_OLD))
+                        break;
+
+                    $pass = $mime == $case->value;
+                }
 
                 if(!$pass) {
                     $extension = is_string($extension) ? $extension : $extension->name;
+
                     return $this->upload_response(
                         false,
                         [
