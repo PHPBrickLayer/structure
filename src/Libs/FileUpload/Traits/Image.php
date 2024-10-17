@@ -205,7 +205,6 @@ trait Image {
                 ]
             );
 
-        $root = LayConfig::server_data()->root;
         $file = $_FILES[$post_name];
         $add_mod_time ??= true;
         $quality = $quality ?? 80;
@@ -253,8 +252,8 @@ trait Image {
             if(!$bucket_path)
                 $this->exception("Bucket path is required when making use of the Bucket storage method");
 
-            if((new Bucket())->upload($root . $directory . $new_name, $bucket_path . $new_name)['statusCode'] == 200) {
-                @unlink($root . $new_name);
+            if((new Bucket())->upload($directory . $new_name, $bucket_path . $new_name)['statusCode'] == 200) {
+                @unlink($directory . $new_name);
 
                 return $this->upload_response(
                     true,
