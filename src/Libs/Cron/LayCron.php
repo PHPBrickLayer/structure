@@ -10,8 +10,8 @@ use BrickLayer\Lay\Libs\LayFn;
 
 final class LayCron
 {
-    private const CRON_FILE = "/tmp/crontab.txt";
-    private const CRON_DB_FILE = "cron_jobs.json";
+    private const TMP_CRONTAB_TXT = "/tmp/crontab.txt";
+    private const CRON_JOBS_JSON = "cron_jobs.json";
     private const APP_ID_KEY = "--LAY_APP_ID";
     private const DB_SCHEMA = [
         "mailto" => "",
@@ -80,7 +80,7 @@ final class LayCron
     public static function dump_db_file() : ?array
     {
         $dir = LayConfig::mk_tmp_dir();
-        $file = $dir . self::CRON_DB_FILE;
+        $file = $dir . self::CRON_JOBS_JSON;
 
         if(!file_exists($file))
             return null;
@@ -90,7 +90,7 @@ final class LayCron
 
     private function cron_db() : string {
         $dir = LayConfig::mk_tmp_dir();
-        $file = $dir . self::CRON_DB_FILE;
+        $file = $dir . self::CRON_JOBS_JSON;
         $this->output_file = $dir . "cron_outputs.txt";
 
         if(!file_exists($file))
@@ -154,12 +154,11 @@ final class LayCron
 
     private function project_server_jobs(string $mailto, string $cron_jobs) : string
     {
-        $server_jobs = file_get_contents(self::CRON_FILE);
-
         $all_jobs = "";
         $app_id = LayConfig::app_id();
+        $server_jobs = $this->get_crontab() ?? [];
 
-        foreach (explode(PHP_EOL, $server_jobs) as $i => $job) {
+        foreach ($server_jobs as $i => $job) {
             if(empty($job))
                 continue;
 
@@ -194,15 +193,15 @@ final class LayCron
             cron_jobs: $cron_jobs
         );
 
-        $exec = @file_put_contents(self::CRON_FILE, $data);
+        $exec = @file_put_contents(self::TMP_CRONTAB_TXT, $data);
 
         if($exec) {
-            exec("crontab '" . self::CRON_FILE . "' 2>&1", $out);
+            exec("crontab '" . self::TMP_CRONTAB_TXT . "' 2>&1", $out);
             $exec = empty($out);
             $error = implode("\n", $out);
         }
         else
-            $error = "Could not create cronjob. Confirm if you have access to crontab: " . self::CRON_FILE;
+            $error = "Could not create cronjob. Confirm if you have access to crontab: " . self::TMP_CRONTAB_TXT;
 
         $this->exec_output = [
             "exec" => $exec,
