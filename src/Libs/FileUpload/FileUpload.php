@@ -43,6 +43,8 @@ final class FileUpload {
             // New name and file extension of file after upload
             'new_name' => 'string',
 
+            'upload_type' => 'BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadType',
+
             //<<START DISK KEY
             'directory' => 'string',
             'permission' => 'int',
@@ -101,16 +103,23 @@ final class FileUpload {
         }
 
 
-        $mime = mime_content_type($_FILES[$opts['post_name']]['tmp_name']);
+        if(@$opts['upload_type']) {
+            if($opts['upload_type'] instanceof FileUploadType)
+                $this->upload_type = $opts['upload_type'];
+            else
+                $this->exception("upload_type received is not of type: " . FileUploadType::class . "; Rather received: " . gettype($opts['upload_type']));
+        } else {
+            $mime = mime_content_type($_FILES[$opts['post_name']]['tmp_name']);
 
-        if(str_starts_with($mime, "image/"))
-            $this->upload_type = FileUploadType::IMG;
+            if (str_starts_with($mime, "image/"))
+                $this->upload_type = FileUploadType::IMG;
 
-        elseif(str_starts_with($mime, "video/"))
-            $this->upload_type = FileUploadType::VIDEO;
+            elseif (str_starts_with($mime, "video/"))
+                $this->upload_type = FileUploadType::VIDEO;
 
-        else
-            $this->upload_type = FileUploadType::DOC;
+            else
+                $this->upload_type = FileUploadType::DOC;
+        }
 
         if($this->upload_type == FileUploadType::IMG)
             $this->response = $this->image_upload($opts);
