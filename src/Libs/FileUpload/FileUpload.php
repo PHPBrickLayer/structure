@@ -12,9 +12,22 @@ use BrickLayer\Lay\Libs\FileUpload\Traits\Image;
 use JetBrains\PhpStorm\ArrayShape;
 
 final class FileUpload {
+    #[ArrayShape([
+        'uploaded' => 'bool',
+        'dev_error' => 'string',
+        'error' => 'string',
+        'error_type' => "BrickLayer\\Lay\\Libs\\FileUpload\\Enums\\FileUploadErrors",
+        'upload_type' => "BrickLayer\\Lay\\Libs\\FileUpload\\Enums\\FileUploadType",
+        'storage' => "BrickLayer\\Lay\\Libs\\FileUpload\\Enums\\FileUploadStorage",
+        'url' => 'string',
+        'size' => 'int',
+        'width' => 'int',
+        'height' => 'int',
+    ])]
     public ?array $response = null;
 
-    protected FileUploadStorage $storage;
+    protected ?FileUploadStorage $storage = null;
+    protected ?FileUploadType $upload_type = null;
 
     use Image;
     use Doc;
@@ -23,10 +36,79 @@ final class FileUpload {
      * @throws \Exception
      */
     public function __construct(
-        protected ?FileUploadType $upload_type = null,
+        #[ArrayShape([
+            // Name of file from the form
+            'post_name' => 'string',
+
+            // New name and file extension of file after upload
+            'new_name' => 'string',
+
+            //<<START DISK KEY
+            'directory' => 'string',
+            'permission' => 'int',
+            //<<END DISK KEY
+
+            // The path the bucket should use in storing your file. Example: files/user/1/report/
+            'bucket_path' => 'string',
+
+            // Use this to force bucket upload in development environment
+            'upload_on_dev' => 'bool',
+
+            // File limit in bytes
+            'file_limit' => 'int',
+
+            // If nothing is provided the system will not validate for the extension type
+            'extension' => 'BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadExtension',
+
+            // An array of BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadExtension
+            'extension_list' => 'array<BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadExtension]>',
+
+            // Use this to add a custom MIME that does not exist in the extension key above
+            'custom_mime' => 'array', // ['application/zip', 'application/x-zip-compressed']
+
+            // The type of storage the file should be uploaded to
+            'storage' => 'BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadStorage',
+
+            // Add last modified time to the returned url key, so that your browser can cache it.
+            // This is necessary if you are using the same 'new_name' for multiple versions of a file
+            // The new file will overwrite the old file, and the last_mod_time will force the browser to update its copy
+            'add_mod_time' => 'bool',
+
+            // The compression quality to produce after uploading an image: [10 - 100]
+            'quality' => 'int',
+
+            // The dimension an image should maintain: [max_width, max_height]
+            'dimension' => 'array',
+
+            // If the php temporary file should be moved or copied. This is necessary if you want to generate a thumbnail
+            // and other versions of the image from one upload file
+            'copy_tmp_file' => 'bool',
+        ])]
         array $opts = []
     )
     {
+        $req = $this->check_all_requirements(
+            post_name: $opts['post_name'],
+            custom_mime:  $opts['custom_mime'] ?? null,
+            extension_list:  $opts['extension_list'] ?? null,
+        );
+
+        if($req)
+            return $this->response = $req;
+
+        if( !$req ) {
+            $mime = mime_content_type($_FILES[$opts['post_name']]['tmp_name']);
+
+            if(str_starts_with($mime, "image/"))
+                $this->upload_type = FileUploadType::IMG;
+
+            elseif(str_starts_with($mime, "video/"))
+                $this->upload_type = FileUploadType::VIDEO;
+
+            else
+                $this->upload_type = FileUploadType::DOC;
+        }
+
         if($this->upload_type == FileUploadType::IMG)
             $this->response = $this->image_upload($opts);
 
@@ -115,6 +197,7 @@ final class FileUpload {
         ?int                            $file_limit = null,
         FileUploadExtension|null|string $extension = null,
         ?array                          $custom_mime = null,
+        ?array                          $extension_list = null,
     ) : ?array
     {
         if(!isset($_FILES[$post_name]))
@@ -156,35 +239,82 @@ final class FileUpload {
             );
         }
 
-        if($extension || $custom_mime) {
+        if($extension_list) {
             $mime = mime_content_type($file);
+            $found = false;
 
-            if(!$custom_mime)
-                $pass = match ($extension) {
-                    FileUploadExtension::PDF => $mime == FileUploadExtension::PDF,
-                    FileUploadExtension::CSV => $mime == FileUploadExtension::CSV,
+            foreach ($extension_list as $list) {
+                if(!($list instanceof FileUploadExtension)) {
+                    $extension_list = var_export($extension_list, true);
+                    $this->exception("extension_list must be of type " . FileUploadExtension::class . "; extension_list: [$extension_list]. File Mime: [$mime]");
+                }
 
-                    FileUploadExtension::ZIP,
-                    FileUploadExtension::ZIP_OLD =>
-                        $mime == FileUploadExtension::ZIP || $mime == FileUploadExtension::ZIP_OLD,
+                if($list->value == $mime) {
+                    $found = true;
+                    break;
+                }
+            }
 
-                    FileUploadExtension::EXCEL,
-                    FileUploadExtension::EXCEL_OLD =>
-                        $mime == FileUploadExtension::EXCEL_OLD || $mime == FileUploadExtension::EXCEL
-                };
-            else
-                $pass = in_array($mime, $custom_mime, true);
-
-            if(!$pass) {
-                $extension = is_string($extension) ? $extension : $extension->name;
+            if(!$found) {
+                $extension_list = var_export($extension_list, true);
 
                 return $this->upload_response(
                     false,
                     [
-                        "error" => "Uploaded file does not match the required file type: [$extension]",
+                        "dev_error" => "Uploaded file had: [$mime], but required mime types are: [$extension_list]; Class: " . self::class,
+                        "error" => "File type is invalid",
                         "error_type" => FileUploadErrors::WRONG_FILE_TYPE
                     ]
                 );
+            }
+        }
+
+        if($extension || $custom_mime) {
+            $mime = mime_content_type($file);
+
+            if(!$custom_mime) {
+                $pass = match ($extension) {
+                    FileUploadExtension::PDF => $mime == FileUploadExtension::PDF->value,
+                    FileUploadExtension::CSV => $mime == FileUploadExtension::CSV->value,
+
+                    FileUploadExtension::ZIP,
+                    FileUploadExtension::ZIP_OLD =>
+                        $mime == FileUploadExtension::ZIP->value || $mime == FileUploadExtension::ZIP_OLD->value,
+
+                    FileUploadExtension::EXCEL,
+                    FileUploadExtension::EXCEL_OLD =>
+                        $mime == FileUploadExtension::EXCEL_OLD->value || $mime == FileUploadExtension::EXCEL->value,
+
+                    FileUploadExtension::PNG =>  $mime == FileUploadExtension::PNG->value,
+                    FileUploadExtension::JPEG => $mime == FileUploadExtension::JPEG->value,
+                    FileUploadExtension::HEIC => $mime == FileUploadExtension::HEIC->value,
+                };
+
+                if(!$pass) {
+                    $extension = is_string($extension) ? $extension : $extension->name;
+                    return $this->upload_response(
+                        false,
+                        [
+                            "dev_error" => "Uploaded file had: [$mime], but required mime type is: [$extension]; Class: " . self::class,
+                            "error" => "Uploaded file does not match the required file type: [$extension]",
+                            "error_type" => FileUploadErrors::WRONG_FILE_TYPE
+                        ]
+                    );
+                }
+            }
+            else {
+                if (!in_array($mime, $custom_mime, true)) {
+                    $custom_mime = implode(",", $custom_mime);
+
+                    return $this->upload_response(
+                        false,
+                        [
+                            "dev_error" => "Uploaded file had: [$mime], but required mime types are: [$custom_mime]; Class: " . self::class,
+                            "error" => "Uploaded file is not accepted",
+                            "error_type" => FileUploadErrors::WRONG_FILE_TYPE
+                        ]
+                    );
+                }
             }
         }
 

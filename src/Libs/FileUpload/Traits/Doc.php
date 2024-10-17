@@ -18,17 +18,7 @@ trait Doc {
 
 
     /**
-     * ### @$options
-     * - **post_name (string):** $_FILES[post_name] *(REQUIRED)*
-     * - **new_name (string):** The name you wish to call this newly uploaded file (REQUIRED)*
-     * - **directory (string):** The directory where the file should be uploaded to (REQUIRED)*
-     * - **permission (int):** The permission to apply to the directory and file *(default: 0755)*
-     * - **quality (int):** The result quality, on a scale if 1 - 100; *(default: 80)*
-     * - **dimension (array[int,int]):** [Max Width, Max Height] *(default: [800,800])*
-     * - **copy_tmp_file (bool):** On true, function copies the upload temp file instead of moving it in case the developer wants to further process it *(default: false)*
-     *
-     * This function moves your uploaded image, creates the directory,
-     * resizes the image and returns the image name and extension (image.webp)
+     * This function handles documents uploads like pdf,
      * @param array $options
      * @return array
      * @throws \Exception
@@ -73,6 +63,21 @@ trait Doc {
 
             // The type of storage the file should be uploaded to
             'storage' => 'BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadStorage',
+
+            // Add last modified time to the returned url key, so that your browser can cache it.
+            // This is necessary if you are using the same 'new_name' for multiple versions of a file
+            // The new file will overwrite the old file, and the last_mod_time will force the browser to update its copy
+            'add_mod_time' => 'bool',
+
+            // The compression quality to produce after uploading an image: [10 - 100]
+            'quality' => 'int',
+
+            // The dimension an image should maintain: [max_width, max_height]
+            'dimension' => 'array',
+
+            // If the php temporary file should be moved or copied. This is necessary if you want to generate a thumbnail
+            // and other versions of the image from one upload file
+            'copy_tmp_file' => 'bool',
         ])]
         array $options
     ): array
@@ -88,9 +93,9 @@ trait Doc {
         if(
             $check = $this->check_all_requirements(
                 $post_name,
-                $file_limit,
-                $extension,
-                $custom_mime
+                $file_limit ?? null,
+                $extension ?? null,
+                $custom_mime ?? null
             )
         ) return $check;
 
@@ -98,6 +103,7 @@ trait Doc {
 
         $file_size = $file['size'];
         $tmp_file = $file['tmp_name'];
+        $add_mod_time ??= true;
 
         if($extension) {
             $file_ext = is_string($extension) ? $extension : $extension->name;
@@ -108,7 +114,8 @@ trait Doc {
             $file_ext = "." . strtolower(end($ext));
         }
 
-        $new_name = Escape::clean(LayFn::rtrim_word($new_name, $file_ext) . $file_ext,EscapeType::P_URL);
+        $add_mod_time = $add_mod_time ? "-" .  filemtime($file['tmp_name']) . $file_ext : $file_ext;
+        $new_name = Escape::clean(LayFn::rtrim_word($new_name, $file_ext),EscapeType::P_URL) . $add_mod_time;
 
         if($storage == FileUploadStorage::BUCKET) {
             if(!$bucket_path)

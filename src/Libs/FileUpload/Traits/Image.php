@@ -162,6 +162,11 @@ trait Image {
             // The type of storage the file should be uploaded to
             'storage' => 'BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadStorage',
 
+            // Add last modified time to the returned url key, so that your browser can cache it.
+            // This is necessary if you are using the same 'new_name' for multiple versions of a file
+            // The new file will overwrite the old file, and the last_mod_time will force the browser to update its copy
+            'add_mod_time' => 'bool',
+
             // The compression quality to produce after uploading an image: [10 - 100]
             'quality' => 'int',
 
@@ -171,11 +176,6 @@ trait Image {
             // If the php temporary file should be moved or copied. This is necessary if you want to generate a thumbnail
             // and other versions of the image from one upload file
             'copy_tmp_file' => 'bool',
-
-            // Add last modified time to the returned url key, so that your browser can cache it.
-            // This is necessary if you are using the same 'new_name' for multiple versions of a file
-            // The new file will overwrite the old file, and the last_mod_time will force the browser to update its copy
-            'add_mod_time' => 'bool',
         ])]
         array $options
     ) : array
@@ -191,7 +191,7 @@ trait Image {
         if(
             $check = $this->check_all_requirements(
                 $post_name,
-                $file_limit,
+                $file_limit ?? null,
             )
         ) return $check;
 
