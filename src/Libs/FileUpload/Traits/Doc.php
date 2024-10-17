@@ -92,7 +92,7 @@ trait Doc {
 
         if(
             $check = $this->check_all_requirements(
-                $post_name,
+                $post_name ?? null,
                 $file_limit ?? null,
                 $extension ?? null,
                 $custom_mime ?? null
