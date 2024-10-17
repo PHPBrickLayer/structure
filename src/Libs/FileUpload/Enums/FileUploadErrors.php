@@ -4,6 +4,7 @@ namespace BrickLayer\Lay\Libs\FileUpload\Enums;
 
 enum FileUploadErrors
 {
+    case NO_POST_NAME;
     case EXCEEDS_FILE_LIMIT;
     case FILE_NOT_SET;
     case TMP_FILE_EMPTY;

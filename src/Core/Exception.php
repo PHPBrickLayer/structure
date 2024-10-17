@@ -36,7 +36,7 @@ abstract class Exception {
 
     public static function log(string $message, $exception = null) : void
     {
-        self::throw_exception($message, "ManualLog", kill: false, exception: $exception);
+        self::throw_exception($message, "ManualLog", kill: false, exception: $exception, throw_500: false);
     }
 
     /**
