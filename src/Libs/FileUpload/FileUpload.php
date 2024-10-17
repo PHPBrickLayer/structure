@@ -93,21 +93,24 @@ final class FileUpload {
             extension_list:  $opts['extension_list'] ?? null,
         );
 
-        if($req)
+        if($req) {
+            if($req['error_type'] == FileUploadErrors::NO_POST_NAME)
+                return $this->response = null;
+
             return $this->response = $req;
-
-        if( !$req ) {
-            $mime = mime_content_type($_FILES[$opts['post_name']]['tmp_name']);
-
-            if(str_starts_with($mime, "image/"))
-                $this->upload_type = FileUploadType::IMG;
-
-            elseif(str_starts_with($mime, "video/"))
-                $this->upload_type = FileUploadType::VIDEO;
-
-            else
-                $this->upload_type = FileUploadType::DOC;
         }
+
+
+        $mime = mime_content_type($_FILES[$opts['post_name']]['tmp_name']);
+
+        if(str_starts_with($mime, "image/"))
+            $this->upload_type = FileUploadType::IMG;
+
+        elseif(str_starts_with($mime, "video/"))
+            $this->upload_type = FileUploadType::VIDEO;
+
+        else
+            $this->upload_type = FileUploadType::DOC;
 
         if($this->upload_type == FileUploadType::IMG)
             $this->response = $this->image_upload($opts);
@@ -193,7 +196,7 @@ final class FileUpload {
      * @throws \Exception
      */
     private function check_all_requirements(
-        ?string                          $post_name,
+        ?string                         $post_name,
         ?int                            $file_limit = null,
         FileUploadExtension|null|string $extension = null,
         ?array                          $custom_mime = null,
@@ -201,7 +204,13 @@ final class FileUpload {
     ) : ?array
     {
         if(!$post_name)
-            return null;
+            return $this->upload_response (
+                false,
+                [
+                    "error" => "No post_name received",
+                    "error_type" => FileUploadErrors::NO_POST_NAME,
+                ]
+            );
 
         if(!isset($_FILES[$post_name]))
             return $this->upload_response (
