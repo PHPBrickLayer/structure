@@ -129,9 +129,9 @@ class CronController
         return LayFn::extract_cli_tag(self::JOB_CLI_KEY, true);
     }
 
-    public function update_last_run(string $job_id): void
+    public function update_last_run(string $job_id): bool
     {
-        $this->edit_record($job_id, [
+        return $this->edit_record($job_id, [
             "last_run" => LayDate::date()
         ]);
     }

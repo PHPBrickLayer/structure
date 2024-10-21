@@ -119,7 +119,6 @@ trait TableTrait
         $columns['updated_by'] ??= $updated_by ?? null;
 
         return self::orm(self::$table)->column($columns)
-            ->no_false()
             ->where("id='$job_id'")
             ->edit();
     }

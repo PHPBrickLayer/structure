@@ -37,18 +37,18 @@ final class Anchor {
             if(!$same_domain) {
                 $pattern = $pattern == "*" ? "" : $pattern;
 
-                if($dom->domain_type != DomainType::SUB) {
-                    $base_full = explode($dom->pattern . "/", $base_full . $pattern, 2)[0];
-
-                    if($use_subdomain && !empty($pattern) && LayConfig::$ENV_IS_PROD)
-                        $base_full = $base->proto . $pattern . "." . $base->domain_no_proto_no_www;
-                }
-                else {
+                if($dom->domain_type == DomainType::SUB) {
                     $x = explode(".", $base->domain_no_proto, 2);
                     $base_full = $base->proto . end($x);
 
                     if($use_subdomain && !empty($pattern))
                         $base_full = $base->proto . $pattern . "." . end($x);
+                }
+                else {
+                    $base_full = explode($dom->pattern . "/", $base_full, 2)[0] . $pattern;
+
+                    if($use_subdomain && !empty($pattern) && LayConfig::$ENV_IS_PROD)
+                        $base_full = $base->proto . $pattern . "." . $base->domain_no_proto_no_www;
                 }
             }
 
