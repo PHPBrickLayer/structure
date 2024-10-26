@@ -134,7 +134,7 @@ $lay.fn = {
             })
         })
     },
-    currency : (num, currency = "USD",locale = "en-US") => {
+    currency : (num, currency = "NGN",locale = "en-NG") => {
         return new Intl.NumberFormat(locale,!currency ? {} : {
             style: "currency",
             currency: currency,
