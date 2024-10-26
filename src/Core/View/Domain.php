@@ -283,6 +283,7 @@ class Domain {
             as_string: true,
             use_get_content: true,
             error_file_not_found: false,
+            get_last_mod: true,
         );
 
         if($js) {
