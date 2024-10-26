@@ -285,9 +285,18 @@ class Domain {
             error_file_not_found: false,
         );
 
-        if($js){
+        if($js) {
             header("Content-Type: text/javascript");
             http_response_code(200);
+
+            ApiEngine::add_cache_header(
+                $js['last_mod'],
+                [
+                    "max_age" => "31536000",
+                    "public" => true
+                ]
+            );
+
             echo $js;
             die;
         }

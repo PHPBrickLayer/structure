@@ -47,7 +47,10 @@ trait Config
 
         date_default_timezone_set($flags['timezone']);
 
-        if (!$flags['expose_php']) header_remove('X-Powered-By');
+        if (!$flags['expose_php']) {
+            header_remove('X-Powered-By');
+            header_remove('Server');
+        }
 
         if (isset($flags['only_cookies'])) ini_set("session.use_only_cookies", ((int)$flags['only_cookies']) . "");
 
