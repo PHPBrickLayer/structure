@@ -513,10 +513,7 @@ class Domain {
         if($host)
             LayConfig::mock_server($host, $use_https);
 
-        if(!defined("SAFE_TO_INIT_LAY"))
-            define("SAFE_TO_INIT_LAY", true);
-
-        include_once LayConfig::server_data()->root . "foundation.php"; //
+        include_once LayConfig::server_data()->web . "index.php";
     }
 
     public function list() : array
