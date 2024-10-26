@@ -54,18 +54,20 @@ final class LayFn
         if($len($word) < 2)
             return trim($string, $word);
 
+        $word = preg_quote($word, '~');
         $pattern = $preg_pattern ?? '~^(' . $word . ')|(' . $word . ')$~';
+
         return preg_replace($pattern, "", $string);
     }
 
     public static function ltrim_word(string $string, string $word) : string
     {
-        return self::trim_word($string, $word, '~^(' . $word . ')~');
+        return self::trim_word($string, $word, '~^(' . preg_quote($word, '~') . ')~');
     }
 
     public static function rtrim_word(string $string, string $word) : string
     {
-        return self::trim_word($string, $word, '~(' . $word . ')$~');
+        return self::trim_word($string, $word, '~(' . preg_quote($word,'~') . ')$~');
     }
 
     #[NoReturn] public static function dump_json(array $data) : void

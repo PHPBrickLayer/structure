@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 namespace BrickLayer\Lay\Core\Traits;
+use BrickLayer\Lay\__InternalOnly\CacheInitOptions;
 use BrickLayer\Lay\Libs\LayDir;
 use Dotenv\Dotenv;
 use JetBrains\PhpStorm\ObjectShape;
@@ -19,20 +20,28 @@ trait Resources {
 
         $obj = new \stdClass();
 
-        $obj->framework         =   $dir  .   "vendor"    .   $slash        .    "bricklayer"       . $slash .   "structure" . $slash;
-        $obj->lay_static        =   $obj->framework       . "src"           . $slash . "static"     . $slash;
-        $obj->framework_workers =   $obj->framework       . "__internal"    . $slash . "workers"    . $slash;
+        $obj->framework         =   $dir       .   "vendor"   . $slash . "bricklayer" . $slash .   "structure" . $slash;
+        $obj->lay_static        =   $obj->framework  . "src"        . $slash . "static"     . $slash;
+        $obj->framework_workers =   $obj->framework  . "__internal" . $slash . "workers"    . $slash;
+
+
         $obj->root              =   $dir;
-        $obj->lay               =   $dir  .   ".lay"      .  $slash;
-        $obj->temp              =   $obj->lay             .   "temp" .   $slash;
-        $obj->workers           =   $obj->lay             .   "workers" .   $slash;
         $obj->bricks            =   $dir  .   "bricks"    .   $slash;
         $obj->db                =   $dir  .   "db"        .   $slash;
         $obj->utils             =   $dir  .   "utils"     .   $slash;
+
+        $obj->lay               =   $dir  .   ".lay"      .  $slash;
+        $obj->workers           =   $obj->lay    .   "workers"      .   $slash;
+
+        $obj->temp              =   $obj->lay    .   "temp"         .   $slash;
+        $obj->exceptions        =   $obj->temp   .   "exceptions"   .   $slash;
+        $obj->cron_outputs      =   $obj->temp   .   "cron_outputs" .   $slash;
+
         $obj->web               =   $dir  .   "web"       .   $slash;
-        $obj->shared            =   $dir  .   "web"       .   $slash .    "shared" .  $slash;
-        $obj->domains           =   $dir  .   "web"       .   $slash .    "domains" . $slash;
-        $obj->uploads           =   $dir  .   "web"       .   $slash .    "uploads" . $slash;
+        $obj->shared            =   $obj->web   .    "shared" .  $slash;
+        $obj->domains           =   $obj->web   .    "domains" . $slash;
+        $obj->uploads           =   $obj->web   .    "uploads" . $slash;
+
         $obj->uploads_no_root   =   "uploads" . $slash;
 
         //TODO: Delete the implementation and this section soon
@@ -74,6 +83,8 @@ trait Resources {
         "workers" => 'string',
         "root" => 'string',
         "temp" => 'string',
+        "exceptions" => 'string',
+        "cron_outputs" => 'string',
         "bricks" => 'string',
         "db" => 'string',
         "utils" => 'string',

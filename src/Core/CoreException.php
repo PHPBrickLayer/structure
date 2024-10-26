@@ -383,8 +383,12 @@ class CoreException
                     DEBUG;
         }
 
-        $dir = LayConfig::server_data()->temp;
-        $file_log = $dir . "exceptions.log";
+        $dir = LayConfig::server_data()->exceptions;
+        $file_log = $dir . date("Y-m-d") . ".log";
+
+        if(file_exists($file_log) && filesize($file_log) > 1559928) {
+            $file_log = $dir . date("Y-m-d") . "2.log";
+        }
 
         LayDir::make($dir, 0755, true);
 

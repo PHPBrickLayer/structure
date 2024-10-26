@@ -97,12 +97,13 @@ class LayDate {
      * @param bool $figure to return the integer equivalent of the give datetime
      * @return string|int
      */
-    public static function date(string|int|null $datetime = null, string $format = "Y-m-d H:i:s", int $format_index = 3, bool $figure = false) : string|int {
+    public static function date(string|int|null $datetime = null, string $format = "Y-m-d H:i:s", int $format_index = -1, bool $figure = false) : string|int {
 
         $format = match ($format_index) {
             0 => "Y-m-d",
             1 => "H:i:s",
             2 => "D d, M Y | h:i a",
+            3 => "D, d M Y H:i:s T",
             default => $format,
         };
 
@@ -120,6 +121,11 @@ class LayDate {
             return $datetime;
 
         return date($format, $strtotime);
+    }
+
+    public static function now() : int
+    {
+        return self::date("", figure: true);
     }
 
     public static function week_of_month($date) : int

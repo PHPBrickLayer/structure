@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace BrickLayer\Lay\Core\View;
 
 use BrickLayer\Lay\Libs\LayArray;
+use BrickLayer\Lay\Libs\LayFn;
 use Closure;
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
@@ -283,6 +284,16 @@ final class ViewEngine {
         ];
 
         ob_start();
+
+        if(empty($matches['html_content'])) {
+            $length = LayFn::num_format(strlen($body), 6) . "B";
+
+            Exception::throw_exception(
+                "It seems the html_content of the page is empty. Maybe you are rendering a page that is very large. Body Size: $length",
+                "ViewEngine::PageTooLarge"
+            );
+        }
+
         echo implode($matches['html_content']);
 
         $this->core_script();

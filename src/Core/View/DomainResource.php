@@ -129,6 +129,9 @@ class DomainResource
      */
     public static function get() : object
     {
+        if(!isset(self::$resource))
+            self::init();
+
         return self::$resource;
     }
     public static function make_plaster(object $values) : void
