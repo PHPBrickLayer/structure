@@ -34,9 +34,10 @@ abstract class Exception {
         self::new()->log_always();
     }
 
-    public static function log(string $message, $exception = null) : void
+    public static function log(mixed $message, $exception = null) : void
     {
-        self::throw_exception($message, "ManualLog", kill: false, exception: $exception, throw_500: false);
+        self::always_log();
+        self::throw_exception(var_export($message, true), "ManualLog", kill: false, exception: $exception, throw_500: false);
     }
 
     /**
