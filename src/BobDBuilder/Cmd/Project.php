@@ -57,19 +57,20 @@ class Project implements CmdLayout
         );
 
         // generate an identity for the project if it doesn't exist
-        if(!file_exists($server->lay . "identity"))
+        if(!file_exists($server->lay . "identity") || !empty(file_get_contents($server->lay . "identity")))
             file_put_contents($server->lay . "identity", Gen::uuid(32));
 
         // Create Lay dependent directories if they don't exist
         LayDir::make($server->temp, 0755, true);
         LayDir::make($server->workers, 0755, true);
+        LayDir::make($server->exceptions, 0755, true);
+        LayDir::make($server->cron_outputs, 0755, true);
 
         // update mail worker to the latest version
         copy(
             $server->framework_workers . "mail-processor.php",
             $server->workers . "mail-processor.php",
         );
-
 
         if($tag == "--refresh-links") {
             $this->plug->write_info("Refreshing symlinks!");

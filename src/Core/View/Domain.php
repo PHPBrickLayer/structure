@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace BrickLayer\Lay\Core\View;
 
+use BrickLayer\Lay\Core\Api\ApiEngine;
 use BrickLayer\Lay\Core\Enums\LayServerType;
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\View\Annotate\CurrentRouteData;
@@ -15,6 +16,7 @@ use BrickLayer\Lay\Core\View\Enums\DomainCacheKeys;
 use BrickLayer\Lay\Core\View\Enums\DomainType;
 use ReflectionClass;
 use ReflectionException;
+use Web\Admin\Plaster;
 
 class Domain {
     use IsSingleton;
@@ -163,7 +165,7 @@ class Domain {
         if(isset(self::$indexed_domain))
             $uri = "";
 
-        $host = self::$cli_mode ? ($_ENV['LAY_CUSTOM_HOST'] ?? "CLI") : $_SERVER['HTTP_HOST'];
+        $host = self::$cli_mode ? ($_ENV['LAY_CUSTOM_HOST'] ?? "CLI") : ($_SERVER['HTTP_HOST'] ?? $_ENV['LAY_CUSTOM_HOST']);
 
         self::$current_route_details['host'] = $host;
         self::$current_route_details['route'] = $route ?: "index";
@@ -203,6 +205,8 @@ class Domain {
 
         if(self::$mocking_domain)
             return;
+
+        $this->include_static_assets($route);
 
         try{
             $builder = new ReflectionClass($builder);
@@ -263,6 +267,34 @@ class Domain {
         }
 
         return $view;
+    }
+
+    private function include_static_assets($route) : void
+    {
+        $referer = LayConfig::get_header("Referer");
+        $from_js_module = $referer && str_contains($referer, ".js");
+
+        if(!$from_js_module)
+            return;
+
+        $js = LayConfig::new()->inc_file(
+            $route . ".js",
+            "domain_root",
+            as_string: true,
+            use_get_content: true,
+            error_file_not_found: false,
+        );
+
+        if($js){
+            header("Content-Type: text/javascript");
+            http_response_code(200);
+            echo $js;
+            die;
+        }
+
+        header("Content-Type: application/json");
+        http_response_code(404);
+        exit('{"error": 404, "response": "resource not found"}');
     }
 
     /**

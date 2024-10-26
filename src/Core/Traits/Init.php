@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace BrickLayer\Lay\Core\Traits;
 
+use BrickLayer\Lay\__InternalOnly\CacheInitOptions;
 use BrickLayer\Lay\Core\Enums\LayMode;
 use BrickLayer\Lay\Core\Enums\LayServerType;
 use stdClass;
@@ -16,6 +17,7 @@ trait Init {
     private static LayMode $LAY_MODE;
     private static bool $INITIALIZED = false;
     private static bool $MOCKED = false;
+    private static bool $MOCK_HTTPS = false;
     private static bool $FIRST_CLASS_CITI_ACTIVE = false;
 
     protected static string $dir;
@@ -68,7 +70,7 @@ trait Init {
             )[0] . $s;
     }
 
-    private static function first_class_citizens(bool $use_https = false) : void {
+    private static function first_class_citizens() : void {
         self::$FIRST_CLASS_CITI_ACTIVE = true;
         self::set_dir();
 
@@ -104,7 +106,7 @@ trait Init {
         $base           = str_replace($slash, "/", end($base));
         $http_host      = $_SERVER['HTTP_HOST'] ?? $_ENV['LAY_CUSTOM_HOST'] ?? "cli";
         $env_host       = $_SERVER['REMOTE_ADDR'] ?? $_ENV['LAY_CUSTOM_REMOTE_ADDR'] ?? "cli";
-        $proto          = ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? $_SERVER['REQUEST_SCHEME'] ?? ($use_https ? 'https' : 'http')) . "://";
+        $proto          = ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? $_SERVER['REQUEST_SCHEME'] ?? (self::$MOCK_HTTPS ? 'https' : 'http')) . "://";
         $base_no_proto  = rtrim(str_replace($slash,"/", $base),"/");
 
         if($http_host != "cli" && !isset($_ENV['LAY_CUSTOM_HOST']))
@@ -198,7 +200,6 @@ trait Init {
         self::set_internal_site_data($options);
         self::set_internal_res_server(self::$dir);
         self::load_env();
-        self::autoload_project_classes();
 
         if(isset($_ENV['APP_ENV'])) {
             $env = strtolower($_ENV['APP_ENV']);
@@ -210,17 +211,6 @@ trait Init {
             self::new()->init_orm(true);
 
         return self::$instance;
-    }
-
-    public static function autoload_project_classes(): void
-    {
-        return;
-
-        spl_autoload_register(function ($className) {
-            $location = str_replace('\\', DIRECTORY_SEPARATOR, $className);
-
-            @include_once self::$dir . $location . '.php';
-        });
     }
 
     public static function is_init(bool $init_first_class = false) : void {
@@ -250,7 +240,10 @@ trait Init {
     {
         $_ENV['LAY_CUSTOM_HOST'] = $host;
         $_ENV['LAY_CUSTOM_REMOTE_ADDR'] = "lay_remote_addr";
+
         self::$MOCKED = true;
-        self::first_class_citizens($use_https);
+        self::$MOCK_HTTPS = $use_https;
+        self::$FIRST_CLASS_CITI_ACTIVE = false;
+        self::$INITIALIZED = false;
     }
 }

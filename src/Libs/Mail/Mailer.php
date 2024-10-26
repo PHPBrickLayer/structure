@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace BrickLayer\Lay\Libs\Mail;
 
 use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Libs\LayDate;
 use BrickLayer\Lay\Libs\LayDir;
 use JetBrains\PhpStorm\ArrayShape;
 use JetBrains\PhpStorm\ExpectedValues;
@@ -53,9 +54,9 @@ class Mailer {
         $log = LayConfig::server_data()->temp . "emails" . DIRECTORY_SEPARATOR;
         LayDir::make($log, 0777, true);
 
-        $log .= date("Y-m-d-H-i-s" . rand(0, 9)) . ".log";
+        $log .= date("Y-m-d_H-i-s_" . rand(0, 9)) . ".log";
 
-        file_put_contents($log, "[" . date("Y-m-d H:i:s e") . "]\n" . $this->log_data);
+        file_put_contents($log, "[" . LayDate::date(format_index: 3) . "]\n" . $this->log_data);
     }
 
     private function connect_smtp() : void {
