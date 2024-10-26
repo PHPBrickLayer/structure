@@ -102,4 +102,12 @@ final class LayFn
         return $value;
     }
 
+    public static function header(string $header, bool $replace = true, int $response_code = 0) : void
+    {
+        if(headers_sent())
+            return;
+
+        header($header, $replace, $response_code);
+    }
+
 }

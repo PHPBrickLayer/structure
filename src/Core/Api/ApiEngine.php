@@ -7,6 +7,7 @@ use BrickLayer\Lay\Core\Api\Enums\ApiStatus;
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\View\DomainResource;
 use BrickLayer\Lay\Core\View\ViewBuilder;
+use BrickLayer\Lay\Libs\ID\Gen;
 use BrickLayer\Lay\Libs\LayCache;
 use BrickLayer\Lay\Libs\LayDate;
 use BrickLayer\Lay\Libs\String\Enum\EscapeType;
@@ -14,6 +15,7 @@ use BrickLayer\Lay\Libs\String\Escape;
 use Closure;
 use BrickLayer\Lay\Core\Api\Enums\ApiRequestMethod;
 use BrickLayer\Lay\Core\Exception;
+use JetBrains\PhpStorm\ArrayShape;
 
 //TODO: Cache api list. Find a way to cache the entire api list of the application,
 // so that on production, it doesn't have to loop on every request.
@@ -457,6 +459,41 @@ final class ApiEngine {
 
         if($kill_process)
             exit(is_int($code) ? $code : $code->value);
+    }
+
+    /**
+     * Add a header to direct the client to cache a response
+     * @param int|null $last_mod
+     * @param array $cache_control
+     * @return void
+     * @throws \Exception
+     */
+    public static function add_cache_header(
+        ?int $last_mod = null,
+        #[ArrayShape([
+            'max_age' => 'int',
+            'public' => 'bool'
+        ])] array $cache_control = []
+    ) : void
+    {
+        if(headers_sent())
+            return;
+
+        header_remove("Pragma");
+        header_remove("Expires");
+
+        header("Accept-Ranges: bytes");
+
+        $cache_control = [
+            "max_age" => $cache_control['max_age'] ?? "86400",
+            "public" => @!$cache_control['public'] ? 'private' : 'public'
+        ];
+
+        header("Cache-Control: max-age={$cache_control['max_age']}, {$cache_control['public']}");
+        header("Etag: \"" . Gen::uuid() . "\"");
+
+        if($last_mod)
+            header("Last-Modified: " . LayDate::date($last_mod, format_index: 3));
     }
 
     /**

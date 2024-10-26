@@ -490,5 +490,16 @@ final class ViewEngine {
         $core_script .= $const ?? $js_template($lay_base . 'constants.js', ['defer' => false]);
 
         echo $core_script;
+
+        echo <<<MODULE_MAP
+        <script type="importmap">
+        {
+            "imports": {
+                "@static/": "$domain->static_env",
+                "@shared/": "{$domain->shared->static}"
+            }
+        }
+        </script>
+        MODULE_MAP;
     }
 }
