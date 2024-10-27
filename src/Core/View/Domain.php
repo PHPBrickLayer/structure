@@ -7,6 +7,7 @@ use BrickLayer\Lay\Core\Api\ApiEngine;
 use BrickLayer\Lay\Core\Enums\LayServerType;
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\View\Annotate\CurrentRouteData;
+use BrickLayer\Lay\Libs\LayDate;
 use BrickLayer\Lay\Libs\LayFn;
 use JetBrains\PhpStorm\ExpectedValues;
 use BrickLayer\Lay\Core\Enums\CustomContinueBreak;
@@ -293,7 +294,7 @@ class Domain {
             ApiEngine::add_cache_header(
                 $js['last_mod'],
                 [
-                    "max_age" => "31536000",
+                    "max_age" => LayDate::in_seconds("1 year"),
                     "public" => true
                 ]
             );

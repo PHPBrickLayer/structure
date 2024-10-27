@@ -485,7 +485,7 @@ final class ApiEngine {
         header("Accept-Ranges: bytes");
 
         $cache_control = [
-            "max_age" => $cache_control['max_age'] ?? "86400",
+            "max_age" => $cache_control['max_age'] ?? LayDate::in_seconds("1 day"),
             "public" => @!$cache_control['public'] ? 'private' : 'public'
         ];
 
