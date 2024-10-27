@@ -7,6 +7,7 @@ use BrickLayer\Lay\Core\Api\ApiEngine;
 use BrickLayer\Lay\Core\Enums\LayServerType;
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\View\Annotate\CurrentRouteData;
+use BrickLayer\Lay\Libs\LayDate;
 use BrickLayer\Lay\Libs\LayFn;
 use JetBrains\PhpStorm\ExpectedValues;
 use BrickLayer\Lay\Core\Enums\CustomContinueBreak;
@@ -293,7 +294,7 @@ class Domain {
             ApiEngine::add_cache_header(
                 $js['last_mod'],
                 [
-                    "max_age" => "31536000",
+                    "max_age" => LayDate::in_seconds("1 year"),
                     "public" => true
                 ]
             );
@@ -543,6 +544,21 @@ class Domain {
     /**
      * @param string $key
      * @return string|DomainType|array
+     * @psalm-return  DomainType|string|array<int>|array{
+     * route: string,
+     * route_as_array: array<int>,
+     * route_has_end_slash: bool,
+     * domain_name: string,
+     * domain_type: DomainType,
+     * domain_id: string,
+     * domain_root: string,
+     * domain_referrer: string,
+     * domain_uri: string,
+     * domain_base: string,
+     * pattern: string,
+     * plaster: string,
+     * layout: string,
+     * }
      */
     public static function current_route_data(#[ExpectedValues(CurrentRouteData::ANNOTATE)] string $key) : string|DomainType|array
     {

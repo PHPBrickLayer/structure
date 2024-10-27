@@ -128,6 +128,18 @@ class LayDate {
         return self::date("", figure: true);
     }
 
+    /**
+     * Convert words to their seconds value.
+     * @param string $date_word Any valid `strtotime` word is valid here
+     * @return int
+     * @see strtotime()
+     * @example LayDate::in_seconds('1 day'); // returns 86400;
+     */
+    public static function in_seconds(string $date_word) : int
+    {
+        return self::diff($date_word, "now", true);
+    }
+
     public static function week_of_month($date) : int
     {
         $first_day_of_month = strtotime(date("Y-m-01", $date));

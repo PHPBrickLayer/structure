@@ -2,6 +2,10 @@
 
 namespace BrickLayer\Lay\Core\View;
 
+use BrickLayer\Lay\Core\View\Annotate\CurrentRouteData;
+use BrickLayer\Lay\Core\View\Enums\DomainType;
+use JetBrains\PhpStorm\ExpectedValues;
+
 abstract class ViewCast
 {
     public readonly ViewBuilder $builder;
@@ -12,10 +16,44 @@ abstract class ViewCast
             $this->builder = ViewBuilder::new();
     }
 
+    /**
+     * Define a new route (url)
+     *
+     * @param string $route
+     * @param string ...$aliases
+     * @return ViewBuilder
+     */
     final protected function route(string $route, string ...$aliases) : ViewBuilder
     {
         return $this->builder->route($route, ...$aliases);
     }
+
+    /**
+     * Get the metadata of the request received from the client for the current route
+     *
+     * @param string $key
+     * @return DomainType|string|array
+     * @psalm-return  DomainType|string|array<int>|array{
+     *     route: string,
+     *     route_as_array: array<int>,
+     *     route_has_end_slash: bool,
+     *     domain_name: string,
+     *     domain_type: DomainType,
+     *     domain_id: string,
+     *     domain_root: string,
+     *     domain_referrer: string,
+     *     domain_uri: string,
+     *     domain_base: string,
+     *     pattern: string,
+     *     plaster: string,
+     *     layout: string,
+     * }
+     */
+    final protected function request(#[ExpectedValues(CurrentRouteData::ANNOTATE)] string $key) : DomainType|string|array
+    {
+        return $this->builder->request($key);
+    }
+
 
     final public function init(): void
     {
