@@ -471,7 +471,7 @@ final class ApiEngine {
     public static function add_cache_header(
         ?int $last_mod = null,
         #[ArrayShape([
-            'max_age' => 'int',
+            'max_age' => 'int|string',
             'public' => 'bool'
         ])] array $cache_control = []
     ) : void
@@ -483,6 +483,9 @@ final class ApiEngine {
         header_remove("Expires");
 
         header("Accept-Ranges: bytes");
+
+        if(isset($cache_control['max_age']) && is_string($cache_control['max_age']))
+            $cache_control['max_age'] = LayDate::in_seconds($cache_control['max_age']);
 
         $cache_control = [
             "max_age" => $cache_control['max_age'] ?? LayDate::in_seconds("1 day"),
