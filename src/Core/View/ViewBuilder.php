@@ -231,12 +231,28 @@ final class ViewBuilder
         return $data['route'];
     }
 
+
     /**
+     * Get the metadata of a request received in a ViewBuilder class
+     *
      * @param string $key
-     * If the key is 'route_as_array', then values should be accessed with regular array numbered index, like 0,1,2...n
      * @return DomainType|string|array
+     * @psalm-return  DomainType|string|array<int>|array{
+     *      route: string,
+     *      route_as_array: array<int>,
+     *      route_has_end_slash: bool,
+     *      domain_name: string,
+     *      domain_type: DomainType,
+     *      domain_id: string,
+     *      domain_root: string,
+     *      domain_referrer: string,
+     *      domain_uri: string,
+     *      domain_base: string,
+     *      pattern: string,
+     *      plaster: string,
+     *      layout: string,
+     *  }
      */
-    #[ArrayShape(['int','int','int','int','int','int','int','int','route' => 'string', 'route_as_array' => 'array','route_has_end_slash' => 'bool', 'domain_type' => DomainType::class, 'domain_id' => 'string', 'domain_uri' => 'string', 'pattern' => 'string'])]
     public function request(#[ExpectedValues(CurrentRouteData::ANNOTATE)] string $key): DomainType|string|array
     {
         if (!isset(self::$current_route_data))
