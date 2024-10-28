@@ -467,7 +467,6 @@ final class ApiEngine {
      * @param int|null $last_mod
      * @param array $cache_control
      * @return void
-     * @throws \Exception
      */
     public static function add_cache_header(
         ?int $last_mod = null,
@@ -908,9 +907,17 @@ final class ApiEngine {
 
     /**
      * @param Closure $callback_of_controller_method method name of the set controller.
+     * @param array|null $cache add caching features to your route
      * If you wish to retrieve the value of the method, ensure to return it;
      */
-    public function bind(Closure $callback_of_controller_method) : self {
+    public function bind(
+        Closure $callback_of_controller_method,
+        #[ArrayShape([
+            'last_mod' => '?int',
+            'max_age' => 'int|string|null',
+            'public' => 'bool|null',
+        ])] ?array $cache = null
+    ) : self {
         if(!self::$route_found || self::$request_complete)
             return $this;
 
@@ -942,6 +949,15 @@ final class ApiEngine {
             if(!self::$DEBUG_DUMP_MODE) {
                 $arguments = self::get_mapped_args();
                 self::set_return_value($callback_of_controller_method(...$arguments));
+
+                if($cache)
+                    self::add_cache_header(
+                        $cache['last_mod'] ?? null,
+                        [
+                            "max_age" => $cache['max_age'] ?? null,
+                            "public" => $cache['public'] ?? null,
+                        ]
+                    );
             }
         }
         catch (\TypeError $e){
