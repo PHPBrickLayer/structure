@@ -102,7 +102,7 @@ class LayDate {
         $format = match ($format_index) {
             0 => "Y-m-d",
             1 => "H:i:s",
-            2 => "D d, M Y | h:i a",
+            2 => "D d, M Y - h:i a",
             3 => "D, d M Y H:i:s T",
             default => $format,
         };

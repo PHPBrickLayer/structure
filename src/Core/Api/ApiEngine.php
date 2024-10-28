@@ -955,7 +955,7 @@ final class ApiEngine {
                         $cache['last_mod'] ?? null,
                         [
                             "max_age" => $cache['max_age'] ?? null,
-                            "public" => $cache['public'] ?? null,
+                            "public" => $cache['public'] ?? true,
                         ]
                     );
             }
