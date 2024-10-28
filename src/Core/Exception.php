@@ -2,11 +2,13 @@
 declare(strict_types=1);
 namespace BrickLayer\Lay\Core;
 
+use Throwable;
+
 abstract class Exception {
     /**
      * @throws \Exception
      */
-    public static function throw_exception(string $message, string $title = "Generic", bool $kill = true, bool $use_lay_error = true, array $stack_track = [], ?\Throwable $exception = null, bool $throw_500 = true, bool $error_as_json = true, ?array $json = null, bool $as_string = false, bool $ascii = true) : ?array
+    public static function throw_exception(string $message, string $title = "Generic", bool $kill = true, bool $use_lay_error = true, array $stack_track = [], ?Throwable $exception = null, bool $throw_500 = true, bool $error_as_json = true, ?array $json = null, bool $as_string = false, bool $ascii = true) : ?array
     {
         return self::new()->use_exception($title, $message, $kill, trace: $stack_track, use_lay_error: $use_lay_error, exception: $exception, throw_500: $throw_500, error_as_json: $error_as_json, json_packet: $json, return_as_string: $as_string, ascii: $ascii);
     }
@@ -34,7 +36,7 @@ abstract class Exception {
         self::new()->log_always();
     }
 
-    public static function log(mixed $message, $exception = null) : void
+    public static function log(mixed $message, Throwable $exception = null) : void
     {
         self::always_log();
         self::throw_exception(var_export($message, true), "ManualLog", kill: false, exception: $exception, throw_500: false);
@@ -42,12 +44,12 @@ abstract class Exception {
 
     /**
      * Get the error message the Lay way
-     * @param \Throwable $exception
+     * @param Throwable $exception
      * @param bool $add_ascii_char
      * @return string
      * @throws \Exception
      */
-    public static function text(\Throwable $exception, bool $add_ascii_char = true) : string
+    public static function text(Throwable $exception, bool $add_ascii_char = true) : string
     {
         return self::throw_exception("", "Text Extraction", exception: $exception, as_string: true, ascii: $add_ascii_char)['error'];
     }
