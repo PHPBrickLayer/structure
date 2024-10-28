@@ -10,6 +10,8 @@ use BrickLayer\Lay\Core\Api\Enums\ApiStatus;
 use BrickLayer\Lay\Core\Enums\LayMode;
 use BrickLayer\Lay\Core\Traits\IsSingleton;
 use BrickLayer\Lay\Libs\LayDir;
+use BrickLayer\Lay\Libs\LayFn;
+use Throwable;
 
 class CoreException
 {
@@ -76,19 +78,19 @@ class CoreException
      * @throws \Exception
      */
     public function use_exception(
-        string $title,
-        string $body,
-        bool $kill = true,
-        array $trace = [],
-        array $raw = [],
-        bool $use_lay_error = true,
-        array $opts = [],
-        ?\Throwable $exception = null,
-        bool $throw_500 = true,
-        bool $error_as_json = true,
-        ?array $json_packet = null,
-        bool $return_as_string = false,
-        bool $ascii = true,
+        string     $title,
+        string     $body,
+        bool       $kill = true,
+        array      $trace = [],
+        array      $raw = [],
+        bool       $use_lay_error = true,
+        array      $opts = [],
+        ?Throwable $exception = null,
+        bool       $throw_500 = true,
+        bool       $error_as_json = true,
+        ?array     $json_packet = null,
+        bool       $return_as_string = false,
+        bool       $ascii = true,
     ): ?array
     {
         if($exception) {
@@ -192,7 +194,7 @@ class CoreException
 
         $env = $this->get_env();
         $return_as_string = $other['as_string'] ?: false;
-        $display = $env == "DEVELOPMENT" || $other['core'] == "view";
+        $display_error = $env == "DEVELOPMENT" || $other['core'] == "view";
         $cli_mode = LayConfig::get_mode() === LayMode::CLI;
         $use_json = $cli_mode ? false : ($this->throw_as_json && !isset(LayConfig::user_agent()['browser']));
         $show_internal_trace = $other['show_internal_trace'] ?? self::$show_internal_trace;
@@ -352,7 +354,7 @@ class CoreException
                 ];
         }
 
-        if (!$use_json && !$cli_mode && $display) {
+        if (!$use_json && !$cli_mode && $display_error) {
             $ERROR_BODY = <<<DEBUG
                 <details style='padding-left: 5px; margin: 5px 0 10px'>
                     <summary style="margin-bottom: 10px"><span style="font-size: 20px; font-weight: bold; cursor: pointer;">X-INFO</span></summary>
@@ -404,8 +406,9 @@ class CoreException
 
         return [
             "act" => $other['act'] ?? "allow",
-            "error" => $error ?? ($display ?: ($write ? "Check logs for details. Error encountered" : "Error encountered, but could not write to log file due to insufficient permission!")),
-            "as_string" => $return_as_string
+            "error" => $error ?? (@$display ?: ($write ? "Check logs for details. Error encountered" : "Error encountered, but could not write to log file due to insufficient permission!")),
+            "as_string" => $return_as_string,
+            "display_error" => $display_error,
         ];
     }
 
@@ -433,8 +436,8 @@ class CoreException
         if(self::$already_caught)
             return null;
 
-        if(@LayConfig::get_mode() === LayMode::HTTP && $this->throw_500)
-            header("HTTP/1.1 500 Internal Server Error");
+        if(LayConfig::get_mode() === LayMode::HTTP && $this->throw_500)
+            LayFn::header("HTTP/1.1 500 Internal Server Error");
 
         $use_lay_error = $opt['use_lay_error'] ?? true;
         $type = $opt['exception_type'];
@@ -471,6 +474,7 @@ class CoreException
                     "json_packet" => $opt['json_packet'] ?? null,
                 ]
             );
+
         else {
             $act = $this->container(
                 null,
@@ -488,10 +492,16 @@ class CoreException
         if($act['as_string'])
             return $act;
 
-        if ($act['act'] == "kill") {
+        if($act['display_error']) {
+            if(LayConfig::get_mode() === LayMode::HTTP && $this->throw_500)
+                LayFn::header("HTTP/1.1 500 Internal Server Error");
+
             self::$already_caught = true;
-            error_reporting(0);
             echo $act['error'];
+        }
+
+        if ($act['act'] == "kill") {
+            error_reporting(0);
             die;
         }
 
