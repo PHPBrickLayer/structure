@@ -4,6 +4,7 @@ namespace BrickLayer\Lay\Core\Api;
 
 use BrickLayer\Lay\Core\Api\Enums\ApiReturnType;
 use BrickLayer\Lay\Core\Api\Enums\ApiStatus;
+use BrickLayer\Lay\Core\CoreException;
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\View\DomainResource;
 use BrickLayer\Lay\Core\View\ViewBuilder;
@@ -476,7 +477,7 @@ final class ApiEngine {
         ])] array $cache_control = []
     ) : void
     {
-        if(headers_sent())
+        if(headers_sent() || CoreException::$HAS_500)
             return;
 
         header_remove("Pragma");
