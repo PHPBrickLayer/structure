@@ -88,6 +88,7 @@ class CoreException
         ?array     $json_packet = null,
         bool       $return_as_string = false,
         bool       $ascii = true,
+        bool       $echo_error = true,
     ): ?array
     {
         if($exception) {
@@ -117,6 +118,7 @@ class CoreException
                 "return_as_string" => $return_as_string,
                 "trace" => $trace,
                 "raw" => $raw,
+                "echo_error" => $echo_error,
                 "use_lay_error" => $use_lay_error,
                 "exception_type" => $opts['type'] ?? 'error',
                 "exception_object" => $exception,
@@ -191,6 +193,7 @@ class CoreException
 
         $env = $this->get_env();
         $return_as_string = $other['as_string'] ?: false;
+        $echo_error = $other['echo_error'] ?? true;
         $display_error = $env == "DEVELOPMENT" || $other['core'] == "view";
         $cli_mode = LayConfig::get_mode() === LayMode::CLI;
         $use_json = $cli_mode ? false : ($this->throw_as_json && !isset(LayConfig::user_agent()['browser']));
@@ -382,6 +385,17 @@ class CoreException
                     DEBUG;
         }
 
+        $rtn = [
+            "act" => $other['act'] ?? "allow",
+            "error" => $error ?? (@$display ?: ($write ? "Check logs for details. Error encountered" : "Error encountered, but could not write to log file due to insufficient permission!")),
+            "as_string" => $return_as_string,
+            "display_error" => $display_error,
+            "echo_error" => $echo_error,
+        ];
+
+        if(!$this->always_log)
+            return $rtn;
+
         $dir = LayConfig::server_data()->exceptions;
         $file_log = $dir . date("Y-m-d") . ".log";
 
@@ -399,14 +413,9 @@ class CoreException
         $stack_raw
         DEBUG;
 
-        $write = @file_put_contents($file_log, $body, FILE_APPEND);
+        @file_put_contents($file_log, $body, FILE_APPEND);
 
-        return [
-            "act" => $other['act'] ?? "allow",
-            "error" => $error ?? (@$display ?: ($write ? "Check logs for details. Error encountered" : "Error encountered, but could not write to log file due to insufficient permission!")),
-            "as_string" => $return_as_string,
-            "display_error" => $display_error,
-        ];
+        return $rtn;
     }
 
     private function convertRaw($print_val, $replace, &$body): void
@@ -471,6 +480,7 @@ class CoreException
                     "raw" => $opt['raw'] ?? null,
                     "show_internal_trace" => $opt['show_internal_trace'] ?? null,
                     "json_packet" => $opt['json_packet'] ?? null,
+                    "echo_error" => $opt['echo_error'] ?? true,
                 ]
             );
 
@@ -484,6 +494,7 @@ class CoreException
                     "act" => "kill",
                     "show_exception_trace" => $opt['show_exception_trace'],
                     "show_internal_trace" => $opt['show_internal_trace'],
+                    "echo_error" => $opt['echo_error'] ?? true,
                 ]
             );
         }
@@ -491,7 +502,7 @@ class CoreException
         if($act['as_string'])
             return $act;
 
-        if($act['display_error']) {
+        if($act['display_error'] && $act['echo_error']) {
             if(LayConfig::get_mode() === LayMode::HTTP && $this->throw_500) {
                 self::$HAS_500 = true;
                 LayFn::header("HTTP/1.1 500 Internal Server Error");
