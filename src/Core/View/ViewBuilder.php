@@ -181,18 +181,8 @@ final class ViewBuilder
 
             self::$view_found = true;
 
-            if (isset($current_page['page']['title']) || @$current_page['core']['skeleton'] === false) {
-                ViewEngine::new()->paint($current_page);
-
-                if($cache)
-                    ApiEngine::add_cache_header(
-                        $cache['last_mod'] ?? null,
-                        [
-                            "max_age" => $cache['max_age'] ?? null,
-                            "public" => $cache['public'] ?? true,
-                        ]
-                    );
-            }
+            if (isset($current_page['page']['title']) || @$current_page['core']['skeleton'] === false)
+                ViewEngine::new()->paint($current_page, $cache);
         }
 
         return $this;

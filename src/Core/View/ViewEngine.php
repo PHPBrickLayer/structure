@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace BrickLayer\Lay\Core\View;
 
+use BrickLayer\Lay\Core\Api\ApiEngine;
 use BrickLayer\Lay\Libs\LayArray;
 use BrickLayer\Lay\Libs\LayFn;
 use Closure;
@@ -101,7 +102,21 @@ final class ViewEngine {
         ];
     }
 
-    public function paint(array $page_data) : void {
+    private function add_cache_header(?array $cache = null) : void
+    {
+        if($cache)
+            return;
+
+        ApiEngine::add_cache_header(
+            $cache['last_mod'] ?? null,
+            [
+                "max_age" => $cache['max_age'] ?? null,
+                "public" => $cache['public'] ?? true,
+            ]
+        );
+    }
+
+    public function paint(array $page_data, ?array $cache = null) : void {
         if(empty(self::$constant_attributes))
             self::constants([]);
 
@@ -129,11 +144,16 @@ final class ViewEngine {
 
         if($const[self::key_core]['skeleton'])
             $this->create_html_page();
-        else
-            echo $this->skeleton_body();
+        else {
+            $x = $this->skeleton_body($cache);
+
+            $this->add_cache_header($cache);
+
+            echo $x;
+        }
     }
 
-    private function create_html_page() : void {
+    private function create_html_page(?array $cache = null) : void {
         $meta = self::$meta_data;
 
         $layConfig = LayConfig::instance();
@@ -158,6 +178,9 @@ final class ViewEngine {
         LINK;
         $html_attr = $meta->{self::key_html_attr};
         $body_attr = $meta->{self::key_body_attr};
+
+        if(isset($cache['public']))
+            $canonical .= $cache['public'] ? '<meta http-equiv="Cache-control" content="public">' : '<meta http-equiv="Cache-control" content="private">';
 
         // The reason we put skeleton_body() in a variable is to give the function time to run so that variables can be
         // extracted and used by other functions like the skeleton_head()
@@ -238,7 +261,11 @@ final class ViewEngine {
         if($layConfig::$ENV_IS_PROD && $layConfig::is_page_compressed())
             $page = preg_replace("/>(\s)+</m","><",preg_replace("/<!--(.|\s)*?-->/","",$page));
 
-        echo "<!DOCTYPE html>\n" . $page;
+        $x = "<!DOCTYPE html>\n" . $page;
+
+        $this->add_cache_header($cache);
+
+        echo $x;
     }
 
     private function skeleton_head() : string
