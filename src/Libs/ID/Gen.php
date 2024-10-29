@@ -19,16 +19,17 @@ class Gen
     private static string $confirm_table;
     private static string $confirm_column;
 
-    /**
-     * @throws \Exception
-     */
     public static function uuid($length = 13): string
     {
-        if (function_exists("random_bytes"))
-            $bytes = random_bytes(ceil($length / 2));
+        try {
+            if (function_exists("random_bytes"))
+                $bytes = random_bytes(ceil($length / 2));
 
-        elseif (function_exists("openssl_random_pseudo_bytes"))
-            $bytes = openssl_random_pseudo_bytes(ceil($length / 2));
+            elseif (function_exists("openssl_random_pseudo_bytes"))
+                $bytes = openssl_random_pseudo_bytes(ceil($length / 2));
+        } catch (\Exception $e) {
+            Exception::throw_exception("", "UUIDError", exception: $e);
+        }
 
         if(!isset($bytes))
             Exception::throw_exception("openssl_random_pseudo_bytes or random_bytes doesn't exist!", "NoCryptoFunc");

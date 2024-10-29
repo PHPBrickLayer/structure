@@ -17,10 +17,7 @@ class CoreException
 {
     use IsSingleton;
 
-    public static function new(): self
-    {
-        return self::instance();
-    }
+    public static bool $HAS_500 = false;
 
     private static bool $already_caught = false;
     private static bool $show_internal_trace = true;
@@ -436,8 +433,10 @@ class CoreException
         if(self::$already_caught)
             return null;
 
-        if(LayConfig::get_mode() === LayMode::HTTP && $this->throw_500)
+        if(LayConfig::get_mode() === LayMode::HTTP && $this->throw_500) {
+            self::$HAS_500 = true;
             LayFn::header("HTTP/1.1 500 Internal Server Error");
+        }
 
         $use_lay_error = $opt['use_lay_error'] ?? true;
         $type = $opt['exception_type'];
@@ -493,8 +492,10 @@ class CoreException
             return $act;
 
         if($act['display_error']) {
-            if(LayConfig::get_mode() === LayMode::HTTP && $this->throw_500)
+            if(LayConfig::get_mode() === LayMode::HTTP && $this->throw_500) {
+                self::$HAS_500 = true;
                 LayFn::header("HTTP/1.1 500 Internal Server Error");
+            }
 
             self::$already_caught = true;
             echo $act['error'];

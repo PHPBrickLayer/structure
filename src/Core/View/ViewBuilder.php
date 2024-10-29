@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace BrickLayer\Lay\Core\View;
 
+use BrickLayer\Lay\Core\Api\ApiEngine;
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\Traits\IsSingleton;
@@ -140,7 +141,20 @@ final class ViewBuilder
         return $this;
     }
 
-    public function bind(Closure $handler): self
+    /**
+     * Bind a page to a route
+     * @param Closure $handler
+     * @param array|null $cache add caching features to your route
+     * @return $this
+     */
+    public function bind(
+        Closure $handler,
+        #[ArrayShape([
+            'last_mod' => '?int',
+            'max_age' => 'int|string|null',
+            'public' => 'bool|null',
+        ])] ?array $cache = null
+    ): self
     {
         // Cache default page
         if (self::$route == self::DEFAULT_ROUTE)
@@ -167,8 +181,18 @@ final class ViewBuilder
 
             self::$view_found = true;
 
-            if (isset($current_page['page']['title']) || @$current_page['core']['skeleton'] === false)
+            if (isset($current_page['page']['title']) || @$current_page['core']['skeleton'] === false) {
                 ViewEngine::new()->paint($current_page);
+
+                if($cache)
+                    ApiEngine::add_cache_header(
+                        $cache['last_mod'] ?? null,
+                        [
+                            "max_age" => $cache['max_age'] ?? null,
+                            "public" => $cache['public'] ?? true,
+                        ]
+                    );
+            }
         }
 
         return $this;
