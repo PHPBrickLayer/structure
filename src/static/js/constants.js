@@ -70,14 +70,12 @@ $lay.fn = {
                 actionsObject.then()
 
             let item = e.target;
-            let btn;
+            let btn = $in(item,".table-actions","top") ?? $in(item,".table-action","top");
 
             if(
-                !$class(item,"has","table-actions") && !$in(item,".table-actions","top") &&
-                !$class(item,"has","table-action") && !$in(item,".table-action","top")
+                !$class(item,"has","table-actions") && !$class(item,"has","table-action") && !btn
             ) return;
 
-            btn = item;
             e.preventDefault();
 
             $loop(actionsObject, (value, key) => {
