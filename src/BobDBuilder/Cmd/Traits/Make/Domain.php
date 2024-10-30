@@ -190,35 +190,41 @@ trait Domain
         );
         DEF;
 
-        // Current Domain being created
-        preg_match(
-            '/Domain::new\(\)->create\([^)]*'. $domain_id .'[^)]*\);/s',
-            $index_page, $data
-        );
+        $current_domain = "";
 
-        // Create the new domain patterns as specified from the terminal
-        $pattern = "";
-        foreach (explode(",", $patterns) as $p) {
-            $pattern .= '"' . strtolower(trim($p)) . '",';
+        if($domain_id != 'default') {
+            // Current Domain being created
+            preg_match(
+                '/Domain::new\(\)->create\([^)]*' . $domain_id . '[^)]*\);/s',
+                $index_page, $data
+            );
+
+            // Create the new domain patterns as specified from the terminal
+            $pattern = "";
+            foreach (explode(",", $patterns) as $p) {
+                $pattern .= '"' . strtolower(trim($p)) . '",';
+            }
+
+            $pattern = rtrim($pattern, ",");
+            $old_pattern = null;
+
+            if (!empty($data)) {
+                preg_match('/"([^"]+)"/', $data[0], $old_pattern);
+                $old_pattern = $old_pattern[0] ?? null;
+            }
+
+            $pattern = $old_pattern == $pattern ? $old_pattern : $pattern;
+
+            $current_domain = <<<CUR
+            
+            Domain::new()->create(
+                id: "$domain_id",
+                builder: \Web\\$domain\\Plaster::class,
+                patterns: [$pattern],
+            );
+            
+            CUR;
         }
-
-        $pattern = rtrim($pattern, ",");
-        $old_pattern = null;
-
-        if(!empty($data)) {
-            preg_match('/"([^"]+)"/', $data[0], $old_pattern);
-            $old_pattern = $old_pattern[0] ?? null;
-        }
-
-        $pattern = $old_pattern == $pattern ? $old_pattern : $pattern;
-
-        $current_domain = <<<CUR
-        Domain::new()->create(
-            id: "$domain_id",
-            builder: \Web\\$domain\\Plaster::class,
-            patterns: [$pattern],
-        );
-        CUR;
 
         // Remove any duplicate from the domain entry
         $index_page = trim(preg_replace(
@@ -233,9 +239,7 @@ trait Domain
             $main_file,
             <<<INDEX
             $index_page
-            
             $current_domain
-            
             $default_domain
             INDEX
         );

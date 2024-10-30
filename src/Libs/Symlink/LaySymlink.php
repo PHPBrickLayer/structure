@@ -102,6 +102,9 @@ class LaySymlink {
 
             $links = json_decode(file_get_contents($db_file), true);
 
+            if($links === null)
+                Exception::throw_exception("There was an error reading file: $db_file. Please open it and confirm if it's a valid JSON");
+
             foreach ($links as $link) {
                 if(empty($link['src'])) {
                     new BobExec("link:{$link['type']} {$link['dest']} --force --silent");
