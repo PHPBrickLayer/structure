@@ -183,6 +183,11 @@ trait SelectorOOP
         return $this->store_vars('debug', true);
     }
 
+    final public function debug_deep(): self
+    {
+        return $this->store_vars('debug_deep', true);
+    }
+
     final public function catch(): self
     {
         return $this->store_vars('catch', true);
@@ -351,6 +356,9 @@ trait SelectorOOP
     {
         self::$current_index = 969;
         $this->cached_options[self::$current_index] = $vars;
+
+        if(isset($vars['debug_deep']))
+            $this->cached_options[self::$current_index]['debug'] = true;
 
         $data = $temporary_fn();
 
