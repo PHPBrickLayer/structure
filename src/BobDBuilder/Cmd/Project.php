@@ -37,7 +37,7 @@ class Project implements CmdLayout
             return;
         }
 
-        if(empty(file_get_contents($server->lay . "identity"))) {
+        if(empty(file_get_contents($this->plug->server->lay . "identity"))) {
             file_put_contents($this->plug->server->lay . "identity", Gen::uuid(32));
             return;
         }
