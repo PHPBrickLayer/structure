@@ -30,6 +30,22 @@ class Project implements CmdLayout
         $this->create();
     }
 
+    private function generate_identity(bool $overwrite = false) : void
+    {
+        if(!file_exists($this->plug->server->lay . "identity")) {
+            file_put_contents($this->plug->server->lay . "identity", Gen::uuid(32));
+            return;
+        }
+
+        if(empty(file_get_contents($server->lay . "identity"))) {
+            file_put_contents($this->plug->server->lay . "identity", Gen::uuid(32));
+            return;
+        }
+
+        if($overwrite)
+            file_put_contents($this->plug->server->lay . "identity", Gen::uuid(32));
+    }
+
     public function create(): void
     {
         $tag = $this->tags['project_create'][0] ?? null;
@@ -56,10 +72,6 @@ class Project implements CmdLayout
             $server->lay . ".gitignore",
         );
 
-        // generate an identity for the project if it doesn't exist
-        if(!file_exists($server->lay . "identity") || empty(file_get_contents($server->lay . "identity")))
-            file_put_contents($server->lay . "identity", Gen::uuid(32));
-
         // Create Lay dependent directories if they don't exist
         LayDir::make($server->temp, 0755, true);
         LayDir::make($server->workers, 0755, true);
@@ -73,6 +85,8 @@ class Project implements CmdLayout
         );
 
         if($tag == "--refresh-links") {
+            $this->generate_identity();
+
             $this->plug->write_info("Refreshing symlinks!");
 
             (new Symlink($this->plug))->refresh_link();
@@ -80,21 +94,23 @@ class Project implements CmdLayout
 
         if($tag == "--force-refresh") {
             $this->plug->write_info("Default domain forcefully refreshed");
+            $this->generate_identity(true);
 
-            new BobExec("make:domain Default * --silent --force");
+            new BobExec("make:domain Default '*' --silent --force");
             return;
         }
 
         if($tag == "--fresh-project") {
             $this->plug->write_info("Fresh project detected!");
+            $this->generate_identity(true);
 
             // Replace default domain folder on a fresh project
-            new BobExec("make:domain Default * --silent --force");
+            new BobExec("make:domain Default '*' --silent --force");
             return;
         }
 
         // create a default domain folder if not exists
         if(!is_dir($this->plug->server->domains . "Default"))
-            new BobExec("make:domain Default * --silent");
+            new BobExec("make:domain Default '*' --silent");
     }
 }
