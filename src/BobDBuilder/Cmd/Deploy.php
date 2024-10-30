@@ -86,9 +86,9 @@ class Deploy implements CmdLayout
 
         if($this->no_cache) {
             $this->talk("- *--no-cache* detected. Entire project will be compressed...");
+            new BobExec("purge:static_prod --silent");
             new BobExec("link:prune --silent");
             new BobExec("link:refresh --silent");
-            new BobExec("purge:static_prod --silent");
         }
 
         if($this->git_only) {
