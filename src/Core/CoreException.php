@@ -28,6 +28,9 @@ class CoreException
 
     public function capture_errors(bool $turn_warning_to_errors = false) : void
     {
+        if(defined('LAST_LINE_DEFENCE'))
+            return;
+
         set_error_handler(function (int $err_no, string $err_str, string $err_file, int $err_line) use ($turn_warning_to_errors)
         {
             if(error_reporting() != E_ALL)
