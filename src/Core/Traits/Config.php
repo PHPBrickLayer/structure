@@ -183,7 +183,8 @@ trait Config
     {
         self::init_first_class();
 
-        if (!defined("SAFE_TO_INIT_LAY") || !SAFE_TO_INIT_LAY) Exception::throw_exception("This script cannot be accessed this way, please return home", "BadRequest");
+        if (!defined("SAFE_TO_INIT_LAY") || !SAFE_TO_INIT_LAY)
+            Exception::throw_exception("This script cannot be accessed this way, please return home", "BadRequest");
 
         Exception::new()->capture_errors();
     }

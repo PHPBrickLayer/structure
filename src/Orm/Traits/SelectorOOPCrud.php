@@ -199,8 +199,8 @@ trait SelectorOOPCrud
             $this->oop_exception("You did not initialize the `table`. Use the `->table(String)` method like this: `->value('your_table_name')`");
 
         if($between) {
-            $between['start'] = $between['format'] ? date("Y-m-d", strtotime($between['start'])) : $between['format'];
-            $between['end'] = $between['format'] ? date("Y-m-d", strtotime($between['end'])) : $between['format'];
+            $between['start'] = $between['format'] ? date("Y-m-d 00:00:00", strtotime($between['start'])) : $between['format'];
+            $between['end'] = $between['format'] ? date("Y-m-d 23:59:59", strtotime($between['end'])) : $between['format'];
             $between_allow_null = $between['allow_null'] ?? true;
             $between = $between['col'] . " BETWEEN '" . $between['start'] . "' AND '" . $between['end'] . "'";
 
