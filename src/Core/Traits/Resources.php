@@ -1,10 +1,8 @@
 <?php
 declare(strict_types=1);
 namespace BrickLayer\Lay\Core\Traits;
-use BrickLayer\Lay\__InternalOnly\CacheInitOptions;
 use BrickLayer\Lay\Libs\LayDir;
 use Dotenv\Dotenv;
-use JetBrains\PhpStorm\ObjectShape;
 
 trait Resources {
     private static object $server;
@@ -75,25 +73,27 @@ trait Resources {
         self::$site = (object) $obj;
     }
 
-    #[ObjectShape([
-        "lay" => 'string',
-        "lay_static" => 'string',
-        "framework" => 'string',
-        "framework_workers" => 'string',
-        "workers" => 'string',
-        "root" => 'string',
-        "temp" => 'string',
-        "exceptions" => 'string',
-        "cron_outputs" => 'string',
-        "bricks" => 'string',
-        "db" => 'string',
-        "utils" => 'string',
-        "web" => 'string',
-        "shared" => 'string',
-        "domains" => 'string',
-        "uploads" => 'string',
-        "uploads_no_root" => 'string',
-    ])]
+    /**
+     * @psalm-return  object{
+     *     lay: string,
+     *     lay_static: string,
+     *     framework: string,
+     *     framework_workers: string,
+     *     workers: string,
+     *     root: string,
+     *     temp: string,
+     *     exceptions: string,
+     *     cron_outputs: string,
+     *     bricks: string,
+     *     db: string,
+     *     utils: string,
+     *     web: string,
+     *     shared: string,
+     *     domains: string,
+     *     uploads: string,
+     *     uploads_no_root: string
+     * }
+     */
     public static function server_data() : object
     {
         if(!isset(self::$server)){
@@ -105,23 +105,31 @@ trait Resources {
     }
 
 
-    #[ObjectShape([
-        "base" => 'string',
-        "proto" => 'string',
-        "base_no_proto" => 'string',
-        "base_no_proto_no_www" => 'string',
-        "domain" => 'string',
-        "domain_no_proto" => 'string',
-        "domain_no_proto_no_www" => 'string',
-        "server_mocked" => 'bool',
-        "author" => 'string',
-        "global_api" => 'string',
-        "name" => 'object[long, short]',
-        "color" => 'object[pry, sec]',
-        "mail" => 'object[0,1,...n]',
-        "tel" => 'object[0,1,...n]',
-        "others" => 'object',
-    ])]
+    /**
+     * @psalm-return  object{
+     *      base: string,
+     *      proto: string,
+     *      base_no_proto: string,
+     *      base_no_proto_no_www: string,
+     *      domain: string,
+     *      domain_no_proto: string,
+     *      domain_no_proto_no_www: string,
+     *      server_mocked: bool,
+     *      author: string,
+     *      global_api: string,
+     *      name: object{
+     *          long : string,
+     *          short: string
+     *      },
+     *     color: object{
+     *          pry: string,
+     *          sec: string
+     *     },
+     *     mail: object<int>,
+     *     tel: object<int>,
+     *     others: object
+     * }
+     */
     public static function site_data() : object
     {
         self::is_init(true);
