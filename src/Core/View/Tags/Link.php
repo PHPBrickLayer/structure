@@ -46,10 +46,11 @@ final class Link
         $as = $this->attr['as'] ?? "style";
         $rel = $this->attr['rel'] ?? "stylesheet";
         $type = $this->attr['type'] ?? "text/css";
-        $lazy_type = $this->attr['lazy'] ?? "prefetch"; // 'preload' || 'prefetch';
         $attr = $this->get_attr(function ($v, $k) use ($lazy) {
-            if (($lazy && $k == "rel") || $k == "src")
+
+            if (($lazy && ($k == "rel" || $k == "media" || $k == "type")) || $k == "src") {
                 return CustomContinueBreak::CONTINUE;
+            }
 
             return $v;
         });
@@ -58,10 +59,10 @@ final class Link
 
         if ($lazy) {
             $attr = <<<ATTR
-            media="print" onload="this.rel='$rel';this.media='$media'" rel="$lazy_type" href="$href" type="$type" as="$as"  $attr 
+            media="print" onload="this.media='$media'; this.onload=null" rel="$rel" href="$href" type="$type" as="$as"  $attr 
             ATTR;
 
-            $link = "\n\t<link $attr>\n\t<noscript><link rel=\"$rel\" href=\"$href\" ></noscript>";
+            $link = "\n\t<link $attr>\n\t<noscript><link rel=\"$rel\" media='$media' type='$type' href=\"$href\" ></noscript>";
         }
 
         if ($print)
