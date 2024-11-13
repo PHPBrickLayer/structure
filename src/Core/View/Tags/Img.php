@@ -42,6 +42,10 @@ final class Img {
         return $this;
     }
 
+    public function srcset(string $srcset) : self {
+        return $this->attr('srcset', $srcset);
+    }
+
     public function src(string $src, bool $lazy_load = true) : string {
         $src = ViewSrc::gen($src, $this->prepend_domain_on_src);
         $lazy_load = $lazy_load ? 'lazy' : 'eager';
