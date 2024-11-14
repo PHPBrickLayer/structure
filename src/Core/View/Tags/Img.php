@@ -43,6 +43,7 @@ final class Img {
     }
 
     public function srcset(string $srcset) : self {
+        $srcset = ViewSrc::gen($srcset, $this->prepend_domain_on_src);
         return $this->attr('srcset', $srcset);
     }
 
