@@ -1,0 +1,119 @@
+<?php
+declare(strict_types=1);
+
+namespace BrickLayer\Lay\Orm\Traits;
+
+
+use BrickLayer\Lay\Orm\Enums\OrmExecStatus;
+use JetBrains\PhpStorm\ExpectedValues;
+
+trait TransactionHandler
+{
+    private static bool $DB_IN_TRANSACTION = false;
+    private static int $BEGIN_TRANSACTION_COUNTER = 0;
+
+    private static function cache_counter() : void
+    {
+        self::save_to_session("BEGIN_TRANSACTION_COUNTER", self::$BEGIN_TRANSACTION_COUNTER);
+    }
+
+    private static function decrease_counter() : void
+    {
+        self::$BEGIN_TRANSACTION_COUNTER--;
+
+        if(self::$BEGIN_TRANSACTION_COUNTER < 0)
+            self::$BEGIN_TRANSACTION_COUNTER = 0;
+
+        self::cache_counter();
+    }
+
+    final public function in_transaction() : bool
+    {
+        return self::$DB_IN_TRANSACTION;
+    }
+
+    final public function __rollback_on_error() : void
+    {
+        $trx_exists = (bool) self::get_from_session("BEGIN_TRANSACTION_COUNTER");
+
+        if($trx_exists && isset(self::$link))
+            $this->rollback();
+    }
+
+    /**
+     * Starts a transaction
+     * @link https://secure.php.net/manual/en/mysqli.begin-transaction.php
+     * @param int $flags
+     * @param string|null $name
+     * @return bool true on success or false on failure.
+     */
+    final public function begin_transaction(#[ExpectedValues([
+        MYSQLI_TRANS_START_READ_ONLY,
+        MYSQLI_TRANS_START_READ_WRITE,
+        MYSQLI_TRANS_START_WITH_CONSISTENT_SNAPSHOT,
+    ])] int $flags = 0, ?string $name = null) : bool
+    {
+        self::$BEGIN_TRANSACTION_COUNTER++;
+
+        self::cache_counter();
+
+        if(self::$DB_IN_TRANSACTION && !$name)
+            return true;
+
+        self::$DB_IN_TRANSACTION = true;
+        return self::new()->get_link()->begin_transaction($flags, $name);
+    }
+
+    /**
+     * Commits the current transaction
+     * @link https://php.net/manual/en/mysqli.commit.php
+     * @param int $flags A bitmask of MYSQLI_TRANS_COR_* constants.
+     * @param string|null $name If provided then COMMIT $name is executed.
+     * @return bool true on success or false on failure.
+     */
+    final public function commit(#[ExpectedValues([
+        MYSQLI_TRANS_START_READ_ONLY,
+        MYSQLI_TRANS_START_READ_WRITE,
+        MYSQLI_TRANS_START_WITH_CONSISTENT_SNAPSHOT,
+    ])] int $flags = 0, ?string $name = null) : bool
+    {
+        self::decrease_counter();
+
+        if(self::$BEGIN_TRANSACTION_COUNTER == 0)
+            return self::new()->get_link()->commit($flags, $name);
+
+        return false;
+    }
+
+    /**
+     * Rolls back current transaction
+     * @link https://php.net/manual/en/mysqli.rollback.php
+     * @param int $flags [optional] A bitmask of MYSQLI_TRANS_COR_* constants.
+     * @param string|null $name [optional] If provided then ROLLBACK $name is executed.
+     * @return bool true on success or false on failure.
+     */
+    final public function rollback(#[ExpectedValues([
+        MYSQLI_TRANS_START_READ_ONLY,
+        MYSQLI_TRANS_START_READ_WRITE,
+        MYSQLI_TRANS_START_WITH_CONSISTENT_SNAPSHOT,
+    ])] int $flags = 0, ?string $name = null) : bool
+    {
+        self::decrease_counter();
+        return self::new()->get_link()->rollback($flags, $name);
+    }
+
+    final public function commit_or_rollback(#[ExpectedValues([
+        MYSQLI_TRANS_START_READ_ONLY,
+        MYSQLI_TRANS_START_READ_WRITE,
+        MYSQLI_TRANS_START_WITH_CONSISTENT_SNAPSHOT,
+    ])] int $flags = 0, ?string $name = null) : bool
+    {
+        if($this->query_info['status'] == OrmExecStatus::FAIL)
+            return $this->rollback($flags, $name);
+
+        if($this->query_info['status'] == OrmExecStatus::SUCCESS && self::$DB_IN_TRANSACTION)
+            return $this->commit($flags, $name);
+
+        return false;
+    }
+}

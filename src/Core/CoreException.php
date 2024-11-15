@@ -11,6 +11,7 @@ use BrickLayer\Lay\Core\Enums\LayMode;
 use BrickLayer\Lay\Core\Traits\IsSingleton;
 use BrickLayer\Lay\Libs\LayDir;
 use BrickLayer\Lay\Libs\LayFn;
+use BrickLayer\Lay\Orm\SQL;
 use Throwable;
 
 class CoreException
@@ -463,6 +464,8 @@ class CoreException
     {
         if(self::$already_caught)
             return null;
+
+        SQL::new()->__rollback_on_error();
 
         if(LayConfig::get_mode() === LayMode::HTTP && $this->throw_500) {
             self::$HAS_500 = true;

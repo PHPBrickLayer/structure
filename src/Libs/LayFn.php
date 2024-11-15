@@ -110,4 +110,22 @@ final class LayFn
         header($header, $replace, $response_code);
     }
 
+    /**
+     * Extract the word from a string using regex
+     * @param string $pattern
+     * @param string $subject
+     * @return array|null
+     */
+    public static function extract_word(string $pattern, string $subject) : ?array
+    {
+        $pattern = '~' . $pattern . '~';
+
+        preg_match($pattern, $subject, $out);
+
+        if(empty($out))
+            return null;
+
+        return $out;
+    }
+
 }

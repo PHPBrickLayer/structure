@@ -14,6 +14,7 @@ use BrickLayer\Lay\Orm\Traits\Config;
 use BrickLayer\Lay\Orm\Traits\Functions;
 use BrickLayer\Lay\Orm\Traits\SelectorOOP;
 use BrickLayer\Lay\Orm\Traits\SelectorOOPCrud;
+use BrickLayer\Lay\Orm\Traits\TransactionHandler;
 use Exception;
 use Generator;
 use JetBrains\PhpStorm\ArrayShape;
@@ -26,10 +27,13 @@ use SQLite3Result;
  **/
 class SQL
 {
+    private static bool $IS_FIRST_QUERY = true;
+
     use IsSingleton;
     use Config;
     use SelectorOOP;
     use SelectorOOPCrud;
+    use TransactionHandler;
     use Functions;
 
     /**
@@ -44,102 +48,6 @@ class SQL
      */
     public array $query_info;
 
-    private static OrmDriver $active_driver;
-    private static string $db_name;
-
-    public static function get_driver() : OrmDriver
-    {
-        if(isset(self::$active_driver))
-            return self::$active_driver;
-
-        if(!isset($_ENV['DB_DRIVER']))
-            self::exception(
-                "NoDBDriverFound",
-                "No Database driver was found. It's possible that you called this method before initializing the ORM"
-            );
-
-        if($driver = self::test_driver($_ENV['DB_DRIVER']))
-            return $driver;
-
-        self::exception(
-            "UnidentifiedDriver",
-            "An unidentified database driver was found: " . $_ENV['DB_DRIVER']
-        );
-    }
-
-    public static function test_driver(string $string) : ?OrmDriver
-    {
-        return match ($string) {
-            default => null,
-            "mysql" => OrmDriver::MYSQL,
-            "sqlite" => OrmDriver::SQLITE
-        };
-    }
-
-    /**
-     * @param $connection mysqli|array|null|string The link to a mysqli connection or an array of [host, user, password, db]
-     * @param bool $persist_connection
-     * When nothing is passed, the class assumes dev isn't doing any db operation
-     */
-    public static function init(
-        #[ArrayShape([
-            "host" => 'string',
-            "user" => 'string',
-            "password" => 'string',
-            "db" => 'string',
-            "port" => 'string',
-            "socket" => 'string',
-            "silent" => 'bool',
-            "ssl" => 'array [
-                certificate => string, 
-                ca_certificate => string,
-                ca_path => string, 
-                cipher_algos => string, 
-                flag => int,
-            ]',
-        ])] mysqli|array|null|string $connection = null,
-        OrmDriver $driver = OrmDriver::MYSQL,
-        bool $persist_connection = true
-    ): self
-    {
-        if($connection === null){
-            $driver = OrmDriver::tryFrom($_ENV['DB_DRIVER'] ?? '');
-
-            if($driver === null)
-                self::exception("InvalidOrmDriver", "An invalid db driver was received: [" . @$_ENV['DB_DRIVER'] . "]. Please specify the `DB_DRIVER`. Valid keys includes any of the following: [" . OrmDriver::stringify() . "]");
-
-            $connection = match ($driver) {
-                default => [
-                    "host" => $_ENV['DB_HOST'],
-                    "user" => $_ENV['DB_USERNAME'],
-                    "password" => $_ENV['DB_PASSWORD'],
-                    "db" => $_ENV['DB_NAME'],
-                    "port" => $_ENV['DB_PORT'] ?? NULL,
-                    "socket" => $_ENV['DB_SOCKET'] ?? NULL,
-                    "silent" => $_ENV['DB_ALLOW_STARTUP_ERROR'] ?? false,
-                    "ssl" => [
-                        "key" => $_ENV['DB_SSL_KEY'] ?? null,
-                        "certificate" => $_ENV['DB_SSL_CERTIFICATE'] ?? null,
-                        "ca_certificate" => $_ENV['DB_SSL_CA_CERTIFICATE'] ?? null,
-                        "ca_path" => $_ENV['DB_SSL_CA_PATH'] ?? null,
-                        "cipher_algos" => $_ENV['DB_SSL_CIPHER_ALGOS'] ?? null,
-                        "flag" => $_ENV['DB_SSL_FLAG'] ?? 0
-                    ],
-                ],
-                OrmDriver::SQLITE => $_ENV['SQLITE_DB']
-            };
-        }
-
-        self::$active_driver = $driver;
-        self::new()->set_db($connection, $persist_connection);
-        return self::new();
-    }
-
-    public function switch_db(string $name): bool
-    {
-        $name = self::escape_string($name);
-        return self::$link->select_db($name);
-    }
 
     public static function exception(string $title, string $message, array $opts = [], $exception = null) : void
     {
@@ -177,6 +85,11 @@ class SQL
                 "ConnErr",
                 "No connection detected: <h5>Connection might be closed!</h5>",
             );
+
+        if(self::$IS_FIRST_QUERY)
+            $this->__rollback_on_error();
+
+        self::$IS_FIRST_QUERY = false;
 
         $option = LayArray::flatten($option);
         $debug = $option['debug'] ?? false;

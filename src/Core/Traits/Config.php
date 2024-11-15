@@ -275,21 +275,41 @@ trait Config
         if(!$agent)
             return null;
 
-        // Define the regex pattern
+        // regex pattern for chromium
         $pattern = '/^(?<product>.*?)\s\((?<platform>.*?)\)\s(?<engine>.*?)\s\((?<engine2>.*?)\)\s(?<browser>.*?)$/';
+
         preg_match($pattern, $agent, $matches);
 
-        if(empty($matches))
-            return [
-                'agent' => $agent
-            ];
+        if(empty($matches)) {
+            // regex pattern for firefox
+            $pattern = '/^(?<product>.*?)\s\((?<platform>.*?)\)\s(?<engine>.*?)\s(?<browser>.*?)$/';
+            preg_match($pattern, $agent, $matches);
+
+            if(empty($matches))
+                return [
+                    'agent' => $agent
+                ];
+        }
+
+        $edge = LayFn::extract_word("Edg.*", $matches['browser']);
+        $safari = LayFn::extract_word("(Version\/[0-9.]+) (Safari\/[0-9.]+)", $matches['browser']);
+        $chrome = LayFn::extract_word("Chrome\/[0-9.]+", $matches['browser']);
+
+        if($edge)
+            $browser = $edge[0];
+        elseif($safari)
+            $browser = $safari[2];
+        elseif($chrome)
+            $browser = $chrome[0];
+        else
+            $browser = null;
 
         return [
             "agent" => $matches[0],
             "product" => $matches['product'],
             "platform" => $matches['platform'],
-            "engine" => $matches['engine'] . " (" . $matches['engine2']  .")",
-            "browser" => $matches['browser'],
+            "engine" => $matches['engine'],
+            "browser" => $browser ?? $matches['browser'],
         ];
     }
 
