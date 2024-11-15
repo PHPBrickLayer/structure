@@ -10,7 +10,8 @@ use mysqli;
 use SQLite3;
 
 trait Config{
-    private static string $SESSION_KEY = "__LAY_SQL__";
+    private static OrmDriver $active_driver;
+    private static string $db_name;
     private static mysqli|SQLite3 $link;
     private static string $CHARSET = "utf8mb4";
     private static string $DB_FILE;
@@ -23,6 +24,7 @@ trait Config{
         "port" => null,
         "socket" => null,
         "silent" => false,
+        "auto_commit" => false,
         "ssl" => [
             "key" => null,
             "certificate" => null,
@@ -34,27 +36,37 @@ trait Config{
     ];
     private static bool $connected = false;
 
+    protected static function save_to_session(string $key, mixed $value) : void
+    {
+        $_SESSION["__LAY_SQL__"][$key] = $value;
+    }
+
+    protected static function get_from_session(string $key) : mixed
+    {
+        return $_SESSION["__LAY_SQL__"][$key] ?? null;
+    }
+
     private static function cache_connection($link) : void
     {
         if(!isset(self::$active_driver))
             return;
 
-        $_SESSION[self::$SESSION_KEY][self::$active_driver->value] = $link;
+        self::save_to_session(self::$active_driver->value, $link);
     }
 
     private static function cache_pinged_data(array $args) : void
     {
-        $_SESSION[self::$SESSION_KEY]["PINGED_DATA"] = $args;
+        self::save_to_session("PINGED_DATA", $args);
     }
 
     private static function get_pinged_data() : ?array
     {
-        return $_SESSION[self::$SESSION_KEY]["PINGED_DATA"] ?? null;
+        return self::get_from_session("PINGED_DATA");
     }
 
     private static function get_cached_connection() : mysqli|SQLite3|null
     {
-        return $_SESSION[self::$SESSION_KEY][self::$active_driver->value] ?? null;
+        return self::get_from_session(self::$active_driver->value);
     }
     /**
      * Connect Controller Manually From Here
@@ -81,7 +93,11 @@ trait Config{
                 "<div style='color: #e00; font-weight: bold; margin: 5px 1px;'>Cannot initialize connection</div>"
             );
 
-//        $mysqli->options(MYSQLI_INIT_COMMAND, 'SET AUTOCOMMIT = 0');
+        if(!$auto_commit)
+            $mysqli->options(MYSQLI_INIT_COMMAND, 'SET AUTOCOMMIT = 0');
+        else
+            $mysqli->options(MYSQLI_INIT_COMMAND, 'SET AUTOCOMMIT = 1');
+
         $mysqli->options(MYSQLI_OPT_CONNECT_TIMEOUT, 5);
 
         if (!empty(@$ssl['certificate']) || !empty(@$ssl['ca_certificate'])) {
@@ -284,5 +300,102 @@ trait Config{
         }
 
         return self::$connected;
+    }
+
+
+    /**
+     * @param $connection mysqli|array|null|string The link to a mysqli connection or an array of [host, user, password, db]
+     * @param bool $persist_connection
+     * When nothing is passed, the class assumes dev isn't doing any db operation
+     */
+    public static function init(
+        #[ArrayShape([
+            "host" => 'string',
+            "user" => 'string',
+            "password" => 'string',
+            "db" => 'string',
+            "port" => 'string',
+            "socket" => 'string',
+            "silent" => 'bool',
+            "auto_commit" => 'bool',
+            "ssl" => 'array [
+                certificate => string, 
+                ca_certificate => string,
+                ca_path => string, 
+                cipher_algos => string, 
+                flag => int,
+            ]',
+        ])] mysqli|array|null|string $connection = null,
+        OrmDriver $driver = OrmDriver::MYSQL,
+        bool $persist_connection = true
+    ): self
+    {
+        if($connection === null){
+            $driver = OrmDriver::tryFrom($_ENV['DB_DRIVER'] ?? '');
+
+            if($driver === null)
+                self::exception("InvalidOrmDriver", "An invalid db driver was received: [" . @$_ENV['DB_DRIVER'] . "]. Please specify the `DB_DRIVER`. Valid keys includes any of the following: [" . OrmDriver::stringify() . "]");
+
+            $connection = match ($driver) {
+                default => [
+                    "host" => $_ENV['DB_HOST'],
+                    "user" => $_ENV['DB_USERNAME'],
+                    "password" => $_ENV['DB_PASSWORD'],
+                    "db" => $_ENV['DB_NAME'],
+                    "port" => $_ENV['DB_PORT'] ?? NULL,
+                    "socket" => $_ENV['DB_SOCKET'] ?? NULL,
+                    "silent" => $_ENV['DB_ALLOW_STARTUP_ERROR'] ?? false,
+                    "auto_commit" => $_ENV['DB_AUTO_COMMIT'] ?? false,
+                    "ssl" => [
+                        "key" => $_ENV['DB_SSL_KEY'] ?? null,
+                        "certificate" => $_ENV['DB_SSL_CERTIFICATE'] ?? null,
+                        "ca_certificate" => $_ENV['DB_SSL_CA_CERTIFICATE'] ?? null,
+                        "ca_path" => $_ENV['DB_SSL_CA_PATH'] ?? null,
+                        "cipher_algos" => $_ENV['DB_SSL_CIPHER_ALGOS'] ?? null,
+                        "flag" => $_ENV['DB_SSL_FLAG'] ?? 0
+                    ],
+                ],
+                OrmDriver::SQLITE => $_ENV['SQLITE_DB']
+            };
+        }
+
+        self::$active_driver = $driver;
+        self::new()->set_db($connection, $persist_connection);
+        return self::new();
+    }
+
+    public static function get_driver() : OrmDriver
+    {
+        if(isset(self::$active_driver))
+            return self::$active_driver;
+
+        if(!isset($_ENV['DB_DRIVER']))
+            self::exception(
+                "NoDBDriverFound",
+                "No Database driver was found. It's possible that you called this method before initializing the ORM"
+            );
+
+        if($driver = self::test_driver($_ENV['DB_DRIVER']))
+            return $driver;
+
+        self::exception(
+            "UnidentifiedDriver",
+            "An unidentified database driver was found: " . $_ENV['DB_DRIVER']
+        );
+    }
+
+    public static function test_driver(string $string) : ?OrmDriver
+    {
+        return match ($string) {
+            default => null,
+            "mysql" => OrmDriver::MYSQL,
+            "sqlite" => OrmDriver::SQLITE
+        };
+    }
+
+    public function switch_db(string $name): bool
+    {
+        $name = self::escape_string($name);
+        return self::$link->select_db($name);
     }
 }
