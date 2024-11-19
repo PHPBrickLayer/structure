@@ -129,9 +129,11 @@ trait TransactionHandler
     #[ArrayShape([
         'status' => 'bool',
         'message' => 'string',
+        'exception' => '?Throwable',
     ])]
     final public static function scoped_transaction(
         callable $scoped_operations,
+         bool $throw_exception = true,
         #[ExpectedValues([
             MYSQLI_TRANS_START_READ_ONLY,
             MYSQLI_TRANS_START_READ_WRITE,
@@ -152,11 +154,15 @@ trait TransactionHandler
         } catch (\Throwable $exception) {
             self::new()->rollback();
 
+            if($throw_exception)
+                LayException::throw_exception("", "ScopedTransactionException", exception: $exception);
+
             LayException::log("", exception: $exception, log_title: "ScopedTransactionLog");
 
             return [
                 "status" => false,
-                "message" => $exception->getMessage()
+                "message" => "Operation failed",
+                "exception" => $exception,
             ];
         }
     }
