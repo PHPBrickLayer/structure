@@ -4,7 +4,9 @@ declare(strict_types=1);
 namespace BrickLayer\Lay\Orm\Traits;
 
 
+use BrickLayer\Lay\Core\LayException;
 use BrickLayer\Lay\Orm\Enums\OrmExecStatus;
+use JetBrains\PhpStorm\ArrayShape;
 use JetBrains\PhpStorm\ExpectedValues;
 
 trait TransactionHandler
@@ -115,5 +117,47 @@ trait TransactionHandler
             return $this->commit($flags, $name);
 
         return false;
+    }
+
+    /**
+     * This function wraps all your operations in a callback function, inside a transaction, and also wrapped in a try catch block
+     * @param callable $scoped_operations
+     * @param int $flags [optional] A bitmask of MYSQLI_TRANS_COR_* constants.
+     * @param string|null $name [optional] If provided then ROLLBACK $name is executed.
+     * @return array
+     */
+    #[ArrayShape([
+        'status' => 'bool',
+        'message' => 'string',
+    ])]
+    final public static function scoped_transaction(
+        callable $scoped_operations,
+        #[ExpectedValues([
+            MYSQLI_TRANS_START_READ_ONLY,
+            MYSQLI_TRANS_START_READ_WRITE,
+            MYSQLI_TRANS_START_WITH_CONSISTENT_SNAPSHOT,
+        ])] int $flags = 0,
+        ?string $name = null
+    ) : array
+    {
+        try{
+            self::new()->begin_transaction($flags, $name);
+            $scoped_operations();
+            self::new()->commit_or_rollback($flags, $name);
+
+            return [
+                "status" => true,
+                "message" => "Operation successful"
+            ];
+        } catch (\Throwable $exception) {
+            self::new()->rollback();
+
+            LayException::log("", exception: $exception, log_title: "ScopedTransactionLog");
+
+            return [
+                "status" => false,
+                "message" => $exception->getMessage()
+            ];
+        }
     }
 }
