@@ -317,8 +317,11 @@ final class ViewEngine {
 
             Exception::throw_exception(
                 "It seems the html_content of the page is empty. Maybe you are rendering a page that is very large. Body Size: $length",
-                "ViewEngine::PageTooLarge"
+                "ViewEngine::PageTooLarge",
+                false
             );
+
+            $matches['html_content'] = ["<h1 style='padding: 2rem'>HTML Page Exceeds Limit. Current Page Size is: $length</h1>"];
         }
 
         echo implode($matches['html_content']);
