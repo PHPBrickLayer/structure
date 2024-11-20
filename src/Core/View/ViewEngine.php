@@ -312,6 +312,7 @@ final class ViewEngine {
 
         ob_start();
 
+        // TODO: Find a way to render more than 1.5mb of HTML page
         if(empty($matches['html_content'])) {
             $length = LayFn::num_format(strlen($body), 6) . "B";
 
