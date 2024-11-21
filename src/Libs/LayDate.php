@@ -217,4 +217,8 @@ class LayDate {
         return self::date($datetime_latest, figure: true) > self::date($datetime_earlier, figure: true);
     }
 
+    public static function expired(string|int $expiry_date) : bool
+    {
+        return self::greater($expiry_date);
+    }
 }
