@@ -113,7 +113,7 @@ trait TransactionHandler
         if($this->query_info['status'] == OrmExecStatus::FAIL)
             return $this->rollback($flags, $name);
 
-        if($this->query_info['status'] == OrmExecStatus::SUCCESS && self::$DB_IN_TRANSACTION)
+        if($this->query_info['status'] == OrmExecStatus::SUCCESS)
             return $this->commit($flags, $name);
 
         return false;
