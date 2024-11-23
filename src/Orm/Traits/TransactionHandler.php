@@ -130,10 +130,11 @@ trait TransactionHandler
         'status' => 'bool',
         'message' => 'string',
         'exception' => '?Throwable',
+        'data' => 'mixed',
     ])]
     final public static function scoped_transaction(
         callable $scoped_operations,
-         bool $throw_exception = true,
+        bool $throw_exception = true,
         #[ExpectedValues([
             MYSQLI_TRANS_START_READ_ONLY,
             MYSQLI_TRANS_START_READ_WRITE,
@@ -144,12 +145,13 @@ trait TransactionHandler
     {
         try{
             self::new()->begin_transaction($flags, $name);
-            $scoped_operations();
+            $output = $scoped_operations(self::new()) ?? null;
             self::new()->commit_or_rollback($flags, $name);
 
             return [
                 "status" => true,
-                "message" => "Operation successful"
+                "message" => "Operation successful",
+                "data" => $output
             ];
         } catch (\Throwable $exception) {
             self::new()->rollback();
