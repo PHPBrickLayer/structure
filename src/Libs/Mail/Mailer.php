@@ -54,7 +54,7 @@ class Mailer {
         $log = LayConfig::server_data()->temp . "emails" . DIRECTORY_SEPARATOR;
         LayDir::make($log, 0777, true);
 
-        $log .= date("Y-m-d_H-i-s_" . rand(0, 9)) . ".log";
+        $log .= LayDate::now() . ".log";
 
         file_put_contents($log, "[" . LayDate::date(format_index: 3) . "]\n" . $this->log_data);
     }
