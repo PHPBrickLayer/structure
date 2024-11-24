@@ -217,6 +217,7 @@ class CoreException
         $env = $this->get_env();
         $this->always_log = $env == "PRODUCTION" ? true : $this->always_log;
         $display_error = $env == "DEVELOPMENT" || $other['core'] == "view";
+        $display = false;
 
         $return_as_string = $other['as_string'] ?: false;
         $echo_error = $other['echo_error'] ?? true;
@@ -434,7 +435,7 @@ class CoreException
 
         $rtn = [
             "act" => $other['act'] ?? "allow",
-            "error" => $error ?? (@$display ?: ($this->always_log ? "Check logs for details. Error encountered" : "Error encountered, but was not logged")),
+            "error" => $error ?? ($display ?: ($this->always_log ? "Check logs for details. Error encountered" : "Error encountered, but was not logged")),
             "as_string" => $return_as_string,
             "display_error" => $display_error,
             "echo_error" => $echo_error,
@@ -491,7 +492,7 @@ class CoreException
 
         SQL::new()->__rollback_on_error();
 
-        $throw_500 = $this->throw_500 and LayConfig::get_mode() === LayMode::HTTP;
+        $throw_500 = $this->throw_500 && LayConfig::get_mode() === LayMode::HTTP;
 
 
         if($throw_500) {

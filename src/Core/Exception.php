@@ -39,7 +39,7 @@ abstract class Exception {
     public static function log(mixed $message, Throwable $exception = null, string $log_title = "") : void
     {
         self::always_log();
-        self::throw_exception(var_export($message, true), "ManualLog:$log_title", kill: false, exception: $exception, throw_500: false, echo_error: false);
+        self::throw_exception(var_export($message, true), "ManualLog:$log_title", kill: false, exception: $exception, throw_500: false, error_as_json: false, echo_error: false);
     }
 
     /**
