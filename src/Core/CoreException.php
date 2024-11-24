@@ -366,6 +366,12 @@ class CoreException
                 }
             }
 
+            $error_json["status"] = in_array($error_json['code'], [
+                ApiStatus::INTERNAL_SERVER_ERROR->value,
+                ApiStatus::NOT_FOUND->value,
+                ApiStatus::TOO_MANY_REQUESTS->value,
+            ]) ? 'error' : 'success';
+
             $code = ApiStatus::tryFrom($error_json['code']);
             $code = $code->value ?? 500;
 
