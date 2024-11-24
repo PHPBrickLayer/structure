@@ -468,7 +468,10 @@ class CoreException
 
         SQL::new()->__rollback_on_error();
 
-        if(LayConfig::get_mode() === LayMode::HTTP && $this->throw_500) {
+        $throw_500 = $this->throw_500 and LayConfig::get_mode() === LayMode::HTTP;
+
+
+        if($throw_500) {
             self::$HAS_500 = true;
             LayFn::header("HTTP/1.1 500 Internal Server Error");
         }
@@ -529,7 +532,7 @@ class CoreException
             return $act;
 
         if($act['display_error'] && $act['echo_error']) {
-            if(LayConfig::get_mode() === LayMode::HTTP && $this->throw_500) {
+            if($throw_500) {
                 self::$HAS_500 = true;
                 LayFn::header("HTTP/1.1 500 Internal Server Error");
             }
