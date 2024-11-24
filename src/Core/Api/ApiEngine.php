@@ -27,6 +27,7 @@ final class ApiEngine {
     private static self $engine;
     private static bool $DEBUG_MODE = false;
     private static bool $DEBUG_DUMP_MODE = false;
+    private static bool $ERRORS_AS_JSON = true;
 
     private const RATE_LIMIT_CACHE_FILE = 'rate_limiter/';
 
@@ -195,7 +196,7 @@ final class ApiEngine {
             $stack_trace,
             exception: $exception,
             throw_500: $header['throw_header'],
-            error_as_json: true,
+            error_as_json: self::$ERRORS_AS_JSON,
             json: [
                 "code" => $header['code'],
                 "message" => $header['msg'],
@@ -1156,6 +1157,12 @@ final class ApiEngine {
             self::exception("InvalidAPIRequest", "Invalid api request sent. Malformed URI received. You can't access this script like this!");
 
         return self::$engine;
+    }
+
+    public static function display_error_as_html() : void
+    {
+        if(LayConfig::$ENV_IS_DEV)
+            self::$ERRORS_AS_JSON = false;
     }
 
     public static function end(bool $print_existing_result = true) : ?string {
