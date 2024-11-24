@@ -1202,6 +1202,7 @@ final class ApiEngine {
                 "active_prefix" => self::$prefix ?? "",
                 "similar_routes" => $json_error
             ];
+
         self::exception(
             "NoRequestExecuted",
             "No valid handler for route [<span style='color: #F3F9FA'>$uri</span>]<br><br>  
