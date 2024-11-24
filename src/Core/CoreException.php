@@ -216,13 +216,16 @@ class CoreException
 
         $env = $this->get_env();
         $this->always_log = $env == "PRODUCTION" ? true : $this->always_log;
+        $display_error = $env == "DEVELOPMENT" || $other['core'] == "view";
+
         $return_as_string = $other['as_string'] ?: false;
         $echo_error = $other['echo_error'] ?? true;
-        $display_error = $env == "DEVELOPMENT" || $other['core'] == "view";
+        $show_internal_trace = $other['show_internal_trace'] ?? self::$show_internal_trace;
+
         $cli_mode = LayConfig::get_mode() === LayMode::CLI;
         $use_json = $cli_mode ? false : $this->throw_as_json;
         $use_json = $use_json ?: !isset(LayConfig::user_agent()['browser']);
-        $show_internal_trace = $other['show_internal_trace'] ?? self::$show_internal_trace;
+
 
         if (!empty(@$other['raw'])) {
             foreach ($other['raw'] as $k => $r) {
@@ -230,16 +233,22 @@ class CoreException
             }
         }
 
-        $referer = $_SERVER['HTTP_REFERER'] ?? ($cli_mode ? "CLI MODE" : 'unknown');
         $ip = LayConfig::get_ip();
         $os = LayConfig::get_os();
+
+        $referer = $_SERVER['HTTP_REFERER'] ?? ($cli_mode ? "CLI MODE" : 'unknown');
         $origin = $_SERVER['HTTP_ORIGIN'] ?? $_SERVER['HTTP_HOST'] ?? $referer;
         $cors_active = LayConfig::cors_active() ? "ACTIVE" : "INACTIVE";
+
+        $req_headers = LayConfig::get_header("*");
+        $req_headers['_Lay_Request_'] = $_SERVER['REQUEST_URI'] ?? 'CLI_REQUEST';
+        $req_headers['_Lay_Request_Method_'] = $_SERVER['REQUEST_METHOD'] ?? 'CLI_METHOD';
+
         $headers_str = "";
         $headers_html = "";
         $headers_json = [];
 
-        foreach (LayConfig::get_header("*") as $k => $v) {
+        foreach ($req_headers as $k => $v) {
             if(in_array($k, ["Cookie", "Accept-Language", "Accept-Encoding"], true))
                 continue;
 
@@ -383,8 +392,8 @@ class CoreException
                     "act" => $other['act'] ?? "allow",
                     "error" => json_encode($error_json),
                     "as_string" => $return_as_string,
-                    "display_error" => $display_error,
-                    "echo_error" => $echo_error,
+                    "display_error" => $return_as_string ? false: $display_error,
+                    "echo_error" => $return_as_string ? false : $echo_error,
                 ];
 
             $error = json_encode($error_json);
@@ -430,6 +439,7 @@ class CoreException
             "display_error" => $display_error,
             "echo_error" => $echo_error,
         ];
+
         if(!$this->always_log)
             return $rtn;
 
