@@ -38,7 +38,7 @@ trait TransactionHandler
     {
         $trx_exists = (bool) self::get_from_session("BEGIN_TRANSACTION_COUNTER");
 
-        if($trx_exists && isset(self::$link))
+        if(($trx_exists || self::$DB_IN_TRANSACTION || self::$BEGIN_TRANSACTION_COUNTER == 0) && isset(self::$link))
             $this->rollback();
     }
 
