@@ -220,7 +220,8 @@ class CoreException
         $echo_error = $other['echo_error'] ?? true;
         $display_error = $env == "DEVELOPMENT" || $other['core'] == "view";
         $cli_mode = LayConfig::get_mode() === LayMode::CLI;
-        $use_json = $cli_mode ? false : ($this->throw_as_json && !isset(LayConfig::user_agent()['browser']));
+        $use_json = $cli_mode ? false : $this->throw_as_json;
+        $use_json = $use_json ?: !isset(LayConfig::user_agent()['browser']);
         $show_internal_trace = $other['show_internal_trace'] ?? self::$show_internal_trace;
 
         if (!empty(@$other['raw'])) {
@@ -343,26 +344,33 @@ class CoreException
             $error_json = [
                 "code" => $other['json_packet']['code'] ?? 500,
                 "message" => $other['json_packet']['message'] ?? "Internal Server Error",
-                "packet" => $other['json_packet']['others'] ?? [],
             ];
 
-            $error_json['packet']['more_info'] = str_replace(["\n"], " ", ($body ? strip_tags($body) : ""));
+            if($env == "DEVELOPMENT") {
+                $error_json['packet']['more_info'] = str_replace(["\n"], " ", ($body ? strip_tags($body) : ""));
 
-            if(self::$show_x_info) {
-                $error_json["x_info"] = [
-                    "env" => $env,
-                    "host" => $origin,
-                    "referer" => $referer,
-                    "cors" => $cors_active,
-                    "ip" => $ip,
-                    "os" => $os,
-                    "trace" => [
-                        "app" => $stack_json['app'] ?? null,
-                        "internal" => $stack_json['internal'] ?? null,
-                    ],
-                    "headers" => $headers_json,
-                ];
+                if (self::$show_x_info) {
+                    $error_json["x_info"] = [
+                        "env" => $env,
+                        "host" => $origin,
+                        "referer" => $referer,
+                        "cors" => $cors_active,
+                        "ip" => $ip,
+                        "os" => $os,
+                        "trace" => [
+                            "app" => $stack_json['app'] ?? null,
+                            "internal" => $stack_json['internal'] ?? null,
+                        ],
+                        "headers" => $headers_json,
+                    ];
+                }
             }
+
+            $error_json["status"] = in_array($error_json['code'], [
+                ApiStatus::INTERNAL_SERVER_ERROR->value,
+                ApiStatus::NOT_FOUND->value,
+                ApiStatus::TOO_MANY_REQUESTS->value,
+            ]) ? 'error' : 'success';
 
             $code = ApiStatus::tryFrom($error_json['code']);
             $code = $code->value ?? 500;
@@ -374,8 +382,14 @@ class CoreException
                 return [
                     "act" => $other['act'] ?? "allow",
                     "error" => json_encode($error_json),
-                    "as_string" => $return_as_string
+                    "as_string" => $return_as_string,
+                    "display_error" => $display_error,
+                    "echo_error" => $echo_error,
                 ];
+
+            $error = json_encode($error_json);
+            $display_error = true;
+            $echo_error = true;
         }
 
         if (!$use_json && !$cli_mode && $display_error) {
@@ -416,7 +430,6 @@ class CoreException
             "display_error" => $display_error,
             "echo_error" => $echo_error,
         ];
-
         if(!$this->always_log)
             return $rtn;
 

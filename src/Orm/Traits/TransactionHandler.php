@@ -14,32 +14,23 @@ trait TransactionHandler
     private static bool $DB_IN_TRANSACTION = false;
     private static int $BEGIN_TRANSACTION_COUNTER = 0;
 
-    private static function cache_counter() : void
-    {
-        self::save_to_session("BEGIN_TRANSACTION_COUNTER", self::$BEGIN_TRANSACTION_COUNTER);
-    }
-
     private static function decrease_counter() : void
     {
         self::$BEGIN_TRANSACTION_COUNTER--;
 
         if(self::$BEGIN_TRANSACTION_COUNTER < 0)
             self::$BEGIN_TRANSACTION_COUNTER = 0;
+    }
 
-        self::cache_counter();
+    final public function __rollback_on_error() : void
+    {
+        if((self::$DB_IN_TRANSACTION || self::$BEGIN_TRANSACTION_COUNTER == 0) && isset(self::$link))
+            $this->rollback();
     }
 
     final public function in_transaction() : bool
     {
         return self::$DB_IN_TRANSACTION;
-    }
-
-    final public function __rollback_on_error() : void
-    {
-        $trx_exists = (bool) self::get_from_session("BEGIN_TRANSACTION_COUNTER");
-
-        if($trx_exists && isset(self::$link))
-            $this->rollback();
     }
 
     /**
@@ -55,14 +46,12 @@ trait TransactionHandler
         MYSQLI_TRANS_START_WITH_CONSISTENT_SNAPSHOT,
     ])] int $flags = 0, ?string $name = null) : bool
     {
+        self::$DB_IN_TRANSACTION = true;
         self::$BEGIN_TRANSACTION_COUNTER++;
-
-        self::cache_counter();
 
         if(self::$DB_IN_TRANSACTION && !$name)
             return true;
 
-        self::$DB_IN_TRANSACTION = true;
         return self::new()->get_link()->begin_transaction($flags, $name);
     }
 
