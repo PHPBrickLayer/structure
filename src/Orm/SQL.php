@@ -27,8 +27,6 @@ use SQLite3Result;
  **/
 class SQL
 {
-    private static bool $IS_FIRST_QUERY = true;
-
     use IsSingleton;
     use Config;
     use SelectorOOP;
@@ -85,11 +83,6 @@ class SQL
                 "ConnErr",
                 "No connection detected: <h5>Connection might be closed!</h5>",
             );
-
-        if(self::$IS_FIRST_QUERY)
-            $this->__rollback_on_error();
-
-        self::$IS_FIRST_QUERY = false;
 
         $option = LayArray::flatten($option);
         $debug = $option['debug'] ?? false;
