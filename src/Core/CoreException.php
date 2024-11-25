@@ -9,6 +9,7 @@ use BrickLayer\Lay\BobDBuilder\Helper\Console\Format\Style;
 use BrickLayer\Lay\Core\Api\Enums\ApiStatus;
 use BrickLayer\Lay\Core\Enums\LayMode;
 use BrickLayer\Lay\Core\Traits\IsSingleton;
+use BrickLayer\Lay\Core\View\Domain;
 use BrickLayer\Lay\Libs\LayDir;
 use BrickLayer\Lay\Libs\LayFn;
 use BrickLayer\Lay\Orm\SQL;
@@ -241,8 +242,15 @@ class CoreException
         $origin = $_SERVER['HTTP_ORIGIN'] ?? $_SERVER['HTTP_HOST'] ?? $referer;
         $cors_active = LayConfig::cors_active() ? "ACTIVE" : "INACTIVE";
 
+        $route = null;
+
+        if(Domain::is_in_use()) {
+            $route = Domain::current_route_data("*");
+            $route = $route['domain_base'] . $route['route'];
+        }
+
         $req_headers = LayConfig::get_header("*");
-        $req_headers['_Lay_Request_'] = $_SERVER['REQUEST_URI'] ?? 'CLI_REQUEST';
+        $req_headers['_Lay_Request_'] = $route ?? 'CLI_REQUEST';
         $req_headers['_Lay_Request_Method_'] = $_SERVER['REQUEST_METHOD'] ?? 'CLI_METHOD';
 
         $headers_str = "";

@@ -585,4 +585,9 @@ class Domain {
         if(isset($_SESSION[self::$domain_list_key]))
             unset($_SESSION[self::$domain_list_key]);
     }
+
+    public static function is_in_use() : bool
+    {
+        return isset(self::$current_route_details);
+    }
 }
