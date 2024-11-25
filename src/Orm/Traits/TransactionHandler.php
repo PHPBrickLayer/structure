@@ -124,12 +124,13 @@ trait TransactionHandler
     final public static function scoped_transaction(
         callable $scoped_operations,
         bool $throw_exception = true,
+        ?callable $on_exception = null,
         #[ExpectedValues([
             MYSQLI_TRANS_START_READ_ONLY,
             MYSQLI_TRANS_START_READ_WRITE,
             MYSQLI_TRANS_START_WITH_CONSISTENT_SNAPSHOT,
         ])] int $flags = 0,
-        ?string $name = null
+        ?string $name = null,
     ) : array
     {
         try{
@@ -144,6 +145,9 @@ trait TransactionHandler
             ];
         } catch (\Throwable $exception) {
             self::new()->rollback();
+
+            if($on_exception !== null)
+                $on_exception($exception);
 
             if($throw_exception)
                 LayException::throw_exception("", "ScopedTransactionException", exception: $exception);
