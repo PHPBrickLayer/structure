@@ -146,8 +146,15 @@ trait TransactionHandler
         } catch (\Throwable $exception) {
             self::new()->rollback();
 
-            if($on_exception !== null)
+            if($on_exception !== null) {
                 $on_exception($exception);
+
+                return [
+                    "status" => false,
+                    "message" => "Operation failed",
+                    "exception" => $exception,
+                ];
+            }
 
             if($throw_exception)
                 LayException::throw_exception("", "ScopedTransactionException", exception: $exception);
