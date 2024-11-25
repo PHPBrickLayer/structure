@@ -25,6 +25,7 @@ trait Config{
         "socket" => null,
         "silent" => false,
         "auto_commit" => false,
+        "persist_connection" => true,
         "ssl" => [
             "key" => null,
             "certificate" => null,
@@ -249,9 +250,7 @@ trait Config{
         return false;
     }
 
-    private function set_db(mysqli|SQLite3|array|string $args, bool $persist_conn) : void {
-        self::$persist_connection = $persist_conn;
-
+    private function set_db(mysqli|SQLite3|array|string $args) : void {
         if(is_string($args)) {
             $this->connect_sqlite($args);
             return;
@@ -318,6 +317,7 @@ trait Config{
             "socket" => 'string',
             "silent" => 'bool',
             "auto_commit" => 'bool',
+            "persist_connection" => 'bool',
             "ssl" => 'array [
                 certificate => string, 
                 ca_certificate => string,
@@ -326,8 +326,7 @@ trait Config{
                 flag => int,
             ]',
         ])] mysqli|array|null|string $connection = null,
-        OrmDriver $driver = OrmDriver::MYSQL,
-        bool $persist_connection = true
+        OrmDriver $driver = OrmDriver::MYSQL
     ): self
     {
         if($connection === null){
@@ -335,6 +334,8 @@ trait Config{
 
             if($driver === null)
                 self::exception("InvalidOrmDriver", "An invalid db driver was received: [" . @$_ENV['DB_DRIVER'] . "]. Please specify the `DB_DRIVER`. Valid keys includes any of the following: [" . OrmDriver::stringify() . "]");
+
+            $parse_bool = fn(string $key, bool $default) => filter_var($_ENV[$key] ?? $default, FILTER_VALIDATE_BOOLEAN);
 
             $connection = match ($driver) {
                 default => [
@@ -344,8 +345,9 @@ trait Config{
                     "db" => $_ENV['DB_NAME'],
                     "port" => $_ENV['DB_PORT'] ?? NULL,
                     "socket" => $_ENV['DB_SOCKET'] ?? NULL,
-                    "silent" => $_ENV['DB_ALLOW_STARTUP_ERROR'] ?? false,
-                    "auto_commit" => $_ENV['DB_AUTO_COMMIT'] ?? false,
+                    "silent" => $parse_bool('DB_ALLOW_STARTUP_ERROR', false),
+                    "auto_commit" => $parse_bool('DB_AUTO_COMMIT', true),
+                    "persist_connection" => $parse_bool('DB_PERSIST_CONNECTION', false),
                     "ssl" => [
                         "key" => $_ENV['DB_SSL_KEY'] ?? null,
                         "certificate" => $_ENV['DB_SSL_CERTIFICATE'] ?? null,
@@ -360,7 +362,8 @@ trait Config{
         }
 
         self::$active_driver = $driver;
-        self::new()->set_db($connection, $persist_connection);
+        self::$persist_connection = $connection['persist_connection'] ?? true;
+        self::new()->set_db($connection);
         return self::new();
     }
 
