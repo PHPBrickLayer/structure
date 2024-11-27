@@ -47,7 +47,13 @@ trait SelectorOOPCrud
         );
     }
 
-    final public function insert(?array $column_and_values = null): bool
+    /**
+     * Inserts to the database. Returns the inserted row if it detects an id column;
+     * Otherwise it returns a true on success and false on fail
+     * @param array|null $column_and_values
+     * @return bool|array
+     */
+    final public function insert(?array $column_and_values = null): bool|array
     {
         $d = $this->get_vars();
         $column_and_values = $column_and_values ?? $d['values'] ?? $d['columns'];
@@ -69,6 +75,15 @@ trait SelectorOOPCrud
                         continue;
                     }
 
+                    if($k == 'id') {
+                        $insert_id = $c;
+
+                        if(trim(strtolower($c)) == 'uuid()')
+                            $insert_id = $this->uuid();
+
+                        $c = $insert_id;
+                    }
+
                     // If value `$c` is not a function like uuid(), timestamp(), etc; enclose it quotes
                     if (!preg_match("/^[a-zA-Z]+\([^)]*\)$/", $c))
                         $c = "'$c'";
@@ -83,10 +98,19 @@ trait SelectorOOPCrud
 
         $d['query_type'] = OrmQueryType::INSERT;
 
-        return $this->capture_result(
+        $op = $this->capture_result(
             [$this->query("INSERT INTO `$table` SET $column_and_values $clause", $d) ?? false, $d],
             'bool',
         );
+
+        if(isset($insert_id))
+            return $this->query("SELECT * FROM `$table` WHERE `id`='$insert_id'", [
+                'query_type' => OrmQueryType::SELECT,
+                'loop' => false,
+                'can_be_null' => false,
+            ]);
+
+        return $op;
     }
 
     final public function insert_raw(): bool
