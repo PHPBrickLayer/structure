@@ -316,10 +316,9 @@ final class ViewEngine {
         if(empty($matches['html_content'])) {
             $length = LayFn::num_format(strlen($body), 6) . "B";
 
-            Exception::throw_exception(
+            Exception::log(
                 "It seems the html_content of the page is empty. Maybe you are rendering a page that is very large. Body Size: $length",
-                "ViewEngine::PageTooLarge",
-                false
+                log_title: "ViewEngine::PageTooLarge",
             );
 
             $matches['html_content'] = ["<h1 style='padding: 2rem'>HTML Page Exceeds Limit. Current Page Size is: $length</h1>"];

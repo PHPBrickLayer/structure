@@ -362,7 +362,7 @@ final class ApiEngine {
                 self::$current_request_uri = self::$request_uri;
         }
 
-        if(count(self::$request_uri) !== count(self::$current_request_uri))
+        if(!self::$DEBUG_DUMP_MODE && (count(self::$request_uri) !== count(self::$current_request_uri)))
             return $this;
 
         foreach (self::$current_request_uri as $i => $query) {
