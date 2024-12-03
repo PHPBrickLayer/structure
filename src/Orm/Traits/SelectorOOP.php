@@ -297,7 +297,7 @@ trait SelectorOOP
         return $this->store_vars('fetch_as', OrmReturnType::NUM);
     }
 
-    final public function then_insert(string|array $columns): bool
+    final public function then_insert(string|array $columns): bool|array
     {
         $this->column($columns);
         return $this->insert();
