@@ -215,6 +215,7 @@ class CoreException
                 break;
         }
 
+        if(Domain::is_in_use() && Domain::current_route_data("*")['domain_name'] != "Api") $this->throw_as_json = false;
         $env = $this->get_env();
         $this->always_log = $env == "PRODUCTION" ? true : $this->always_log;
         $display_error = $env == "DEVELOPMENT" || $other['core'] == "view";
