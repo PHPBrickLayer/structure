@@ -90,7 +90,11 @@ trait TransactionHandler
     ])] int $flags = 0, ?string $name = null) : bool
     {
         self::decrease_counter();
-        return self::new()->get_link()->rollback($flags, $name);
+        $link = self::new()->get_link();
+
+        if(!$link || isset($link->connect_error)) return false;
+
+        return $link->rollback($flags, $name);
     }
 
     final public function commit_or_rollback(#[ExpectedValues([
