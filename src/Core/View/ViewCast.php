@@ -8,6 +8,8 @@ use JetBrains\PhpStorm\ExpectedValues;
 
 abstract class ViewCast
 {
+    const DEFAULT_ROUTE = ViewBuilder::DEFAULT_ROUTE;
+
     public readonly ViewBuilder $builder;
 
     final public function __construct()

@@ -21,8 +21,9 @@ final class ViewBuilder
     use IsSingleton;
 
     const DEFAULT_ROUTE = "*";
-    const route_storage_key = "__LAY_VIEWS__";
-    const view_constants = "__LAY_VIEW_PRELUDE__";
+
+    private  const route_storage_key = "__LAY_VIEWS__";
+    private  const view_constants = "__LAY_VIEW_PRELUDE__";
 
     private static bool $is_404 = false;
     private static bool $in_init = false;
