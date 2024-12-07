@@ -109,7 +109,7 @@ trait TableTrait
     public function new_record(array $columns) : bool {
         self::init();
 
-        return self::orm(self::$table)->insert($columns);
+        return (bool) self::orm(self::$table)->insert($columns);
     }
 
     public function edit_record(string $job_id, array $columns, ?string $updated_by = null) : bool
