@@ -226,8 +226,8 @@ class CoreException
         $show_internal_trace = $other['show_internal_trace'] ?? self::$show_internal_trace;
 
         $cli_mode = LayConfig::get_mode() === LayMode::CLI;
-        $use_json = $cli_mode ? false : $this->throw_as_json;
-        $use_json = $use_json ?: !isset(LayConfig::user_agent()['browser']);
+        $use_json = $this->throw_as_json ?: !isset(LayConfig::user_agent()['browser']);
+        $use_json = $cli_mode ? false : $use_json;
 
 
         if (!empty(@$other['raw'])) {
