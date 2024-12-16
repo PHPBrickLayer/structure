@@ -574,7 +574,7 @@ class CoreException
             echo $act['error'];
         }
 
-        if ($act['act'] == "kill") {
+        if ($opt['kill'] && $act['act'] == "kill") {
             if(isset($opt['exception_object']) and !empty($opt['exception_object']))
                 throw new $opt['exception_object'];
 
