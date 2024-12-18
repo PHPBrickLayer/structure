@@ -216,13 +216,11 @@ class CoreException
         }
 
         if(Domain::is_in_use() && Domain::current_route_data("*")['domain_name'] != "Api") $this->throw_as_json = false;
+
         $env = $this->get_env();
         $this->always_log = $env == "PRODUCTION" ? true : $this->always_log;
         $display_error = $env == "DEVELOPMENT" || $other['core'] == "view";
-        $display = false;
 
-        $return_as_string = $other['as_string'] ?: false;
-        $echo_error = $other['echo_error'] ?? true;
         $show_internal_trace = $other['show_internal_trace'] ?? self::$show_internal_trace;
 
         $cli_mode = LayConfig::get_mode() === LayMode::CLI;
@@ -244,6 +242,7 @@ class CoreException
         $cors_active = LayConfig::cors_active() ? "ACTIVE" : "INACTIVE";
 
         $route = null;
+        $error = "";
 
         if(Domain::is_in_use()) {
             $route = Domain::current_route_data("*");
@@ -399,16 +398,12 @@ class CoreException
 
             if(!$this->always_log)
                 return [
-                    "act" => $other['act'] ?? "allow",
                     "error" => json_encode($error_json),
-                    "as_string" => $return_as_string,
-                    "display_error" => $return_as_string ? false: $display_error,
-                    "echo_error" => $return_as_string ? false : $echo_error,
+                    "display_error" => $display_error,
                 ];
 
             $error = json_encode($error_json);
             $display_error = true;
-            $echo_error = true;
         }
 
         if (!$use_json && !$cli_mode && $display_error) {
@@ -431,23 +426,20 @@ class CoreException
                 DEBUG;
 
             if (!$title)
-                $display = '<div style="min-height: 300px; background:#1d2124;padding:10px;color:#fffffa;overflow:auto;">' . $ERROR_BODY . '</div>';
+                $error = '<div style="min-height: 300px; background:#1d2124;padding:10px;color:#fffffa;overflow:auto;">' . $ERROR_BODY . '</div>';
             else
-                $display = <<<DEBUG
-                    <div style="min-height: 300px; background:#1d2124;padding:10px;color:#fffffa;overflow:auto; margin: 0 0 15px">
-                        <h3 style='color: $title_color; margin: 2px 0'> $title </h3>
-                        <div style='color: $body_color; font-weight: bold; margin: 5px 0;'> $body </div><br>
-                        $ERROR_BODY
-                    </div>
-                    DEBUG;
+                $error = <<<DEBUG
+                <div style="min-height: 300px; background:#1d2124;padding:10px;color:#fffffa;overflow:auto; margin: 0 0 15px">
+                    <h3 style='color: $title_color; margin: 2px 0'> $title </h3>
+                    <div style='color: $body_color; font-weight: bold; margin: 5px 0;'> $body </div><br>
+                    $ERROR_BODY
+                </div>
+                DEBUG;
         }
 
         $rtn = [
-            "act" => $other['act'] ?? "allow",
-            "error" => $error ?? ($display ?: ($this->always_log ? "Check logs for details. Error encountered" : "Error encountered, but was not logged")),
-            "as_string" => $return_as_string,
+            "error" => $display_error ? $error : ($this->always_log ? "Check logs for details. Error encountered" : "Error encountered, but not logged"),
             "display_error" => $display_error,
-            "echo_error" => $echo_error,
         ];
 
         if(!$this->always_log)
@@ -503,68 +495,47 @@ class CoreException
 
         $throw_500 = $this->throw_500 && LayConfig::get_mode() === LayMode::HTTP;
 
-
         if($throw_500) {
             self::$HAS_500 = true;
             LayFn::header("HTTP/1.1 500 Internal Server Error");
         }
 
-        $use_lay_error = $opt['use_lay_error'] ?? true;
         $type = $opt['exception_type'];
+        $opt['kill'] = $type == 'error';
 
-        if (!$use_lay_error) {
-            if($opt['kill'] ?? true) {
-                $exception_class = str_replace(" ", "", ucwords($opt['title']));
+        if (!$opt['use_lay_error']) {
+            if(!$opt['kill']) return null;
 
-                if(!class_exists($exception_class)) {
-                    $anon_class = new class extends \Exception {};
-                    class_alias(get_class($anon_class), $exception_class);
-                }
+            if(isset($opt['exception_object']) and !empty($opt['exception_object']))
+                throw new $opt['exception_object'];
 
-                throw new $exception_class($opt['body_includes'], $type);
+            $exception_class = str_replace(" ", "", ucwords($opt['title']));
+
+            if(!class_exists($exception_class)) {
+                $anon_class = new class extends \Exception {};
+                class_alias(get_class($anon_class), $exception_class);
             }
 
-            return null;
+            throw new $exception_class($opt['body_includes'], $type);
         }
 
-        $trace = empty($opt['trace']) ? debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS) : $opt['trace'];
+        $act = $this->container(
+            $opt['title'] ?? null,
+            $opt['body_includes'] ?? null,
+            [
+                "stack" => empty($opt['trace']) ? debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS) : $opt['trace'],
+                "core" => $type,
+                "show_internal_trace" => $opt['show_internal_trace'] ?? null,
+                "json_packet" => $opt['json_packet'] ?? null,
+                "raw" => $opt['raw'] ?? null,
+                "ascii" => $opt['ascii'] ?? null,
+            ]
+        );
 
-        if(isset($opt['title']))
-            $act = $this->container(
-                $opt['title'],
-                $opt['body_includes'] ?? null,
-                [
-                    "stack" => $trace,
-                    "core" => $type,
-                    "act" => @$opt['kill'] ? "kill" : "allow",
-                    "as_string" => $opt['return_as_string'],
-                    "ascii" => $opt['ascii'],
-                    "raw" => $opt['raw'] ?? null,
-                    "show_internal_trace" => $opt['show_internal_trace'] ?? null,
-                    "json_packet" => $opt['json_packet'] ?? null,
-                    "echo_error" => $opt['echo_error'] ?? true,
-                ]
-            );
-
-        else {
-            $act = $this->container(
-                null,
-                null,
-                [
-                    "stack" => $trace,
-                    "core" => $type,
-                    "act" => "kill",
-                    "show_exception_trace" => $opt['show_exception_trace'],
-                    "show_internal_trace" => $opt['show_internal_trace'],
-                    "echo_error" => $opt['echo_error'] ?? true,
-                ]
-            );
-        }
-
-        if($act['as_string'])
+        if($opt['return_as_string'])
             return $act;
 
-        if($act['display_error'] && $act['echo_error']) {
+        if($act['display_error'] && $opt['echo_error']) {
             if($throw_500) {
                 self::$HAS_500 = true;
                 LayFn::header("HTTP/1.1 500 Internal Server Error");
@@ -574,7 +545,7 @@ class CoreException
             echo $act['error'];
         }
 
-        if ($opt['kill'] && $act['act'] == "kill") {
+        if ($opt['kill']) {
             if(isset($opt['exception_object']) and !empty($opt['exception_object']))
                 throw new $opt['exception_object'];
 
