@@ -51,9 +51,10 @@ trait SelectorOOPCrud
      * Inserts to the database. Returns the inserted row if it detects an id column;
      * Otherwise it returns a true on success and false on fail
      * @param array|null $column_and_values
+     * @param bool $return_object if true and `$column_and_values` contains an id column, it returns the inserted object
      * @return bool|array
      */
-    final public function insert(?array $column_and_values = null): bool|array
+    final public function insert(?array $column_and_values = null, bool $return_object = false): bool|array
     {
         $d = $this->get_vars();
         $column_and_values = $column_and_values ?? $d['values'] ?? $d['columns'];
@@ -103,7 +104,7 @@ trait SelectorOOPCrud
             'bool',
         );
 
-        if(isset($insert_id))
+        if($return_object && isset($insert_id))
             return $this->query("SELECT * FROM `$table` WHERE `id`='$insert_id'", [
                 'query_type' => OrmQueryType::SELECT,
                 'loop' => false,
