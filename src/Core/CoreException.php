@@ -120,7 +120,7 @@ class CoreException
             $file = explode(DIRECTORY_SEPARATOR, $file_all);
             $file = end($file);
             $line = $exception->getLine();
-            $body = $body ?: $exception->getMessage();
+            $body = $body  . " \n<br> " . $exception->getMessage();
 
             $body = <<<BDY
             $body
