@@ -128,4 +128,16 @@ final class LayFn
         return $out;
     }
 
+    /**
+     * Checks if a string starts with http or https
+     * @param string|null $string
+     * @return bool
+     */
+    public static function is_str_http(?string $string) : bool
+    {
+        if($string === null) return false;
+
+        return str_starts_with($string, "http");
+    }
+
 }
