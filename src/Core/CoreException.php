@@ -19,6 +19,7 @@ class CoreException
 {
     use IsSingleton;
 
+    public static bool $DISPLAYED_ERROR = false;
     public static bool $HAS_500 = false;
 
     private static bool $already_caught = false;
@@ -536,12 +537,8 @@ class CoreException
             return $act;
 
         if($act['display_error'] && $opt['echo_error']) {
-            if($throw_500) {
-                self::$HAS_500 = true;
-                LayFn::header("HTTP/1.1 500 Internal Server Error");
-            }
-
             self::$already_caught = true;
+            self::$DISPLAYED_ERROR = true;
             echo $act['error'];
         }
 

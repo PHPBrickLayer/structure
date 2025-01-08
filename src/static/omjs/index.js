@@ -883,6 +883,7 @@ const $preloader = (act = "show") => {
                     break;
 
                   default:
+                    const isError = !(status > 199 && status < 300);
                     response = method === "HEAD" ? xhr : xhr.responseText ?? xhr.response;
                     if (method !== "HEAD") {
                         if (type !== "json" && (response.trim().substring(0, 1) === "{" || response.trim().substring(0, 1) === "[")) type = "json";
@@ -891,12 +892,14 @@ const $preloader = (act = "show") => {
                             try {
                                 response = JSON.parse(response);
                             } catch (e) {
-                                xhr["e"] = e;
-                                errRoutine("Server-side error, please contact support if problem persists", xhr);
+                                if (!isError) {
+                                    xhr["e"] = e;
+                                    errRoutine("Server-side error, please contact support if problem persists", xhr);
+                                } else response = "The server sent an error that could not be parsed";
                             }
                         }
                     }
-                    if (!(status > 199 && status < 300)) return errRoutine(`Request Failed! Code: ${status}; Message: ${xhr.statusText}`, xhr, response);
+                    if (isError) return errRoutine(`Request Failed! Code: ${status}; Message: ${xhr.statusText}`, xhr, response);
                     if (loaded !== "loaded") loaded(response, xhr, event);
                     resolve(response, xhr, event);
                     break;
