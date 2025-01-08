@@ -543,6 +543,9 @@ class CoreException
         }
 
         if ($opt['kill']) {
+            if(self::$DISPLAYED_ERROR)
+                die;
+
             if(isset($opt['exception_object']) and !empty($opt['exception_object']))
                 throw new \Exception($opt['exception_object']->getMessage());
 //                throw new $opt['exception_object'];
