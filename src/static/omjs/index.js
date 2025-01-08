@@ -18,8 +18,6 @@ const $obj = Object;
 
 const $web = navigator;
 
-const $docEl = $doc.documentElement;
-
 const $loc = $win.location;
 
 let $store;
@@ -34,17 +32,9 @@ const $end = list => list[list.length - 1];
 
 const $omjsError = (component, error, throwError = false, ...others) => {
     console.info("%cLayJsError: " + component, "color: #e00; font-weight: 600; font-size: 16px");
-
-    console.info(
-        "%c" + error, "background: #fff3cd; color: #1d2124; padding: 2px; margin-bottom: 3px",
-        ...others
-    );
-
-    console.trace("LayJsTrace")
-
-    if(throwError)
-        throw "LayJsError Thrown";
-
+    console.info("%c" + error, "background: #fff3cd; color: #1d2124; padding: 2px; margin-bottom: 3px", ...others);
+    console.trace("LayJsTrace");
+    if (throwError) throw "LayJsError Thrown";
 };
 
 const $omjsElSub = (element, fnContext) => {
@@ -170,26 +160,11 @@ const $style = (element, cssProperties = null, pseudoElement = null) => {
 
 const $html = (element, whereOrHtml = null, code__moveTo = null) => {
     element = $omjsElSub(element, "$html");
-
-    if(
-        (whereOrHtml && !code__moveTo)
-        && whereOrHtml !== "in"
-        && whereOrHtml !== "del"
-        && whereOrHtml !== "move"
-        && whereOrHtml !== "wrap"
-        && whereOrHtml !== "beforebegin"
-        && whereOrHtml !== "afterbegin"
-        && whereOrHtml !== "beforeend"
-        && whereOrHtml !== "afterend"
-    )
-    {
-        code__moveTo = whereOrHtml
-        whereOrHtml = "in"
+    if (whereOrHtml && !code__moveTo && whereOrHtml !== "in" && whereOrHtml !== "del" && whereOrHtml !== "move" && whereOrHtml !== "wrap") {
+        code__moveTo = whereOrHtml;
+        whereOrHtml = "in";
     }
-
-    if(!whereOrHtml)
-        return element.innerHTML
-
+    if (!whereOrHtml) return element.innerHTML;
     if (whereOrHtml === "inner" || whereOrHtml === "in") {
         try {
             return element.innerHTML = code__moveTo;
@@ -198,7 +173,14 @@ const $html = (element, whereOrHtml = null, code__moveTo = null) => {
         }
         return;
     }
-
+    if (whereOrHtml === "del" || whereOrHtml === "remove") {
+        try {
+            return element.innerHTML = "";
+        } catch (e) {
+            $omjsError("$html", e, true, "%cThe selected element doesn't exist", "color:#e0a800");
+        }
+        return;
+    }
     if (whereOrHtml === "move") {
         try {
             return code__moveTo.appendChild(element);
@@ -207,7 +189,6 @@ const $html = (element, whereOrHtml = null, code__moveTo = null) => {
         }
         return;
     }
-
     if (whereOrHtml === "wrap") {
         try {
             element.parentNode.insertBefore($doc.createElement(code__moveTo), element);
@@ -217,7 +198,6 @@ const $html = (element, whereOrHtml = null, code__moveTo = null) => {
         }
         return;
     }
-
     try {
         return element.insertAdjacentHTML(whereOrHtml, code__moveTo);
     } catch (e) {
@@ -363,22 +343,22 @@ const $get = (name, query = true) => {
     let urlComplete = origin + path;
     path = path.replace("/" + urlFileName, "");
     switch (name) {
-        case "origin":
-            return origin;
+      case "origin":
+        return origin;
 
-        case "path":
-        case "directory":
-            return path;
+      case "path":
+      case "directory":
+        return path;
 
-        case "file":
-        case "script":
-            return urlFileName;
+      case "file":
+      case "script":
+        return urlFileName;
 
-        case "hash":
-            return hash;
+      case "hash":
+        return hash;
 
-        default:
-            return urlComplete;
+      default:
+        return urlComplete;
     }
 };
 
@@ -413,27 +393,27 @@ const $media = ({srcElement: srcElement, previewElement: previewElement, then: t
     let previewMedia = srcElement => {
         let srcProcessed = [];
         switch (srcElement.type) {
-            default:
-                previewElement.src = srcElement.value !== "" ? srcElement.value : currentMediaSrc;
-                break;
+          default:
+            previewElement.src = srcElement.value !== "" ? srcElement.value : currentMediaSrc;
+            break;
 
-            case "file":
-                if (useReader) {
-                    const reader = new FileReader;
-                    $on(reader, "load", (() => {
-                        if (srcElement.value === "") return previewElement.src = currentMediaSrc;
-                        previewElement.src = reader.result;
-                        then && then(reader.result);
-                    }), "on");
-                    if (srcElement.files[0]) return reader.readAsDataURL(srcElement.files[0]);
-                    previewElement.src = currentMediaSrc;
-                }
-                if (srcElement.multiple) return osNote("Media preview doesn't support preview for multiple files");
-                if (srcElement.value === "") return previewElement.src = currentMediaSrc;
-                srcProcessed = URL.createObjectURL(srcElement.files[0]);
-                previewElement.src = srcProcessed;
-                then && then(srcProcessed);
-                break;
+          case "file":
+            if (useReader) {
+                const reader = new FileReader;
+                $on(reader, "load", (() => {
+                    if (srcElement.value === "") return previewElement.src = currentMediaSrc;
+                    previewElement.src = reader.result;
+                    then && then(reader.result);
+                }), "on");
+                if (srcElement.files[0]) return reader.readAsDataURL(srcElement.files[0]);
+                previewElement.src = currentMediaSrc;
+            }
+            if (srcElement.multiple) return osNote("Media preview doesn't support preview for multiple files");
+            if (srcElement.value === "") return previewElement.src = currentMediaSrc;
+            srcProcessed = URL.createObjectURL(srcElement.files[0]);
+            previewElement.src = srcProcessed;
+            then && then(srcProcessed);
+            break;
         }
     };
     if (!on) return previewMedia(srcElement);
@@ -479,38 +459,22 @@ const $mediaPreview = (elementToWatch, placeToPreview, other = {}) => {
     if (event_wrap === true) $on(elementToWatch, "change", previewMedia, "on"); else if ($type(event_wrap) === "String") $on(elementToWatch, event_wrap, previewMedia, "on"); else previewMedia();
 };
 
-const $showPassword = (callbackFn = (fieldType) => fieldType, throwError = true) => {
-    $sela(
-        $id("toggle-password") ? "#toggle-password" : ".osai-show-password"
-    )
-        .$loop(ele => {
-            ele.$on("click", () => {
-                let fields = $data(ele, "field");
-
-                if (!fields) return;
-
-                fields.split(",").$loop((field => {
-                    const target = $sel(field);
-
-                    if(!target) {
-                        if(!throwError)
-                            return
-
-                        return $omjsError(
-                            "$showPassword",
-                            "Selector [" + field + "] does not exist as declared by $showPassword element",
-                            false,
-                            ele
-                        )
-                    }
-
-                    target.type = target.type === "password" ? "text" : "password";
-
-                    if(callbackFn)
-                        callbackFn(target.type, ele)
-                }));
-            }, "on")
-        })
+const $showPassword = (callbackFn = (fieldType => fieldType), throwError = true) => {
+    $sela($id("toggle-password") ? "#toggle-password" : ".osai-show-password").$loop((ele => {
+        ele.$on("click", (() => {
+            let fields = $data(ele, "field");
+            if (!fields) return;
+            fields.split(",").$loop((field => {
+                const target = $sel(field);
+                if (!target) {
+                    if (!throwError) return;
+                    return $omjsError("$showPassword", "Selector [" + field + "] does not exist as declared by $showPassword element", false, ele);
+                }
+                target.type = target.type === "password" ? "text" : "password";
+                if (callbackFn) callbackFn(target.type, ele);
+            }));
+        }), "on");
+    }));
 };
 
 const $rand = (min, max, mode = 0, silent = true) => {
@@ -557,52 +521,37 @@ const $overflow = element => element.scrollHeight > element.clientHeight || elem
 const $check = (value, type) => {
     if ($type(value) !== "String") return false;
     switch (type) {
-        case "name":
-            return !!new RegExp("^[a-z ,.'-]+/i$", value);
+      case "name":
+        return !!new RegExp("^[a-z ,.'-]+/i$", value);
 
-        case "username":
-            return !!new RegExp("^w+$", value);
+      case "username":
+        return !!new RegExp("^w+$", value);
 
-        case "mail":
-            return /^([a-zA-Z0-9_.\-+])+@(([a-zA-Z0-9\-])+\.)+([a-zA-Z0-9]{2,4})+$/.test(value);
+      case "mail":
+        return /^([a-zA-Z0-9_.\-+])+@(([a-zA-Z0-9\-])+\.)+([a-zA-Z0-9]{2,4})+$/.test(value);
 
-        default:
-            return true;
+      default:
+        return true;
     }
 };
 
 const $cookie = (name = "*", value = null, expire = null, path = "/", domain = "") => {
-    if (name === "*")
-        return $doc.cookie.split(";");
-
-    name = name.trim()
-
-    if (path)
-        path = "Path=" + path + ";";
-
-    if (domain)
-        domain = "Domain=" + domain + ";";
-
+    if (name === "*") return $doc.cookie.split(";");
+    name = name.trim();
+    if (path) path = "Path=" + path + ";";
+    if (domain) domain = "Domain=" + domain + ";";
     if (value === "del") {
-        value = $cookie(name)
+        value = $cookie(name);
         return $doc.cookie = `${name}=${value}; Expires=Thu, 01 Jan 1970 00:00:00 UTC;${path}${domain}`;
     }
-
     if (value) {
         const d = new Date, dn = new Date(d), days = (duration = 30) => dn.setDate(d.getDate() + duration);
-
-        if ($type(expire) === "Number")
-            expire = days(expire);
-
+        if ($type(expire) === "Number") expire = days(expire);
         expire = expire ?? new Date(days()).toUTCString();
-
         return $doc.cookie = `${name}=${value};Expires=${expire};${path}${domain}"`;
     }
-
     let nameString = name + "=";
-
     value = $doc.cookie.split(";").filter((item => item.includes(nameString)));
-
     if (value.length) {
         value[0] = value[0].trim();
         return value[0].substring(nameString.length, value[0].length);
@@ -646,8 +595,8 @@ const $cookie = (name = "*", value = null, expire = null, path = "/", domain = "
             $in(errBx) && errBx.remove();
             $html(formField, "afterend", `<div id="osai-err-msg">${customMsg}</div>`);
             setTimeout((() => {
-                $style($id("osai-err-msg"), "font-size: 14px; background-color: #e25656; color: #fff; padding: 5px; margin: 5px auto; border-radius: 4px"),
-                    formField.focus();
+                $style($id("osai-err-msg"), "font-size: 14px; background-color: #e25656; color: #fff; padding: 5px; margin: 5px auto; border-radius: 4px"), 
+                formField.focus();
             }), 700);
             $on(formField, "input", xErrMsg, "addEvent");
         } else {
@@ -765,47 +714,55 @@ const $drag = (element, elementAnchor) => {
     }
 };
 
-const $numFormat = (num, digits)  => {
-    const lookup = [
-        { value: 1, symbol: "" },
-        { value: 1e3, symbol: "k" },
-        { value: 1e6, symbol: "M" },
-        { value: 1e9, symbol: "G" },
-        { value: 1e12, symbol: "T" },
-        { value: 1e15, symbol: "P" },
-        { value: 1e18, symbol: "E" }
-    ];
+const $numFormat = (num, digits) => {
+    const lookup = [ {
+        value: 1,
+        symbol: ""
+    }, {
+        value: 1e3,
+        symbol: "k"
+    }, {
+        value: 1e6,
+        symbol: "M"
+    }, {
+        value: 1e9,
+        symbol: "G"
+    }, {
+        value: 1e12,
+        symbol: "T"
+    }, {
+        value: 1e15,
+        symbol: "P"
+    }, {
+        value: 1e18,
+        symbol: "E"
+    } ];
     const regexp = /\.0+$|(?<=\.[0-9]*[1-9])0+$/;
-    const item = lookup.findLast(item => num >= item.value);
+    const item = lookup.findLast((item => num >= item.value));
     return item ? (num / item.value).toFixed(digits).replace(regexp, "").concat(item.symbol) : "0";
 };
 
 const _$_$debounceStore = {};
 
 const $debounce = (fn, interval, uniqueId = null) => {
-    let queued
-    const fnStr = uniqueId ?? fn.toString()
-
-    _$_$debounceStore.$loop((store, timeout) => {
-        if(fnStr === store) {
-            queued = timeout
-            return "break"
+    let queued;
+    const fnStr = uniqueId ?? fn.toString();
+    _$_$debounceStore.$loop(((store, timeout) => {
+        if (fnStr === store) {
+            queued = timeout;
+            return "break";
         }
-
-        queued = false
-    })
-
-    if(queued) {
-        clearTimeout(queued)
-        delete _$_$debounceStore[queued]
+        queued = false;
+    }));
+    if (queued) {
+        clearTimeout(queued);
+        delete _$_$debounceStore[queued];
     }
-
-    const timeout = setTimeout(() => {
-        delete _$_$debounceStore[timeout]
-        fn()
-    }, interval)
-
-    _$_$debounceStore[timeout] = fnStr
+    const timeout = setTimeout((() => {
+        delete _$_$debounceStore[timeout];
+        fn();
+    }), interval);
+    _$_$debounceStore[timeout] = fnStr;
 };
 
 const $preloader = (act = "show") => {
@@ -820,14 +777,13 @@ const $preloader = (act = "show") => {
 /**!
  * CURL (AJAX) built with OMJ$
  * @author Osahenrumwen Aigbogun
- * @version 2.0.1
- * @copyright (c) 2019 Osai LLC | loshq.net/about.
+ * @version 2.1.0
  * @since 05/01/2021
- * @modified 25/12/2021
+ * @modified 08/01/2025
  * @param url {string|Object} = url of request being sent or an object containing the url and options of the request
  * url should be passed using "action" as the key
  * @param option {Object}
- *  - `option.credential` {boolean} = send request with credentials when working with CORS
+ * - `option.credential` {boolean} = send request with credentials when working with CORS
  *  - `option.content` {string} = XMLHTTPRequest [default = text/plain] only necessary when user wants to set custom dataType aside json,xml and native formData
  *  - `option.method` {string} = method of request [default = GET]
  *  - `option.data` {any} [use data or form] = data sending [only necessary for post method]. It could be HTMLElement inside the form, like button, etc
@@ -842,7 +798,7 @@ const $preloader = (act = "show") => {
  *  - `option.abort` {function} = function to execute on upload abort
  * @param data {any} same as `option.data`, only comes in play when three parameter wants to be used
  * @return {Promise}
- */ const $curl = (url, option = {}, data = null) => new Promise((resolve, reject) => {
+ */ const $curl = (url, option = {}, data = null) => new Promise(((resolve, reject) => {
     if ($type(url) === "Object") {
         option = url;
         url = option.action;
@@ -865,16 +821,16 @@ const $preloader = (act = "show") => {
     headers["Lay-Domain-ID"] = $lay.page.domain_id;
     let content = option.content ?? "text/plain";
     let method = option.method ?? "get";
-    data = option.data ?? option.form ?? data ?? null;
     let type = option.type ?? "text";
     let returnType = option.return ?? option.type ?? null;
     let alert_error = option.alert ?? false;
     let strict = option.strict ?? true;
-    let debounce = option.debounce ?? 0;
-    debounce = !debounce ? 0 : debounce;
     let preload = option.preload ?? (() => "preload");
     let progress = option.progress ?? (() => "progress");
     let error = option.error ?? (() => "error");
+    let debounce = option.debounce ?? 0;
+    debounce = !debounce ? 0 : debounce;
+    data = option.data ?? option.form ?? data ?? null;
     option.timeout = option.timeout ?? {
         value: 0
     };
@@ -888,33 +844,29 @@ const $preloader = (act = "show") => {
     };
     let loaded = option.loaded ?? (() => "loaded");
     let abort = option.abort ?? (() => osNote("Request aborted!", "warn"));
-    let errRoutine = (msg, xhr) => {
-        if (error(xhr.status, xhr) === "error") {
-            if (strict) {
-                if (alert_error) alert(msg); else osNote(msg, "fail", {
-                    duration: -1
-                });
-            }
-
-            reject({
-                statusText: xhr.e ?? xhr.statusText,
-                xhr: xhr,
-                status: xhr.status
+    let errRoutine = (msg, xhr, response = null) => {
+        $omjsError("$curl", xhr.e ?? xhr.statusText);
+        if (error(xhr.status, xhr, response) === "error" && strict) {
+            if (alert_error) alert(msg); else osNote(msg, "fail", {
+                duration: -1
             });
-
-            $omjsError("$curl", xhr.e ?? xhr.statusText);
         }
+        reject({
+            statusText: xhr.e ?? xhr.statusText,
+            xhr: xhr,
+            status: xhr.status,
+            response: response
+        });
     };
     method = method.toUpperCase();
     type = type.toLowerCase();
     xhr = new XMLHttpRequest;
     if (!xhr) return;
-    method = method === 'GET' && data ? "POST" : method;
+    method = method === "GET" && data ? "POST" : method;
     xhr.withCredentials = credential;
     xhr.timeout = timeout.value;
     let timer = 0;
     let connectionTimer = setInterval((() => timer++), 1e3);
-
     const exec = () => {
         xhr.open(method, url, true);
         $on(xhr.upload, "progress", (event => progress(event)));
@@ -926,99 +878,94 @@ const $preloader = (act = "show") => {
             if (xhr.readyState === 4) {
                 type = returnType ?? "json";
                 switch (status) {
-                    case 0:
-                        if (timer !== xhr.timeout / 1e3) errRoutine(`Failed, ensure you have steady connection and try again, server request might be too heavy for your current network`, xhr);
-                        break;
+                  case 0:
+                    if (timer !== xhr.timeout / 1e3) errRoutine(`Failed, ensure you have steady connection and try again, server request might be too heavy for your current network`, xhr);
+                    break;
 
-                    default:
-                        if(!(status > 199 && status < 300))
-                            return errRoutine(`Request Failed! Code: ${status}; Message: ${xhr.statusText}`, xhr);
-
-                        response = method === "HEAD" ? xhr : xhr.responseText ?? xhr.response;
-                        if (method !== "HEAD") {
-                            if (type !== "json" && (response.trim().substring(0, 1) === "{" || response.trim().substring(0, 1) === "[")) type = "json";
-                            if (type === "xml") response = xhr.responseXML;
-                            if (type === "json") {
-                                try {
-                                    response = JSON.parse(xhr.response);
-                                } catch (e) {
-                                    xhr["e"] = e;
-                                    errRoutine("Server-side error, please contact support if problem persists", xhr);
-                                }
+                  default:
+                    response = method === "HEAD" ? xhr : xhr.responseText ?? xhr.response;
+                    if (method !== "HEAD") {
+                        if (type !== "json" && (response.trim().substring(0, 1) === "{" || response.trim().substring(0, 1) === "[")) type = "json";
+                        if (type === "xml") response = xhr.responseXML;
+                        if (type === "json") {
+                            try {
+                                response = JSON.parse(response);
+                            } catch (e) {
+                                xhr["e"] = e;
+                                errRoutine("Server-side error, please contact support if problem persists", xhr);
                             }
                         }
-                        if (loaded !== "loaded") loaded(response, xhr, event);
-                        resolve(response, xhr, event);
-                        break;
+                    }
+                    if (!(status > 199 && status < 300)) return errRoutine(`Request Failed! Code: ${status}; Message: ${xhr.statusText}`, xhr, response);
+                    if (loaded !== "loaded") loaded(response, xhr, event);
+                    resolve(response, xhr, event);
+                    break;
                 }
             }
         }));
         if (data) {
             switch ($type(data)) {
-                case "String":
-                case "Object":
-                case "FormData":
-                    break;
+              case "String":
+              case "Object":
+              case "FormData":
+                break;
 
-                case "File":
+              case "File":
+                type = "file";
+                let x = data;
+                data = new FormData;
+                data.append("file", x);
+                break;
+
+              default:
+                data = $getForm(data, true);
+                if (data.hasFile) {
+                    data = data.file;
                     type = "file";
-                    let x = data;
-                    data = new FormData;
-                    data.append("file", x);
-                    break;
-
-                default:
-                    data = $getForm(data, true);
-                    if (data.hasFile) {
-                        data = data.file;
-                        type = "file";
-                    } else data = type === "json" ? data.object : data.string;
-                    break;
+                } else data = type === "json" ? data.object : data.string;
+                break;
             }
         }
         if (option.xhrSetup) option.xhrSetup(xhr);
         let requestHeader = "application/x-www-form-urlencoded";
         switch (type) {
-            default:
-                break;
+          default:
+            break;
 
-            case "file":
-                requestHeader = null;
-                break;
+          case "file":
+            requestHeader = null;
+            break;
 
-            case "json":
-                requestHeader = method === "get" ? requestHeader : "application/json";
-                data = JSON.stringify(data);
-                break;
+          case "json":
+            requestHeader = method === "get" ? requestHeader : "application/json";
+            data = JSON.stringify(data);
+            break;
 
-            case "text":
-                let x = data;
-                if ($type(data) === "Object") {
-                    x = "";
-                    $loop(data, ((value, name) => x += name + "=" + value + "&"));
-                }
-                data = x?.replace(/&+$/, "");
-                break;
+          case "text":
+            let x = data;
+            if ($type(data) === "Object") {
+                x = "";
+                $loop(data, ((value, name) => x += name + "=" + value + "&"));
+            }
+            data = x?.replace(/&+$/, "");
+            break;
 
-            case "xml":
-                requestHeader = method !== "GET" ? "text/xml" : requestHeader;
-                break;
+          case "xml":
+            requestHeader = method !== "GET" ? "text/xml" : requestHeader;
+            break;
 
-            case "custom":
-                requestHeader = method !== "GET" ? content : requestHeader;
-                break;
+          case "custom":
+            requestHeader = method !== "GET" ? content : requestHeader;
+            break;
         }
         requestHeader && xhr.setRequestHeader("Content-Type", requestHeader);
         $loop(headers, ((value, key) => xhr.setRequestHeader(key, value)));
         xhr.send(data);
         preload();
-    }
-
-    if(debounce)
-        return $debounce(() => exec(), debounce, url)
-
-    exec()
-});
+    };
+    if (debounce) return $debounce((() => exec()), debounce, url);
+    exec();
+}));
 
 const $ajax = $curl;
 
@@ -1057,7 +1004,7 @@ const $freeze = (element, operation, attr = true) => {
     let dialog = {}, notifier = {};
     if (boxToDraw === "all" || boxToDraw === "dialog" || boxToDraw === "modal") {
         if (!$in($sel(".osai-dialogbox__present"))) $html($sel("body"), "beforeend", `\n\t\t\t\t<div class="osai-dialogbox"><span style="display: none" class="osai-dialogbox__present"></span><div class="osai-dialogbox__overlay"></div><div class="osai-dialogbox__wrapper">\n                    <div class="osai-dialogbox__header"><button class="osai-dialogbox__close-btn"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="6" y="17.3137" width="16" height="2" rx="1" transform="rotate(-45 6 17.3137)" fill="currentColor"></rect><rect x="7.41422" y="6" width="16" height="2" rx="1" transform="rotate(45 7.41422 6)" fill="currentColor"></rect></svg></button></div>\n                    <div class="osai-dialogbox__head"></div>\n                    <div class="osai-dialogbox__inner-wrapper"><div class="osai-dialogbox__body"></div></div>\n                    <div class="osai-dialogbox__foot"></div>\n                </div></div>`);
-        if (!$in($sel(".osai-dialogbox__stylesheet"))) $html($sel("head"), "beforeend", `<style class="osai-dialogbox__stylesheet" rel="stylesheet" media="all">\n.osai-dialogbox{\nposition: fixed;\nright: 0; left: 0; top: 0; bottom: 0;\ndisplay: block;\nvisibility: hidden;\nopacity: 0;\nz-index: -${dialogZindex};\n}\n.osai-dialogbox__appear{\n\tvisibility: visible;\n\tz-index: ${dialogZindex};\n\topacity: 1;\n}\n.osai-dialogbox__overlay{\n\topacity: .5;\n\tposition: fixed;\n\ttop: 0;bottom: 0;left: 0;right: 0;\n\tbackground: var(--bg);\n\tz-index: 1;\n}\n.osai-dialogbox__wrapper{\n\tdisplay: flex;\n\topacity: 0;\n\tjustify-content: center;\n\talign-items: center;\n\tmax-width: 97vw;\n\tmax-height: 97vh;\n\ttransform: translate(-50%,0);\n\ttop: 50%; left: 50%;\n\tposition: absolute;\n\tz-index: 2;\n\tmargin: auto;\n    background: var(--dark-text);\n\tcolor: var(--bg);\n\tborder-radius: 10px;\n\tflex-flow: column;\n\ttransition: ease-in-out .8s all;\n\tpadding: 1.5rem;\n\tpadding-top: 0;\n\toverflow: hidden;\n}\n.osai-dialogbox__header{width: 100%;\n\tpadding: 0;\n\tpadding-top: 1.5rem;\n\tcursor: move;\n}\n.osai-dialogbox__close-btn{display: table; width: auto;background: transparent;\n\tborder: none;\n\tcolor: var(--dark-info);\n\tfont-weight: 500;\n\tcursor: pointer;\n\toutline: none;\n\tmargin-left: auto;\n    position: relative;\n    z-index: 5;\n}\n.osai-dialogbox__close-btn:hover{\n\tcolor: var(--fail);\n}\n.osai-dialogbox__head{\n\tfont-size: 1.15em;\n\tline-height: 1.15em;\n\tpadding: 0;\n\tmargin-bottom: 1rem;\n\tfont-weight: 600;\n\twidth: 100%;\n}\n.osai-dialogbox__inner-wrapper{\n\toverflow: auto;\n\tmax-width: 100vw;\n\tpadding: 1.75rem 0;\n}\n.osai-dialogbox__body{\n\tfont-size: 1em;\n}\n.osai-dialogbox__foot{\n    padding: 0;\n}\n.osai-dialogbox__foot button.success{\n\tbackground: var(--success);\n\tcolor: var(--bg);\n} .osai-dialogbox__foot button.success:hover{\n\tbackground: var(--dark-success);\n\tcolor: var(--dark-text);}\n.osai-dialogbox__foot button.fail{\n\tbackground: var(--fail);\n\tcolor: var(--text);\n}.osai-dialogbox__foot button.fail:hover{\n\tbackground: var(--dark-fail);\n\tcolor: var(--text);}\n.osai-dialogbox__foot button.warn{\n\tbackground: var(--warn);\n\tcolor: var(--text);\n} .osai-dialogbox__foot button.warn:hover{\n\tbackground: var(--dark-warn);\n\tcolor: var(--text);}\n.osai-dialogbox__foot button.info{\n\tbackground: var(--info);\n\tcolor: var(--dark-text);\n} .osai-dialogbox__foot button.info:hover{\n\tbackground: var(--dark-info);\n\tcolor: var(--text);}\n.osai-dialogbox__foot button.link{\n\tbackground: var(--link);\n\tcolor: var(--dark-text);\n} .osai-dialogbox__foot button.link:hover{\n\tbackground: var(--dark-link);\n\tcolor: var(--text);}\n\t.osai-dialogbox__foot button.success i,.osai-dialogbox__foot button.fail i, .osai-dialogbox__foot button.warn i, .osai-dialogbox__foot button.info i,.osai-dialogbox__foot button.link i{\n    color: var(--dark-text)\n}\n/* disable scrolling when modal is opened */\n.osai-modal__open{\n\toverflow-y: hidden;\n\tscroll-behavior: smooth;\n}\n.osai-modal__appear{\n\topacity: 1;\n\ttransform: translate(-50%,-50%);\n}\n.osai-modal__btn{\n\tborder-radius: .755em;\n\tborder: solid 1px transparent;\n\tpadding: 0.65rem 1.73rem;\n\tcursor: pointer;\n\toutline: none;\n\ttransition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;\n\tbackground-color: var(--bg);\n\tcolor: var(--text);\n\tdisplay: inline-flex;\n\tjustify-content: center;\n\talign-items: center;\n}\n@media screen and (max-width: 600px){\n\t.osai-dialogbox__wrapper{\n\t\tmin-width: 90vw;\n\t\tmax-width: 95vw;\n\t\tmax-height: 90vh;\n\t}\n}\n</style>`);
+        if (!$in($sel(".osai-dialogbox__stylesheet"))) $html($sel("head"), "beforeend", `<style class="osai-dialogbox__stylesheet" rel="stylesheet" media="all">\n.osai-dialogbox{\nposition: fixed;\nright: 0; left: 0; top: 0; bottom: 0;\ndisplay: block;\nvisibility: hidden;\nopacity: 0;\nz-index: -${dialogZindex};\n}\n.osai-dialogbox__appear{\n\tvisibility: visible;\n\tz-index: ${dialogZindex};\n\topacity: 1;\n}\n.osai-dialogbox__overlay{\n\topacity: .5;\n\tposition: fixed;\n\ttop: 0;bottom: 0;left: 0;right: 0;\n\tbackground: var(--bg);\n\tz-index: 1;\n}\n.osai-dialogbox__wrapper{\n\tdisplay: flex;\n\topacity: 0;\n\tjustify-content: center;\n\talign-items: center;\n\tmax-width: 97vw;\n\tmax-height: 97vh;\n\ttransform: translate(-50%,0);\n\ttop: 50%; left: 50%;\n\tposition: absolute;\n\tz-index: 2;\n\tmargin: auto;\n    background: var(--dark-text);\n\tcolor: var(--bg);\n\tborder-radius: 10px;\n\tflex-flow: column;\n\ttransition: ease-in-out .8s all;\n\tpadding: 1.5rem;\n\tpadding-top: 0;\n\toverflow: hidden;\n}\n.osai-dialogbox__header{\n\twidth: 100%;\n\tpadding: 0;\n\tpadding-top: 1.5rem;\n\tcursor: move;\n}\n.osai-dialogbox__close-btn{\n    display: table;\n    width: auto;\n\tbackground: transparent;\n\tborder: none;\n\tcolor: var(--dark-info);\n\tfont-weight: 500;\n\tcursor: pointer;\n\toutline: none;\n\tmargin-left: auto;\n    position: relative;\n    z-index: 5;\n}\n.osai-dialogbox__close-btn:hover{\n\tcolor: var(--fail);\n}\n.osai-dialogbox__head{\n\tfont-size: 1.15em;\n\tline-height: 1.15em;\n\tpadding: 0;\n\tmargin-bottom: 1rem;\n\tfont-weight: 600;\n\twidth: 100%;\n}\n.osai-dialogbox__inner-wrapper{\n\toverflow: auto;\n\tmax-width: 100vw;\n\tpadding: 1.75rem 0;\n}\n.osai-dialogbox__body{\n\tfont-size: 1em;\n}\n.osai-dialogbox__foot{\n    padding: 0;\n}\n.osai-dialogbox__foot button.success{\n\tbackground: var(--success);\n\tcolor: var(--bg);\n} .osai-dialogbox__foot button.success:hover{\n\tbackground: var(--dark-success);\n\tcolor: var(--dark-text);}\n.osai-dialogbox__foot button.fail{\n\tbackground: var(--fail);\n\tcolor: var(--text);\n}.osai-dialogbox__foot button.fail:hover{\n\tbackground: var(--dark-fail);\n\tcolor: var(--text);}\n.osai-dialogbox__foot button.warn{\n\tbackground: var(--warn);\n\tcolor: var(--text);\n} .osai-dialogbox__foot button.warn:hover{\n\tbackground: var(--dark-warn);\n\tcolor: var(--text);}\n.osai-dialogbox__foot button.info{\n\tbackground: var(--info);\n\tcolor: var(--dark-text);\n} .osai-dialogbox__foot button.info:hover{\n\tbackground: var(--dark-info);\n\tcolor: var(--text);}\n.osai-dialogbox__foot button.link{\n\tbackground: var(--link);\n\tcolor: var(--dark-text);\n} .osai-dialogbox__foot button.link:hover{\n\tbackground: var(--dark-link);\n\tcolor: var(--text);}\n\t.osai-dialogbox__foot button.success i,.osai-dialogbox__foot button.fail i, .osai-dialogbox__foot button.warn i, .osai-dialogbox__foot button.info i,.osai-dialogbox__foot button.link i{\n    color: var(--dark-text)\n}\n/* disable scrolling when modal is opened */\n.osai-modal__open{\n\toverflow-y: hidden;\n\tscroll-behavior: smooth;\n}\n.osai-modal__appear{\n\topacity: 1;\n\ttransform: translate(-50%,-50%);\n}\n.osai-modal__btn{\n\tborder-radius: .755rem;\n\tborder: solid 1px transparent;\n\tpadding: 0.65rem 1.73rem;\n\tcursor: pointer;\n\toutline: none;\n\ttransition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;\n\tbackground-color: var(--bg);\n\tcolor: var(--text);\n\tdisplay: inline-flex;\n\tjustify-content: center;\n\talign-items: center;\n}\n@media screen and (max-width: 600px){\n\t.osai-dialogbox__wrapper{\n\t\tmin-width: 90vw;\n\t\tmax-width: 95vw;\n\t\tmax-height: 90vh;\n\t}\n}\n</style>`);
         const BOX = $sel(".osai-dialogbox");
         const BOX_OVERLAY = $sel(".osai-dialogbox__overlay");
         const BOX_WRAPPER = $sel(".osai-dialogbox__wrapper");
@@ -1084,34 +1031,34 @@ const $freeze = (element, operation, attr = true) => {
         };
         const BOX_SIZE = size => {
             switch (size) {
-                case "xs":
-                    BOX_INNER_WRAPPER.style.minWidth = "30vw";
-                    break;
+              case "xs":
+                BOX_INNER_WRAPPER.style.minWidth = "30vw";
+                break;
 
-                case "sm":
-                    BOX_INNER_WRAPPER.style.minWidth = "45vw";
-                    break;
+              case "sm":
+                BOX_INNER_WRAPPER.style.minWidth = "45vw";
+                break;
 
-                case "md":
-                    BOX_INNER_WRAPPER.style.minWidth = "60vw";
-                    break;
+              case "md":
+                BOX_INNER_WRAPPER.style.minWidth = "60vw";
+                break;
 
-                case "lg":
-                    BOX_INNER_WRAPPER.style.minWidth = "75vw";
-                    break;
+              case "lg":
+                BOX_INNER_WRAPPER.style.minWidth = "75vw";
+                break;
 
-                case "xl":
-                    BOX_INNER_WRAPPER.style.minWidth = "90vw";
-                    break;
+              case "xl":
+                BOX_INNER_WRAPPER.style.minWidth = "90vw";
+                break;
 
-                case "xxl":
-                    BOX_INNER_WRAPPER.style.minWidth = "99vw";
-                    break;
+              case "xxl":
+                BOX_INNER_WRAPPER.style.minWidth = "99vw";
+                break;
 
-                default:
-                    let configSelector = config => $sel("input[data-config='" + config + "'].osai-dialogbox__config");
-                    if (configSelector("box-size") && $data(configSelector("box-size"), "value") !== "undefined") BOX_SIZE($data(configSelector("box-size"), "value")); else BOX_INNER_WRAPPER.style.minWidth = "60vw";
-                    break;
+              default:
+                let configSelector = config => $sel("input[data-config='" + config + "'].osai-dialogbox__config");
+                if (configSelector("box-size") && $data(configSelector("box-size"), "value") !== "undefined") BOX_SIZE($data(configSelector("box-size"), "value")); else BOX_INNER_WRAPPER.style.minWidth = "60vw";
+                break;
             }
         };
         const BOX_RENDER = (closeOnBlur, size, align, onClose, then) => {
@@ -1153,67 +1100,67 @@ const $freeze = (element, operation, attr = true) => {
         const BOX_FLUSH = (where = "*") => {
             $style(BOX_HEADER, "del");
             switch (where) {
-                case "head":
-                    $html(BOX_HEAD, "in", "");
-                    $style(BOX_HEAD, "del");
-                    break;
+              case "head":
+                $html(BOX_HEAD, "in", "");
+                $style(BOX_HEAD, "del");
+                break;
 
-                case "body":
-                    $html(BOX_BODY, "in", "");
-                    $style(BOX_BODY, "del");
-                    break;
+              case "body":
+                $html(BOX_BODY, "in", "");
+                $style(BOX_BODY, "del");
+                break;
 
-                case "foot":
-                    $html(BOX_FOOT, "in", "");
-                    $style(BOX_FOOT, "del");
-                    break;
+              case "foot":
+                $html(BOX_FOOT, "in", "");
+                $style(BOX_FOOT, "del");
+                break;
 
-                default:
-                    $html(BOX_HEAD, "in", "");
-                    $html(BOX_BODY, "in", "");
-                    $html(BOX_FOOT, "in", "");
-                    $style(BOX_WRAPPER, "del");
-                    $style(BOX_HEAD, "del");
-                    $style(BOX_HEADER, "del");
-                    $style(BOX_BODY, "del");
-                    $style(BOX_FOOT, "del");
-                    break;
+              default:
+                $html(BOX_HEAD, "in", "");
+                $html(BOX_BODY, "in", "");
+                $html(BOX_FOOT, "in", "");
+                $style(BOX_WRAPPER, "del");
+                $style(BOX_HEAD, "del");
+                $style(BOX_HEADER, "del");
+                $style(BOX_BODY, "del");
+                $style(BOX_FOOT, "del");
+                break;
             }
             return this;
         };
         const BOX_INSERT = (where, text = "") => {
             switch (where) {
-                case "head":
-                    where = BOX_HEAD;
-                    $style(BOX_HEAD, "del");
-                    break;
+              case "head":
+                where = BOX_HEAD;
+                $style(BOX_HEAD, "del");
+                break;
 
-                case "body":
-                    where = BOX_BODY;
-                    break;
+              case "body":
+                where = BOX_BODY;
+                break;
 
-                case "foot":
-                    where = BOX_FOOT;
-                    break;
+              case "foot":
+                where = BOX_FOOT;
+                break;
 
-                case "head+":
-                    where = BOX_HEAD;
-                    $style(BOX_HEAD, "del");
-                    text = $html(BOX_HEAD) + text;
-                    break;
+              case "head+":
+                where = BOX_HEAD;
+                $style(BOX_HEAD, "del");
+                text = $html(BOX_HEAD) + text;
+                break;
 
-                case "body+":
-                    where = BOX_BODY;
-                    text = $html(BOX_BODY) + text;
-                    break;
+              case "body+":
+                where = BOX_BODY;
+                text = $html(BOX_BODY) + text;
+                break;
 
-                case "foot+":
-                    where = BOX_FOOT;
-                    text = $html(BOX_FOOT) + text;
-                    break;
+              case "foot+":
+                where = BOX_FOOT;
+                text = $html(BOX_FOOT) + text;
+                break;
 
-                default:
-                    return;
+              default:
+                return;
             }
             $html(where, "in", text);
         };
@@ -1367,25 +1314,25 @@ const $freeze = (element, operation, attr = true) => {
             if (position === "center") postStyle = "osai-notifier__display-center";
             if ($sel(sideCardSelector)) previousEntryHeight = getNextEntryTop();
             switch (theme) {
-                case "success":
-                case "good":
-                    styleClass = "success";
-                    break;
+              case "success":
+              case "good":
+                styleClass = "success";
+                break;
 
-                case "fail":
-                case "danger":
-                case "error":
-                    styleClass = "fail";
-                    break;
+              case "fail":
+              case "danger":
+              case "error":
+                styleClass = "fail";
+                break;
 
-                case "info":
-                    styleClass = "info";
-                    break;
+              case "info":
+                styleClass = "info";
+                break;
 
-                case "warn":
-                case "warning":
-                    styleClass = "warn";
-                    break;
+              case "warn":
+              case "warning":
+                styleClass = "warn";
+                break;
             }
             $html($sel(presenceSelector), "beforeend", `<div class="osai-notifier osai-notifier-entry ${postStyle} ${styleClass}" ${uniqueId}><div class="osai-notifier__body">${dialog}</div><div class="osai-notifier__close"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"><rect opacity="0.5" x="6" y="17.3137" width="16" height="2" rx="1" transform="rotate(-45 6 17.3137)" fill="currentColor"></rect><rect x="7.41422" y="6" width="16" height="2" rx="1" transform="rotate(45 7.41422 6)" fill="currentColor"></rect></svg></div></div>`);
             let notifyEntry = $sela(".osai-notifier-entry");
@@ -1441,9 +1388,7 @@ function cMsg(message, operation, option = {
     align: null,
     onClose: () => null
 }) {
-    CusWind.insert("head", "Confirmation Box").insert("body", message).insert("foot", (
-        `<div style="display: flex; gap: 5px"><button type="button" class="success osai-modal__btn osai-confirm-success"><i class="gg-check"></i></button>\n\t\t<button type="button" class="fail osai-modal__btn osai-close-box"><i class="gg-close"></i></button></div>`
-    )).render(option.closeOnBlur, option.size, option.align, option.onClose);
+    CusWind.insert("head", "Confirmation Box").insert("body", message).insert("foot", `<div style="display: flex; gap: 5px"><button type="button" class="success osai-modal__btn osai-confirm-success"><i class="gg-check"></i></button>\n\t\t<button type="button" class="fail osai-modal__btn osai-close-box"><i class="gg-close"></i></button></div>`).render(option.closeOnBlur, option.size, option.align, option.onClose);
     $on($sel(".osai-confirm-success"), "click", (e => {
         e.preventDefault();
         CusWind.action(operation, option.closeOnDone);
@@ -1459,8 +1404,7 @@ function pMsg(message = "Prompt Box", operation = (inputValue => inputValue), cu
     align: null,
     onClose: () => null
 }) {
-    CusWind.insert("head", message).insert("body", custom.body || "<textarea class='osai-prompt-input-box form-control' style='width: 100%; height: 50px; text-align: center' placeholder='Type in...'></textarea>")
-        .insert("foot", `<div style="display: flex; gap: 5px"><button type="button" class="success osai-modal__btn osai-confirm-success"><i class="gg-check"></i></button><button type="button" class="fail osai-close-box osai-modal__btn"><i class="gg-close"></i></button></div>`).render(custom.closeOnBlur, custom.size, custom.align, custom.onClose);
+    CusWind.insert("head", message).insert("body", custom.body || "<textarea class='osai-prompt-input-box form-control' style='width: 100%; height: 50px; text-align: center' placeholder='Type in...'></textarea>").insert("foot", `<div style="display: flex; gap: 5px"><button type="button" class="success osai-modal__btn osai-confirm-success"><i class="gg-check"></i></button><button type="button" class="fail osai-close-box osai-modal__btn"><i class="gg-close"></i></button></div>`).render(custom.closeOnBlur, custom.size, custom.align, custom.onClose);
     $on($sel(".osai-confirm-success"), "click", (e => {
         e.preventDefault();
         if ($sel(".osai-prompt-input-box")) {
