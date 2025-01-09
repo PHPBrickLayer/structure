@@ -381,14 +381,17 @@ final class ApiEngine {
              */
             if(str_starts_with($query, "{")) {
                 self::$uri_variables['args'][] = self::$request_uri[$i];
-                self::$route_found = true;
+
+                // If placeholder is the last item on the list, mark the route as found
+                if(!isset(self::$current_request_uri[$i + 1])) self::$route_found = true;
             }
         }
 
         self::save_request_for_debug();
 
-        if(self::$route_found)
+        if(self::$route_found) {
             self::$active_route = self::stringify_request(false);
+        }
 
         return $this;
     }
