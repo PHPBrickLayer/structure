@@ -139,7 +139,7 @@ class Mailer {
         if(@empty($this->body))
             LayException::throw_exception("Sending an email with an empty `body` is not allowed!", "EmptyRequiredField");
 
-        $this->body = $this->bypass_template ? $this->body : $this->email_template($this->body);
+        $this->body = $this->get_body();
 
         self::$mail_link->msgHTML($this->body);
 
@@ -275,6 +275,10 @@ class Mailer {
         $this->body = $email_body;
         $this->bypass_template = $bypass_template;
         return $this;
+    }
+
+    final public function get_body() : string {
+        return $this->bypass_template ? $this->body : $this->email_template($this->body);
     }
 
     final public function attachment (
