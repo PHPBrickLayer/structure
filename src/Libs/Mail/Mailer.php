@@ -102,6 +102,8 @@ class Mailer {
         $site_data = LayConfig::new()::site_data();
 
         self::$mail_link = new PHPMailer();
+        $this->set_constant();
+
         $email = $this->client['email'] ?? null;
         $name = $this->client['name'] ?? null;
 
@@ -244,6 +246,36 @@ class Mailer {
                 </div>
             </body></html>
         MSG;
+    }
+
+    /**
+     * A function placeholder that is meant to be overwritten.
+     * You can use it to set constants or procedures you want to be applied across all your emails before sending.
+     *
+     * This method runs immediately after the $mailer is initialized in this class
+     * @return void
+     * @example
+     * public function set_constant() : void
+     * {
+     *  $this->mailer_set(function (PHPMailer $mailer) {
+     *      $mailer->CharSet = PHPMailer::CHARSET_UTF8;
+     *      $mailer->Encoding = PHPMailer::ENCODING_8BIT;
+     *
+     *      return $mailer;
+     *  });
+     * }
+     */
+    public function set_constant() : void {}
+
+    /**
+     * Get access to PHPMailer instance so you can manipulate it better before sending.
+     * @param callable<PHPMailer> $callback Has a PHPMailer argument that should be returned after
+     * you're done manipulating it.
+     * @return $this
+     */
+    final public function mailer_set(callable $callback) : self {
+        self::$mail_link = $callback(self::$mail_link);
+        return $this;
     }
 
     final public function client(string $email, string $name) : self {
