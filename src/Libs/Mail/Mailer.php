@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace BrickLayer\Lay\Libs\Mail;
 
 use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Core\LayException;
 use BrickLayer\Lay\Libs\LayDate;
 use BrickLayer\Lay\Libs\LayDir;
 use JetBrains\PhpStorm\ArrayShape;
@@ -67,12 +68,15 @@ class Mailer {
         self::$mail_link->isSMTP();                                      // Send using SMTP
         self::$mail_link->SMTPAuth   = true;                             // Enable SMTP authentication
 
-        if ($this->debug)
-            self::$mail_link->Debugoutput = "html";
-        else {
-            $this->log_data = "";
-            self::$mail_link->Debugoutput = fn($str, $level) => $this->collect_log($str, $level);
-        }
+        $this->log_data = "";
+        self::$mail_link->Debugoutput = fn($str, $level) => $this->collect_log($str, $level);
+
+//        if ($this->debug)
+//            self::$mail_link->Debugoutput = "html";
+//        else {
+//            $this->log_data = "";
+//            self::$mail_link->Debugoutput = fn($str, $level) => $this->collect_log($str, $level);
+//        }
 
         try {
             self::$mail_link->SMTPSecure = self::$credentials['protocol'];   // Enable implicit TLS encryption
@@ -81,7 +85,7 @@ class Mailer {
             self::$mail_link->Username   = self::$credentials['username'];
             self::$mail_link->Password   = self::$credentials['password'];
         }catch (\Exception $e){
-            \BrickLayer\Lay\Core\Exception::throw_exception("SMTP Credentials has not been setup. " . $e->getMessage(),"SMTPCredentialsError", exception: $e);
+            LayException::throw_exception("SMTP Credentials has not been setup. " . $e->getMessage(),"SMTPCredentialsError", exception: $e);
         }
 
     }
@@ -102,7 +106,7 @@ class Mailer {
         $name = $this->client['name'] ?? null;
 
         if((empty($email) || empty($name)) && $this->to_client)
-            \BrickLayer\Lay\Core\Exception::throw_exception("Sending an email <b>to a client</b> with an empty `email`: [$email] or `name`: [$name] is not allowed!. If you wish to send to the server, use `->to_server()` method.", "EmptyRequiredField");
+            LayException::throw_exception("Sending an email <b>to a client</b> with an empty `email`: [$email] or `name`: [$name] is not allowed!. If you wish to send to the server, use `->to_server()` method.", "EmptyRequiredField");
 
         $this->server_from['email'] = $this->server_from['email'] ?? self::$credentials['default_sender_email'] ?? $site_data->mail->{0};
         $this->server_from['name'] = $this->server_from['name'] ?? self::$credentials['default_sender_name'] ?? $site_data->name->short;
@@ -128,12 +132,12 @@ class Mailer {
         }
 
         if(@empty($this->subject))
-            \BrickLayer\Lay\Core\Exception::throw_exception("Sending an email with an empty `subject` is not allowed!", "EmptyRequiredField");
+            LayException::throw_exception("Sending an email with an empty `subject` is not allowed!", "EmptyRequiredField");
 
         self::$mail_link->Subject = $this->subject;
 
         if(@empty($this->body))
-            \BrickLayer\Lay\Core\Exception::throw_exception("Sending an email with an empty `body` is not allowed!", "EmptyRequiredField");
+            LayException::throw_exception("Sending an email with an empty `body` is not allowed!", "EmptyRequiredField");
 
         $this->body = $this->bypass_template ? $this->body : $this->email_template($this->body);
 
@@ -165,7 +169,7 @@ class Mailer {
                 );
             else {
                 if(!file_exists($this->attachment['filename']))
-                    \BrickLayer\Lay\Core\Exception::throw_exception("The file you're trying to attach does not exist", "AttachmentNotFound");
+                    LayException::throw_exception("The file you're trying to attach does not exist", "AttachmentNotFound");
 
                 self::$mail_link->addAttachment(
                     $this->attachment['filename'],
@@ -354,6 +358,16 @@ class Mailer {
     {
         $recipient = $this->start_process();
 
+        if($this->debug) {
+            LayException::throw_exception(
+                "[TO] " . $recipient['email'] . "<" . $recipient['name'] . ">\n<br>"
+                . "[FROM] " . $this->server_from['email'] . "<" . $this->server_from['name'] . ">\n<br>"
+                . "[SUBJECT] " . $this->subject . "\n<br>"
+                . "[BODY] " . $this->body . "\n<br>"
+                , "MailerDebug"
+            );
+        }
+
         try {
             $this->connect_smtp();
 
@@ -366,7 +380,7 @@ class Mailer {
             return true;
 
         } catch (\Exception $e) {
-            \BrickLayer\Lay\Core\Exception::throw_exception(
+            LayException::throw_exception(
                 htmlspecialchars($recipient['to']) . ' LayMail.php' . self::$mail_link->ErrorInfo,
                 "MailerError",
                 false,
@@ -396,6 +410,9 @@ class Mailer {
      * @throws Exception
      */
     final public function queue(#[ExpectedValues([0,1,2,3,4,5])] int $priority = 0) : ?bool {
+        if($this->debug)
+            $this->send();
+
         $this->start_process();
 
         return (new MailerQueueHandler())->add_to_queue([
