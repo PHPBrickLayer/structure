@@ -41,9 +41,6 @@ class Bucket
                 'Bucket' => $this->bucket,
                 'Key' => $to,
                 'SourceFile' => $from,
-                'signature_version' => 'v4',
-                'ChecksumAlgorithm' => null,
-                'checksums_enabled' => false
             ]);
 
             return $contents->get("@metadata") ?? [];
