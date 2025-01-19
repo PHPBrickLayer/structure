@@ -29,10 +29,15 @@ if($mailer->is_still_sending())
 $send_on_dev = \BrickLayer\Lay\Libs\LayFn::extract_cli_tag("--send-on-dev", false);
 
 if(class_exists("\Utils\Email\Email")) {
-    $sender = new \Utils\Email\Email();
+    try{
+        $sender = new \Utils\Email\Email();
 
-    if(method_exists($sender, "new"))
-        $sender = $sender::new();
+        if(method_exists($sender, "new"))
+            $sender = $sender::new();
+    } catch (\Throwable $e) {
+        $sender = \Utils\Email\Email::new();
+    }
+
 } else
     $sender = new Mailer();
 
