@@ -40,7 +40,10 @@ class Bucket
             $contents = self::$client->putObject([
                 'Bucket' => $this->bucket,
                 'Key' => $to,
-                'SourceFile' => $from
+                'SourceFile' => $from,
+                'signature_version' => 'v4',
+                'ChecksumAlgorithm' => null,
+                'checksums_enabled' => false
             ]);
 
             return $contents->get("@metadata") ?? [];
