@@ -165,6 +165,8 @@ final class FileUpload {
         'error_type' => "BrickLayer\\Lay\\Libs\\FileUpload\\Enums\\FileUploadErrors",
         'upload_type' => "BrickLayer\\Lay\\Libs\\FileUpload\\Enums\\FileUploadType",
         'storage' => "BrickLayer\\Lay\\Libs\\FileUpload\\Enums\\FileUploadStorage",
+        'width' => "int?",
+        'height' => "int?",
         'url' => 'string',
         'size' => 'int',
     ])]
@@ -197,7 +199,9 @@ final class FileUpload {
             "url" => $opt['url'],
             "size" => $opt['size'],
             "storage" => $this->storage,
-            "upload_type" => $this->upload_type
+            "upload_type" => $this->upload_type,
+            'width' => $opt['width'] ?? null,
+            'height' => $opt['height'] ?? null,
         ];
     }
 
