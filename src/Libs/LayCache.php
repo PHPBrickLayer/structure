@@ -80,7 +80,7 @@ class LayCache
         if($associative)
             return $data[$key] ?? null;
 
-        return @$data?->{$key};
+        return @$data?->{$key} ?? null;
     }
 
     public function cache_file(string $path_to_cache = "./", bool $use_lay_temp_dir = true, bool $invalidate = false): self
