@@ -247,12 +247,13 @@ class CoreException
 
         if(Domain::is_in_use()) {
             $route = Domain::current_route_data("*");
-            $route = $route['domain_base'] . $route['route'];
+            $route = $route['domain_uri'] . $route['route'];
         }
 
         $req_headers = LayConfig::get_header("*");
-        $req_headers['_Lay_Request_'] = $route ?? 'CLI_REQUEST';
-        $req_headers['_Lay_Request_Method_'] = $_SERVER['REQUEST_METHOD'] ?? 'CLI_METHOD';
+
+        $request_route = $route ?? 'CLI_REQUEST';
+        $request_method = $_SERVER['REQUEST_METHOD'] ?? 'CLI_METHOD';
 
         $headers_str = "";
         $headers_html = "";
@@ -344,6 +345,8 @@ class CoreException
          REF: $referer
          CORS: $cors_active
          IP: $ip
+         ROUTE: $request_route
+         METHOD: $request_method
          OS: $os
          HEADERS: $headers_str
          ___APP___
@@ -375,6 +378,8 @@ class CoreException
                         "referer" => $referer,
                         "cors" => $cors_active,
                         "ip" => $ip,
+                        "route" => $request_route,
+                        "method" => $request_method,
                         "os" => $os,
                         "trace" => [
                             "app" => $stack_json['app'] ?? null,
@@ -416,6 +421,8 @@ class CoreException
                     <b>REFERRER:</b> <span style='color:#00ff80'>$referer</span> <br> 
                     <b>CORS:</b> <span style='color:#00ff80'>$cors_active</span> <br> 
                     <b>IP:</b> <span style='color:#00ff80'>$ip</span> <br>  
+                    <b>ROUTE:</b> <span style='color:#00ff80'>$request_route</span> <br>  
+                    <b>METHOD:</b> <span style='color:#00ff80'>$request_method</span> <br>  
                     <b>OS:</b> <span style='color:#00ff80'>$os</span> <br>
                     <b>HEADERS:</b> <div style='color:#00ff80; font-size: 16px; padding: 0 10px'>$headers_html</div>
                 </details>
