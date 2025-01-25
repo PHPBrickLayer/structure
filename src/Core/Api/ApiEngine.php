@@ -35,13 +35,13 @@ final class ApiEngine {
      * Endpoints can be named, and this is responsible for storing it
      * @var string|null
      */
-    private static ?string $request_uri_name;
+    private static ?string $route_uri_name;
 
     /**
      * This is the uri as sent by the application; meaning something like: api/user/1
      * @var string
      */
-    private static string $request_uri_raw;
+    private static string $route_uri_raw;
 
     /**
      * This is only set when a route is found
@@ -85,7 +85,7 @@ final class ApiEngine {
      * @example user/profile/1 = [user, profile, 1]
      * @var array
      */
-    private static array $request_uri = [];
+    private static array $route_uri = [];
 
     /**
      * Headers sent with the request by the client
@@ -306,7 +306,7 @@ final class ApiEngine {
         if($throw_exception)
             self::exception(
                 "UnmatchedRequestMethod",
-                "Request method for api request [". self::$request_uri_raw ."]; don't match. 
+                "Request method for api request [". self::$route_uri_raw ."]; don't match. 
                 Check if you have bound you route to a method, it could be using the method of the previous route"
             );
 
@@ -315,30 +315,29 @@ final class ApiEngine {
 
     /**
      * Accepts `/` separated URI as arguments.
-     * @param string $request_uri
+     * @param string $route_uri
      * @param ApiReturnType $return_type
      * @return $this
      * @example `get/user/list`; is interpreted as => `'get/user/list'`
      * @example `post/user/index/15`; is interpreted as => `'post/user/index/{id}'`
-     * @example `post/user/index/25`; is interpreted as => `'post/user/index/{@int id}'`
      */
-    private function map_request(string $request_uri, ApiReturnType $return_type) : self {
+    private function map_request(string $route_uri, ApiReturnType $return_type) : self {
         // reset route specific items
-        self::$request_uri_name = null;
+        self::$route_uri_name = null;
         self::$limiter_route = [];
 
         if(self::$route_found || self::$request_complete || !$this->correct_request_method(false))
             return $this;
 
-        if(!self::$allow_index_access && self::$request_uri[0] == "")
+        if(!self::$allow_index_access && self::$route_uri[0] == "")
             return $this;
 
         self::$uri_variables = [];
         self::$method_return_type = $return_type;
 
-        $request_uri = trim($request_uri, "/");
-        self::$current_request_uri = explode("/", $request_uri);
-        $last_item = end(self::$current_request_uri);
+        $route_uri = trim($route_uri, "/");
+        self::$current_request_uri = explode("/", $route_uri);
+        $last_item_current_request = end(self::$current_request_uri);
 
         if(isset(self::$group)) {
             $group = explode("/", self::$group);
@@ -354,23 +353,25 @@ final class ApiEngine {
             self::$current_request_uri = [...[self::$version], ...self::$current_request_uri];
 
         // Make it possible to access /api/ and just prefixes or just versions, like /api/v1/
-        if(self::$allow_index_access && $last_item == "") {
+        if(self::$allow_index_access && $last_item_current_request == "") {
             array_pop(self::$current_request_uri);
-            $last_item = end(self::$request_uri);
+            $last_item_current_request = end(self::$route_uri);
 
-            if(count(self::$request_uri) == 1 && empty(self::$current_request_uri))
-                self::$current_request_uri = self::$request_uri;
+            if(count(self::$route_uri) == 1 && empty(self::$current_request_uri))
+                self::$current_request_uri = self::$route_uri;
         }
 
-        if(!self::$DEBUG_DUMP_MODE && (count(self::$request_uri) !== count(self::$current_request_uri)))
+        if(!self::$DEBUG_DUMP_MODE && (count(self::$route_uri) !== count(self::$current_request_uri)))
             return $this;
 
-        foreach (self::$current_request_uri as $i => $query) {
-            if (self::$request_uri[$i] !== $query && !str_starts_with($query, "{"))
+        $last_index_route_uri = count(self::$current_request_uri) - 1;
+
+        foreach (self::$current_request_uri as $i => $curren_req_entry) {
+            if (self::$route_uri[$i] !== $curren_req_entry && !str_starts_with($curren_req_entry, "{"))
                 break;
 
-            if(self::$request_uri[$i] === $query) {
-                if($query == $last_item)
+            if(self::$route_uri[$i] === $curren_req_entry) {
+                if($curren_req_entry == $last_item_current_request && $last_index_route_uri == $i)
                     self::$route_found = true;
 
                 continue;
@@ -379,8 +380,8 @@ final class ApiEngine {
             /**
              * If request has a {placeholder}, then process it and store for future use
              */
-            if(str_starts_with($query, "{")) {
-                self::$uri_variables['args'][] = self::$request_uri[$i];
+            if(str_starts_with($curren_req_entry, "{")) {
+                self::$uri_variables['args'][] = self::$route_uri[$i];
 
                 // If placeholder is the last item on the list, mark the route as found
                 if(!isset(self::$current_request_uri[$i + 1])) self::$route_found = true;
@@ -615,7 +616,7 @@ final class ApiEngine {
 
         if($is_grouped) {
             foreach ($uri_beginning as $i => $begin) {
-                $use_limiter = $begin == @self::$request_uri[$i];
+                $use_limiter = $begin == @self::$route_uri[$i];
             }
         }
 
@@ -648,7 +649,7 @@ final class ApiEngine {
         $cache = LayCache::new()->cache_file(self::RATE_LIMIT_CACHE_FILE . DomainResource::get()->domain->domain_referrer . ".json");
         $key = $key ?? LayConfig::get_ip();
         $key = Escape::clean(
-            $key . (self::$request_uri_name ?? self::$request_uri_raw),
+            $key . (self::$route_uri_name ?? self::$route_uri_raw),
             EscapeType::P_URL, [
                 'strict' => false,
                 'p_url_replace' => "_"
@@ -692,38 +693,38 @@ final class ApiEngine {
 
     public function name(string $uri_name) : self
     {
-        self::$request_uri_name = $uri_name;
+        self::$route_uri_name = $uri_name;
         return $this;
     }
 
-    public function post(string $request_uri, ApiReturnType $return_type = ApiReturnType::JSON) : self {
+    public function post(string $route_uri, ApiReturnType $return_type = ApiReturnType::JSON) : self {
         self::$request_method = ApiRequestMethod::POST->value;
 
-        return $this->map_request($request_uri, $return_type);
+        return $this->map_request($route_uri, $return_type);
     }
 
-    public function get(string $request_uri, ApiReturnType $return_type = ApiReturnType::JSON) : self {
+    public function get(string $route_uri, ApiReturnType $return_type = ApiReturnType::JSON) : self {
         self::$request_method = ApiRequestMethod::GET->value;
 
-        return $this->map_request($request_uri, $return_type);
+        return $this->map_request($route_uri, $return_type);
     }
 
-    public function put(string $request_uri, ApiReturnType $return_type = ApiReturnType::JSON) : self {
+    public function put(string $route_uri, ApiReturnType $return_type = ApiReturnType::JSON) : self {
         self::$request_method = ApiRequestMethod::PUT->value;
 
-        return $this->map_request($request_uri, $return_type);
+        return $this->map_request($route_uri, $return_type);
     }
 
-    public function head(string $request_uri, ApiReturnType $return_type = ApiReturnType::JSON) : self {
+    public function head(string $route_uri, ApiReturnType $return_type = ApiReturnType::JSON) : self {
         self::$request_method = ApiRequestMethod::HEAD->value;
 
-        return $this->map_request($request_uri, $return_type);
+        return $this->map_request($route_uri, $return_type);
     }
 
-    public function delete(string $request_uri, ApiReturnType $return_type = ApiReturnType::JSON) : self {
+    public function delete(string $route_uri, ApiReturnType $return_type = ApiReturnType::JSON) : self {
         self::$request_method = ApiRequestMethod::DELETE->value;
 
-        return $this->map_request($request_uri, $return_type);
+        return $this->map_request($route_uri, $return_type);
     }
 
     private static function reset_engine() : void
@@ -845,7 +846,7 @@ final class ApiEngine {
         }
 
         foreach ($uri_beginning as $i => $begin) {
-            $use_middleware = $begin == @self::$request_uri[$i];
+            $use_middleware = $begin == @self::$route_uri[$i];
         }
 
         if(!self::$DEBUG_DUMP_MODE && !$use_middleware)
@@ -879,7 +880,7 @@ final class ApiEngine {
 
         return [
             'route' => self::$current_uri_string,
-            'route_name' => self::$request_uri_name ?? "",
+            'route_name' => self::$route_uri_name ?? "",
             'method' => self::$request_method,
             'return_type' => self::$method_return_type,
             'using_middleware' => [
@@ -965,7 +966,7 @@ final class ApiEngine {
             }
         }
         catch (\TypeError $e){
-            self::exception("ApiEngineMethodError", "Check the bind function of your route: [" . self::$request_uri_raw . "]; <br>" . $e->getMessage(), $e);
+            self::exception("ApiEngineMethodError", "Check the bind function of your route: [" . self::$route_uri_raw . "]; <br>" . $e->getMessage(), $e);
         }
         catch (\Error|\Exception $e){
             self::exception("ApiEngineError", $e->getMessage(), $e);
@@ -978,7 +979,7 @@ final class ApiEngine {
     {
         $x = self::matched_uri_obj();
         $x['found'] =  self::$route_found;
-        $x["request"] = self::$request_uri_raw;
+        $x["request"] = self::$route_uri_raw;
 
         return $x;
     }
@@ -1095,11 +1096,11 @@ final class ApiEngine {
     }
 
     public function get_uri() : array {
-        return self::$request_uri;
+        return self::$route_uri;
     }
 
     public function get_uri_as_str() : string {
-        return self::$request_uri_raw;
+        return self::$route_uri_raw;
     }
 
     public function get_headers() : array {
@@ -1148,15 +1149,15 @@ final class ApiEngine {
         self::$route_found = false;
         self::$request_complete = false;
         self::$request_header = LayConfig::get_header("*");
-        self::$request_uri_raw = $endpoint;
-        self::$request_uri = $req['route_as_array'];
+        self::$route_uri_raw = $endpoint;
+        self::$route_uri = $req['route_as_array'];
 
-        if(self::$request_uri[0] == $local_endpoint) {
-            array_shift(self::$request_uri);
-            self::$request_uri_raw = implode("/", self::$request_uri);
+        if(self::$route_uri[0] == $local_endpoint) {
+            array_shift(self::$route_uri);
+            self::$route_uri_raw = implode("/", self::$route_uri);
         }
 
-        if(self::$DEBUG_MODE === false && empty(self::$request_uri[0]))
+        if(self::$DEBUG_MODE === false && empty(self::$route_uri[0]))
             self::exception("InvalidAPIRequest", "Invalid api request sent. Malformed URI received. You can't access this script like this!");
 
         return self::$engine;
@@ -1169,7 +1170,7 @@ final class ApiEngine {
     }
 
     public static function end(bool $print_existing_result = true) : ?string {
-        $uri = self::$request_uri_raw ?? "";
+        $uri = self::$route_uri_raw ?? "";
 
         if(self::$route_found) {
             if($print_existing_result)
