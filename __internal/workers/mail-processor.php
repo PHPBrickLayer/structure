@@ -108,7 +108,7 @@ foreach ($mailer->next_items() as $mail) {
             $mailer->try_again($mail['id']);
 
     } catch (\Exception|\Error $e) {
-        $mailer->failed_to_send($mail['id']);
+        $mailer->failed_to_aycachsend($mail['id']);
         LayCron::new()->log_output(
             "[" . LayDate::date() . "]\n" .
             \BrickLayer\Lay\Core\Exception::text($e, false)
