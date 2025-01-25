@@ -451,6 +451,9 @@ class Mailer {
 
         $this->start_process();
 
+        if(empty($this->client ?? null))
+            LayException::throw_exception("You are trying to send an email without specifying the client being sent to", "Mailer::clientNotFound");
+
         return (new MailerQueueHandler())->add_to_queue([
             "cc" => json_encode($this->cc ?? []),
             "bcc" => json_encode($this->bcc ?? []),
@@ -460,8 +463,8 @@ class Mailer {
             "body" => $this->body,
 
             "actors" => json_encode([
-                "client" => $this->client ?? [],
-                "server" => $this->server ?? [],
+                "client" => $this->client,
+                "server" => $this->server,
                 "server_from" => $this->server_from,
                 "send_to" => $this->to_client ? "TO_CLIENT" : "TO_SERVER",
             ]),
