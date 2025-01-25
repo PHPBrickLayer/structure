@@ -315,7 +315,7 @@ class Mailer {
 
     final public function attachment (
         string          $filename,
-        string          $string_or_name = null,
+        ?string          $string_or_name = null,
         string          $type = '',
         ?MailerEncoding  $encoding = MailerEncoding::ENCODING_BASE64,
         ?string          $disposition = "attachment",
