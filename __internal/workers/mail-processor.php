@@ -81,9 +81,9 @@ foreach ($mailer->next_items() as $mail) {
     $sender = $sender
         ->subject($mail['subject'])
         ->body($mail['body'], true)
-        ->client($actors['client']['email'], $actors['client']['name'])
-        ->server($actors['server']['email'], $actors['server']['name'])
-        ->server_from($actors['server_from']['email'], $actors['server_from']['name'])
+        ->client($actors['client']['email'] ?? "", $actors['client']['name'] ?? "")
+        ->server($actors['server']['email'] ?? "", $actors['server']['name'] ?? "")
+        ->server_from($actors['server_from']['email'] ?? "", $actors['server_from']['name'] ?? "")
         ->cc(...json_decode($mail['cc'], true))
         ->bcc(...json_decode($mail['bcc'], true))
         ->attachment(
