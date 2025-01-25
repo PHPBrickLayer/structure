@@ -103,7 +103,7 @@ final class FileUpload {
         }
 
 
-        if(@$opts['upload_type']) {
+        if($opts['upload_type'] ?? false) {
             if($opts['upload_type'] instanceof FileUploadType)
                 $this->upload_type = $opts['upload_type'];
             else
@@ -137,10 +137,10 @@ final class FileUpload {
      */
     public function file_size(string $file_name_or_post_name) : int
     {
-        $files = @$_FILES[$file_name_or_post_name];
+        $files = $_FILES[$file_name_or_post_name] ?? null;
 
         if(empty($files['tmp_name'])) {
-            $size = @filesize($file_name_or_post_name);
+            $size = filesize($file_name_or_post_name) ?? null;
 
             if(!$size)
                 Exception::new()->use_exception(

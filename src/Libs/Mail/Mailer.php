@@ -460,8 +460,8 @@ class Mailer {
             "body" => $this->body,
 
             "actors" => json_encode([
-                "client" => $this->client,
-                "server" => $this->server,
+                "client" => $this->client ?? [],
+                "server" => $this->server ?? [],
                 "server_from" => $this->server_from,
                 "send_to" => $this->to_client ? "TO_CLIENT" : "TO_SERVER",
             ]),
