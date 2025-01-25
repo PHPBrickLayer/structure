@@ -170,7 +170,7 @@ trait SelectorOOPCrud
             $values = rtrim($cols, ",");
         }
 
-        if (!empty(@$d['switch'])) {
+        if (!empty($d['switch'] ?? null)) {
             $case_value = "";
             $clause = !$clause ? "" : $clause . " AND ";
 
