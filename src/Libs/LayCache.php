@@ -80,7 +80,7 @@ class LayCache
         if($associative)
             return $data[$key] ?? null;
 
-        if(isset($data->{$key}))
+        if(isset($data?->{$key}))
             return $data->{$key};
 
         return  null;
