@@ -452,6 +452,8 @@ final class LayCron
 
     public function clear_log() : void
     {
+        $this->cron_db();
+
         if(!file_exists($this->output_file))
             file_put_contents($this->output_file, PHP_EOL);
     }
