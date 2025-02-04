@@ -107,8 +107,11 @@ class LayDate {
             default => $format,
         };
 
-        if(is_int($datetime))
+        if(is_int($datetime)) {
+            if($figure) return $datetime;
+
             return date($format, $datetime);
+        }
 
         $datetime = $datetime ?: date($format);
 

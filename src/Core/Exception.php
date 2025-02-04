@@ -31,6 +31,11 @@ abstract class Exception {
         self::new()->hide_x_info();
     }
 
+    public static function error_as_html() : void
+    {
+        self::new()::$ERROR_AS_HTML = true;
+    }
+
     public static function always_log() : void
     {
         self::new()->log_always();
