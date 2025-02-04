@@ -214,9 +214,9 @@ trait SelectorOOP
         return $this->store_vars('bind_assoc', $assoc_array);
     }
 
-    final public function group(string $condition): self
+    final public function group(string $by): self
     {
-        return $this->store_vars('group', ["condition" => $condition,], true);
+        return $this->store_vars('group', ["condition" => $by,], true);
     }
 
     final public function having(string $condition): self

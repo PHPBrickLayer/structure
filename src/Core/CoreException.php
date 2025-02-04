@@ -21,6 +21,7 @@ class CoreException
 
     public static bool $DISPLAYED_ERROR = false;
     public static bool $HAS_500 = false;
+    public static bool $ERROR_AS_HTML = false;
 
     private static bool $already_caught = false;
     private static bool $show_internal_trace = true;
@@ -227,6 +228,10 @@ class CoreException
         $cli_mode = LayConfig::get_mode() === LayMode::CLI;
         $use_json = $this->throw_as_json ?: !isset(LayConfig::user_agent()['browser']);
         $use_json = $cli_mode ? false : $use_json;
+
+        if($env == "DEVELOPMENT" && self::$ERROR_AS_HTML && $use_json) {
+            $use_json = false;
+        }
 
 
         if (!empty(@$other['raw'])) {

@@ -144,4 +144,29 @@ final class LayFn
         return str_starts_with($string, "http");
     }
 
+    /**
+     * Update an array in multiple dimensions, using an array of keys
+     *
+     * @param array $key_chain
+     * @param mixed $value
+     * @param array $array_to_update
+     * @return void
+     */
+    public static function recursive_array_update(array $key_chain, mixed $value, array &$array_to_update) : void
+    {
+        $current_key = array_shift($key_chain);
+
+        if (empty($key_chain)) {
+            $array_to_update[$current_key] = $value;
+            return;
+        }
+
+        if (!isset($array_to_update[$current_key]) || !is_array($array_to_update[$current_key])) {
+            $array_to_update[$current_key] = [];
+        }
+
+        // Recurse to the next level
+        self::recursive_array_update($key_chain, $value, $array_to_update[$current_key]);
+    }
+
 }

@@ -635,7 +635,7 @@ final class ApiEngine {
 
     public function limit(int $requests, string $interval, ?string $key = null, string $__INTERNAL_TYPE__ = "ROUTE") : self
     {
-        if(!self::$DEBUG_DUMP_MODE && (!self::$route_found || self::$using_route_rate_limiter))
+        if(!self::$DEBUG_DUMP_MODE && (!self::$route_found || self::$request_complete || self::$using_route_rate_limiter))
             return $this;
 
         if($__INTERNAL_TYPE__ == "ROUTE")
@@ -647,6 +647,7 @@ final class ApiEngine {
             return $this;
 
         $cache = LayCache::new()->cache_file(self::RATE_LIMIT_CACHE_FILE . DomainResource::get()->domain->domain_referrer . ".json");
+
         $key = $key ?? LayConfig::get_ip();
         $key = Escape::clean(
             $key . (self::$route_uri_name ?? self::$route_uri_raw),
@@ -656,19 +657,17 @@ final class ApiEngine {
             ]
         );
 
-        $limit = $cache->read($key, false);
+        $limit = $cache->read($key, true);
 
-        $request_count = (int) $limit?->request_count;
-        $expire = $limit?->expire ?? null;
-        $interval_cached = $limit?->interval ?? null;
-        $requests_allowed = $limit?->requests_allowed ?? null;
-        $timestamp = LayDate::date($interval, figure: true);
-        $now = LayDate::date(figure: true);
+        $request_count = (int) ($limit['request_count'] ?? 1);
 
-        if($expire == null or $expire < $now AND $interval_cached == $interval AND $requests_allowed == $requests) {
+        $expire = $limit['expire'] ?? null;
+        $requests_allowed = $limit['requests_allowed'] ?? $requests;
+
+        if($expire == null || LayDate::expired($expire)) {
             $cache->store($key, [
                 "request_count" => 1,
-                "expire" => $timestamp,
+                "expire" => LayDate::date($interval, figure: true),
                 "interval" => $interval,
                 "requests_allowed" => $requests,
             ]);
@@ -678,7 +677,7 @@ final class ApiEngine {
 
         $cache->update([$key, "request_count"], $request_count + 1);
 
-        if($request_count > $requests) {
+        if($request_count > $requests_allowed) {
             self::set_response_header(ApiStatus::TOO_MANY_REQUESTS, ApiReturnType::JSON);
             self::set_return_value([
                 "code" => ApiStatus::TOO_MANY_REQUESTS->value,
@@ -1161,12 +1160,6 @@ final class ApiEngine {
             self::exception("InvalidAPIRequest", "Invalid api request sent. Malformed URI received. You can't access this script like this!");
 
         return self::$engine;
-    }
-
-    public static function display_error_as_html() : void
-    {
-        if(LayConfig::$ENV_IS_DEV)
-            self::$ERRORS_AS_JSON = false;
     }
 
     public static function end(bool $print_existing_result = true) : ?string {

@@ -25,9 +25,8 @@ class LayCache
 
     public function store(string $key, mixed $value): bool
     {
-        $cache = $this->read($key) ?? [];
+        $cache = $this->read("*") ?? [];
         $cache[$key] = $value;
-
         $cache = json_encode($cache);
 
         if (!$cache)
@@ -47,16 +46,9 @@ class LayCache
             Exception::throw_exception("Cache storage [$this->cache_store] does not exist!", "CacheStoreNotFound", exception: $e);
         }
 
-        $new_data = $data;
-        $depth = &$new_data;
+        LayFn::recursive_array_update($key_chain, $value, $data);
 
-        foreach ($key_chain as $key) {
-            $depth = &$depth[$key];
-        }
-
-        $depth = $value;
-
-        $new_data = json_encode($new_data);
+        $new_data = json_encode($data);
 
         if ($new_data === false)
             Exception::throw_exception("Could not store data in cache, please check your data", "MalformedCacheData");
