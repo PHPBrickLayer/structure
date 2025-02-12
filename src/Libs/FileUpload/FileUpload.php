@@ -33,6 +33,7 @@ final class FileUpload {
     use Doc;
 
     /**
+     * @param $opts
      * @throws \Exception
      */
     public function __construct(
@@ -267,26 +268,28 @@ final class FileUpload {
         if($extension_list) {
             $mime = mime_content_type($file);
             $found = false;
+            $joined_lists = "";
 
             foreach ($extension_list as $list) {
                 if(!($list instanceof FileUploadExtension)) {
-                    $extension_list = implode(",", $extension_list);
-                    $this->exception("extension_list must be of type " . FileUploadExtension::class . "; extension_list: [$extension_list]. File Mime: [$mime]");
+                    $this->exception("extension_list must be of type " . FileUploadExtension::class . "; File Mime: [$mime]");
                 }
 
                 if($list->value == $mime) {
                     $found = true;
                     break;
                 }
+
+                $joined_lists .= $list->value . ", ";
             }
 
             if(!$found) {
-                $extension_list = implode(",", $extension_list);
+                $joined_lists = rtrim($joined_lists, ", ");
 
                 return $this->upload_response(
                     false,
                     [
-                        "dev_error" => "Uploaded file had: [$mime], but required mime types are: [$extension_list]; Class: " . self::class,
+                        "dev_error" => "Uploaded file had: [$mime], but required mime types are: [$joined_lists]; Class: " . self::class,
                         "error" => "File type is invalid",
                         "error_type" => FileUploadErrors::WRONG_FILE_TYPE
                     ]

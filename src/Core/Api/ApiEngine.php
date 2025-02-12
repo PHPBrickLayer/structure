@@ -968,7 +968,7 @@ final class ApiEngine {
             self::exception("ApiEngineMethodError", "Check the bind function of your route: [" . self::$route_uri_raw . "]; <br>" . $e->getMessage(), $e);
         }
         catch (\Error|\Exception $e){
-            self::exception("ApiEngineError", $e->getMessage(), $e);
+            self::exception("ApiEngineError", "Error encountered while handling api entries <br>", $e);
         }
 
         return $this;
