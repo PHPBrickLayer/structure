@@ -207,6 +207,7 @@ trait Image {
 
         $file = $_FILES[$post_name];
         $add_mod_time ??= true;
+        $copy_tmp_file ??= false;
         $quality = $quality ?? 80;
 
         $tmp_file = $file['tmp_name'];
