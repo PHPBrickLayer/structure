@@ -575,9 +575,9 @@ const $cookie = (name = "*", value = null, expire = null, path = "/", domain = "
             $data(test, "osai-tested", "del");
         }));
     };
-    let aErrMsg = (formField, customMsg = errorMessage, notifierId) => {
-        if (!$id("osai-form-error-notify-" + notifierId)) osNote(customMsg, "danger", {
-            id: "osai-form-error-notify-" + notifierId
+    let aErrMsg = (formField, customMsg = errorMessage) => {
+        if (!$id("osai-form-error-notify")) osNote(customMsg, "danger", {
+            id: "osai-form-error-notify"
         });
         setTimeout((() => {
             formField.$class("add", "osai-form-error");
@@ -587,10 +587,10 @@ const $cookie = (name = "*", value = null, expire = null, path = "/", domain = "
         xTest();
         return false;
     };
-    let hasError = false;
+    let passedCheck = true;
     for (let i = 0; i < elem.length; i++) {
         let field = elem[i], test = field.name && field.required && field.disabled === false;
-        if (test && (field.value.trim() === "" || field.value === undefined || field.value === null)) hasError = aErrMsg(field, null, "regular-field"); else if (test && field.type === "email" && !$check(field.value, "mail")) hasError = aErrMsg(field, "Invalid email format, should be <div style='font-weight: bold; text-align: center'>\"[A-Za-Z_.-]@[A-Za-Z.-].[A-Za-Z_.-].[A-Za-Z]\"</div>", "email-field"); else if (test && field.type === "file" && $data(field, "max-size")) {
+        if (test && (field.value.trim() === "" || field.value === undefined || field.value === null)) passedCheck = aErrMsg(field, errorMessage); else if (test && field.type === "email" && !$check(field.value, "mail")) passedCheck = aErrMsg(field, "Invalid email format, should be <div style='font-weight: bold; text-align: center'>\"[A-Za-Z_.-]@[A-Za-Z.-].[A-Za-Z_.-].[A-Za-Z]\"</div>"); else if (test && field.type === "file" && $data(field, "max-size")) {
             let maxSize = parseFloat($data(field, "max-size"));
             $loop(field.files, (file => {
                 if (file.size < maxSize) return "continue";
@@ -600,7 +600,7 @@ const $cookie = (name = "*", value = null, expire = null, path = "/", domain = "
                 });
                 maxSize = maxSizeRaw > 1 ? maxSize + "mb" : maxSize + "bytes";
                 name = field.name.replaceAll("_", " ").replaceAll("-", " ");
-                hasError = aErrMsg(field, `File cannot exceed max size limit of ${maxSize}, please check ${name} and update it`, "file-field");
+                passedCheck = aErrMsg(field, `File cannot exceed max size limit of ${maxSize}, please check ${name} and update it`);
             }));
         } else if (test && (field.type === "radio" || field.type === "checkbox") && !$data(field, "osai-tested")) {
             let marked = 0;
@@ -609,11 +609,11 @@ const $cookie = (name = "*", value = null, expire = null, path = "/", domain = "
                 if (marked === 1) return;
                 if (radio.checked) marked = 1;
             }));
-            if (marked === 0) hasError = aErrMsg(field, "Please select the required number of options from the required checklist", "checkbox-field");
+            if (marked === 0) passedCheck = aErrMsg(field, "Please select the required number of options from the required checklist");
         }
     }
     xTest();
-    return !hasError;
+    return passedCheck;
 };
 
 /**!
