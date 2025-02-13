@@ -11,12 +11,13 @@ class LayObject
     use IsSingleton;
 
     /**
-     * @param bool $strict [default = true] throws error if nothing is found in request POST request
+     * Gets the HTTP request form data
+     * @param bool $throw_errors
      * @param bool $return_array
-     * @return mixed Returns what json_decode returns
+     * @return array|object
      * @throws \Exception
      */
-    public function get_json(bool $throw_errors = true, bool $return_array = false): mixed
+    public function get_json(bool $throw_errors = true, bool $return_array = false): array|object
     {
         if($_SERVER['REQUEST_METHOD'] != "POST") {
             parse_str(file_get_contents("php://input"), $data);
