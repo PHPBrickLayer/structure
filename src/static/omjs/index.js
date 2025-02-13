@@ -3,7 +3,7 @@
  * @author Osahenrumwen Aigbogun
  * @version 2.0.0
  * @since 23/11/2019
- * @modified 25/03/2024
+ * @modified 13/02/2025
  * @license
  * Copyright (c) 2019 Osai LLC | osaitech.dev/about.
  *
@@ -343,22 +343,22 @@ const $get = (name, query = true) => {
     let urlComplete = origin + path;
     path = path.replace("/" + urlFileName, "");
     switch (name) {
-      case "origin":
-        return origin;
+        case "origin":
+            return origin;
 
-      case "path":
-      case "directory":
-        return path;
+        case "path":
+        case "directory":
+            return path;
 
-      case "file":
-      case "script":
-        return urlFileName;
+        case "file":
+        case "script":
+            return urlFileName;
 
-      case "hash":
-        return hash;
+        case "hash":
+            return hash;
 
-      default:
-        return urlComplete;
+        default:
+            return urlComplete;
     }
 };
 
@@ -393,27 +393,27 @@ const $media = ({srcElement: srcElement, previewElement: previewElement, then: t
     let previewMedia = srcElement => {
         let srcProcessed = [];
         switch (srcElement.type) {
-          default:
-            previewElement.src = srcElement.value !== "" ? srcElement.value : currentMediaSrc;
-            break;
+            default:
+                previewElement.src = srcElement.value !== "" ? srcElement.value : currentMediaSrc;
+                break;
 
-          case "file":
-            if (useReader) {
-                const reader = new FileReader;
-                $on(reader, "load", (() => {
-                    if (srcElement.value === "") return previewElement.src = currentMediaSrc;
-                    previewElement.src = reader.result;
-                    then && then(reader.result);
-                }), "on");
-                if (srcElement.files[0]) return reader.readAsDataURL(srcElement.files[0]);
-                previewElement.src = currentMediaSrc;
-            }
-            if (srcElement.multiple) return osNote("Media preview doesn't support preview for multiple files");
-            if (srcElement.value === "") return previewElement.src = currentMediaSrc;
-            srcProcessed = URL.createObjectURL(srcElement.files[0]);
-            previewElement.src = srcProcessed;
-            then && then(srcProcessed);
-            break;
+            case "file":
+                if (useReader) {
+                    const reader = new FileReader;
+                    $on(reader, "load", (() => {
+                        if (srcElement.value === "") return previewElement.src = currentMediaSrc;
+                        previewElement.src = reader.result;
+                        then && then(reader.result);
+                    }), "on");
+                    if (srcElement.files[0]) return reader.readAsDataURL(srcElement.files[0]);
+                    previewElement.src = currentMediaSrc;
+                }
+                if (srcElement.multiple) return osNote("Media preview doesn't support preview for multiple files");
+                if (srcElement.value === "") return previewElement.src = currentMediaSrc;
+                srcProcessed = URL.createObjectURL(srcElement.files[0]);
+                previewElement.src = srcProcessed;
+                then && then(srcProcessed);
+                break;
         }
     };
     if (!on) return previewMedia(srcElement);
@@ -521,17 +521,17 @@ const $overflow = element => element.scrollHeight > element.clientHeight || elem
 const $check = (value, type) => {
     if ($type(value) !== "String") return false;
     switch (type) {
-      case "name":
-        return !!new RegExp("^[a-z ,.'-]+/i$", value);
+        case "name":
+            return !!new RegExp("^[a-z ,.'-]+/i$", value);
 
-      case "username":
-        return !!new RegExp("^w+$", value);
+        case "username":
+            return !!new RegExp("^w+$", value);
 
-      case "mail":
-        return /^([a-zA-Z0-9_.\-+])+@(([a-zA-Z0-9\-])+\.)+([a-zA-Z0-9]{2,4})+$/.test(value);
+        case "mail":
+            return /^([a-zA-Z0-9_.\-+])+@(([a-zA-Z0-9\-])+\.)+([a-zA-Z0-9]{2,4})+$/.test(value);
 
-      default:
-        return true;
+        default:
+            return true;
     }
 };
 
@@ -563,66 +563,57 @@ const $cookie = (name = "*", value = null, expire = null, path = "/", domain = "
  * This Function validates form, it doesn't get the form data (serialize), that's done by $getForm
  * @param element {HTMLElement|HTMLFormElement} Element to trigger form check or the form element itself
  * @param option {Object} Element to trigger form check or the form element itself
- * {string|function} option.errorDisplay manner in which the error message should be displayed [default=popUp]
- *      @value {errorDisplay} === "popUp"[default] || "create"[create error message after field] || function(){}
  * {string} option.errorMessage error text to return to user (not necessary if using function for {errorDisplay})
  * @return {boolean} [false] if field(s) is|are empty || [true] if field(s) is|are not empty
  */ const $form = (element, option = {}) => {
-    let errorDisplay = option.display ?? "popUp";
     let errorMessage = option.message ?? "Please fill all required fields!";
     if (!(element.nodeName === "FORM")) element = element.closest("FORM");
+    if (!$id("osai-form-error")) $sel("head").$html("beforeend", `<style id="osai-form-error">.osai-form-error{background: #f40204 none padding-box !important;}.osai-form-error-element{font-size: 14px; background-color: #e25656; color: #fff; padding: 5px; margin: 5px auto; border-radius: 4px}</style>`);
     let elem = element.elements;
-    let xErrMsg = () => {
-        let e = $id("osai-err-msg");
-        return $in(e) && e.remove();
-    };
     let xTest = () => {
         $sela("input[data-osai-tested='true']").forEach((test => {
             $data(test, "osai-tested", "del");
         }));
     };
-    let aErrMsg = (formField, customMsg = errorMessage) => {
-        if (errorDisplay === "popUp") {
-            if ($data(formField, "osai-error") === null || $data(formField, "osai-error") === "") $data(formField, "osai-error", $style(formField, "css").background);
-            osNote(customMsg, "danger");
-            setTimeout((() => {
-                formField.style.background = "#f40204 none padding-box";
-                formField.focus();
-            }), 100);
-            $on(formField, "input,change", (() => formField.style.background = $data(formField, "osai-error")), "addEvent");
-        } else if (errorDisplay === "create") {
-            let errBx = $id("osai-err-msg");
-            $in(errBx) && errBx.remove();
-            $html(formField, "afterend", `<div id="osai-err-msg">${customMsg}</div>`);
-            setTimeout((() => {
-                $style($id("osai-err-msg"), "font-size: 14px; background-color: #e25656; color: #fff; padding: 5px; margin: 5px auto; border-radius: 4px"), 
-                formField.focus();
-            }), 700);
-            $on(formField, "input", xErrMsg, "addEvent");
-        } else {
-            try {
-                errorDisplay();
-            } catch (e) {
-                $omjsError("$form", e, true, `%c "display" param can only take the following;\n"popup" for a popup notification\n"create" for a message directly under the required field\nOR a custom "function" from dev`, "background: #fff3cd; color: #1d2124");
-            }
-        }
+    let aErrMsg = (formField, customMsg = errorMessage, notifierId) => {
+        if (!$id("osai-form-error-notify-" + notifierId)) osNote(customMsg, "danger", {
+            id: "osai-form-error-notify-" + notifierId
+        });
+        setTimeout((() => {
+            formField.$class("add", "osai-form-error");
+            formField.focus();
+        }), 100);
+        $on(formField, "input,change", (() => formField.$class("del", "osai-form-error")), "addEvent");
         xTest();
         return false;
     };
+    let hasError = false;
     for (let i = 0; i < elem.length; i++) {
         let field = elem[i], test = field.name && field.required && field.disabled === false;
-        if (test && (field.value.trim() === "" || field.value === undefined || field.value === null)) return aErrMsg(field); else if (test && field.type === "email" && !$check(field.value, "mail")) return aErrMsg(field, "Invalid email format, should be <div style='font-weight: bold; text-align: center'>\"[A-Za-Z_.-]@[A-Za-Z.-].[A-Za-Z_.-].[A-Za-Z]\"</div>"); else if (test && (field.type === "radio" || field.type === "checkbox") && !$data(field, "osai-tested")) {
+        if (test && (field.value.trim() === "" || field.value === undefined || field.value === null)) hasError = aErrMsg(field, null, "regular-field"); else if (test && field.type === "email" && !$check(field.value, "mail")) hasError = aErrMsg(field, "Invalid email format, should be <div style='font-weight: bold; text-align: center'>\"[A-Za-Z_.-]@[A-Za-Z.-].[A-Za-Z_.-].[A-Za-Z]\"</div>", "email-field"); else if (test && field.type === "file" && $data(field, "max-size")) {
+            let maxSize = parseFloat($data(field, "max-size"));
+            $loop(field.files, (file => {
+                if (file.size < maxSize) return "continue";
+                const maxSizeRaw = maxSize / 1e6;
+                maxSize = (maxSizeRaw + "").toLocaleString(undefined, {
+                    minimumFractionDigits: 2
+                });
+                maxSize = maxSizeRaw > 1 ? maxSize + "mb" : maxSize + "bytes";
+                name = field.name.replaceAll("_", " ").replaceAll("-", " ");
+                hasError = aErrMsg(field, `File cannot exceed max size limit of ${maxSize}, please check ${name} and update it`, "file-field");
+            }));
+        } else if (test && (field.type === "radio" || field.type === "checkbox") && !$data(field, "osai-tested")) {
             let marked = 0;
             $name(field.name).forEach((radio => {
                 $data(radio, "osai-tested", "true");
                 if (marked === 1) return;
                 if (radio.checked) marked = 1;
             }));
-            if (marked === 0) return aErrMsg(field, "Please select the required number of options from the required checklist");
+            if (marked === 0) hasError = aErrMsg(field, "Please select the required number of options from the required checklist", "checkbox-field");
         }
     }
     xTest();
-    return true;
+    return !hasError;
 };
 
 /**!
@@ -878,88 +869,88 @@ const $preloader = (act = "show") => {
             if (xhr.readyState === 4) {
                 type = returnType ?? "json";
                 switch (status) {
-                  case 0:
-                    if (timer !== xhr.timeout / 1e3) errRoutine(`Failed, ensure you have steady connection and try again, server request might be too heavy for your current network`, xhr);
-                    break;
+                    case 0:
+                        if (timer !== xhr.timeout / 1e3) errRoutine(`Failed, ensure you have steady connection and try again, server request might be too heavy for your current network`, xhr);
+                        break;
 
-                  default:
-                    const isError = !(status > 199 && status < 300);
-                    response = method === "HEAD" ? xhr : xhr.responseText ?? xhr.response;
-                    if (method !== "HEAD") {
-                        if (type !== "json" && (response.trim().substring(0, 1) === "{" || response.trim().substring(0, 1) === "[")) type = "json";
-                        if (type === "xml") response = xhr.responseXML;
-                        if (type === "json") {
-                            try {
-                                response = JSON.parse(response);
-                            } catch (e) {
-                                if (!isError) {
-                                    xhr["e"] = e;
-                                    errRoutine("Server-side error, please contact support if problem persists", xhr);
-                                } else response = "The server sent an error that could not be parsed";
+                    default:
+                        const isError = !(status > 199 && status < 300);
+                        response = method === "HEAD" ? xhr : xhr.responseText ?? xhr.response;
+                        if (method !== "HEAD") {
+                            if (type !== "json" && (response.trim().substring(0, 1) === "{" || response.trim().substring(0, 1) === "[")) type = "json";
+                            if (type === "xml") response = xhr.responseXML;
+                            if (type === "json") {
+                                try {
+                                    response = JSON.parse(response);
+                                } catch (e) {
+                                    if (!isError) {
+                                        xhr["e"] = e;
+                                        errRoutine("Server-side error, please contact support if problem persists", xhr);
+                                    } else response = "The server sent an error that could not be parsed";
+                                }
                             }
                         }
-                    }
-                    if (isError) return errRoutine(`Request Failed! Code: ${status}; Message: ${xhr.statusText}`, xhr, response);
-                    if (loaded !== "loaded") loaded(response, xhr, event);
-                    resolve(response, xhr, event);
-                    break;
+                        if (isError) return errRoutine(`Request Failed! Code: ${status}; Message: ${xhr.statusText}`, xhr, response);
+                        if (loaded !== "loaded") loaded(response, xhr, event);
+                        resolve(response, xhr, event);
+                        break;
                 }
             }
         }));
         if (data) {
             switch ($type(data)) {
-              case "String":
-              case "Object":
-              case "FormData":
-                break;
+                case "String":
+                case "Object":
+                case "FormData":
+                    break;
 
-              case "File":
-                type = "file";
-                let x = data;
-                data = new FormData;
-                data.append("file", x);
-                break;
-
-              default:
-                data = $getForm(data, true);
-                if (data.hasFile) {
-                    data = data.file;
+                case "File":
                     type = "file";
-                } else data = type === "json" ? data.object : data.string;
-                break;
+                    let x = data;
+                    data = new FormData;
+                    data.append("file", x);
+                    break;
+
+                default:
+                    data = $getForm(data, true);
+                    if (data.hasFile) {
+                        data = data.file;
+                        type = "file";
+                    } else data = type === "json" ? data.object : data.string;
+                    break;
             }
         }
         if (option.xhrSetup) option.xhrSetup(xhr);
         let requestHeader = "application/x-www-form-urlencoded";
         switch (type) {
-          default:
-            break;
+            default:
+                break;
 
-          case "file":
-            requestHeader = null;
-            break;
+            case "file":
+                requestHeader = null;
+                break;
 
-          case "json":
-            requestHeader = method === "get" ? requestHeader : "application/json";
-            data = JSON.stringify(data);
-            break;
+            case "json":
+                requestHeader = method === "get" ? requestHeader : "application/json";
+                data = JSON.stringify(data);
+                break;
 
-          case "text":
-            let x = data;
-            if ($type(data) === "Object") {
-                x = "";
-                $loop(data, ((value, name) => x += name + "=" + value + "&"));
-            }
-            data = x?.replace(/&+$/, "");
-            break;
+            case "text":
+                let x = data;
+                if ($type(data) === "Object") {
+                    x = "";
+                    $loop(data, ((value, name) => x += name + "=" + value + "&"));
+                }
+                data = x?.replace(/&+$/, "");
+                break;
 
-          case "xml":
-            requestHeader = method !== "GET" ? "text/xml" : requestHeader;
-            break;
+            case "xml":
+                requestHeader = method !== "GET" ? "text/xml" : requestHeader;
+                break;
 
-          case "custom":
-            requestHeader = method !== "GET" ? content : requestHeader;
-            break;
+            case "custom":
+                requestHeader = method !== "GET" ? content : requestHeader;
+                break;
         }
         requestHeader && xhr.setRequestHeader("Content-Type", requestHeader);
         $loop(headers, ((value, key) => xhr.setRequestHeader(key, value)));
@@ -1034,34 +1025,34 @@ const $freeze = (element, operation, attr = true) => {
         };
         const BOX_SIZE = size => {
             switch (size) {
-              case "xs":
-                BOX_INNER_WRAPPER.style.minWidth = "30vw";
-                break;
+                case "xs":
+                    BOX_INNER_WRAPPER.style.minWidth = "30vw";
+                    break;
 
-              case "sm":
-                BOX_INNER_WRAPPER.style.minWidth = "45vw";
-                break;
+                case "sm":
+                    BOX_INNER_WRAPPER.style.minWidth = "45vw";
+                    break;
 
-              case "md":
-                BOX_INNER_WRAPPER.style.minWidth = "60vw";
-                break;
+                case "md":
+                    BOX_INNER_WRAPPER.style.minWidth = "60vw";
+                    break;
 
-              case "lg":
-                BOX_INNER_WRAPPER.style.minWidth = "75vw";
-                break;
+                case "lg":
+                    BOX_INNER_WRAPPER.style.minWidth = "75vw";
+                    break;
 
-              case "xl":
-                BOX_INNER_WRAPPER.style.minWidth = "90vw";
-                break;
+                case "xl":
+                    BOX_INNER_WRAPPER.style.minWidth = "90vw";
+                    break;
 
-              case "xxl":
-                BOX_INNER_WRAPPER.style.minWidth = "99vw";
-                break;
+                case "xxl":
+                    BOX_INNER_WRAPPER.style.minWidth = "99vw";
+                    break;
 
-              default:
-                let configSelector = config => $sel("input[data-config='" + config + "'].osai-dialogbox__config");
-                if (configSelector("box-size") && $data(configSelector("box-size"), "value") !== "undefined") BOX_SIZE($data(configSelector("box-size"), "value")); else BOX_INNER_WRAPPER.style.minWidth = "60vw";
-                break;
+                default:
+                    let configSelector = config => $sel("input[data-config='" + config + "'].osai-dialogbox__config");
+                    if (configSelector("box-size") && $data(configSelector("box-size"), "value") !== "undefined") BOX_SIZE($data(configSelector("box-size"), "value")); else BOX_INNER_WRAPPER.style.minWidth = "60vw";
+                    break;
             }
         };
         const BOX_RENDER = (closeOnBlur, size, align, onClose, then) => {
@@ -1103,67 +1094,67 @@ const $freeze = (element, operation, attr = true) => {
         const BOX_FLUSH = (where = "*") => {
             $style(BOX_HEADER, "del");
             switch (where) {
-              case "head":
-                $html(BOX_HEAD, "in", "");
-                $style(BOX_HEAD, "del");
-                break;
+                case "head":
+                    $html(BOX_HEAD, "in", "");
+                    $style(BOX_HEAD, "del");
+                    break;
 
-              case "body":
-                $html(BOX_BODY, "in", "");
-                $style(BOX_BODY, "del");
-                break;
+                case "body":
+                    $html(BOX_BODY, "in", "");
+                    $style(BOX_BODY, "del");
+                    break;
 
-              case "foot":
-                $html(BOX_FOOT, "in", "");
-                $style(BOX_FOOT, "del");
-                break;
+                case "foot":
+                    $html(BOX_FOOT, "in", "");
+                    $style(BOX_FOOT, "del");
+                    break;
 
-              default:
-                $html(BOX_HEAD, "in", "");
-                $html(BOX_BODY, "in", "");
-                $html(BOX_FOOT, "in", "");
-                $style(BOX_WRAPPER, "del");
-                $style(BOX_HEAD, "del");
-                $style(BOX_HEADER, "del");
-                $style(BOX_BODY, "del");
-                $style(BOX_FOOT, "del");
-                break;
+                default:
+                    $html(BOX_HEAD, "in", "");
+                    $html(BOX_BODY, "in", "");
+                    $html(BOX_FOOT, "in", "");
+                    $style(BOX_WRAPPER, "del");
+                    $style(BOX_HEAD, "del");
+                    $style(BOX_HEADER, "del");
+                    $style(BOX_BODY, "del");
+                    $style(BOX_FOOT, "del");
+                    break;
             }
             return this;
         };
         const BOX_INSERT = (where, text = "") => {
             switch (where) {
-              case "head":
-                where = BOX_HEAD;
-                $style(BOX_HEAD, "del");
-                break;
+                case "head":
+                    where = BOX_HEAD;
+                    $style(BOX_HEAD, "del");
+                    break;
 
-              case "body":
-                where = BOX_BODY;
-                break;
+                case "body":
+                    where = BOX_BODY;
+                    break;
 
-              case "foot":
-                where = BOX_FOOT;
-                break;
+                case "foot":
+                    where = BOX_FOOT;
+                    break;
 
-              case "head+":
-                where = BOX_HEAD;
-                $style(BOX_HEAD, "del");
-                text = $html(BOX_HEAD) + text;
-                break;
+                case "head+":
+                    where = BOX_HEAD;
+                    $style(BOX_HEAD, "del");
+                    text = $html(BOX_HEAD) + text;
+                    break;
 
-              case "body+":
-                where = BOX_BODY;
-                text = $html(BOX_BODY) + text;
-                break;
+                case "body+":
+                    where = BOX_BODY;
+                    text = $html(BOX_BODY) + text;
+                    break;
 
-              case "foot+":
-                where = BOX_FOOT;
-                text = $html(BOX_FOOT) + text;
-                break;
+                case "foot+":
+                    where = BOX_FOOT;
+                    text = $html(BOX_FOOT) + text;
+                    break;
 
-              default:
-                return;
+                default:
+                    return;
             }
             $html(where, "in", text);
         };
@@ -1317,25 +1308,25 @@ const $freeze = (element, operation, attr = true) => {
             if (position === "center") postStyle = "osai-notifier__display-center";
             if ($sel(sideCardSelector)) previousEntryHeight = getNextEntryTop();
             switch (theme) {
-              case "success":
-              case "good":
-                styleClass = "success";
-                break;
+                case "success":
+                case "good":
+                    styleClass = "success";
+                    break;
 
-              case "fail":
-              case "danger":
-              case "error":
-                styleClass = "fail";
-                break;
+                case "fail":
+                case "danger":
+                case "error":
+                    styleClass = "fail";
+                    break;
 
-              case "info":
-                styleClass = "info";
-                break;
+                case "info":
+                    styleClass = "info";
+                    break;
 
-              case "warn":
-              case "warning":
-                styleClass = "warn";
-                break;
+                case "warn":
+                case "warning":
+                    styleClass = "warn";
+                    break;
             }
             $html($sel(presenceSelector), "beforeend", `<div class="osai-notifier osai-notifier-entry ${postStyle} ${styleClass}" ${uniqueId}><div class="osai-notifier__body">${dialog}</div><div class="osai-notifier__close"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"><rect opacity="0.5" x="6" y="17.3137" width="16" height="2" rx="1" transform="rotate(-45 6 17.3137)" fill="currentColor"></rect><rect x="7.41422" y="6" width="16" height="2" rx="1" transform="rotate(45 7.41422 6)" fill="currentColor"></rect></svg></div></div>`);
             let notifyEntry = $sela(".osai-notifier-entry");

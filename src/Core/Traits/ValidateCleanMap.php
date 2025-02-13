@@ -89,7 +89,7 @@ trait ValidateCleanMap {
         int $file_limit,
         array $extension_list,
         array $dimension,
-        FileUploadStorage $storage = FileUploadStorage::BUCKET,
+        ?FileUploadStorage $storage = FileUploadStorage::BUCKET,
         ?string $bucket_url = null
     ) : array
     {
