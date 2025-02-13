@@ -568,7 +568,7 @@ const $cookie = (name = "*", value = null, expire = null, path = "/", domain = "
  */ const $form = (element, option = {}) => {
     let errorMessage = option.message ?? "Please fill all required fields!";
     if (!(element.nodeName === "FORM")) element = element.closest("FORM");
-    if (!$id("osai-form-error")) $sel("head").$html("beforeend", `<style id="osai-form-error">.osai-form-error{background: #f40204 none padding-box !important;}.osai-form-error-element{font-size: 14px; background-color: #e25656; color: #fff; padding: 5px; margin: 5px auto; border-radius: 4px}</style>`);
+    if (!$id("osai-form-error")) $sel("head").$html("beforeend", `<style id="osai-form-error">.osai-form-error{background: #e66507 none padding-box !important; color: #ffff !important;}.osai-form-error::placeholder{color: #ffff !important;}</style>`);
     let elem = element.elements;
     let xTest = () => {
         $sela("input[data-osai-tested='true']").forEach((test => {
