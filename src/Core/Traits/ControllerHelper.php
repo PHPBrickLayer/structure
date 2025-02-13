@@ -17,9 +17,16 @@ trait ControllerHelper {
         return $value;
     }
 
-    public static function request(bool $throw_error = true): bool|null|object
+    /**
+     * Get HTTP request form data
+     * @param bool $throw_error
+     * @param bool $as_array
+     * @return array|object
+     * @throws \Exception
+     */
+    public static function request(bool $throw_error = true, bool $as_array = false): array|object
     {
-        return LayObject::new()->get_json($throw_error);
+        return LayObject::new()->get_json($throw_error, $as_array);
     }
 
     /**

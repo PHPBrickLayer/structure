@@ -19,11 +19,11 @@ trait ValidateCleanMap {
     private static array|object|null $_filled_request;
     private static array $_entries = [];
     private static array $_errors = [];
+    private static ?bool $_break_validation = false;
 
     private static ?bool $_required;
     private static ?bool $_db_col_required;
     private static array|bool|null $_clean_by_default;
-
     private static ?string $_sub_dir;
     private static ?array $_allowed_types;
     private static ?int $_max_size;
@@ -33,9 +33,10 @@ trait ValidateCleanMap {
     private static ?string $_bucket_url;
     private static ?closure $_upload_handler;
 
-    private function __add_error(string $field, string $message): void
+    private function __add_error(string $field, string $message): bool
     {
         self::$_errors[$field] = $message;
+        return false;
     }
 
     private function __get_field(string $key) : mixed
@@ -133,6 +134,84 @@ trait ValidateCleanMap {
         return $file;
     }
 
+    private function __validate(string $field, mixed $value, bool $is_required, array $options) : array
+    {
+        $field_name = str_replace(["_", "-"], " ", $options['field_name'] ?? $field);
+
+        $add_to_entry = true;
+        $apply_clean = true;
+
+        $return = function() use (&$apply_clean, &$add_to_entry) {
+            return ["apply_clean" => $apply_clean, "add_to_entry" => $add_to_entry];
+        };
+
+        if(isset($options['is_file'])) {
+            $file = self::__file_upload_handler(
+                post_name: $field,
+                new_name: $options['new_file_name'],
+                upload_sub_dir: $options['sub_dir'] ?? self::$_sub_dir ?? null,
+                file_limit: $options['max_size'] ?? self::$_max_size ?? null,
+                extension_list: $options['allowed_types'] ?? self::$_allowed_types ?? null,
+                dimension: $options['dimension'] ?? self::$_dimension ?? [800, 800],
+                storage: $options['upload_storage'] ?? self::$_upload_storage ?? null,
+                bucket_url: $options['bucket_url'] ?? self::$_bucket_url ?? null,
+            );
+
+            if(!$file['uploaded']) {
+                $add_to_entry = $this->__add_error($field, "$field_name: " . $file['error']);
+                LayException::log($file['dev_error'], log_title: "VCM::Log");
+                return $return();
+            }
+
+            $apply_clean = false;
+            $value = $file['url'];
+        }
+
+        $is_empty = empty($value);
+
+        if(isset($options['is_captcha'])) {
+            $test = $this->__validate_captcha($value, $options['captcha_key']);
+
+            if(!$test) {
+                $add_to_entry = $this->__add_error($field, "The value of captcha is incorrect, please check the field: $field_name and try again");
+                self::$_break_validation = true;
+            }
+
+            $add_to_entry = false;
+            return $return();
+        }
+
+        if($is_required && $is_empty) {
+            $add_to_entry = $this->__add_error($field, "$field_name is required");
+            return $return();
+        }
+
+        if($is_empty) return $return();
+
+        if(isset($options['is_email']) && !filter_var($value, FILTER_VALIDATE_EMAIL))
+            $add_to_entry = $this->__add_error($field, "Received an invalid email format for: $field_name");
+
+        if(isset($options['is_num']) && !is_numeric($value))
+            $add_to_entry = $this->__add_error($field, "$field_name is not a valid number");
+
+        if(isset($options['min_length']) && (strlen($value) < $options['min_length']))
+            $add_to_entry = $this->__add_error($field, "$field_name must be at least {$options['min_length']} characters long");
+
+        if(isset($options['max_length']) && (strlen($value) > $options['max_length']))
+            $add_to_entry = $this->__add_error($field, "$field_name must not exceed {$options['max_length']} characters");
+
+        if(isset($options['match']) && ($options['match']['value'] != $value))
+            $add_to_entry = $this->__add_error($field, "$field_name must match {$options['match']['field']}");
+
+        if(isset($options['must_contain']) && !in_array($value, $options['must_contain']))
+            $add_to_entry = $this->__add_error($field, "$field_name must be one of: " . implode(', ', $options['must_contain']));
+
+        if(isset($options['must_validate']) && !$options['must_validate']['fun']($value))
+            $add_to_entry = $this->__add_error($field, $options['must_validate']['message'] ?? "$field_name has not satisfied the criteria for submission");
+
+        return $return();
+    }
+
     /**
      * Request entry that needs to be validated, clean and mapped
      *
@@ -140,11 +219,13 @@ trait ValidateCleanMap {
      *    field: string,
      *    field_name?: string,
      *    db_col: string,
+     *    fun?: callable<mixed>,
      *    must_contain?: array,
      *    must_validate?: array{
-     *     fun: callable,
+     *     fun: callable<mixed>,
      *     message: string,
      *    },
+     *    json_encode?: bool,
      *    required?: bool,
      *    is_email?: bool,
      *    is_num?: bool,
@@ -175,100 +256,54 @@ trait ValidateCleanMap {
      */
     public function vcm(array $options ) : self
     {
-        if(empty(self::$_filled_request))
+        if(empty(self::$_filled_request) || self::$_break_validation)
             return $this;
 
-        $has_error = false;
         $is_required = $options['required'] ?? self::$_required ?? false;
-        $apply_clean = true;
-
-        $field = $options['field'];
-        $field_name = str_replace(["_", "-"], " ", $options['field_name'] ?? $field);
+        $field = str_replace("[]", "", $options['field']);
         $value = $this->__get_field($field);
-        $is_empty = empty($value);
 
-        if(isset($options['is_file'])) {
-            $file = self::__file_upload_handler(
-                post_name: $field,
-                new_name: $options['new_file_name'],
-                upload_sub_dir: $options['sub_dir'] ?? self::$_sub_dir ?? null,
-                file_limit: $options['max_size'] ?? self::$_max_size ?? null,
-                extension_list: $options['allowed_types'] ?? self::$_allowed_types ?? null,
-                dimension: $options['dimension'] ?? self::$_dimension ?? [800, 800],
-                storage: $options['upload_storage'] ?? self::$_upload_storage ?? null,
-                bucket_url: $options['bucket_url'] ?? self::$_bucket_url ?? null,
-            );
+        if(is_array($value)) {
+            foreach ($value as $val) {
+                $x = $this->__validate(
+                    $field, $val,
+                    $is_required, $options
+                );
 
-            if(!$file['uploaded']) {
-                $this->__add_error($field, "$field_name: " . $file['error']);
-                LayException::log($file['dev_error'], log_title: "VCM::Log");
-                return $this;
+                if(!$x['add_to_entry'])
+                    return $this;
             }
 
-            $is_empty = false;
-            $apply_clean = false;
-            $value = $file['url'];
+            $value = isset($options['json_encode']) && !$options['json_encode'] ? $value : json_encode($value);
+
+            $x['add_to_entry'] = true;
+            $x['apply_clean'] = false;
+
+            if(!isset($options['db_col']))
+                LayException::throw_exception(
+                    "DB column for field [$field] must be specified. This field has the [] symbol, and this symbol is invalid for a db column name",
+                    "VCM::Error"
+                );
+        } else {
+            $x = $this->__validate(
+                $field, $value,
+                $is_required, $options
+            );
         }
 
-        if(isset($options['is_captcha'])) {
-            $test = $this->__validate_captcha($value, $options['captcha_key']);
-
-            if(!$test)
-                $this->__add_error($field, "The value of captcha is incorrect, please check the field: $field_name and try again");
-
-            return $this;
-        }
-
-        if($is_required && $is_empty) {
-            $this->__add_error($field, "$field_name is required");
-            return $this;
-        }
-
-        if($is_empty) return $this;
-
-        if(isset($options['is_email']) && !filter_var($value, FILTER_VALIDATE_EMAIL)) {
-            $this->__add_error($field, "Received an invalid email format for: $field_name");
-            $has_error = true;
-        }
-
-        if(isset($options['is_num']) && !is_numeric($value)) {
-            $this->__add_error($field, "$field_name is not a valid number");
-            $has_error = true;
-        }
-
-        if(isset($options['min_length']) && (strlen($value) < $options['min_length'])) {
-            $this->__add_error($field, "$field_name must be at least {$options['min_length']} characters long");
-            $has_error = true;
-        }
-
-        if(isset($options['max_length']) && (strlen($value) > $options['max_length'])) {
-            $this->__add_error($field, "$field_name must not exceed {$options['max_length']} characters");
-            $has_error = true;
-        }
-
-        if(isset($options['match']) && ($options['match']['value'] != $value)) {
-            $this->__add_error($field, "$field_name must match {$options['match']['field']}");
-            $has_error = true;
-        }
-
-        if(isset($options['must_contain']) && !in_array($value, $options['must_contain'])) {
-            $this->__add_error($field, "$field_name must be one of: " . implode(', ', $options['must_contain']));
-            $has_error = true;
-        }
-
-        if(isset($options['must_validate']) && !$options['must_validate']['fun']($value)) {
-            $this->__add_error($field, $options['must_validate']['message'] ?? "$field_name has not satisfied the criteria for submission");
-            $has_error = true;
-        }
+        $add_to_entry = $x['add_to_entry'];
+        $apply_clean = $x['apply_clean'];
 
         // Break on error
-        if($has_error) return $this;
-
+        if(!$add_to_entry) return $this;
 
         if(isset($options['is_date'])) {
             $value = LayDate::date($value, format_index: 0);
             $apply_clean = false;
         }
+
+        if(isset($options['fun']))
+            $value = $options['fun']($value);
 
         if($apply_clean) {
             // Clean and Map field
@@ -351,6 +386,7 @@ trait ValidateCleanMap {
 
         self::$_entries = [];
         self::$_errors = [];
+        self::$_break_validation = false;
 
         self::$_required = null;
         self::$_db_col_required = null;
