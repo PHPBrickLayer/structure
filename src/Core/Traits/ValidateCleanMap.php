@@ -89,7 +89,7 @@ trait ValidateCleanMap {
         int $file_limit,
         array $extension_list,
         array $dimension,
-        FileUploadStorage $storage = FileUploadStorage::BUCKET,
+        ?FileUploadStorage $storage = FileUploadStorage::BUCKET,
         ?string $bucket_url = null
     ) : array
     {
@@ -175,6 +175,9 @@ trait ValidateCleanMap {
      */
     public function vcm(array $options ) : self
     {
+        if(empty(self::$_filled_request))
+            return $this;
+
         $has_error = false;
         $is_required = $options['required'] ?? self::$_required ?? false;
         $apply_clean = true;
@@ -381,6 +384,9 @@ trait ValidateCleanMap {
     public static function vcm_errors(bool $as_string = false) : array|null|string
     {
         $errors = self::$_errors ?? null;
+
+        if(empty(self::$_entries))
+            $errors = ["Form submission is invalid, please check if you submitted a file above the specified file limit"];
 
         if($as_string && $errors)
             return implode("<br>\n", $errors);
