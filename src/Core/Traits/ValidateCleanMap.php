@@ -219,9 +219,10 @@ trait ValidateCleanMap {
      *    field: string,
      *    field_name?: string,
      *    db_col: string,
+     *    fun?: callable<mixed>,
      *    must_contain?: array,
      *    must_validate?: array{
-     *     fun: callable,
+     *     fun: callable<mixed>,
      *     message: string,
      *    },
      *    json_encode?: bool,
@@ -300,6 +301,9 @@ trait ValidateCleanMap {
             $value = LayDate::date($value, format_index: 0);
             $apply_clean = false;
         }
+
+        if(isset($options['fun']))
+            $value = $options['fun']($value);
 
         if($apply_clean) {
             // Clean and Map field
