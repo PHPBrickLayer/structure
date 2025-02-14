@@ -303,8 +303,8 @@ trait ValidateCleanMap {
         $add_to_entry = $x['add_to_entry'];
         $apply_clean = $x['apply_clean'];
 
-        // Break on error
-        if(!$add_to_entry) return $this;
+        // Break on error or empty value
+        if(!$add_to_entry || empty($value)) return $this;
 
         if(isset($options['is_date'])) {
             $value = LayDate::date($value, format_index: 0);
