@@ -808,8 +808,12 @@ const $preloader = (act = "show") => {
     let xhr = false, response;
     let credential = option.credential ?? false;
     let headers = option.headers ?? {};
-    headers["Lay-Domain"] = $lay.page.domain;
-    headers["Lay-Domain-ID"] = $lay.page.domain_id;
+    try {
+        headers["Lay-Domain"] = $lay.page.domain;
+        headers["Lay-Domain-ID"] = $lay.page.domain_id;
+    } catch (e) {
+        console.warn("Using a Lay attribute outside a Lay Framework");
+    }
     let content = option.content ?? "text/plain";
     let method = option.method ?? "get";
     let type = option.type ?? "text";
