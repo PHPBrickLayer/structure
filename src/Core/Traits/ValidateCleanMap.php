@@ -134,7 +134,7 @@ trait ValidateCleanMap {
         return $file;
     }
 
-    private function __validate(string $field, mixed $value, bool $is_required, array $options) : array
+    private function __validate(string $field, mixed &$value, bool $is_required, array $options) : array
     {
         $field_name = str_replace(["_", "-"], " ", $options['field_name'] ?? $field);
 
