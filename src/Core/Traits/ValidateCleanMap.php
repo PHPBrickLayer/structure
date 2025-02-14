@@ -188,6 +188,14 @@ trait ValidateCleanMap {
 
         if($is_empty) return $return();
 
+        if(isset($options['is_name'])) {
+            $value = ucfirst(trim($value));
+            preg_match("#^[a-zA-Z]+$#", $value, $test, PREG_UNMATCHED_AS_NULL);
+
+            if(empty($test))
+                $add_to_entry = $this->__add_error($field, "Received an invalid text format for $field_name, please remove any special characters or multiple names");
+        }
+
         if(isset($options['is_email']) && !filter_var($value, FILTER_VALIDATE_EMAIL))
             $add_to_entry = $this->__add_error($field, "Received an invalid email format for: $field_name");
 
@@ -228,6 +236,7 @@ trait ValidateCleanMap {
      *    json_encode?: bool,
      *    required?: bool,
      *    is_email?: bool,
+     *    is_name?: bool,
      *    is_num?: bool,
      *    is_date?: bool,
      *    is_file?: bool,
