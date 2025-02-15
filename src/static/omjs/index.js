@@ -844,7 +844,7 @@ const $preloader = (act = "show") => {
         if (error(xhr.status, xhr, response) === "error" && strict) {
             const ogMsg = msg;
             try {
-                if (response) msg = response.message;
+                if (response) msg = response.message ?? msg;
             } catch (e) {
                 msg = ogMsg;
             }
