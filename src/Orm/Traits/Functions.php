@@ -3,11 +3,15 @@ declare(strict_types=1);
 
 namespace BrickLayer\Lay\Orm\Traits;
 
+use BrickLayer\Lay\Orm\Enums\OrmDriver;
 
 trait Functions
 {
     final public function uuid(): string
     {
+        if(self::get_driver() == OrmDriver::SQLITE)
+            return $this->query("SELECT `next` from uuid7")[0];
+
         return $this->query("SELECT UUID()")[0];
     }
 

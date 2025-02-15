@@ -52,7 +52,18 @@ trait TransactionHandler
         if(self::$DB_IN_TRANSACTION && !$name)
             return true;
 
-        return self::new()->get_link()->begin_transaction($flags, $name);
+        $link = self::new()->get_link();
+
+        if(method_exists($link,"begin_transaction"))
+            return $link->begin_transaction($flags, $name);
+
+        if(method_exists($link,"exec")) {
+            try{
+                return $link->exec("BEGIN;");
+            } catch (\Exception $exception){}
+        }
+
+        return false;
     }
 
     /**
@@ -70,8 +81,18 @@ trait TransactionHandler
     {
         self::decrease_counter();
 
-        if(self::$BEGIN_TRANSACTION_COUNTER == 0)
-            return self::new()->get_link()->commit($flags, $name);
+        if(self::$BEGIN_TRANSACTION_COUNTER == 0) {
+            $link = self::new()->get_link();
+
+            if(method_exists($link,"commit"))
+                return $link->commit($flags, $name);
+
+            if(method_exists($link,"exec")) {
+                try{
+                    return $link->exec("COMMIT;");
+                } catch (\Exception $exception){}
+            }
+        }
 
         return false;
     }
@@ -94,7 +115,16 @@ trait TransactionHandler
 
         if(!$link || isset($link->connect_error)) return false;
 
-        return $link->rollback($flags, $name);
+        if(method_exists($link,"rollback"))
+            return $link->rollback($flags, $name);
+
+        if(method_exists($link,"exec")) {
+            try{
+                return $link->exec("ROLLBACK;");
+            } catch (\Exception $exception){}
+        }
+
+        return false;
     }
 
     final public function commit_or_rollback(#[ExpectedValues([
