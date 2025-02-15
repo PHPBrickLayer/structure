@@ -131,6 +131,7 @@ class CoreException
             BDY;
 
             $trace = $exception->getTrace();
+            $title = $title . " [" . $exception::class . "]";
         }
 
         $this->throw_500 = $throw_500;
