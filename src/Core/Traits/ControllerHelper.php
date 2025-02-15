@@ -5,6 +5,7 @@ namespace  BrickLayer\Lay\Core\Traits;
 use BrickLayer\Lay\Core\Api\Enums\ApiStatus;
 use BrickLayer\Lay\Core\CoreException;
 use BrickLayer\Lay\Core\LayException;
+use BrickLayer\Lay\Libs\LayFn;
 use BrickLayer\Lay\Libs\LayObject;
 use BrickLayer\Lay\Libs\String\Enum\EscapeType;
 use BrickLayer\Lay\Libs\String\Escape;
@@ -41,6 +42,7 @@ trait ControllerHelper {
         $code = is_int($code) ? $code : $code->value;
 
         http_response_code($code);
+        LayFn::header("Content-Type: application/json");
 
         $data['code'] = $code;
         return $data;
