@@ -224,6 +224,7 @@ trait ValidateCleanMap {
      * Request entry that needs to be validated, clean and mapped
      *
      * @param array{
+     *    request: array|object,
      *    field: string,
      *    field_name?: string,
      *    db_col: string,
@@ -268,6 +269,9 @@ trait ValidateCleanMap {
         if(empty(self::$_filled_request) || self::$_break_validation)
             return $this;
 
+        if(isset($options['request']) && empty(self::$_filled_request))
+            self::vcm_start($options['request']);
+
         $is_required = $options['required'] ?? self::$_required ?? false;
         $field = str_replace("[]", "", $options['field']);
         $value = $this->__get_field($field);
@@ -303,8 +307,8 @@ trait ValidateCleanMap {
         $add_to_entry = $x['add_to_entry'];
         $apply_clean = $x['apply_clean'];
 
-        // Break on error
-        if(!$add_to_entry) return $this;
+        // Break on error or empty value
+        if(!$add_to_entry || empty($value)) return $this;
 
         if(isset($options['is_date'])) {
             $value = LayDate::date($value, format_index: 0);
@@ -430,7 +434,7 @@ trait ValidateCleanMap {
     {
         $errors = self::$_errors ?? null;
 
-        if(empty(self::$_entries))
+        if(empty(self::$_entries) && !$errors)
             $errors = ["Form submission is invalid, please check if you submitted a file above the specified file limit"];
 
         if($as_string && $errors)

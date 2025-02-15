@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace BrickLayer\Lay\Orm;
 
 use BrickLayer\Lay\Core\CoreException;
+use BrickLayer\Lay\Core\LayException;
 use BrickLayer\Lay\Core\Traits\IsSingleton;
 use BrickLayer\Lay\Libs\LayArray;
 use BrickLayer\Lay\Orm\Enums\OrmDriver;
@@ -18,7 +19,6 @@ use BrickLayer\Lay\Orm\Traits\TransactionHandler;
 use Exception;
 use Generator;
 use JetBrains\PhpStorm\ArrayShape;
-use mysqli;
 use mysqli_result;
 use SQLite3Result;
 
@@ -105,7 +105,7 @@ class SQL
                 "<pre style='color: #dea303 !important'>$query</pre>
                     <div style='margin: 10px 0'>DB: <span style='color: #00A261'>" . self::$db_name . "</span></div>
                     <div style='margin: 10px 0'>Driver: <span style='color: #00A261'>" . self::$active_driver->value . "</span></div>",
-                [ "type" => "view" ]
+                [ "type" => "view" ],
             );
 
         // execute query
@@ -117,23 +117,29 @@ class SQL
         } catch (Exception|\mysqli_sql_exception $e) {
             $has_error = true;
 
-            if ($exec === false && $catch_error === false) {
-                $query_type = is_string($query_type) ? $query_type : $query_type->name;
-                $error = self::$link->error ?: null;
+            $query_type = is_string($query_type) ? $query_type : $query_type->name;
+            $error = isset(self::$link->error) ? self::$link->error : null;
 
-                if(method_exists(self::$link, "lastErrorMsg"))
-                    $error = self::$link->lastErrorMsg() ?? null;
+            if (method_exists(self::$link, "lastErrorMsg"))
+                $error = self::$link->lastErrorMsg() ?? null;
 
-                self::exception(
-                    "QueryExec",
-                    "<b style='color: #008dc5'>" . ($error ?? $e->getMessage()) . "</b> 
-                    <div style='color: #fff0b3; margin-top: 5px'>$query</div> 
-                    <div style='margin: 10px 0'>Statement: $query_type</div>
-                    <div style='margin: 10px 0'>DB: <span style='color: #00A261'>" . self::$db_name . "</span></div>
-                    <div style='margin: 10px 0'>Driver: <span style='color: #00A261'>" . self::$active_driver->value . "</span></div>
-                    ",
-                    exception: $e
-                );
+            $title = "QueryExec";
+            $message = "<b style='color: #008dc5'>" . ($error ?? $e->getMessage()) . "</b> 
+            <div style='color: #fff0b3; margin-top: 5px'>$query</div> 
+            <div style='margin: 10px 0'>Statement: $query_type</div>
+            <div style='margin: 10px 0'>DB: <span style='color: #00A261'>" . self::$db_name . "</span></div>
+            <div style='margin: 10px 0'>Driver: <span style='color: #00A261'>" . self::$active_driver->value . "</span></div>
+            ";
+
+            if ($catch_error === false)
+                self::exception($title, $message, exception: $e);
+            else {
+                LayException::log($message, $e, $title);
+
+                if($can_be_false) return false;
+                if($can_be_null) return null;
+
+                return [];
             }
         }
 
@@ -163,8 +169,21 @@ class SQL
 
         // Get affected rows count
         if(self::$active_driver == OrmDriver::SQLITE && ($query_type == OrmQueryType::SELECT || $query_type == OrmQueryType::SELECT->name)) {
-            $x = explode("FROM", $query,2)[1];
-            $affected_rows = self::$link->querySingle("SELECT COUNT (*) FROM" . rtrim($x, ";") . ";");
+            $x = explode("FROM", $query,2)[1] ?? null;
+            $affected_rows = $x ? self::$link->querySingle("SELECT COUNT (*) FROM" . rtrim($x, ";") . ";") : null;
+
+            // The whole point of this block is if a program calls the uuid function
+            // while using the sqlite driver, since uuid is not a valid function in sqlite
+            // This block will attempt to get the uuid7 view which was created from this gist
+            // https://gist.github.com/fabiolimace/e3c3d354d1afe0b3175f65be2d962523
+            // I created this while watching Cobra Kai S6E14 "Strike Last"
+            if($affected_rows === null) {
+                $exec = $exec->fetchArray(SQLITE3_NUM);
+                $affected_rows = count($exec);
+
+                if($affected_rows > 0)
+                    return $exec;
+            }
         }
 
         $affected_rows = $affected_rows ?? self::$link->affected_rows ?? self::$link->changes();

@@ -514,7 +514,7 @@ class CoreException
         }
 
         $type = $opt['exception_type'];
-        $opt['kill'] = $type == 'error';
+        $opt['kill'] = $type == 'error' || $opt['kill'];
 
         if (!$opt['use_lay_error']) {
             if(!$opt['kill']) return null;

@@ -842,6 +842,12 @@ const $preloader = (act = "show") => {
     let errRoutine = (msg, xhr, response = null) => {
         $omjsError("$curl", xhr.e ?? xhr.statusText);
         if (error(xhr.status, xhr, response) === "error" && strict) {
+            const ogMsg = msg;
+            try {
+                if (response) msg = response.message;
+            } catch (e) {
+                msg = ogMsg;
+            }
             if (alert_error) alert(msg); else osNote(msg, "fail", {
                 duration: -1
             });
