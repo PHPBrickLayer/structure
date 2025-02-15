@@ -266,11 +266,11 @@ trait ValidateCleanMap {
      */
     public function vcm(array $options ) : self
     {
-        if(empty(self::$_filled_request) || self::$_break_validation)
-            return $this;
-
         if(isset($options['request']) && empty(self::$_filled_request))
             self::vcm_start($options['request']);
+
+        if(empty(self::$_filled_request) || self::$_break_validation)
+            return $this;
 
         $is_required = $options['required'] ?? self::$_required ?? false;
         $field = str_replace("[]", "", $options['field']);
@@ -434,7 +434,7 @@ trait ValidateCleanMap {
     {
         $errors = self::$_errors ?? null;
 
-        if(empty(self::$_entries) && !$errors)
+        if(empty(self::$_entries) and !$errors)
             $errors = ["Form submission is invalid, please check if you submitted a file above the specified file limit"];
 
         if($as_string && $errors)
