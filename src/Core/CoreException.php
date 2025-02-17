@@ -371,7 +371,7 @@ class CoreException
         if($use_json) {
             $code = http_response_code();
             $error_json = [
-                "code" => $other['json_packet']['code'] ?? ($code == 200 ? 500 : $code),
+                "code" => $other['json_packet']['code'] ?? ($code == 200 ? ($this->throw_500 ? 500 : $code) : $code),
                 "message" => $other['json_packet']['message'] ?? null,
             ];
 
