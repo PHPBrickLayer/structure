@@ -44,7 +44,7 @@ class CronController
 
     public function job_exists(string $script, string $schedule) : array
     {
-        self::init();
+        self::init(self::$table);
 
         return self::orm(self::$table)
             ->where("deleted=0 AND `script`='$script' AND schedule='$schedule'")

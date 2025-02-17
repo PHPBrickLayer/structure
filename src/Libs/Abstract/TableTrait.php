@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace BrickLayer\Lay\Libs\Abstract;
 
 use BrickLayer\Lay\Core\Api\Enums\ApiStatus;
+use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Libs\Cron\CronController;
 use BrickLayer\Lay\Libs\LayDate;
 use BrickLayer\Lay\Libs\LayObject;
@@ -14,10 +15,14 @@ use BrickLayer\Lay\Orm\SQL;
 trait TableTrait
 {
     protected static ?string $created_by;
+    protected static string $created_table_name;
 
     final protected static function create_table() : void
     {
-        if(@$_SESSION[self::$SESSION_KEY]['table_exists'] || @$_SESSION[self::$SESSION_KEY]['table_created'])
+        $project_identity = LayConfig::get_project_identity();
+        $table_exist = $_SESSION[self::$SESSION_KEY][self::$created_table_name]['table_exists'] ?? null;
+
+        if($table_exist and $table_exist == $project_identity)
             return;
 
         // check if table exists, but catch the error
@@ -26,24 +31,21 @@ trait TableTrait
         $query_info = self::orm()->query_info;
 
         // Check if the above query had an error. If no error, table exists, else table doesn't exist
-        if ($query_info['has_error'] === false) {
-            $_SESSION[self::$SESSION_KEY]["table_created"] = true;
-            return;
-        }
-
-        if($query_info['rows'] > 0) {
-            $_SESSION[self::$SESSION_KEY]["table_exists"] = true;
+        // Or if it found at least one row on the table, then it exists
+        if ($query_info['has_error'] === false || $query_info['rows'] > 0) {
+            $_SESSION[self::$SESSION_KEY][self::$created_table_name]['table_exists'] = $project_identity;
             return;
         }
 
         self::table_creation_query();
 
-        $_SESSION[self::$SESSION_KEY]["table_exists"] = true;
+        $_SESSION[self::$SESSION_KEY][self::$created_table_name]["table_exists"] = $project_identity;
     }
 
-    protected static function init(): void
+    protected static function init(string $table): void
     {
         $_SESSION[self::$SESSION_KEY]  = $_SESSION[self::$SESSION_KEY]  ?? [];
+        self::$created_table_name = $table;
 
         self::create_table();
     }
@@ -68,14 +70,14 @@ trait TableTrait
 
     public function empty_trash() : bool
     {
-        self::init();
+        self::init(self::$table);
 
         return self::orm(self::$table)->delete("deleted=1'");
     }
 
     public function delete_record(string $id, ?string $act_by = null) : bool
     {
-        self::init();
+        self::init(self::$table);
 
         return self::orm(self::$table)->column([
             "deleted" => 1,
@@ -86,7 +88,7 @@ trait TableTrait
 
     public function record_list(int $page = 1, int $limit = 100) : array
     {
-        self::init();
+        self::init(self::$table);
 
         return self::orm(self::$table)->loop()
             ->where("deleted=0")
@@ -97,7 +99,7 @@ trait TableTrait
 
     public function record_by_id(string $id, bool $even_deleted = false) : array
     {
-        self::init();
+        self::init(self::$table);
 
         $even_deleted = $even_deleted ? "" : "AND deleted=0";
 
@@ -107,14 +109,14 @@ trait TableTrait
     }
 
     public function new_record(array $columns) : bool {
-        self::init();
+        self::init(self::$table);
 
         return (bool) self::orm(self::$table)->insert($columns);
     }
 
     public function edit_record(string $job_id, array $columns, ?string $updated_by = null) : bool
     {
-        self::init();
+        self::init(self::$table);
 
         $columns['updated_by'] ??= $updated_by ?? null;
 

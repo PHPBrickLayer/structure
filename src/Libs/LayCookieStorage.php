@@ -5,8 +5,6 @@ namespace BrickLayer\Lay\Libs;
 
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Libs\Abstract\TableTrait;
-use BrickLayer\Lay\Libs\String\Enum\EscapeType;
-use BrickLayer\Lay\Libs\String\Escape;
 
 /**
  * Store session as cookie through accurate environment storage and encrypted storage token.
@@ -19,15 +17,19 @@ final class LayCookieStorage
 {
     use TableTrait;
 
-    public static string $SESSION_KEY = "LAY_COOKIE_STORAGE";
+    public static string $SESSION_KEY;
     protected static string $table = "lay_cookie_storages";
 
     private static string $session_user_cookie;
 
-    protected static function init(): void
+    protected static function init(string $table): void
     {
+        $project_id = LayConfig::get_project_identity();
+
+        self::$SESSION_KEY = "LAY_COOKIE__" . $project_id;
+
         if (!isset(self::$session_user_cookie))
-            self::$session_user_cookie = "lay_cok_" . Escape::clean(LayConfig::site_data()->name->short, EscapeType::P_URL);
+            self::$session_user_cookie = "lay_jar__" . $project_id;
 
         $_SESSION[self::$SESSION_KEY]  = $_SESSION[self::$SESSION_KEY]  ?? [];
 
@@ -99,7 +101,7 @@ final class LayCookieStorage
 
     public static function validate_cookie(): array
     {
-        self::init();
+        self::init(self::$table);
 
         if (!isset($_COOKIE[self::$session_user_cookie]))
             return self::resolve(
@@ -119,7 +121,7 @@ final class LayCookieStorage
 
     private static function decrypt_cookie(): ?string
     {
-        self::init();
+        self::init(self::$table);
 
         if (!isset($_COOKIE[self::$session_user_cookie]))
             return null;
@@ -182,7 +184,7 @@ final class LayCookieStorage
 
     public static function clear_from_db(): void
     {
-        self::init();
+        self::init(self::$table);
 
         if ($id = self::decrypt_cookie()) {
             self::cleanse($id);
@@ -194,7 +196,7 @@ final class LayCookieStorage
 
     public static function save_to_db(string $immutable_key): bool
     {
-        self::init();
+        self::init(self::$table);
 
         self::delete_expired_tokens();
 
