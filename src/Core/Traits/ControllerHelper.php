@@ -35,7 +35,12 @@ trait ControllerHelper {
      *
      * @param mixed $data The data to be sent in the response.
      * @param int|ApiStatus $code The HTTP status code for the response.
-     * @return array
+     * @return array{
+     *     code: int,
+     *     status: string,
+     *     message: string,
+     *     data: array|null
+     * }
      */
     private static function __res_send(array $data, ApiStatus|int $code = ApiStatus::OK) : array
     {
@@ -48,6 +53,19 @@ trait ControllerHelper {
         return $data;
     }
 
+    /**
+     * Send a success HTTP response body
+     *
+     * @param string $message
+     * @param array|null $data
+     * @param ApiStatus|int $code
+     * @return array{
+     *    code: int,
+     *    status: string,
+     *    message: string,
+     *    data: array|null
+     * }
+     */
     public static function res_success(string $message = "Successful", array $data = null, ApiStatus|int $code = ApiStatus::OK) : array
     {
         return self::__res_send([
@@ -57,19 +75,44 @@ trait ControllerHelper {
         ], $code);
     }
 
-    public static function res_warning(string $message = "Something went wrong", ApiStatus|int $code = ApiStatus::NOT_ACCEPTABLE) : ?array
+    /**
+     * Send a warning HTTP response body
+     *
+     * @param string $message
+     * @param array|null $data
+     * @param ApiStatus|int $code
+     * @return array{
+     *    code: int,
+     *    status: string,
+     *    message: string,
+     *    data: array|null
+     * }
+     */
+    public static function res_warning(string $message = "Something went wrong", ?array $data = null, ApiStatus|int $code = ApiStatus::NOT_ACCEPTABLE) : array
     {
         return self::__res_send([
             "status" => "warning",
             "message" => $message,
+            "data" => $data
         ], $code);
     }
 
-    public static function res_error(string $message = "An internal server error occurred", ?array $errors = null, ApiStatus|int $code = ApiStatus::INTERNAL_SERVER_ERROR, ?Throwable $exception = null) : ?array
+    /**
+     * Send an error HTTP response body
+     * @param string $message
+     * @param array|null $errors
+     * @param ApiStatus|int $code
+     * @param Throwable|null $exception
+     * @return array{
+     *    code: int,
+     *    status: string,
+     *    message: string,
+     *    errors: array|null
+     * }
+     */
+    public static function res_error(string $message = "An internal server error occurred", ?array $errors = null, ApiStatus|int $code = ApiStatus::CONFLICT, ?Throwable $exception = null) : array
     {
-        if(CoreException::$DISPLAYED_ERROR) return null;
-
-        if($code == ApiStatus::INTERNAL_SERVER_ERROR && $errors === null) {
+        if(!CoreException::$DISPLAYED_ERROR && $code == ApiStatus::INTERNAL_SERVER_ERROR) {
             $last_error = error_get_last();
 
             if(!empty($last_error) && @$last_error['type'] != E_USER_WARNING){

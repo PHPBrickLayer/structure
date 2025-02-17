@@ -29,27 +29,8 @@ $lay.src = {
     uploads : $id("LAY-UPLOAD").value,
 }
 $lay.fn = {
-    copy: (str, successMsg = "Link copied successfully") => {
-        if(navigator.clipboard) {
-            navigator.clipboard.writeText(str)
-                .catch(() => osNote("Cannot copy, enable clipboard permission from your setting and try again"))
-                .then(r => osNote(successMsg,"success"))
+    copy: (str, successMsg = "Copied to clipboard") => $copyToClipboard(str, successMsg),
 
-            return true
-        }
-
-        const el = document.createElement('textarea');
-        el.value = str;
-        el.setAttribute('readonly', '');
-        el.style.position = 'absolute';
-        el.style.left = '-9999px';
-        document.body.appendChild(el);
-        el.select();
-        document.execCommand('copy');
-        document.body.removeChild(el);
-        osNote(successMsg,"success")
-        return true
-    },
     rowEntrySave: row => `<span style="display: none" class="d-none entry-row-info">${
         JSON.stringify(row)
             .replace(/&quot;/g,'\\"')
@@ -59,6 +40,7 @@ $lay.fn = {
                     .replace(/>/g, '&gt;');
             })
     }</span>`,
+
     /**
      * Activate the action buttons on a table automatically using the `table-actions` class
      * @param actionsObject
