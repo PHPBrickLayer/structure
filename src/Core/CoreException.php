@@ -65,8 +65,8 @@ class CoreException
 
         set_exception_handler(function ($exception) {
             $this->use_exception(
-                "Exception: Uncaught \\Error",
-                $exception->getMessage(),
+                "Uncaught Exception:",
+                "",
                 raw: ["err_code" => $exception->getCode()],
                 exception: $exception,
             );
@@ -369,9 +369,10 @@ class CoreException
         }
 
         if($use_json) {
+            $code = http_response_code();
             $error_json = [
-                "code" => $other['json_packet']['code'] ?? 500,
-                "message" => $other['json_packet']['message'] ?? "Internal Server Error",
+                "code" => $other['json_packet']['code'] ?? ($code == 200 ? 500 : $code),
+                "message" => $other['json_packet']['message'] ?? null,
             ];
 
             if($env == "DEVELOPMENT") {
@@ -400,12 +401,15 @@ class CoreException
                 ApiStatus::INTERNAL_SERVER_ERROR->value,
                 ApiStatus::NOT_FOUND->value,
                 ApiStatus::TOO_MANY_REQUESTS->value,
+                ApiStatus::CONFLICT->value,
             ]) ? 'error' : 'success';
 
-            $code = ApiStatus::tryFrom($error_json['code']);
-            $code = $code->value ?? 500;
+            $status = ApiStatus::extract_status(
+                $error_json['code'],
+                $error_json['message'] ?? "Internal Server Error"
+            );
 
-            header("HTTP/1.1 $code " . $error_json['message']);
+            header("HTTP/1.1 $status");
             header("Content-Type: application/json");
 
             if(!$this->always_log)
