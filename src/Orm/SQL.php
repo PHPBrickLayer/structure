@@ -133,14 +133,8 @@ class SQL
 
             if ($catch_error === false)
                 self::exception($title, $message, exception: $e);
-            else {
+            else
                 LayException::log($message, $e, $title);
-
-                if($can_be_false) return false;
-                if($can_be_null) return null;
-
-                return [];
-            }
         }
 
         // init query info structure
