@@ -160,6 +160,7 @@ final class ViewEngine {
         $site_data = $layConfig::site_data();
         $client = DomainResource::get();
         $page = $meta->{self::key_page};
+        $env = $layConfig::$ENV_IS_PROD ? "PROD" : "DEV";
 
         $lay_api = $layConfig->get_global_api() ?? $client->domain->domain_uri . "api/";
         $img = ViewSrc::gen($page->img ?? $client->shared->img_default->meta ?? $client->shared->img_default->logo);
@@ -219,6 +220,7 @@ final class ViewEngine {
             <meta property="lay:meta:static_env" id="LAY-STATIC-ENV" content="$client->static_env">
             <meta property="lay:meta:route" id="LAY-ROUTE" content="$route">
             <meta property="lay:meta:route_as_array" id="LAY-ROUTE-AS-ARRAY" content='$route_array'>
+            <meta property="lay:meta:env" id="LAY-ENVIRONMENT" content='$env'>
             <!-- // Framework Tags-->
             
             <!-- Facebook Tags -->
