@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 namespace BrickLayer\Lay\Core\Traits;
+use BrickLayer\Lay\Libs\ID\Gen;
 use BrickLayer\Lay\Libs\LayDir;
 use Dotenv\Dotenv;
 
@@ -184,4 +185,54 @@ trait Resources {
 
         Dotenv::createImmutable(self::server_data()->root)->load();
     }
+
+    /**
+     * Returns a generated project ID if it is generated or found, else returns null
+     * @param bool $overwrite
+     * @return string|null
+     */
+    public static function generate_project_identity(bool $overwrite = false) : ?string
+    {
+        $identity_file = self::server_data()->lay . "identity";
+        $static_id = self::server_data()->project_id ?? null;
+
+        $gen_id = function () use ($identity_file) {
+            $new_id = Gen::uuid(32);
+            self::server_data()->project_id = $new_id;
+
+            file_put_contents($identity_file, $new_id);
+            return $new_id;
+        };
+
+        if($overwrite)
+            return $gen_id();
+
+        if($static_id)
+            return $static_id;
+
+        if(!file_exists($identity_file))
+            return $gen_id();
+
+        if(empty(file_get_contents($identity_file)))
+            return $gen_id();
+
+        return null;
+    }
+
+    public static function get_project_identity() : string
+    {
+        $static_id = self::server_data()->project_id ?? null;
+
+        if($static_id)
+            return $static_id;
+
+        if($current_id = self::generate_project_identity())
+            return $current_id;
+
+        $current_id = Gen::uuid(32);
+        file_put_contents(self::server_data()->lay . "identity", $current_id);
+
+        return $current_id;
+    }
+
 }

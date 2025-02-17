@@ -5,6 +5,7 @@ namespace BrickLayer\Lay\BobDBuilder\Cmd;
 use BrickLayer\Lay\BobDBuilder\BobExec;
 use BrickLayer\Lay\BobDBuilder\EnginePlug;
 use BrickLayer\Lay\BobDBuilder\Interface\CmdLayout;
+use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Libs\ID\Gen;
 use BrickLayer\Lay\Libs\LayDir;
 use BrickLayer\Lay\Libs\LayFn;
@@ -28,22 +29,6 @@ class Project implements CmdLayout
         $this->tags = $this->plug->tags;
 
         $this->create();
-    }
-
-    private function generate_identity(bool $overwrite = false) : void
-    {
-        if(!file_exists($this->plug->server->lay . "identity")) {
-            file_put_contents($this->plug->server->lay . "identity", Gen::uuid(32));
-            return;
-        }
-
-        if(empty(file_get_contents($this->plug->server->lay . "identity"))) {
-            file_put_contents($this->plug->server->lay . "identity", Gen::uuid(32));
-            return;
-        }
-
-        if($overwrite)
-            file_put_contents($this->plug->server->lay . "identity", Gen::uuid(32));
     }
 
     public function create(): void
@@ -85,7 +70,7 @@ class Project implements CmdLayout
         );
 
         if($tag == "--refresh-links") {
-            $this->generate_identity();
+            LayConfig::generate_project_identity();
 
             $this->plug->write_info("Refreshing symlinks!");
 
@@ -94,7 +79,7 @@ class Project implements CmdLayout
 
         if($tag == "--force-refresh") {
             $this->plug->write_info("Default domain forcefully refreshed");
-            $this->generate_identity(true);
+            LayConfig::generate_project_identity(true);
 
             new BobExec("make:domain Default '*' --silent --force");
             return;
@@ -102,7 +87,7 @@ class Project implements CmdLayout
 
         if($tag == "--fresh-project") {
             $this->plug->write_info("Fresh project detected!");
-            $this->generate_identity(true);
+            LayConfig::generate_project_identity(true);
 
             // Replace default domain folder on a fresh project
             new BobExec("make:domain Default '*' --silent --force");
