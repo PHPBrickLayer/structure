@@ -22,21 +22,10 @@ class StoreResult
      */
     public static function store(mysqli_result|SQLite3Result $exec, bool $return_loop, OrmReturnType $fetch_as = OrmReturnType::BOTH, string $except = "", Closure $fun = null) : Generator|array
     {
-        $fetch_fn = function (?OrmReturnType $custom_fetch_as = null) use ($exec, $fetch_as) : array {
-            $fetch_as = $custom_fetch_as ?? $fetch_as;
-            $driver = SQL::get_driver();
+        $is_sqlite = SQL::get_driver() == OrmDriver::SQLITE;
 
-            if($driver == OrmDriver::SQLITE) {
-                $fetch = match ($fetch_as) {
-                    default => SQLITE3_BOTH,
-                    OrmReturnType::ASSOC => SQLITE3_ASSOC,
-                    OrmReturnType::NUM => SQLITE3_NUM,
-                };
-
-                return $exec->fetchArray($fetch) ?: [];
-            }
-
-            $fetch = match ($fetch_as) {
+        $mysql_fetch = function (?OrmReturnType $custom_fetch_as = null) use ($exec, $fetch_as) : array {
+            $fetch = match ($custom_fetch_as ?? $fetch_as) {
                 default => MYSQLI_BOTH,
                 OrmReturnType::ASSOC => MYSQLI_ASSOC,
                 OrmReturnType::NUM => MYSQLI_NUM,
@@ -45,8 +34,16 @@ class StoreResult
             return $exec->fetch_all($fetch);
         };
 
+        $sqlite_fetch = function () use ($fetch_as) {
+            return match ($fetch_as) {
+                default => SQLITE3_BOTH,
+                OrmReturnType::ASSOC => SQLITE3_ASSOC,
+                OrmReturnType::NUM => SQLITE3_NUM,
+            };
+        };
+
         if(!$return_loop) {
-            $result = $fetch_fn()[0];
+            $result = $is_sqlite ? ($exec->fetchArray($sqlite_fetch()) ?: []) : $mysql_fetch[0];
 
             if (!empty($except))
                 $result = self::exempt_column($result, $except);
@@ -57,13 +54,28 @@ class StoreResult
             return $result;
         }
 
-        foreach ($fetch_fn() as $k => $result) {
+        $loop_handler = function ($k, &$result) use ($fun, $except, $exec) {
             if (!empty($except))
                 $result = self::exempt_column($result, $except);
 
             if ($fun && $result)
                 $result = $fun($result, $k, $exec);
+        };
 
+        if($is_sqlite) {
+            $k = 0;
+
+            while ($result = $exec->fetchArray($sqlite_fetch())) {
+                $loop_handler($k, $result);
+                $k++;
+                yield $result;
+            }
+
+            return [];
+        }
+
+        foreach ($mysql_fetch() as $k => $result) {
+            $loop_handler($k, $result);
             yield $result;
         }
 

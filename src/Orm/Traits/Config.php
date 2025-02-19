@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace BrickLayer\Lay\Orm\Traits;
 use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Libs\LayDir;
 use BrickLayer\Lay\Orm\Enums\OrmDriver;
 use BrickLayer\Lay\Orm\Enums\OrmQueryType;
 use BrickLayer\Lay\Orm\Enums\OrmReturnType;
@@ -143,28 +144,33 @@ trait Config{
                 self::$active_driver->value . "]. Please change db driver to: " . OrmDriver::SQLITE->value
             );
 
+        $db = LayConfig::server_data()->db;
+        self::$db_name = str_replace("/", DIRECTORY_SEPARATOR, $db_file);
+        $db_file =  $db . self::$db_name;
+
+        if(self::$connected && self::$DB_FILE == $db_file)
+            return self::get_link();
+
+        self::$DB_FILE = $db_file;
+        LayDir::make($db, 0755, true);
+
         try {
-            $db = LayConfig::server_data()->db;
-
-            if(!is_dir($db)) {
-                umask(0);
-                mkdir($db, 0755, true);
-            }
-
-            self::$db_name = str_replace("/", DIRECTORY_SEPARATOR, $db_file);
-
-            $file = $db . self::$db_name;
-            self::$link = new SQLite3($file);
-            self::$link->enableExceptions(true);
-            self::$connected = true;
-
-        } catch (\Exception $e){
+            self::$link = new SQLite3(
+                self::$DB_FILE,
+                SQLITE3_OPEN_READWRITE | SQLITE3_OPEN_CREATE,
+                $_ENV['SQLITE_ENCRYPT_KEY'] ?? ''
+            );
+        } catch (\Throwable $e){
             self::exception(
                 "SQLiteConnectionError",
-                "Error initializing SQLite DB [$file]: " . $e->getMessage(),
+                "Error initializing SQLite DB [" . self::$DB_FILE . "]: ",
                 exception: $e
             );
         }
+
+        self::$link->enableExceptions(true);
+        self::$link->busyTimeout($_ENV['SQLITE_BUSY_TIMEOUT'] ?? 600);
+        self::$connected = true;
 
         return self::$link;
     }
