@@ -872,12 +872,12 @@ const $preloader = (act = "show") => {
         $omjsError("$curl", xhr.e ?? xhr.statusText);
         if (error(xhr.status, xhr, response) === "error" && displayError) {
             const ogMsg = msg;
+            let alertType = "fail";
             try {
-                if (response) msg = response.message ?? msg;
+                msg = response.message ?? msg;
             } catch (e) {
                 msg = ogMsg;
             }
-            let alertType = "fail";
             try {
                 alertType = response.status.toLowerCase();
             } catch (e) {
@@ -936,25 +936,12 @@ const $preloader = (act = "show") => {
                                         xhr["e"] = e;
                                         if (isServerError) msg = "Server error, please contact support if problem persists";
                                         if (isCLientError) msg = "The server sent a response that could not be parsed";
-                                        try {
-                                            msg = response.message;
-                                        } catch (e) {
-                                            msg = `Request Failed! Code: ${status}; Message: ${xhr.statusText}`;
-                                        }
                                     }
                                     return errRoutine(msg, xhr, response);
                                 }
                             }
                         }
-                        if (!isOk) {
-                            let msg = `Request Failed! Code: ${status}; Message: ${xhr.statusText}`;
-                            try {
-                                msg = response.message;
-                            } catch (e) {
-                                msg = `Request Failed! Code: ${status}; Message: ${xhr.statusText}`;
-                            }
-                            return errRoutine(msg, xhr, response);
-                        }
+                        if (!isOk) return errRoutine(`Request Failed! Code: ${status}; Message: ${xhr.statusText}`, xhr, response);
                         if (loaded !== "loaded") loaded(response, xhr, event);
                         resolve(response, xhr, event);
                         break;
