@@ -123,7 +123,7 @@ trait SelectorOOPCrud
 
         if($is_mysql) {
             $table = "`$table`";
-            $column_and_values .= "SET $column_and_values";
+            $column_and_values = "SET $column_and_values";
         }
         else {
             $table = "\"$table\"";

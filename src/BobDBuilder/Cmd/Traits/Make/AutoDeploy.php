@@ -13,8 +13,8 @@ trait AutoDeploy
         if(!isset($this->tags['make_auto_deploy']))
             return;
 
-        $domain = "GitAutoDeploy";
-        $pattern = "gitad";
+        $domain = $this->tags['make_auto_deploy'][0] ?? "GitAutoDeploy";
+        $pattern = $this->tags['make_auto_deploy'][1] ?? "gitad";
 
         $domain_dir = $this->plug->server->domains . $domain;
         $exists = is_dir($domain_dir);

@@ -43,7 +43,7 @@ class StoreResult
         };
 
         if(!$return_loop) {
-            $result = $is_sqlite ? ($exec->fetchArray($sqlite_fetch()) ?: []) : $mysql_fetch[0];
+            $result = $is_sqlite ? ($exec->fetchArray($sqlite_fetch()) ?: []) : $mysql_fetch()[0];
 
             if (!empty($except))
                 $result = self::exempt_column($result, $except);
