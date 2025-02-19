@@ -4,6 +4,7 @@ namespace BrickLayer\Lay\Orm\Traits;
 
 use BrickLayer\Lay\Libs\String\Enum\EscapeType;
 use BrickLayer\Lay\Libs\String\Escape;
+use BrickLayer\Lay\Orm\Enums\OrmDriver;
 use BrickLayer\Lay\Orm\Enums\OrmQueryType;
 use BrickLayer\Lay\Orm\Enums\OrmReturnType;
 use Exception;
@@ -60,19 +61,27 @@ trait SelectorOOPCrud
         $column_and_values = $column_and_values ?? $d['values'] ?? $d['columns'];
         $table = $d['table'] ?? null;
         $clause = $d['clause'] ?? null;
+        $is_mysql = self::get_driver() == OrmDriver::MYSQL;
 
         if (empty($table))
             $this->oop_exception("You did not initialize the `table`. Use the `->table(String)` method like this: `->value('your_table_name')`");
 
         if (is_array($column_and_values)) {
-            $cols = "";
+            $columns = "";
+            $values = "";
 
             try {
                 foreach ($column_and_values as $k => $c) {
                     $c = Escape::clean($c, EscapeType::TRIM_ESCAPE);
 
                     if($c === null) {
-                        $cols .= "`$k`=NULL,";
+                        if($is_mysql)
+                            $values .= "`$k`=NULL,";
+                        else {
+                            $columns .= "\"$k\",";
+                            $values .= "NULL,";
+                        }
+
                         continue;
                     }
 
@@ -89,27 +98,51 @@ trait SelectorOOPCrud
                     if (!preg_match("/^[a-zA-Z]+\([^)]*\)$/", $c))
                         $c = "'$c'";
 
-                    $cols .= "`$k`=$c,";
+                    if($is_mysql)
+                        $values .= "`$k`=$c,";
+                    else {
+                        $columns .= "\"$k\",";
+                        $values .= "$c,";
+                    }
+
                 }
             } catch (Exception $e) {
                 $this->oop_exception("Error occurred when trying to insert into a DB: " . $e->getMessage(), $e);
             }
-            $column_and_values = rtrim($cols, ",");
+
+            if($is_mysql)
+                $column_and_values = rtrim($values, ",");
+            else {
+                $columns = "(" . rtrim($columns, ",") . ")";
+                $values = "(" . rtrim($values, ",") . ")";
+                $column_and_values = "$columns VALUES $values";
+            }
         }
 
         $d['query_type'] = OrmQueryType::INSERT;
 
+        if($is_mysql) {
+            $table = "`$table`";
+            $column_and_values .= "SET $column_and_values";
+        }
+        else {
+            $table = "\"$table\"";
+        }
+
         $op = $this->capture_result(
-            [$this->query("INSERT INTO `$table` SET $column_and_values $clause", $d) ?? false, $d],
+            [$this->query("INSERT INTO $table $column_and_values $clause", $d) ?? false, $d],
             'bool',
         );
 
-        if($return_object && isset($insert_id))
-            return $this->query("SELECT * FROM `$table` WHERE `id`='$insert_id'", [
+        if($return_object && isset($insert_id)) {
+            $id = $is_mysql ? "`id`" : "\"id\"";
+
+            return $this->query("SELECT * FROM $table WHERE $id='$insert_id'", [
                 'query_type' => OrmQueryType::SELECT,
                 'loop' => false,
                 'can_be_null' => false,
             ]);
+        }
 
         return $op;
     }
@@ -138,8 +171,10 @@ trait SelectorOOPCrud
 
         $d['query_type'] = OrmQueryType::INSERT;
 
+        $table = self::get_driver() == OrmDriver::MYSQL ? "`$table`" : "\"$table\"";
+
         return $this->capture_result(
-            [$this->query("INSERT INTO `$table` ($columns) $values $clause", $d) ?? false, $d],
+            [$this->query("INSERT INTO $table ($columns) $values $clause", $d) ?? false, $d],
             'bool'
         );
     }
@@ -150,6 +185,7 @@ trait SelectorOOPCrud
         $values = $d['values'] ?? $d['columns'] ?? "NOTHING";
         $clause = $d['clause'] ?? null;
         $table = $d['table'] ?? null;
+        $is_mysql = self::get_driver() == OrmDriver::MYSQL;
 
         if ($values === "NOTHING")
             $this->oop_exception("There's nothing to update, please use the `column` or `value` method to rectify pass the columns to be updated");
@@ -159,14 +195,17 @@ trait SelectorOOPCrud
 
         if (is_array($values)) {
             $cols = "";
+
             try {
                 foreach ($values as $k => $c) {
                     $c = Escape::clean($c, EscapeType::TRIM_ESCAPE);
-                    $cols .= $c == null ? "`$k`=NULL," : "`$k`='$c',";
+                    $k = $is_mysql ? "`$k`" : "\"$k\"";
+                    $cols .= $c == null ? "$k=NULL," : "$k='$c',";
                 }
             } catch (Exception $e) {
                 $this->oop_exception("Error occurred when trying to update a DB:" . $e->getMessage(), $e);
             }
+
             $values = rtrim($cols, ",");
         }
 
@@ -185,7 +224,8 @@ trait SelectorOOPCrud
                 $case_list = "(" . rtrim($case_list, ",") . ")";
                 $case_value .= "`{$match['column']}` = CASE `{$match['switch']}` $case END,";
 
-                $clause .= " `{$match['switch']}` IN $case_list AND";
+                $match['switch'] = $is_mysql ? "`{$match['switch']}`" : "\"{$match['switch']}\"";
+                $clause .= " {$match['switch']} IN $case_list AND";
             }
 
             $values = $values . ",";
@@ -194,6 +234,7 @@ trait SelectorOOPCrud
         }
 
         $d['query_type'] = OrmQueryType::UPDATE;
+        $table = $is_mysql ? "`$table`" : "\"$table\"";
 
         return $this->capture_result(
             [$this->query("UPDATE $table SET $values $clause", $d), $d],
@@ -302,12 +343,12 @@ trait SelectorOOPCrud
         return $rtn;
     }
 
-    final public function count_row(?string $column = null, ?string $WHERE = null): int
+    final public function count_row(?string $column = null, ?string $where = null): int
     {
         $d = $this->get_vars();
         $col = $column ?? "*";
 
-        $WHERE = $WHERE ? "WHERE $WHERE" : ($d['clause'] ?? null);
+        $where = $where ? "WHERE $where" : ($d['clause'] ?? null);
         $table = $d['table'] ?? null;
 
         if (empty($table))
@@ -315,22 +356,22 @@ trait SelectorOOPCrud
 
         $d['query_type'] = OrmQueryType::COUNT;
 
-        $WHERE = $this->_join($d) . $WHERE;
+        $where = $this->_join($d) . $where;
 
         return $this->capture_result(
-            [$this->query("SELECT COUNT($col) FROM $table $WHERE", $d), $d],
+            [$this->query("SELECT COUNT($col) FROM $table $where", $d), $d],
             'int'
         );
     }
 
-    final public function delete(?string $WHERE = null): bool
+    final public function delete(?string $where = null): bool
     {
         $d = $this->get_vars();
 
-        if(empty($WHERE) && @empty($d['clause']))
+        if(empty($where) && @empty($d['clause']))
             $this->oop_exception("You cannot delete without a clause. Use the `->clause(String)` or `->where(String)` to indicate a clause. If you wish to delete without a clause, then use the `->query(String)` method to construct your query");
 
-        $d['clause'] = $WHERE ? "WHERE $WHERE" : $d['clause'];
+        $d['clause'] = $where ? "WHERE $where" : $d['clause'];
         $d['query_type'] = OrmQueryType::DELETE;
         $table = $d['table'] ?? null;
 

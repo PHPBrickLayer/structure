@@ -173,7 +173,7 @@ trait ValidateCleanMap {
             $test = $this->__validate_captcha($value, $options['captcha_key']);
 
             if(!$test) {
-                $add_to_entry = $this->__add_error($field, "The value of captcha is incorrect, please check the field: $field_name and try again");
+                $add_to_entry = $this->__add_error($field, $options['required_message'] ?? "The value of captcha is incorrect, please check the field: $field_name and try again");
                 self::$_break_validation = true;
             }
 
@@ -182,7 +182,7 @@ trait ValidateCleanMap {
         }
 
         if($is_required && $is_empty) {
-            $add_to_entry = $this->__add_error($field, "$field_name is required");
+            $add_to_entry = $this->__add_error($field, $options['required_message'] ?? "$field_name is required");
             return $return();
         }
 
@@ -193,7 +193,7 @@ trait ValidateCleanMap {
             preg_match("#^[a-zA-Z]+$#", $value, $test, PREG_UNMATCHED_AS_NULL);
 
             if(empty($test))
-                $add_to_entry = $this->__add_error($field, "Received an invalid text format for $field_name, please remove any special characters or multiple names");
+                $add_to_entry = $this->__add_error($field, $options['required_message'] ?? "Received an invalid text format for $field_name, please remove any special characters or multiple names");
         }
 
         if(isset($options['is_email']) && !filter_var($value, FILTER_VALIDATE_EMAIL))
@@ -227,6 +227,7 @@ trait ValidateCleanMap {
      *    request: array|object,
      *    field: string,
      *    field_name?: string,
+     *    required_message?: string,
      *    db_col: string,
      *    fun?: callable<mixed>,
      *    must_contain?: array,

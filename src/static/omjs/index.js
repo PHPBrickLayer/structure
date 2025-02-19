@@ -800,16 +800,16 @@ const $preloader = (act = "show") => {
  * @version 2.1.0
  * @since 05/01/2021
  * @modified 08/01/2025
- * @param url {string|Object} = url of request being sent or an object containing the url and options of the request
+ * @param [string|Object] url = url of request being sent or an object containing the url and options of the request
  * url should be passed using "action" as the key
- * @param option {Object}
+ * @param [object] option
  * - `option.credential` {boolean} = send request with credentials when working with CORS
  *  - `option.content` {string} = XMLHTTPRequest [default = text/plain] only necessary when user wants to set custom dataType aside json,xml and native formData
  *  - `option.method` {string} = method of request [default = GET]
  *  - `option.data` {any} [use data or form] = data sending [only necessary for post method]. It could be HTMLElement inside the form, like button, etc
  *  - `option.type` {string} = type of data to be sent/returned [default = text]
  *  - `option.alert` {bool} = to use js default alert or OMJ$ default alert notifier [default=false]
- *  - `option.strict` {bool} = [default=false] when true, automatic JSON.parse for resolve that comes as JSON text will be stopped
+ *  - `option.displayError` {bool} = [default=true] Displays error messages like 500 and 404 automatically from the server
  *  - `option.debounce` {Number} = [default=0] This causes a debounce for request
  *  - `option.preload` {function} = function to carryout before response is received
  *  - `option.progress` {function} = function to execute, while upload is in progress [one arg (response)]
@@ -835,7 +835,7 @@ const $preloader = (act = "show") => {
         data = null;
     }
     let xhr = false, response;
-    let credential = option.credential ?? false;
+    let credential = option.credential ?? option.credentials ?? false;
     let headers = option.headers ?? {};
     try {
         headers["Lay-Domain"] = $lay.page.domain;
@@ -848,7 +848,7 @@ const $preloader = (act = "show") => {
     let type = option.type ?? "text";
     let returnType = option.return ?? option.type ?? null;
     let alert_error = option.alert ?? false;
-    let strict = option.strict ?? true;
+    let displayError = option.displayError ?? true;
     let preload = option.preload ?? (() => "preload");
     let progress = option.progress ?? (() => "progress");
     let error = option.error ?? (() => "error");
@@ -870,14 +870,20 @@ const $preloader = (act = "show") => {
     let abort = option.abort ?? (() => osNote("Request aborted!", "warn"));
     let errRoutine = (msg, xhr, response = null) => {
         $omjsError("$curl", xhr.e ?? xhr.statusText);
-        if (error(xhr.status, xhr, response) === "error" && strict) {
+        if (error(xhr.status, xhr, response) === "error" && displayError) {
             const ogMsg = msg;
             try {
                 if (response) msg = response.message ?? msg;
             } catch (e) {
                 msg = ogMsg;
             }
-            if (alert_error) alert(msg); else osNote(msg, "fail", {
+            let alertType = "fail";
+            try {
+                alertType = response.status.toLowerCase();
+            } catch (e) {
+                alertType = "fail";
+            }
+            if (alert_error) alert(msg); else osNote(msg, alertType, {
                 duration: -1,
                 showCopy: true
             });
@@ -901,7 +907,7 @@ const $preloader = (act = "show") => {
     const exec = () => {
         xhr.open(method, url, true);
         $on(xhr.upload, "progress", (event => progress(event)));
-        $on(xhr, "error", (() => errRoutine("An error occurred" + xhr.statusText, xhr)));
+        $on(xhr, "error", (() => errRoutine("An error occurred " + xhr.statusText, xhr)));
         $on(xhr, "abort", abort);
         $on(xhr, "timeout", (e => timeout.then(e, xhr)), "on");
         $on(xhr, "readystatechange", (event => {
@@ -914,7 +920,9 @@ const $preloader = (act = "show") => {
                         break;
 
                     default:
-                        const isError = !(status > 199 && status < 300);
+                        const isOk = status > 199 && status < 300;
+                        const isCLientError = status > 399 && status < 500;
+                        const isServerError = status > 499;
                         response = method === "HEAD" ? xhr : xhr.responseText ?? xhr.response;
                         if (method !== "HEAD") {
                             if (type !== "json" && (response.trim().substring(0, 1) === "{" || response.trim().substring(0, 1) === "[")) type = "json";
@@ -923,14 +931,30 @@ const $preloader = (act = "show") => {
                                 try {
                                     response = JSON.parse(response);
                                 } catch (e) {
-                                    if (!isError) {
+                                    let msg = "The server sent a response that could not be parsed but returned a code: " + status;
+                                    if (!isOk) {
                                         xhr["e"] = e;
-                                        errRoutine("Server-side error, please contact support if problem persists", xhr);
-                                    } else response = "The server sent an error that could not be parsed";
+                                        if (isServerError) msg = "Server error, please contact support if problem persists";
+                                        if (isCLientError) msg = "The server sent a response that could not be parsed";
+                                        try {
+                                            msg = response.message;
+                                        } catch (e) {
+                                            msg = `Request Failed! Code: ${status}; Message: ${xhr.statusText}`;
+                                        }
+                                    }
+                                    return errRoutine(msg, xhr, response);
                                 }
                             }
                         }
-                        if (isError) return errRoutine(`Request Failed! Code: ${status}; Message: ${xhr.statusText}`, xhr, response);
+                        if (!isOk) {
+                            let msg = `Request Failed! Code: ${status}; Message: ${xhr.statusText}`;
+                            try {
+                                msg = response.message;
+                            } catch (e) {
+                                msg = `Request Failed! Code: ${status}; Message: ${xhr.statusText}`;
+                            }
+                            return errRoutine(msg, xhr, response);
+                        }
                         if (loaded !== "loaded") loaded(response, xhr, event);
                         resolve(response, xhr, event);
                         break;
@@ -1280,6 +1304,8 @@ const $freeze = (element, operation, attr = true) => {
             let showCopy = options.showCopy ?? configSelector("showCopy") ?? false;
             let defaultTopMargin = configSelector("margin") ?? 10;
             let previousEntryHeight = 0;
+            let operation = options.then ?? (() => null);
+            let onClose = options.onClose ?? (() => null);
             let getNextEntryTop = () => {
                 let nextTop = 0;
                 $loop($sela(sideCardSelector), (entry => nextTop += Math.floor(entry.offsetHeight + defaultTopMargin)));
@@ -1313,20 +1339,21 @@ const $freeze = (element, operation, attr = true) => {
                 adjustEntries(entrySibling, entrySibling.nextElementSibling);
             };
             let removeEntry = (entry, useDuration = true, closeEntry = false) => {
-                const remove = duration => setTimeout((() => {
-                    if (useDuration) {
+                const remove = (duration, ignoreDuration = false) => setTimeout((() => {
+                    if (useDuration && !ignoreDuration) {
                         setTimeout((() => $class(entry, "del", "osai-notifier__display")), duration);
                         duration = duration + 50;
                     }
                     adjustEntries(entry, entry.nextElementSibling, true);
                     entry.$class("del", "osai-notifier__display");
-                    setTimeout((() => entry.remove()), 150);
+                    setTimeout((() => {
+                        entry.remove();
+                        try {
+                            onClose();
+                        } catch (e) {}
+                    }), 150);
                 }), duration);
-                if (closeEntry) {
-                    adjustEntries(entry, entry.nextElementSibling, true);
-                    entry.$class("del", "osai-notifier__display");
-                    setTimeout((() => entry.remove()), 150);
-                }
+                if (closeEntry) remove(0, true);
                 if (duration === "pin" || duration === "fixed" || duration === -1 || duration === false) return;
                 let removeNote = remove(duration);
                 $on(entry, "mouseover", (() => clearTimeout(removeNote)));
@@ -1344,6 +1371,9 @@ const $freeze = (element, operation, attr = true) => {
                     e.preventDefault();
                     $copyToClipboard($sel(".osai-notifier__dialog", entry).textContent);
                 }));
+                try {
+                    operation();
+                } catch (e) {}
                 removeEntry(entry);
                 if (!useThisHeight && $class(entry, "has", "osai-notifier__display-center")) return;
                 if (useThisHeight) return $style(entry, `top:${useThisHeight}px`);
