@@ -2,27 +2,23 @@
 
 namespace BrickLayer\Lay\Libs;
 
+use BrickLayer\Lay\Core\Traits\ControllerHelper;
+
 abstract class LayCSV {
-    protected static function resolve(int $code, string $message, ?string $data = null) : array {
-        return [
-            "code" => $code,
-            "msg" => $message,
-            "data" => $data
-        ];
-    }
+    use ControllerHelper;
 
     public static function process(string $file, \Closure $callback, int $max_size_kb = 1000) : array {
         $file_type = mime_content_type($file);
         $max_size_kb = $max_size_kb /1000;
 
         if((filesize($file)/1000) > $max_size_kb)
-            return self::resolve(0, "Max file size of [{$max_size_kb}kb] exceeded");
+            return self::res_warning("Max file size of [{$max_size_kb}kb] exceeded");
 
         if(!$file_type)
-            return self::resolve(0, "Invalid file received");
+            return self::res_warning("Invalid file received");
 
         if(!in_array($file_type, ["text/csv" , "text/plain"], true))
-            return self::resolve(0, "Invalid file type received, ensure your file is saved as <b>CSV</b>");
+            return self::res_warning( "Invalid file type received, ensure your file is saved as <b>CSV</b>");
 
         $fh = fopen($file,'r');
         $output = "";
@@ -36,6 +32,6 @@ abstract class LayCSV {
             $output .= $x;
         }
 
-        return self::resolve(1, "Processed successfully", $output);
+        return self::res_success( "Processed successfully", ["output" => $output]);
     }
 }

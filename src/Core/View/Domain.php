@@ -242,7 +242,7 @@ class Domain {
             "js","css","map",
 
             // images
-            "jpeg","jpg","png","gif","jiff","webp","svg",
+            "jpeg","jpg","png","gif","jiff","webp","svg","ico",
 
             // config files
             "json","xml","yaml",
@@ -251,7 +251,7 @@ class Domain {
             "ttf","woff2","woff",
 
             // text files
-            "csv","txt",
+            "csv","txt","db","sqlite","log"
         ];
 
         $x = explode(".",$view);

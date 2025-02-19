@@ -32,6 +32,7 @@ final class LayCookieStorage
             self::$session_user_cookie = "lay_jar__" . $project_id;
 
         $_SESSION[self::$SESSION_KEY]  = $_SESSION[self::$SESSION_KEY]  ?? [];
+        self::$created_table_name = $table;
 
         self::create_table();
     }
