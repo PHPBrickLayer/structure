@@ -800,9 +800,9 @@ const $preloader = (act = "show") => {
  * @version 2.1.0
  * @since 05/01/2021
  * @modified 08/01/2025
- * @param [string|Object] url = url of request being sent or an object containing the url and options of the request
+ * @param {string|Object} url = url of request being sent or an object containing the url and options of the request
  * url should be passed using "action" as the key
- * @param [object] option
+ * @param {object} option
  * - `option.credential` {boolean} = send request with credentials when working with CORS
  *  - `option.content` {string} = XMLHTTPRequest [default = text/plain] only necessary when user wants to set custom dataType aside json,xml and native formData
  *  - `option.method` {string} = method of request [default = GET]
@@ -816,7 +816,7 @@ const $preloader = (act = "show") => {
  *  - `option.error` {function} = it executes for all kinds of error, it's like the finally of errors
  *  - `option.loaded` {function} = optional callback function that should be executed when the request is successful, either this or a promise
  *  - `option.abort` {function} = function to execute on upload abort
- * @param data {any} same as `option.data`, only comes in play when three parameter wants to be used
+ * @param {anu} data same as `option.data`, only comes in play when three parameter wants to be used
  * @return {Promise}
  */ const $curl = (url, option = {}, data = null) => new Promise(((resolve, reject) => {
     if ($type(url) === "Object") {
@@ -921,7 +921,6 @@ const $preloader = (act = "show") => {
 
                     default:
                         const isOk = status > 199 && status < 300;
-                        const isCLientError = status > 399 && status < 500;
                         const isServerError = status > 499;
                         response = method === "HEAD" ? xhr : xhr.responseText ?? xhr.response;
                         if (method !== "HEAD") {
@@ -935,7 +934,6 @@ const $preloader = (act = "show") => {
                                     if (!isOk) {
                                         xhr["e"] = e;
                                         if (isServerError) msg = "Server error, please contact support if problem persists";
-                                        if (isCLientError) msg = "The server sent a response that could not be parsed";
                                     }
                                     return errRoutine(msg, xhr, response);
                                 }

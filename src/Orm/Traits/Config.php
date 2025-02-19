@@ -160,6 +160,24 @@ trait Config{
                 SQLITE3_OPEN_READWRITE | SQLITE3_OPEN_CREATE,
                 $_ENV['SQLITE_ENCRYPT_KEY'] ?? ''
             );
+
+            // We create a view which can be called whenever we want to use the uuid() function
+            // Thanks to this gist for this solution
+            // https://gist.github.com/fabiolimace/e3c3d354d1afe0b3175f65be2d962523
+            self::$link->exec("
+            DROP VIEW IF EXISTS uuid7;
+            CREATE VIEW uuid7 AS WITH unixtime AS (
+                SELECT CAST((STRFTIME('%s') * 1000) + ((STRFTIME('%f') * 1000) % 1000) AS INTEGER) AS time
+            )
+            SELECT PRINTF(
+                '%08x-%04x-%04x-%04x-%012x', 
+                (select time from unixtime) >> 16,
+                (select time from unixtime) & 0xffff,
+                ABS(RANDOM()) % 0x0fff + 0x7000,
+                ABS(RANDOM()) % 0x3fff + 0x8000,
+                ABS(RANDOM()) >> 16
+            ) AS next;
+            ");
         } catch (\Throwable $e){
             self::exception(
                 "SQLiteConnectionError",

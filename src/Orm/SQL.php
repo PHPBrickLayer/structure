@@ -166,9 +166,10 @@ class SQL
             $x = explode("FROM", $query,2)[1] ?? null;
             $affected_rows = $x ? self::$link->querySingle("SELECT COUNT (*) FROM" . rtrim($x, ";") . ";") : null;
 
-            // The whole point of this block is if a program calls the uuid function
+            // The whole point of this block is to return the value of uuid()
             // while using the sqlite driver, since uuid is not a valid function in sqlite
-            // This block will attempt to get the uuid7 view which was created from this gist
+            // This block will attempt to get the uuid7 view which was created while initializing sqlite
+            // I got this code from this gist
             // https://gist.github.com/fabiolimace/e3c3d354d1afe0b3175f65be2d962523
             // I created this while watching Cobra Kai S6E14 "Strike Last"
             if($affected_rows === null) {
