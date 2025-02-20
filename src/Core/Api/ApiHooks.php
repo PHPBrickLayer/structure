@@ -118,21 +118,21 @@ abstract class ApiHooks
             try{
                 $brick = new \ReflectionClass($cmd_class);
             } catch (\ReflectionException $e){
-                Exception::throw_exception($e->getMessage(), "ReflectionException", exception: $e);
+                Exception::throw_exception("", "ReflectionException", exception: $e);
             }
 
             try {
                 $brick = $brick->newInstance();
             } catch (\ReflectionException $e) {
                 $brick = $brick::class ?? "ApiHooks";
-                Exception::throw_exception($e->getMessage(), "$brick::ApiError", exception: $e);
+                Exception::throw_exception("", "$brick::ApiError", exception: $e);
             }
 
             try {
                 $brick->hooks();
-            } catch (\Error|\Exception $e) {
+            } catch (\Throwable $e) {
                 $brick = $brick::class;
-                Exception::throw_exception($e->getMessage(), "$brick::HookError", exception: $e);
+                Exception::throw_exception("", "$brick::HookError", exception: $e);
             }
         }
     }

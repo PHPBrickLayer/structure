@@ -965,7 +965,7 @@ final class ApiEngine {
             }
         }
         catch (\TypeError $e){
-            self::exception("ApiEngineMethodError", "Check the bind function of your route: [" . self::$route_uri_raw . "]; <br>" . $e->getMessage(), $e);
+            self::exception("ApiEngineMethodError", "Check the bind function of your route: [" . self::$route_uri_raw . "]", $e);
         }
         catch (\Error|\Exception $e){
             self::exception("ApiEngineError", "Error encountered while handling api entries <br>", $e);
@@ -1031,7 +1031,7 @@ final class ApiEngine {
         try {
             return self::$bind_return_value;
         } catch (\Error $e) {
-            self::exception("PrematureGetResult", $e->getMessage() . "; You simply called get result and no specified route was hit, so there's nothing to 'get'", $e);
+            self::exception("PrematureGetResult", "You simply called get result and no specified route was hit, so there's nothing to 'get'", $e);
         }
 
         return null;
