@@ -4,6 +4,7 @@ namespace BrickLayer\Lay\Libs;
 
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Core\LayException;
 use BrickLayer\Lay\Core\Traits\IsSingleton;
 
 class LayCache
@@ -40,7 +41,11 @@ class LayCache
     public function update(array $key_chain, mixed $value): bool
     {
         try{
-            $data = json_decode(file_get_contents($this->cache_store), true);
+            $cache_store = file_get_contents($this->cache_store);
+
+            LayException::log($cache_store, log_title: "LogCacheStore");
+
+            $data = json_decode($cache_store, true) ?? [];
         } catch (\Exception $e){
             $this->cache_store ??= "";
             Exception::throw_exception("Cache storage [$this->cache_store] does not exist!", "CacheStoreNotFound", exception: $e);
