@@ -392,9 +392,10 @@ trait ValidateCleanMap {
     /**
      * Initialize the request from the server for validation
      * @param array|object $request Post Request
+     * @param array|null $vcm_rules vcm rules can also be set via this parameter
      * @return self
      */
-    public static function vcm_start(array|object $request) : self
+    public static function vcm_start(array|object $request, ?array $vcm_rules = null) : self
     {
         self::$_filled_request = $request;
 
@@ -414,7 +415,12 @@ trait ValidateCleanMap {
         self::$_bucket_url = null;
         self::$_upload_handler = null;
 
-        return new self();
+        $me = new self();
+
+        if(!empty($vcm_rules))
+            $me->vcm_rules($vcm_rules);
+
+        return $me;
     }
 
     /**
