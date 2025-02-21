@@ -346,6 +346,8 @@ final class ViewBuilder
             "use_lay_script",
             "skeleton",
             "append_site_name",
+            "allow_page_embed",
+            "page_embed_whitelist",
         ])]
         string $key,
         bool $value
