@@ -312,8 +312,15 @@ trait ValidateCleanMap {
         if(!$add_to_entry || empty($value)) return $this;
 
         if(isset($options['is_date'])) {
-            $value = LayDate::date($value, format_index: 0);
+            $old_value = $value;
+            $value = LayDate::date($old_value, format_index: 0);
             $apply_clean = false;
+
+            if(!LayDate::is_valid($value)) {
+                $field_name = str_replace(["_", "-"], " ", $options['field_name'] ?? $field);
+                $this->__add_error($field, "$field_name with value [$old_value] is not a valid date");
+                return $this;
+            }
         }
 
         if(isset($options['fun']))
