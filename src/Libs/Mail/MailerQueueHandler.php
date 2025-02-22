@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace BrickLayer\Lay\Libs\Mail;
 
 use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Core\LayException;
 use BrickLayer\Lay\Core\View\DomainResource;
 use BrickLayer\Lay\Libs\Abstract\TableTrait;
 use BrickLayer\Lay\Libs\Cron\CronController;
@@ -46,6 +47,33 @@ class MailerQueueHandler {
               KEY `idx_status` (`status`) USING BTREE
             )
         ");
+    }
+
+    /**
+     * Deletes stale mails that have exceeded a specific timeframe; 15 days by default].
+     * If the project requires storing sent mails, the first argument should be used to specify that
+     *
+     * @param bool $include_sent_mails
+     * @param int $days_after
+     * @return bool
+     * @throws \Exception
+     */
+    private function hard_delete_mails(bool $include_sent_mails = true, int $days_after = 15) : bool
+    {
+        $orm = self::orm(self::$table);
+        $clause = null;
+
+        if(!$include_sent_mails)
+            $clause = "status != '" . MailerStatus::SENT->name . "'";
+
+        $days_after = max($days_after, 0);
+
+        $days_diff = $orm->days_diff(LayDate::date(), "time_sent") . " > $days_after";
+
+        $clause = $clause ? "$clause AND " : "";
+        $clause .= "($days_diff OR time_sent IS NULL)";
+
+        return $orm->where($clause)->delete();
     }
 
     public function has_queued_items() : bool
@@ -134,22 +162,14 @@ class MailerQueueHandler {
     }
 
     /**
-     * Deletes sent mails instantly from the table, but if `$days_after` is specified,
-     * it deletes mails that have exceeded the set timeframe
-     * @param int|null $days_after
-     * @return bool
+     * @see hard_delete_mails()
+     * @param bool $include_sent_mails
+     * @return void
+     * @throws \Exception
      */
-    public function delete_sent_mails(?int $days_after = null) : bool
+    public function delete_stale_mails(bool $include_sent_mails = true) : void
     {
-        $orm = self::orm(self::$table);
-        $clause = "";
-
-        if($days_after != null && $days_after > 0) {
-            $days_diff = $orm->days_diff(LayDate::date(), "time_sent") . " > $days_after";
-            $clause = "AND ($days_diff OR time_sent IS NULL)";
-        }
-
-        return $orm->where("status='" . MailerStatus::SENT->name . "' $clause")->delete();
+        $this->hard_delete_mails($include_sent_mails);
     }
 
 }
