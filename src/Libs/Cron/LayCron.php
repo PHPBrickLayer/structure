@@ -327,7 +327,7 @@ final class LayCron
      * @example bob composer_up
      * @param string $job
      * @return array
-     * @psalm-return array{
+     * @return array{
      *      exec: bool,
      *      msg: string
      *  }
@@ -352,7 +352,7 @@ final class LayCron
      * @param string $command
      * @param bool $add_eol
      * @return array
-     * @psalm-return array{
+     * @return array{
      *      exec: bool,
      *      msg: string
      *  }
@@ -386,7 +386,7 @@ final class LayCron
      * @param string|int $uid
      * @param bool $add_schedule
      * @return array|null
-     * @psalm-return array{
+     * @return array{
      *     schedule: string,
      *     binary: string,
      *     script: string

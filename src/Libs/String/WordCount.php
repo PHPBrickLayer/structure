@@ -43,7 +43,7 @@ class WordCount
     /**
      * @param string $words
      * @return array
-     * @psalm-return array{
+     * @return array{
      *     dom: DOMDocument,
      *     total: int,
      *     duration: int,

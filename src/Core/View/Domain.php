@@ -544,7 +544,7 @@ class Domain {
     /**
      * @param string $key
      * @return string|DomainType|array
-     * @psalm-return  DomainType|string|array<int>|array{
+     * @return  DomainType|string|array<int>|array{
      * route: string,
      * route_as_array: array<int>,
      * route_has_end_slash: bool,

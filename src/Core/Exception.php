@@ -19,6 +19,11 @@ abstract class Exception {
     }
 
     /**
+     * ## Kill the program and return a stack trace.
+     *
+     * If this method is called in a non-development environment,
+     * it will throw an exception
+     *
      * @throws \Exception
      */
     public static function kill_and_trace(bool $show_error = true) : void
@@ -26,21 +31,45 @@ abstract class Exception {
         self::new()->kill_with_trace($show_error);
     }
 
+    /**
+     * Hide the X Info section from the returned Lay exception body
+     * @return void
+     */
     public static function hide_x_info() : void
     {
         self::new()->hide_x_info();
     }
 
+    /**
+     * ## Instruct Lay to return exceptions as HTML.
+     *
+     * This is only honoured in a development environment,
+     * or if the APP_ENV variable is explicitly set to DEVELOPMENT
+     *
+     * @return void
+     */
     public static function error_as_html() : void
     {
         self::new()::$ERROR_AS_HTML = true;
     }
 
+    /**
+     * Instruct Lay to Log all exceptions even after displaying them as HTML or JSON
+     * @return void
+     */
     public static function always_log() : void
     {
         self::new()->log_always();
     }
 
+    /**
+     * Silently log to a lay error log file without triggering an exception
+     * @param mixed $message
+     * @param Throwable|null $exception
+     * @param string $log_title
+     * @return void
+     * @throws \Exception
+     */
     public static function log(mixed $message, Throwable $exception = null, string $log_title = "") : void
     {
         self::always_log();

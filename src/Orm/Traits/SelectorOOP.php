@@ -5,8 +5,10 @@ namespace BrickLayer\Lay\Orm\Traits;
 
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Libs\LayArray;
+use BrickLayer\Lay\Libs\LayDate;
 use BrickLayer\Lay\Libs\String\Enum\EscapeType;
 use BrickLayer\Lay\Libs\String\Escape;
+use BrickLayer\Lay\Orm\Enums\OrmDriver;
 use BrickLayer\Lay\Orm\Enums\OrmReturnType;
 use BrickLayer\Lay\Orm\SQL;
 use Closure;
@@ -17,6 +19,14 @@ trait SelectorOOP
 {
     private static int $current_index = 0;
     private array $cached_options = [];
+
+    public static function escape_identifier(string $identifier) : string
+    {
+        if(self::get_driver() == OrmDriver::MYSQL)
+            return "`$identifier`";
+
+        return "\"$identifier\"";
+    }
 
     /**
      * Forms a search query based on a relevance scale
@@ -89,7 +99,7 @@ trait SelectorOOP
         $sql_text = "";
 
         foreach ($columns as $col => $rule) {
-            $esc_query = Escape::clean($query, EscapeType::STRIP_TRIM_ESCAPE,);
+            $esc_query = Escape::clean($query, EscapeType::STRIP_TRIM_ESCAPE);
 
             $sql_text .= "(";
 
@@ -107,7 +117,7 @@ trait SelectorOOP
                     if (empty($key))
                         continue;
 
-                    $esc_query = Escape::clean($key, EscapeType::STRIP_TRIM_ESCAPE,);
+                    $esc_query = Escape::clean($key, EscapeType::STRIP_TRIM_ESCAPE);
                     $sql_text .= $format($esc_query, $col, $rule['keyword'] ?? $rule[1]);
                 }
             }
@@ -116,6 +126,30 @@ trait SelectorOOP
         }
 
         return "( " . rtrim($sql_text, "+ ") . " ) as $select_as";
+    }
+
+    /**
+     * Get the syntax to calculate the difference between two dates in the database.
+     *
+     * ## Note
+     * If $date_1 is smaller than $date_2, your result will be negative.
+     *
+     * @example DATEDIFF('2025-02-20', '2026-02-20') == -365
+     * @param string $date_1
+     * @param string $date_2
+     * @param bool $invert_arg use this to invert the syntax to place $date_2 first and $date_1 next
+     * @return string
+     * @todo Implement the various shades of date diff according to the supported database drivers
+     */
+    final public function days_diff(string $date_1, string $date_2, bool $invert_arg = false) : string
+    {
+        $date_1 = LayDate::is_valid($date_1) ? "'$date_1'" : self::escape_identifier($date_1);
+        $date_2 = LayDate::is_valid($date_2) ? "'$date_2'" : self::escape_identifier($date_2);
+
+        if($invert_arg)
+            return "DATEDIFF($date_2, $date_1)";
+
+        return "DATEDIFF($date_1, $date_2)";
     }
 
     final public function open(string $table): self

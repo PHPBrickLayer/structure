@@ -75,7 +75,7 @@ trait Resources {
     }
 
     /**
-     * @psalm-return  object{
+     * @return  object{
      *     lay: string,
      *     lay_static: string,
      *     framework: string,
@@ -107,7 +107,8 @@ trait Resources {
 
 
     /**
-     * @psalm-return  object{
+     * ## Please only use the keys specified here; any key not specified may be removed in future versions
+     * @return  object{
      *      base: string,
      *      proto: string,
      *      base_no_proto: string,
