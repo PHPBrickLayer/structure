@@ -119,5 +119,4 @@ foreach ($mailer->next_items() as $mail) {
 
 $mailer->stop_on_finish();
 
-if(LayConfig::site_data()->delete_sent_mails)
-    $mailer->delete_sent_mails(30);
+$mailer->delete_stale_mails(LayConfig::site_data()->delete_sent_mails);
