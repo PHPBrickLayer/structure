@@ -8,6 +8,7 @@
 ///                                                     #
 /// #####################################################
 
+use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Libs\Cron\LayCron;
 use BrickLayer\Lay\Libs\LayDate;
 use BrickLayer\Lay\Libs\Mail\Mailer;
@@ -107,8 +108,8 @@ foreach ($mailer->next_items() as $mail) {
         else
             $mailer->try_again($mail['id']);
 
-    } catch (\Exception|\Error $e) {
-        $mailer->failed_to_aycachsend($mail['id']);
+    } catch (\Throwable $e) {
+        $mailer->failed_to_send($mail['id']);
         LayCron::new()->log_output(
             "[" . LayDate::date() . "]\n" .
             \BrickLayer\Lay\Core\Exception::text($e, false)
@@ -117,3 +118,6 @@ foreach ($mailer->next_items() as $mail) {
 }
 
 $mailer->stop_on_finish();
+
+if(LayConfig::site_data()->delete_sent_mails)
+    $mailer->delete_sent_mails(30);

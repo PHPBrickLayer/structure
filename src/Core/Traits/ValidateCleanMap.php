@@ -312,8 +312,15 @@ trait ValidateCleanMap {
         if(!$add_to_entry || empty($value)) return $this;
 
         if(isset($options['is_date'])) {
-            $value = LayDate::date($value, format_index: 0);
+            $old_value = $value;
+            $value = LayDate::date($old_value, format_index: 0);
             $apply_clean = false;
+
+            if(!LayDate::is_valid($value)) {
+                $field_name = str_replace(["_", "-"], " ", $options['field_name'] ?? $field);
+                $this->__add_error($field, "$field_name with value [$old_value] is not a valid date");
+                return $this;
+            }
         }
 
         if(isset($options['fun']))
@@ -392,9 +399,10 @@ trait ValidateCleanMap {
     /**
      * Initialize the request from the server for validation
      * @param array|object $request Post Request
+     * @param array|null $vcm_rules vcm rules can also be set via this parameter
      * @return self
      */
-    public static function vcm_start(array|object $request) : self
+    public static function vcm_start(array|object $request, ?array $vcm_rules = null) : self
     {
         self::$_filled_request = $request;
 
@@ -414,7 +422,12 @@ trait ValidateCleanMap {
         self::$_bucket_url = null;
         self::$_upload_handler = null;
 
-        return new self();
+        $me = new self();
+
+        if(!empty($vcm_rules))
+            $me->vcm_rules($vcm_rules);
+
+        return $me;
     }
 
     /**

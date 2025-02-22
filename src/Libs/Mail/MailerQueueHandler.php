@@ -60,11 +60,16 @@ class MailerQueueHandler {
 
     private function change_status(string $id, MailerStatus $status) : bool
     {
+        $cols = [
+            "status" => $status->name
+        ];
+
+        if($status == MailerStatus::SENT)
+            $cols['time_sent'] = LayDate::date();
+
         return self::orm(self::$table)
             ->where("id='$id' AND deleted=0")
-            ->column([
-                "status" => $status->name
-            ])
+            ->column($cols)
             ->edit();
     }
 
@@ -99,7 +104,6 @@ class MailerQueueHandler {
         return $this->change_status($id, MailerStatus::SENT);
     }
 
-
     public function next_items() : array
     {
         return self::orm(self::$table)->loop()
@@ -109,7 +113,6 @@ class MailerQueueHandler {
             ->limit($_ENV['SMTP_MAX_QUEUE_ITEMS'] ?? 5)
         ->then_select();
     }
-
 
     public function add_to_queue(array $columns) : bool
     {
@@ -128,6 +131,25 @@ class MailerQueueHandler {
     {
         if(!$this->has_queued_items())
             LayCron::new()->unset(self::JOB_UID);
+    }
+
+    /**
+     * Deletes sent mails instantly from the table, but if `$days_after` is specified,
+     * it deletes mails that have exceeded the set timeframe
+     * @param int|null $days_after
+     * @return bool
+     */
+    public function delete_sent_mails(?int $days_after = null) : bool
+    {
+        $orm = self::orm(self::$table);
+        $clause = "";
+
+        if($days_after != null && $days_after > 0) {
+            $days_diff = $orm->days_diff(LayDate::date(), "time_sent") . " > $days_after";
+            $clause = "AND ($days_diff OR time_sent IS NULL)";
+        }
+
+        return $orm->where("status='" . MailerStatus::SENT->name . "' $clause")->delete();
     }
 
 }

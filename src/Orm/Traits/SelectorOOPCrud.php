@@ -121,13 +121,10 @@ trait SelectorOOPCrud
 
         $d['query_type'] = OrmQueryType::INSERT;
 
-        if($is_mysql) {
-            $table = "`$table`";
+        if($is_mysql)
             $column_and_values = "SET $column_and_values";
-        }
-        else {
-            $table = "\"$table\"";
-        }
+
+        $table = self::escape_identifier($table);
 
         $op = $this->capture_result(
             [$this->query("INSERT INTO $table $column_and_values $clause", $d) ?? false, $d],
@@ -135,7 +132,8 @@ trait SelectorOOPCrud
         );
 
         if($return_object && isset($insert_id)) {
-            $id = $is_mysql ? "`id`" : "\"id\"";
+            $id = self::escape_identifier("id");
+            $table = self::escape_identifier($table);
 
             return $this->query("SELECT * FROM $table WHERE $id='$insert_id'", [
                 'query_type' => OrmQueryType::SELECT,
@@ -171,7 +169,7 @@ trait SelectorOOPCrud
 
         $d['query_type'] = OrmQueryType::INSERT;
 
-        $table = self::get_driver() == OrmDriver::MYSQL ? "`$table`" : "\"$table\"";
+        $table = self::escape_identifier($table);
 
         return $this->capture_result(
             [$this->query("INSERT INTO $table ($columns) $values $clause", $d) ?? false, $d],
@@ -185,7 +183,6 @@ trait SelectorOOPCrud
         $values = $d['values'] ?? $d['columns'] ?? "NOTHING";
         $clause = $d['clause'] ?? null;
         $table = $d['table'] ?? null;
-        $is_mysql = self::get_driver() == OrmDriver::MYSQL;
 
         if ($values === "NOTHING")
             $this->oop_exception("There's nothing to update, please use the `column` or `value` method to rectify pass the columns to be updated");
@@ -199,11 +196,11 @@ trait SelectorOOPCrud
             try {
                 foreach ($values as $k => $c) {
                     $c = Escape::clean($c, EscapeType::TRIM_ESCAPE);
-                    $k = $is_mysql ? "`$k`" : "\"$k\"";
+                    $k = self::escape_identifier($k);
                     $cols .= $c == null ? "$k=NULL," : "$k='$c',";
                 }
             } catch (Exception $e) {
-                $this->oop_exception("Error occurred when trying to update a DB:" . $e->getMessage(), $e);
+                $this->oop_exception("Error occurred when trying to update a DB", $e);
             }
 
             $values = rtrim($cols, ",");
@@ -221,10 +218,11 @@ trait SelectorOOPCrud
                     $case_list .= "'$j',";
                 }
 
-                $case_list = "(" . rtrim($case_list, ",") . ")";
-                $case_value .= "`{$match['column']}` = CASE `{$match['switch']}` $case END,";
+                $match['column'] = self::escape_identifier($match['column']);
+                $match['switch'] = self::escape_identifier($match['switch']);
 
-                $match['switch'] = $is_mysql ? "`{$match['switch']}`" : "\"{$match['switch']}\"";
+                $case_list = "(" . rtrim($case_list, ",") . ")";
+                $case_value .= "{$match['column']} = CASE {$match['switch']} $case END,";
                 $clause .= " {$match['switch']} IN $case_list AND";
             }
 
@@ -234,7 +232,7 @@ trait SelectorOOPCrud
         }
 
         $d['query_type'] = OrmQueryType::UPDATE;
-        $table = $is_mysql ? "`$table`" : "\"$table\"";
+        $table = self::escape_identifier($table);
 
         return $this->capture_result(
             [$this->query("UPDATE $table SET $values $clause", $d), $d],
@@ -364,7 +362,7 @@ trait SelectorOOPCrud
         );
     }
 
-    final public function delete(?string $where = null): bool
+    final public function delete(?string $where = null, bool $delete_all_records = false): bool
     {
         $d = $this->get_vars();
 
@@ -377,6 +375,9 @@ trait SelectorOOPCrud
 
         if (empty($table))
             $this->oop_exception("You did not initialize the `table`. Use the `->table(String)` method like this: `->value('your_table_name')`");
+
+        if (empty($d['clause']) and !$delete_all_records)
+            $this->oop_exception("You didn't specify a clause for your hard delete statement. If you wish to delete all the records on the table, then update the `delete_all_records` argument on the `->delete()` method");
 
         return $this->capture_result(
             [$this->query("DELETE FROM $table {$d['clause']}", $d), $d],

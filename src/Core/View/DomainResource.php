@@ -79,7 +79,7 @@ class DomainResource
 
 
     /**
-     * @psalm-return  object{
+     * @return  object{
      *      root: string,
      *      upload: string,
      *      static: string,
@@ -152,7 +152,7 @@ class DomainResource
     /**
      * You are getting everything you sent through the `ViewCast` aka `Plaster` class
      * from this method, in the exact same way
-     * @psalm-return object{
+     * @return object{
      *     head: string,
      *     body: string,
      *     script: string,

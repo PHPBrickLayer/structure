@@ -42,9 +42,6 @@ class LayCache
     {
         try{
             $cache_store = file_get_contents($this->cache_store);
-
-            LayException::log($cache_store, log_title: "LogCacheStore");
-
             $data = json_decode($cache_store, true) ?? [];
         } catch (\Exception $e){
             $this->cache_store ??= "";

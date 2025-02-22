@@ -224,4 +224,16 @@ class LayDate {
     {
         return self::greater($expiry_date);
     }
+
+    /**
+     * Checks if a date literal is a valid database date format
+     * @param string $date_literal
+     * @return bool
+     */
+    public static function is_valid(string $date_literal) : bool
+    {
+        $pattern = "/^(\d{4}-\d{2}-\d{2})( \d{2}:\d{2}:\d{2}(\.\d{3})?)?$/";
+        return (bool) preg_match($pattern, $date_literal);
+    }
+
 }

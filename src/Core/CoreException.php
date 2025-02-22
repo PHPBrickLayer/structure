@@ -498,7 +498,7 @@ class CoreException
 
     /**
      * @throws \Exception
-     * @psalm-return array{
+     * @return array{
      *     act: string,
      *     error: string,
      *     as_string: bool

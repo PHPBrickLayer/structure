@@ -25,6 +25,7 @@ trait Config
     private static array $layConfigOptions;
     private static bool $DEFAULT_ROUTE_SET = false;
     private static bool $USE_DEFAULT_ROUTE = true;
+    private static bool $DELETE_SENT_MAILS = true;
     private static bool $COMPRESS_HTML;
     private static string $SESSION_KEY = "__LAY_VARS__";
     private static string $GLOBAL_API;
@@ -400,7 +401,7 @@ trait Config
      * Please don't add dot (.), simply use the file extension directly.
      *
      * @param string ...$extensions
-     * @return LayConfig|Config
+     * @return LayConfig
      */
     public function ignore_file_extensions(string ...$extensions): self
     {
@@ -416,7 +417,7 @@ trait Config
 
     /**
      * Instruct `Lay` to not compress the `HTML` output of a page on production server
-     * @return LayConfig|Config
+     * @return LayConfig
      */
     public function dont_compress_html(): self
     {
@@ -435,13 +436,31 @@ trait Config
      * you don't want your application requesting for assets in the `prod` folder of the respective asset file,
      * then use this method.
      *
-     * @return LayConfig|Config
+     * @return LayConfig
      */
     public function dont_use_prod_folder(): self
     {
         return $this->switch("use_prod", false);
     }
 
+    /**
+     * Queued sent emails won't be deleted from the database
+     * @return LayConfig
+     */
+    public function dont_delete_sent_mails() : self
+    {
+        return $this->switch("delete_sent_mails", false);
+    }
+
+    /**
+     * This instructs Lay to use the pattern attribute of a domain as its subdomain.
+     *
+     * This takes effect if the Anchor class is used to create a hyperlink anywhere on the project.
+     * However, it will only work on production server;
+     *
+     * @example example.com/blog will be converted to blog.example.com
+     * @return LayConfig
+     */
     public function use_domain_as_sub(): self
     {
         return $this->switch("use_domain_as_sub", true);
@@ -478,6 +497,7 @@ trait Config
         self::$layConfigOptions['meta'][$key] = $value;
         return self::$instance;
     }
+
 
     public function init_name(string $short, string $full): self
     {
@@ -533,5 +553,4 @@ trait Config
 
         return self::$SQL_INSTANCE = SQL::init($connection_params);
     }
-
 }

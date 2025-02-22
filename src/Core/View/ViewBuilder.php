@@ -252,7 +252,7 @@ final class ViewBuilder
      *
      * @param string $key
      * @return DomainType|string|array
-     * @psalm-return  DomainType|string|array<int>|array{
+     * @return  DomainType|string|array<int>|array{
      *      route: string,
      *      route_as_array: array<int>,
      *      route_has_end_slash: bool,
@@ -346,6 +346,8 @@ final class ViewBuilder
             "use_lay_script",
             "skeleton",
             "append_site_name",
+            "allow_page_embed",
+            "page_embed_whitelist",
         ])]
         string $key,
         bool $value

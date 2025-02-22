@@ -159,6 +159,8 @@ trait Init {
             "use_prod" => $options['switch']['use_prod'] ?? true,
             # On true, this strips space from the html output. Note; it doesn't strip space off the <script></script> elements or anything in-between elements for that matter
             "compress_html" => $options['switch']['compress_html'] ?? true,
+            # On true, it instructs the Mailer service to delete sent emails after 30 days
+            "delete_sent_mails" => $options['switch']['delete_sent_mails'] ?? true,
             # Used by the Domain module to instruct the handler to cache all the listed domains in a session or cookie,
             # depending on the value sent by dev
             "cache_domains" => $options['switch']['cache_domains'] ?? true,

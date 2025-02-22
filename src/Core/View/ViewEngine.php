@@ -46,6 +46,8 @@ final class ViewEngine {
                 "use_lay_script" => $const[self::key_core]['use_lay_script'] ?? true,
                 "skeleton" => $const[self::key_core]['skeleton'] ?? true,
                 "append_site_name" => $const[self::key_core]['append_site_name'] ?? true,
+                "allow_page_embed" => $const[self::key_core]['allow_page_embed'] ?? true,
+                "page_embed_whitelist" => $const[self::key_core]['page_embed_whitelist'] ?? [],
             ],
             self::key_page => [
                 "charset" =>  $const[self::key_page]['charset'] ?? "UTF-8",
@@ -161,6 +163,7 @@ final class ViewEngine {
         $client = DomainResource::get();
         $page = $meta->{self::key_page};
         $env = $layConfig::$ENV_IS_PROD ? "PROD" : "DEV";
+        $iframe_embed = $page->iframe_embed ?? true;
 
         $lay_api = $layConfig->get_global_api() ?? $client->domain->domain_uri . "api/";
         $img = ViewSrc::gen($page->img ?? $client->shared->img_default->meta ?? $client->shared->img_default->logo);
@@ -179,9 +182,16 @@ final class ViewEngine {
         LINK;
         $html_attr = $meta->{self::key_html_attr};
         $body_attr = $meta->{self::key_body_attr};
+        $iframe_embed_blocker = <<<FRAME
+        <!-- Prevent your website from being embedded via iframe -->
+        <script>if (window.top !== window.self) { window.top.location.replace(window.self.location.href); }</script>
+        FRAME;
 
         if(isset($cache['public']))
             $canonical .= $cache['public'] ? '<meta http-equiv="Cache-control" content="public">' : '<meta http-equiv="Cache-control" content="private">';
+
+        if($iframe_embed)
+            $iframe_embed_blocker = "";
 
         // The reason we put skeleton_body() in a variable is to give the function time to run so that variables can be
         // extracted and used by other functions like the skeleton_head()
@@ -254,6 +264,8 @@ final class ViewEngine {
             <link rel="apple-touch-icon" href="$favicon">
             $canonical
             {$this->skeleton_head()}
+            
+            $iframe_embed_blocker
         </head>
         <body class="$body_attr->class" $body_attr->attr>
         $body

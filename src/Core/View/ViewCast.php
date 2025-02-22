@@ -35,7 +35,7 @@ abstract class ViewCast
      *
      * @param string $key
      * @return DomainType|string|array
-     * @psalm-return  DomainType|string|array<int>|array{
+     * @return  DomainType|string|array<int>|array{
      *     route: string,
      *     route_as_array: array<int>,
      *     route_has_end_slash: bool,

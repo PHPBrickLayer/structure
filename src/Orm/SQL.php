@@ -36,7 +36,7 @@ class SQL
 
     /**
      * @var array $query_info
-     * @psalm-return array{
+     * @return array{
      *     status: OrmExecStatus,
      *     has_data: bool,
      *     data: mixed,
