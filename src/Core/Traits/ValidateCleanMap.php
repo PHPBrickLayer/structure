@@ -190,7 +190,7 @@ trait ValidateCleanMap {
 
         if(isset($options['is_name'])) {
             $value = ucfirst(trim($value));
-            preg_match("#^[a-zA-Z]+$#", $value, $test, PREG_UNMATCHED_AS_NULL);
+            preg_match("#^[a-zA-Z\-]+$#", $value, $test, PREG_UNMATCHED_AS_NULL);
 
             if(empty($test))
                 $add_to_entry = $this->__add_error($field, $options['required_message'] ?? "Received an invalid text format for $field_name, please remove any special characters or multiple names");
@@ -208,8 +208,18 @@ trait ValidateCleanMap {
         if(isset($options['max_length']) && (strlen($value) > $options['max_length']))
             $add_to_entry = $this->__add_error($field, "$field_name must not exceed {$options['max_length']} characters");
 
-        if(isset($options['match']) && ($options['match']['value'] != $value))
-            $add_to_entry = $this->__add_error($field, "$field_name must match {$options['match']['field']}");
+        if(isset($options['match'])) {
+            $to_match = $this->__get_field($options['match']['field']) ?? $options['match']['value'] ?? null;
+            $match_field = $options['match']['field_name'] ?? $options['match']['field'] ?? null;
+
+            if(isset($options['match']['value']))
+                $message = $options['match']['message'] ?? "$field_name must equal \"{$options['match']['value']}\"";
+            else
+                $message = $options['match']['message'] ?? "$field_name must match $match_field";
+
+            if($to_match == null || $to_match != $value)
+                $add_to_entry = $this->__add_error($field, $message);
+        }
 
         if(isset($options['must_contain']) && !in_array($value, $options['must_contain']))
             $add_to_entry = $this->__add_error($field, "$field_name must be one of: " . implode(', ', $options['must_contain']));
@@ -221,19 +231,19 @@ trait ValidateCleanMap {
     }
 
     /**
-     * Request entry that needs to be validated, clean and mapped
+     * Request entry that needs to be validated, cleaned and mapped
      *
      * @param array{
-     *    request: array|object,
+     *    request?: array|object,
      *    field: string,
      *    field_name?: string,
      *    required_message?: string,
-     *    db_col: string,
+     *    db_col?: string,
      *    fun?: callable<mixed>,
-     *    must_contain?: array,
+     *    must_contain?: array<string>,
      *    must_validate?: array{
-     *     fun: callable<mixed>,
-     *     message: string,
+     *      fun: callable<mixed>,
+     *      message: string,
      *    },
      *    json_encode?: bool,
      *    required?: bool,
@@ -254,12 +264,13 @@ trait ValidateCleanMap {
      *    min_length?: int,
      *    max_length?: int,
      *    match?: array{
-     *      field: string,
-     *      value: mixed
+     *      field?: string,
+     *      value?: mixed,
+     *      message?: string,
      *    },
      *    clean?: bool|array{
      *      escape: EscapeType,
-     *      strict: bool,
+     *      strict?: bool,
      *    },
      * } $options
      *
@@ -399,7 +410,22 @@ trait ValidateCleanMap {
     /**
      * Initialize the request from the server for validation
      * @param array|object $request Post Request
-     * @param array|null $vcm_rules vcm rules can also be set via this parameter
+     * @param null|array{
+     *      required?: bool,
+     *      db_col_required?: bool,
+     *      clean?: bool|array{
+     *        escape: EscapeType,
+     *        strict: bool,
+     *      },
+     *      sub_dir?: string,
+     *      allowed_types?: FileUploadExtension,
+     *      max_size?: int,
+     *      new_file_name?: string,
+     *      dimension?: array,
+     *      upload_storage?: FileUploadStorage,
+     *      bucket_url?: string,
+     *      upload_handler?: callable,
+     *   } $vcm_rules vcm rules can also be set via this parameter
      * @return self
      */
     public static function vcm_start(array|object $request, ?array $vcm_rules = null) : self
@@ -431,7 +457,9 @@ trait ValidateCleanMap {
     }
 
     /**
-     * Get all the validated entries for further usage
+     * Returns all the validated entries as an array.
+     * It returns the data matching the result with the database column names.
+     *
      * @return array
      */
     public static function vcm_end() : array
@@ -440,11 +468,21 @@ trait ValidateCleanMap {
     }
 
     /**
+     * An alias for `vcm_end()`
+     * @return array
+     * @see vcm_end()
+     */
+    public static function vcm_data() : array
+    {
+        return self::vcm_end();
+    }
+
+    /**
      * Return all the errors received by the validator
      * @param bool $as_string
      * @return array|string|null
      */
-    public static function vcm_errors(bool $as_string = false) : array|null|string
+    public static function vcm_errors(bool $as_string = true) : array|null|string
     {
         $errors = self::$_errors ?? null;
 

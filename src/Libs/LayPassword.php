@@ -17,6 +17,16 @@ abstract class LayPassword {
     }
 
     /**
+     * Verify hashed password
+     * @param string $plain_password
+     * @param string $hashed_password
+     * @return bool
+     */
+    public static function verify(string $plain_password, string $hashed_password) : bool
+    {
+        return self::hash($plain_password, $hashed_password);
+    }
+    /**
      * Encrypts and Decrypts
      *
      * @param string|null $string value to encrypt
@@ -45,6 +55,6 @@ abstract class LayPassword {
 
     public static function csrf_gen(string $user_data, ?string $key = null) : string {
         $key = $key === null ? date("YmdHis") : $key;
-        return hash_hmac('sha256',$user_data, $key);
+        return hash_hmac('sha256', $user_data, $key);
     }
 }
