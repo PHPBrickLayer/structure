@@ -10,6 +10,7 @@ use BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadStorage;
 use BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadType;
 use BrickLayer\Lay\Libs\FileUpload\FileUpload;
 use BrickLayer\Lay\Libs\LayDate;
+use BrickLayer\Lay\Libs\LayPassword;
 use BrickLayer\Lay\Libs\String\Enum\EscapeType;
 use BrickLayer\Lay\Libs\String\Escape;
 use Closure;
@@ -227,6 +228,11 @@ trait ValidateCleanMap {
         if(isset($options['must_validate']) && !$options['must_validate']['fun']($value))
             $add_to_entry = $this->__add_error($field, $options['must_validate']['message'] ?? "$field_name has not satisfied the criteria for submission");
 
+        if(isset($options['hash'])) {
+            $apply_clean = false;
+            $value = LayPassword::hash($value);
+        }
+
         return $return();
     }
 
@@ -253,6 +259,7 @@ trait ValidateCleanMap {
      *    is_date?: bool,
      *    is_file?: bool,
      *    is_captcha?: bool,
+     *    hash?: bool,
      *    captcha_key?: string,
      *    allowed_types?: FileUploadExtension,
      *    max_size?: int,
