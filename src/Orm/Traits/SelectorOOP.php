@@ -22,9 +22,12 @@ trait SelectorOOP
 
     public static function escape_identifier(string $identifier) : string
     {
-        if(self::get_driver() == OrmDriver::MYSQL)
+        if(self::get_driver() == OrmDriver::MYSQL) {
+            $identifier = trim($identifier, "`");
             return "`$identifier`";
+        }
 
+        $identifier = trim($identifier, '"');
         return "\"$identifier\"";
     }
 

@@ -133,7 +133,6 @@ trait SelectorOOPCrud
 
         if($return_object && isset($insert_id)) {
             $id = self::escape_identifier("id");
-            $table = self::escape_identifier($table);
 
             return $this->query("SELECT * FROM $table WHERE $id='$insert_id'", [
                 'query_type' => OrmQueryType::SELECT,
