@@ -114,17 +114,17 @@ trait ControllerHelper {
     {
         if(!CoreException::$DISPLAYED_ERROR && $code == ApiStatus::INTERNAL_SERVER_ERROR) {
             $last_error = error_get_last();
+            $msg = "";
 
             if(!empty($last_error) && @$last_error['type'] != E_USER_WARNING){
                 $msg = <<<BDY
-                [Response Error]
-                                
+                [LAST_ERROR]                
                 {$last_error['message']} 
                 <div style="font-weight: bold; color: cyan">{$last_error['file']} ({$last_error['line']})</div>
                 BDY;
-
-                LayException::log($msg, $exception, "CaughtJSONError");
             }
+
+            LayException::log($msg, $exception, self::class . "::res_error");
         }
 
         return self::__res_send([
