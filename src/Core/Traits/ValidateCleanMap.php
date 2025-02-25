@@ -209,6 +209,12 @@ trait ValidateCleanMap {
         if(isset($options['max_length']) && (strlen($value) > $options['max_length']))
             $add_to_entry = $this->__add_error($field, "$field_name must not exceed {$options['max_length']} characters");
 
+        if(isset($options['min_value']) && ($value < $options['min_value']))
+            $add_to_entry = $this->__add_error($field, "$field_name must be greater than {$options['min_value']}");
+
+        if(isset($options['max_value']) && ($value > $options['max_value']))
+            $add_to_entry = $this->__add_error($field, "$field_name must be less than {$options['max_value']}");
+
         if(isset($options['match'])) {
             $to_match = $this->__get_field($options['match']['field']) ?? $options['match']['value'] ?? null;
             $match_field = $options['match']['field_name'] ?? $options['match']['field'] ?? null;
@@ -270,6 +276,8 @@ trait ValidateCleanMap {
      *    bucket_url?: string,
      *    min_length?: int,
      *    max_length?: int,
+     *    min_value?: double,
+     *    max_value?: double,
      *    match?: array{
      *      field?: string,
      *      value?: mixed,
