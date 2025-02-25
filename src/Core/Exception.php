@@ -68,7 +68,6 @@ abstract class Exception {
      * @param Throwable|null $exception
      * @param string $log_title
      * @return void
-     * @throws \Exception
      */
     public static function log(mixed $message, Throwable $exception = null, string $log_title = "") : void
     {
@@ -81,7 +80,6 @@ abstract class Exception {
      * @param Throwable $exception
      * @param bool $add_ascii_char
      * @return string
-     * @throws \Exception
      */
     public static function text(Throwable $exception, bool $add_ascii_char = true) : string
     {
