@@ -11,14 +11,24 @@ class LayObject
     use IsSingleton;
 
     /**
+     * Cached response of an already parsed $_POST data
+     * @var array|object
+     */
+    private static array|object $gotten_json;
+
+    /**
      * Gets the HTTP request form data
      * @param bool $throw_errors
      * @param bool $return_array
+     * @param bool $invalidate_cache
      * @return array|object
      * @throws \Exception
      */
-    public function get_json(bool $throw_errors = true, bool $return_array = false): array|object
+    public function get_json(bool $throw_errors = true, bool $return_array = false, bool $invalidate_cache = false): array|object
     {
+        if(isset(self::$gotten_json) and !$invalidate_cache)
+            return self::$gotten_json;
+
         if($_SERVER['REQUEST_METHOD'] != "POST") {
             parse_str(file_get_contents("php://input"), $data);
 
@@ -28,10 +38,14 @@ class LayObject
                     "LayObject::ERR",
                 );
 
-            if($return_array)
-                return $data;
+            self::$gotten_json = $data;
 
-            return (object) $data;
+            if($return_array)
+                return self::$gotten_json;
+
+            self::$gotten_json = (object) self::$gotten_json;
+
+            return self::$gotten_json;
         }
 
         $data = file_get_contents("php://input");
@@ -55,7 +69,9 @@ class LayObject
                 "LayObject::ERR",
             );
 
-        return json_decode($data, $return_array) ?? $post;
+        self::$gotten_json =  json_decode($data, $return_array) ?? $post;
+
+        return self::$gotten_json;
     }
 
     /**
