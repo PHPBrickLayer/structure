@@ -18,4 +18,5 @@ enum FileUploadExtension : string
     case PNG = "image/png";
     case JPEG = "image/jpeg";
     case HEIC = "image/heic";
+    case WEBP = "image/webp";
 }

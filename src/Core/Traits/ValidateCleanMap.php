@@ -284,7 +284,7 @@ trait ValidateCleanMap {
      *      message?: string,
      *    },
      *    clean?: bool|array{
-     *      escape: EscapeType,
+     *      escape: EscapeType|array<EscapeType>,
      *      strict?: bool,
      *    },
      * } $options
