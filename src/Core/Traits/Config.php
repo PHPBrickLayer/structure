@@ -9,6 +9,7 @@ use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Libs\LayFn;
 use BrickLayer\Lay\Libs\Mail\Mailer;
+use BrickLayer\Lay\Orm\Enums\OrmDriver;
 use BrickLayer\Lay\Orm\SQL;
 use Closure;
 use JetBrains\PhpStorm\ArrayShape;
@@ -547,10 +548,10 @@ trait Config
         return $this;
     }
 
-    public static function connect(?array $connection_params = null): SQL
+    public static function connect(?array $connection_params = null, ?OrmDriver $driver = null): SQL
     {
         self::is_init();
 
-        return self::$SQL_INSTANCE = SQL::init($connection_params);
+        return self::$SQL_INSTANCE = SQL::init($connection_params, $driver);
     }
 }

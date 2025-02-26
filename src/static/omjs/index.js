@@ -762,9 +762,13 @@ const $copyToClipboard = (str, successMsg = "Copied to clipboard") => {
         return true;
     }
     try {
-        if ($id("LAY-ENVIRONMENT") !== "DEV") return true;
+        if ($id("LAY-ENVIRONMENT").content !== "DEV") {
+            console.warn(`You tried to use a deprecated way to copy a string in a non dev environment. String: \n ${str}`);
+            return true;
+        }
     } catch (e) {
         console.warn("Using a function that depends on core Lay features outside Lay framework");
+        console.warn(`You tried to use a deprecated way to copy a string in a non dev environment. String: \n ${str}`);
         return true;
     }
     const el = document.createElement("textarea");

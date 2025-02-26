@@ -54,13 +54,18 @@ trait TransactionHandler
 
         $link = self::new()->get_link();
 
-        if(method_exists($link,"begin_transaction"))
-            return $link->begin_transaction($flags, $name);
+        if(method_exists($link,"begin_transaction")) {
+            try {
+                return $link->begin_transaction($flags, $name);
+            } catch (\Throwable $exception) {
+
+            }
+        }
 
         if(method_exists($link,"exec")) {
             try{
                 return $link->exec("BEGIN;");
-            } catch (\Exception $exception){}
+            } catch (\Throwable $exception){}
         }
 
         return false;
@@ -84,13 +89,16 @@ trait TransactionHandler
         if(self::$BEGIN_TRANSACTION_COUNTER == 0) {
             $link = self::new()->get_link();
 
-            if(method_exists($link,"commit"))
-                return $link->commit($flags, $name);
+            if(method_exists($link,"commit")) {
+                try {
+                    return $link->commit($flags, $name);
+                } catch (\Throwable $exception) {}
+            }
 
             if(method_exists($link,"exec")) {
                 try{
                     return $link->exec("COMMIT;");
-                } catch (\Exception $exception){}
+                } catch (\Throwable $exception){}
             }
         }
 
@@ -115,13 +123,16 @@ trait TransactionHandler
 
         if(!$link || isset($link->connect_error)) return false;
 
-        if(method_exists($link,"rollback"))
-            return $link->rollback($flags, $name);
+        if(method_exists($link,"rollback")) {
+            try{
+                return $link->rollback($flags, $name);
+            } catch (\Throwable $exception){}
+        }
 
         if(method_exists($link,"exec")) {
             try{
                 return $link->exec("ROLLBACK;");
-            } catch (\Exception $exception){}
+            } catch (\Throwable $exception){}
         }
 
         return false;
