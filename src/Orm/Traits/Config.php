@@ -6,6 +6,7 @@ use BrickLayer\Lay\Libs\LayDir;
 use BrickLayer\Lay\Orm\Enums\OrmDriver;
 use BrickLayer\Lay\Orm\Enums\OrmQueryType;
 use BrickLayer\Lay\Orm\Enums\OrmReturnType;
+use BrickLayer\Lay\Orm\SQL;
 use JetBrains\PhpStorm\ArrayShape;
 use mysqli;
 use SQLite3;
@@ -95,10 +96,12 @@ trait Config{
                 "<div style='color: #e00; font-weight: bold; margin: 5px 1px;'>Cannot initialize connection</div>"
             );
 
-        if(!$auto_commit)
-            $mysqli->options(MYSQLI_INIT_COMMAND, 'SET AUTOCOMMIT = 0');
-        else
+        $auto_commit ??= true;
+
+        if($auto_commit)
             $mysqli->options(MYSQLI_INIT_COMMAND, 'SET AUTOCOMMIT = 1');
+        else
+            $mysqli->options(MYSQLI_INIT_COMMAND, 'SET AUTOCOMMIT = 0');
 
         $mysqli->options(MYSQLI_OPT_CONNECT_TIMEOUT, 5);
 
@@ -126,7 +129,7 @@ trait Config{
             return $this->get_link();
         }
 
-        if (filter_var($silent, FILTER_VALIDATE_BOOL))
+        if (filter_var(@$silent, FILTER_VALIDATE_BOOL))
             return null;
 
         self::exception(
@@ -328,8 +331,8 @@ trait Config{
 
     /**
      * @param $connection mysqli|array|null|string The link to a mysqli connection or an array of [host, user, password, db]
-     * @param bool $persist_connection
-     * When nothing is passed, the class assumes dev isn't doing any db operation
+     * @param OrmDriver $driver
+     * @return SQL
      */
     public static function init(
         #[ArrayShape([
@@ -350,7 +353,7 @@ trait Config{
                 flag => int,
             ]',
         ])] mysqli|array|null|string $connection = null,
-        OrmDriver $driver = OrmDriver::MYSQL
+        ?OrmDriver $driver = OrmDriver::MYSQL
     ): self
     {
         if($connection === null){
