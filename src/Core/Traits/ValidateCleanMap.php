@@ -147,7 +147,7 @@ trait ValidateCleanMap {
         };
 
         if(isset($options['is_file'])) {
-            if(isset($options['bucket_url']))
+            if(isset($options['bucket_url']) || isset(self::$_bucket_url))
                 $options['upload_storage'] ??= FileUploadStorage::BUCKET;
 
             $file = self::__file_upload_handler(
