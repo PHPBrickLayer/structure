@@ -154,7 +154,7 @@ trait ValidateCleanMap {
                 file_limit: $options['max_size'] ?? self::$_max_size ?? null,
                 extension_list: $options['allowed_types'] ?? self::$_allowed_types ?? null,
                 dimension: $options['dimension'] ?? self::$_dimension ?? [800, 800],
-                storage: $options['upload_storage'] ?? self::$_upload_storage ?? null,
+                storage: $options['upload_storage'] ?? self::$_upload_storage ?? FileUploadStorage::BUCKET,
                 bucket_url: $options['bucket_url'] ?? self::$_bucket_url ?? null,
             );
 
