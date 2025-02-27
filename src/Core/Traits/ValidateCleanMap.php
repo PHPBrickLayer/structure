@@ -158,7 +158,7 @@ trait ValidateCleanMap {
                 bucket_url: $options['bucket_url'] ?? self::$_bucket_url ?? null,
             );
 
-            if(!$is_required && !$file['uploaded'] && $file['error_type'] == FileUploadErrors::TMP_FILE_EMPTY) {
+            if(!$is_required && !$file['uploaded'] && $file['error_type'] == FileUploadErrors::FILE_NOT_SET) {
                 $add_to_entry = false;
                 return $return();
             }
