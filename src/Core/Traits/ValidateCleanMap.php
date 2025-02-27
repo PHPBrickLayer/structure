@@ -158,9 +158,14 @@ trait ValidateCleanMap {
                 bucket_url: $options['bucket_url'] ?? self::$_bucket_url ?? null,
             );
 
+            if(!$is_required && !$file['uploaded'] && $file['error_type'] == FileUploadErrors::TMP_FILE_EMPTY) {
+                $add_to_entry = false;
+                return $return();
+            }
+
             if(!$file['uploaded']) {
-                $add_to_entry = $this->__add_error($field, "$field_name: " . $file['error']);
-                LayException::log($file['dev_error'], log_title: "VCM::Log");
+                $add_to_entry = $this->__add_error($field, $options['required_message'] ?? "$field_name: " . $file['error']);
+                LayException::log($file['dev_error'] . "; Error Type: " . $file['error_type']->name, log_title: "VCM::Log");
                 return $return();
             }
 
