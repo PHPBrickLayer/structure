@@ -387,7 +387,7 @@ trait SelectorOOPCrud
 
     final public function update() : bool { return $this->edit(); }
 
-    final public function select(?array $__Internal__ = null): array|null|Generator
+    final public function select(?array $__Internal__ = null): array|null|Generator|\mysqli_result|\SQLite3Result
     {
         $d = $__Internal__ ?? $this->get_vars();
         $table = $d['table'] ?? null;

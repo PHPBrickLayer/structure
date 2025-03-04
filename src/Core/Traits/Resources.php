@@ -191,6 +191,7 @@ trait Resources {
      * Returns a generated project ID if it is generated or found, else returns null
      * @param bool $overwrite
      * @return string|null
+     * @throws \Exception
      */
     public static function generate_project_identity(bool $overwrite = false) : ?string
     {
@@ -214,10 +215,14 @@ trait Resources {
         if(!file_exists($identity_file))
             return $gen_id();
 
-        if(empty(file_get_contents($identity_file)))
+        $static_id = file_get_contents($identity_file);
+
+        if(empty($static_id))
             return $gen_id();
 
-        return null;
+        self::server_data()->project_id = $static_id;
+
+        return $static_id;
     }
 
     public static function get_project_identity() : string
@@ -227,13 +232,7 @@ trait Resources {
         if($static_id)
             return $static_id;
 
-        if($current_id = self::generate_project_identity())
-            return $current_id;
-
-        $current_id = Gen::uuid(32);
-        file_put_contents(self::server_data()->lay . "identity", $current_id);
-
-        return $current_id;
+        return self::generate_project_identity();
     }
 
 }
