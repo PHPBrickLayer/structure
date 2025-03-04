@@ -68,10 +68,17 @@ trait ValidateCleanMap {
         return self::$_filled_request->{$key} ?? null;
     }
 
-    private function __validate_captcha(string $value, bool $as_jwt = false) : bool
+    private function __validate_captcha(string $value, bool $as_jwt = false, ?string $jwt = null) : array
     {
-        if ($as_jwt)
-            return Captcha::validate_as_jwt($value);
+        if ($as_jwt) {
+            if(is_null($jwt))
+                return [
+                    "valid" => false,
+                    "message" => "Invalid captcha jwt received. Captcha has been wrongly implemented on the client's side",
+                ];
+
+            return Captcha::validate_as_jwt($jwt, $value);
+        }
 
         return Captcha::validate_as_session($value);
     }
@@ -196,10 +203,13 @@ trait ValidateCleanMap {
         $is_empty = empty($value);
 
         if(isset($options['is_captcha'])) {
-            $test = $this->__validate_captcha($value, $options['captcha_is_jwt'] ?? false);
+            $as_jwt = isset($options['captcha_jwt_field']);
+            $jwt = $as_jwt ? $this->__get_field('captcha_jwt_field') : null;
 
-            if(!$test) {
-                $add_to_entry = $this->__add_error($field, $options['required_message'] ?? "The value of captcha is incorrect, please check the field: $field_name and try again");
+            $test = $this->__validate_captcha($value, $as_jwt, $jwt);
+
+            if(!$test['valid']) {
+                $add_to_entry = $this->__add_error($field, $options['required_message'] ?? "Field: $field_name returned response: " . $test['message']);
                 self::$_break_validation = true;
             }
 
@@ -292,7 +302,7 @@ trait ValidateCleanMap {
      *    is_date?: bool,
      *    is_file?: bool,
      *    is_captcha?: bool,
-     *    captcha_is_jwt?: bool,
+     *    captcha_jwt_field?: string|null,
      *    hash?: bool,
      *    allowed_types?: FileUploadExtension,
      *    max_size?: int,
