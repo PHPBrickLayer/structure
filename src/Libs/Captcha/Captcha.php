@@ -8,6 +8,7 @@ use BrickLayer\Lay\Libs\LayFn;
 use Jose\Component\Core\AlgorithmManager;
 use Jose\Component\Core\JWK;
 use Jose\Component\Core\JWT;
+use Jose\Component\Core\Util\Base64UrlSafe;
 use Jose\Component\Signature\Algorithm\HS256;
 use Jose\Component\Signature\JWSBuilder;
 use Jose\Component\Signature\JWSVerifier;
@@ -26,10 +27,18 @@ class Captcha
         return substr($random_num, 0, 6);
     }
 
-    public static function as_img() : void
+    private static function gen_jwk() : JWK
     {
-        LayFn::header("Content-Type: image/png");
+        $secret = hash('sha256', $_ENV['CAPTCHA_SECRET'] ?? LayConfig::get_project_identity(), true);
 
+        return new JWK([
+            "kty" => "oct",
+            "k" => Base64UrlSafe::encodeUnpadded($secret),
+        ]);
+    }
+
+    public static function as_img()
+    {
         $code  = self::gen_code();
 
         $font = __DIR__ . "/font.ttf";
@@ -51,9 +60,18 @@ class Captcha
 
         imagettftext($layer, 26, 2, 1, 39, $white, $font, $code);
 
+        ob_start();
         imagepng($layer);
+        $img = ob_get_clean();
+
         imagedestroy($layer);
 
+        $img = "data:image/png;base64," . base64_encode($img);
+
+        return [
+            "img" => $img,
+            "jwt"  => self::as_jwt($code)
+        ];
     }
 
     /**
@@ -61,24 +79,18 @@ class Captcha
      */
     public static function as_jwt(?string $captcha = null) : string
     {
-        $secret = $_ENV['CAPTCHA_SECRET'] ?? LayConfig::get_project_identity();
-
         $payload = [
             "captcha" => $captcha ?? self::gen_code(),
             "expire" => (int) LayDate::date("60 seconds", figure: true),
             "issued" => LayDate::now(),
         ];
 
-        $jwk = new JWK([
-            "kty" => "oct",
-            "k" => base64_encode($secret),
-        ]);
 
         return (new CompactSerializer())->serialize(
             (  new JWSBuilder( new AlgorithmManager([ new HS256() ]) )  )
                 ->create()
                 ->withPayload(json_encode($payload))
-                ->addSignature($jwk, ["alg" => "HS256"])
+                ->addSignature(self::gen_jwk(), ["alg" => "HS256"])
                 ->build(),
             0
         );
@@ -86,16 +98,8 @@ class Captcha
 
     public static function validate_as_jwt(string $jwt, string $captcha_value) : array
     {
-        $secret = $_ENV['CAPTCHA_SECRET'] ?? LayConfig::get_project_identity();
-
         // The algorithm manager with the HS256 algorithm.
         $algo = new AlgorithmManager([ new HS256() ]);
-
-        // Our key.
-        $jwk = new JWK([
-            'kty' => 'oct',
-            'k' => base64_encode($secret),
-        ]);
 
         // The JWS Verifier.
         $jwsVerifier = new JWSVerifier($algo);
@@ -104,7 +108,7 @@ class Captcha
 
         $jws = $serializer->unserialize($jwt);
 
-        if (!$jwsVerifier->verifyWithKey($jws, $jwk, 0))
+        if (!$jwsVerifier->verifyWithKey($jws, self::gen_jwk(), 0))
             return [
                 "valid" => false,
                 "message" => "Invalid token!",
@@ -112,7 +116,7 @@ class Captcha
 
         $payload = json_decode($jws->getPayload(), true);
 
-        if (LayDate::expired($payload['exp']))
+        if (LayDate::expired($payload['expire']))
             return [
                 "valid" => false,
                 "message" => "Token has expired!",
