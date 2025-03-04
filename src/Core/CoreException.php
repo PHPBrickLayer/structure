@@ -61,7 +61,7 @@ class CoreException
                 raw: ["err_code" => $err_no]
             );
 
-        }, E_ALL|E_STRICT);
+        });
 
         set_exception_handler(function ($exception) {
             $this->use_exception(

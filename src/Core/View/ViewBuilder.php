@@ -3,11 +3,10 @@ declare(strict_types=1);
 
 namespace BrickLayer\Lay\Core\View;
 
-use BrickLayer\Lay\Core\Api\ApiEngine;
+use BrickLayer\Lay\Core\Annotate\CurrentRouteData;
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\Traits\IsSingleton;
-use BrickLayer\Lay\Core\View\Annotate\CurrentRouteData;
 use BrickLayer\Lay\Core\View\Enums\DomainType;
 use BrickLayer\Lay\Core\View\Tags\Anchor;
 use BrickLayer\Lay\Libs\LayArray;
@@ -250,9 +249,9 @@ final class ViewBuilder
     /**
      * Get the metadata of a request received in a ViewBuilder class
      *
-     * @param string $key
+     * @param CoreKey $key
      * @return DomainType|string|array
-     * @return  DomainType|string|array<int>|array{
+     * @return  CurrenrtRouteResponse DomainType|string|array<int>|array{
      *      route: string,
      *      route_as_array: array<int>,
      *      route_has_end_slash: bool,

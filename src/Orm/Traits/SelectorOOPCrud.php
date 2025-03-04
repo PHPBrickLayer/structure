@@ -2,6 +2,7 @@
 
 namespace BrickLayer\Lay\Orm\Traits;
 
+use BrickLayer\Lay\Core\LayException;
 use BrickLayer\Lay\Libs\String\Enum\EscapeType;
 use BrickLayer\Lay\Libs\String\Escape;
 use BrickLayer\Lay\Orm\Enums\OrmDriver;
@@ -49,7 +50,73 @@ trait SelectorOOPCrud
     }
 
     /**
-     * Inserts to the database. Returns the inserted row if it detects an id column;
+     * Handles insert conflict
+     * @param array $orm_vars
+     * @param string $table
+     * @param string $column_and_values
+     * @param string|null $clause
+     * @return string|null
+     */
+    private function handle_insert_conflict(array $orm_vars, string $table, string $column_and_values, ?string $clause = null) : ?string
+    {
+        $conflict = $orm_vars['on_conflict'] ?? null;
+
+        if(!$conflict) return null;
+
+        $driver = self::get_driver();
+
+        if($driver == OrmDriver::MYSQL) {
+            $update = "";
+
+            if($conflict['action'] == 'IGNORE' || $conflict['action'] == 'NOTHING')
+                return "INSERT IGNORE INTO $table $column_and_values $clause";
+
+            if($conflict['action'] == 'REPLACE')
+                return "REPLACE INTO $table $column_and_values $clause";
+
+            if(empty($conflict['update_columns']))
+                $this->oop_exception(
+                    "OnConflict Error; Update column cannot be empty when action is implicitly UPDATE"
+                );
+
+            foreach ($conflict['update_columns'] as $col) {
+                $update .= "$col = VALUES($col),";
+            }
+
+            $update = rtrim($update, ",");
+
+            return "INSERT INTO $table $column_and_values ON DUPLICATE KEY UPDATE $update $clause;";
+        }
+
+        $unique_cols = !empty($conflict['unique_columns'])  ? implode(",", $conflict['unique_columns']) : null;
+
+        if(!$unique_cols)
+            return null;
+
+        if($conflict['action'] == 'REPLACE')
+            return "INSERT OR REPLACE INTO $table $column_and_values $clause";
+
+        if($conflict['action'] == 'IGNORE' || $conflict['action'] == 'NOTHING')
+            return "INSERT INTO $table $column_and_values ON CONFLICT($unique_cols) DO NOTHING $clause;";
+
+        $update_cols = "";
+        $excluded = $driver == OrmDriver::SQLITE ? "excluded" : "EXCLUDED";
+
+        if(empty($conflict['update_columns']))
+            $this->oop_exception("OnConflict Error; Update column cannot be empty when action is implicitly UPDATE");
+
+        foreach ($conflict['update_columns'] as $col) {
+            $update_cols .= "$col = $excluded.$col,";
+        }
+        $update_cols = rtrim($update_cols, ",");
+
+        return "INSERT INTO $table $column_and_values ON CONFLICT ($unique_cols) DO UPDATE SET $update_cols $clause;";
+    }
+
+    /**
+     * Inserts a single record into the database.
+     *
+     * This function returns the inserted row if it detects an id column and $return_object is true;
      * Otherwise it returns a true on success and false on fail
      * @param array|null $column_and_values
      * @param bool $return_object if true and `$column_and_values` contains an id column, it returns the inserted object
@@ -125,9 +192,10 @@ trait SelectorOOPCrud
             $column_and_values = "SET $column_and_values";
 
         $table = self::escape_identifier($table);
+        $query = $this->handle_insert_conflict($d, $table, $column_and_values, $clause) ?? "INSERT INTO $table $column_and_values $clause";
 
         $op = $this->capture_result(
-            [$this->query("INSERT INTO $table $column_and_values $clause", $d) ?? false, $d],
+            [$this->query($query, $d) ?? false, $d],
             'bool',
         );
 
@@ -144,8 +212,86 @@ trait SelectorOOPCrud
         return $op;
     }
 
+    /**
+     * Insert multiple rows
+     * @param array $multi_column_and_values
+     * @return bool
+     */
+    final public function insert_multi(array $multi_column_and_values): bool
+    {
+        $d = $this->get_vars();
+        $table = $d['table'] ?? null;
+        $clause = $d['clause'] ?? null;
+
+        if (empty($table))
+            $this->oop_exception("You did not initialize the `table`. Use the `->table(String)` method like this: `->value('your_table_name')`");
+
+        $columns = [];
+        $values = "";
+
+        try {
+            foreach ($multi_column_and_values as $entry) {
+                $values .= "(";
+
+                foreach ($entry as $col => $val) {
+                    if(!isset($columns[$col]))
+                        $columns[$col] = self::escape_identifier($col);
+
+                    $val = Escape::clean($val, EscapeType::TRIM_ESCAPE);
+
+                    if($val === null) {
+                        $values .= "NULL,";
+                        continue;
+                    }
+
+                    if($col == 'id') {
+                        $insert_id = $val;
+
+                        if(trim(strtolower($val)) == 'uuid()')
+                            $insert_id = $this->uuid();
+
+                        $val = $insert_id;
+                    }
+
+                    // If value is not a function like uuid(), timestamp(), etc; enclose it quotes
+                    if (!preg_match("/^[a-zA-Z]+\([^)]*\)$/", $val))
+                        $val = "'$val'";
+
+                    $values .= "$val,";
+                }
+
+                $values = rtrim($values, ",") . "),";
+            }
+        } catch (Exception $e) {
+            $this->oop_exception("Error occurred when trying to insert into a DB", $e);
+        }
+
+        $values = rtrim($values, ",");
+        $columns = "(" . implode(",", $columns) . ")";
+        $column_and_values = "$columns VALUES $values";
+
+        $table = self::escape_identifier($table);
+        $d['query_type'] = OrmQueryType::INSERT;
+
+        $query = $this->handle_insert_conflict($d, $table, $column_and_values, $clause) ?? "INSERT INTO $table $column_and_values $clause";
+
+        return $this->capture_result(
+            [$this->query($query, $d) ?? false, $d],
+            'bool',
+        );
+    }
+
+    /**
+     * @deprecated since version v0.6.18
+     * @see insert_multi() for multiple insert or
+     * @see insert() for single insert
+     * @see query() for custom insert
+     * @return bool
+     */
     final public function insert_raw(): bool
     {
+        LayException::log("This method is deprecated. Use `insert()` or `insert_multi()` instead", log_title: "DeprecatedMethod");
+
         $d = $this->get_vars();
         $columns = $d['columns'] ?? null;
         $values = $d['values'] ?? null;
@@ -241,7 +387,7 @@ trait SelectorOOPCrud
 
     final public function update() : bool { return $this->edit(); }
 
-    final public function select(?array $__Internal__ = null): array|null|Generator|\mysqli_result
+    final public function select(?array $__Internal__ = null): array|null|Generator
     {
         $d = $__Internal__ ?? $this->get_vars();
         $table = $d['table'] ?? null;

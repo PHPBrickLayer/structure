@@ -5,6 +5,7 @@ namespace BrickLayer\Lay\Libs\Abstract;
 
 use BrickLayer\Lay\Core\Api\Enums\ApiStatus;
 use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Core\Traits\ControllerHelper;
 use BrickLayer\Lay\Libs\Cron\CronController;
 use BrickLayer\Lay\Libs\LayDate;
 use BrickLayer\Lay\Libs\LayObject;
@@ -14,6 +15,8 @@ use BrickLayer\Lay\Orm\SQL;
 
 trait TableTrait
 {
+    use ControllerHelper;
+
     protected static ?string $created_by;
     protected static string $created_table_name;
 
@@ -129,28 +132,6 @@ trait TableTrait
     ////               ////
     ///     HELPERS    ////
     ///                ////
-
-    protected static function resolve(int|ApiStatus $code = 409, ?string $message = null, ?array $data = null): array
-    {
-        $code = is_int($code) ? $code : $code->value;
-
-        return [
-            "code" => $code,
-            "msg" => $message ?? "Request could not be processed at the moment, please try again later",
-            "data" => $data
-        ];
-    }
-
-    protected static function cleanse(mixed &$value, EscapeType $type = EscapeType::STRIP_TRIM_ESCAPE, bool $strict = true)
-    {
-        $value = $value ? Escape::clean($value, $type, ['strict' => $strict]) : "";
-        return $value;
-    }
-
-    protected static function get_json(bool $throw_error = true): bool|null|object
-    {
-        return LayObject::new()->get_json($throw_error);
-    }
 
     public static function created_by(?string $actor_id) : void
     {

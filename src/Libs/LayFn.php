@@ -11,7 +11,7 @@ final class LayFn
 
     public static function num_format(?int $num, int $digits) : string
     {
-        if(!$num)
+        if($num == null || $num == 0)
             return "0";
 
         $lookup = [
@@ -57,7 +57,9 @@ final class LayFn
         $word = preg_quote($word, '~');
         $pattern = $preg_pattern ?? '~^(' . $word . ')|(' . $word . ')$~';
 
-        return preg_replace($pattern, "", $string);
+        $word = preg_replace($pattern, "", $string);
+
+        return $word ?? $string;
     }
 
     public static function ltrim_word(string $string, string $word) : string
@@ -168,5 +170,4 @@ final class LayFn
         // Recurse to the next level
         self::recursive_array_update($key_chain, $value, $array_to_update[$current_key]);
     }
-
 }
