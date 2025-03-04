@@ -279,6 +279,9 @@ final class ViewEngine {
 
         $this->add_cache_header($cache);
 
+        http_response_code();
+        LayFn::header("Content-Type: text/html");
+
         echo $x;
     }
 
