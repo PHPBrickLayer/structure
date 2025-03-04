@@ -134,15 +134,24 @@ class Captcha
         ];
     }
 
-    public static function validate_as_session(string $value) : bool
+    public static function validate_as_session(string $value) : array
     {
         if (!isset($_SESSION["LAY_CAPTCHA_CODE"]))
-            return false;
+            return [
+                "valid" => false,
+                "message" => "Captcha value is not set",
+            ];
 
         if ($value == $_SESSION["LAY_CAPTCHA_CODE"])
-            return true;
+            return [
+                "valid" => true,
+                "message" => "Valid captcha value!",
+            ];
 
-        return false;
+        return [
+            "valid" => false,
+            "message" => "Invalid captcha received!",
+        ];
     }
 
 }
