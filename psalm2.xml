@@ -1,0 +1,11 @@
+<psalm>
+    <!-- Other config options -->
+    <fileExtensions>
+        <extension name=".php" />
+        <extension name=".PsalmTypes.php" />
+    </fileExtensions>
+
+    <globals>
+        <file path="src/Types/PsalmTypes.php" />
+    </globals>
+</psalm>

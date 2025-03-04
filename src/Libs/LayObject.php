@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace BrickLayer\Lay\Libs;
 
 use BrickLayer\Lay\Core\Exception;
+use BrickLayer\Lay\Core\LayException;
 use BrickLayer\Lay\Core\Traits\IsSingleton;
 
 class LayObject
@@ -17,6 +18,7 @@ class LayObject
     private static array|object $gotten_json;
 
     /**
+     * @deprecated
      * Gets the HTTP request form data
      * @param bool $throw_errors
      * @param bool $return_array
@@ -26,6 +28,8 @@ class LayObject
      */
     public function get_json(bool $throw_errors = true, bool $return_array = false, bool $invalidate_cache = false): array|object
     {
+        LayException::log("This method is deprecated. Use `ControllerHelper::request()` instead", log_title: "DeprecatedMethod");
+
         if(isset(self::$gotten_json) and !$invalidate_cache)
             return self::$gotten_json;
 
@@ -74,26 +78,4 @@ class LayObject
         return self::$gotten_json;
     }
 
-    /**
-     * @param string $token JWT token
-     * @param bool $assoc_array return the object as an associative array
-     * @return mixed Returns what json_decode returns
-     */
-    public function jwt_decode(string $token, bool $assoc_array = false): mixed
-    {
-        return json_decode(
-            base64_decode(
-                str_replace(
-                    '_',
-                    '/',
-                    str_replace(
-                        '-',
-                        '+',
-                        explode('.', $token)[1]
-                    )
-                )
-            ),
-            $assoc_array
-        );
-    }
 }

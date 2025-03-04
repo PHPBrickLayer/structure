@@ -4,6 +4,7 @@ namespace BrickLayer\Lay\Core\Traits;
 
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\LayException;
+use BrickLayer\Lay\Libs\Captcha\Captcha;
 use BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadErrors;
 use BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadExtension;
 use BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadStorage;
@@ -15,6 +16,25 @@ use BrickLayer\Lay\Libs\String\Enum\EscapeType;
 use BrickLayer\Lay\Libs\String\Escape;
 use Closure;
 use Exception;
+
+/**
+ * @psalm-type VcmRules array{
+ *     required?: bool,
+ *     db_col_required?: bool,
+ *     clean?: bool|array{
+ *       escape: EscapeType,
+ *       strict: bool,
+ *     },
+ *     sub_dir?: string,
+ *     allowed_types?: FileUploadExtension,
+ *     max_size?: int,
+ *     new_file_name?: string,
+ *     dimension?: array,
+ *     upload_storage?: FileUploadStorage,
+ *     bucket_url?: string,
+ *     upload_handler?: callable,
+ *  }
+ */
 
 trait ValidateCleanMap {
     private static array|object|null $_filled_request;
@@ -48,15 +68,12 @@ trait ValidateCleanMap {
         return self::$_filled_request->{$key} ?? null;
     }
 
-    private function __validate_captcha(string $value, string $captcha_key = "CAPTCHA_CODE") : bool
+    private function __validate_captcha(string $value, bool $as_jwt = false) : bool
     {
-        if (!isset($_SESSION[$captcha_key]))
-            return false;
+        if ($as_jwt)
+            return Captcha::validate_as_jwt($value);
 
-        if ($value == $_SESSION[$captcha_key])
-            return true;
-
-        return false;
+        return Captcha::validate_as_session($value);
     }
 
     /**
@@ -179,7 +196,7 @@ trait ValidateCleanMap {
         $is_empty = empty($value);
 
         if(isset($options['is_captcha'])) {
-            $test = $this->__validate_captcha($value, $options['captcha_key']);
+            $test = $this->__validate_captcha($value, $options['captcha_is_jwt'] ?? false);
 
             if(!$test) {
                 $add_to_entry = $this->__add_error($field, $options['required_message'] ?? "The value of captcha is incorrect, please check the field: $field_name and try again");
@@ -259,7 +276,9 @@ trait ValidateCleanMap {
      *    field_name?: string,
      *    required_message?: string,
      *    db_col?: string,
+     *    before_clean?: callable<mixed>,
      *    fun?: callable<mixed>,
+     *    after_clean?: callable<mixed>,
      *    must_contain?: array<string>,
      *    must_validate?: array{
      *      fun: callable<mixed>,
@@ -273,8 +292,8 @@ trait ValidateCleanMap {
      *    is_date?: bool,
      *    is_file?: bool,
      *    is_captcha?: bool,
+     *    captcha_is_jwt?: bool,
      *    hash?: bool,
-     *    captcha_key?: string,
      *    allowed_types?: FileUploadExtension,
      *    max_size?: int,
      *    new_file_name?: string,
@@ -357,8 +376,8 @@ trait ValidateCleanMap {
             }
         }
 
-        if(isset($options['fun']))
-            $value = $options['fun']($value);
+        if(isset($options['fun']) || isset($options['before_clean']))
+            $value = ($options['fun'] ?? $options['before_clean'])($value);
 
         if($apply_clean) {
             // Clean and Map field
@@ -377,6 +396,9 @@ trait ValidateCleanMap {
             }
         }
 
+        if(isset($options['after_clean']))
+            $value = $options['after_clean']($value);
+
         if(self::$_db_col_required && !isset($options['db_col']))
             LayException::throw_exception(
                 "DB column for field [$field] was not specified and is required by the validation rule",
@@ -394,23 +416,7 @@ trait ValidateCleanMap {
     /**
      * Set a general rule that applies to every object of a particular request
      *
-     * @param array{
-     *     required?: bool,
-     *     db_col_required?: bool,
-     *     clean?: bool|array{
-     *       escape: EscapeType,
-     *       strict: bool,
-     *     },
-     *     sub_dir?: string,
-     *     allowed_types?: FileUploadExtension,
-     *     max_size?: int,
-     *     new_file_name?: string,
-     *     dimension?: array,
-     *     upload_storage?: FileUploadStorage,
-     *     bucket_url?: string,
-     *     upload_handler?: callable,
-     *  } $options
-     *
+     * @param VcmRules $options
      * @return ValidateCleanMap
      */
     public function vcm_rules(array $options) : self
@@ -433,22 +439,7 @@ trait ValidateCleanMap {
     /**
      * Initialize the request from the server for validation
      * @param array|object $request Post Request
-     * @param null|array{
-     *      required?: bool,
-     *      db_col_required?: bool,
-     *      clean?: bool|array{
-     *        escape: EscapeType,
-     *        strict: bool,
-     *      },
-     *      sub_dir?: string,
-     *      allowed_types?: FileUploadExtension,
-     *      max_size?: int,
-     *      new_file_name?: string,
-     *      dimension?: array,
-     *      upload_storage?: FileUploadStorage,
-     *      bucket_url?: string,
-     *      upload_handler?: callable,
-     *   } $vcm_rules vcm rules can also be set via this parameter
+     * @param null|VcmRules $vcm_rules vcm rules can also be set via this parameter
      * @return self
      */
     public static function vcm_start(array|object $request, ?array $vcm_rules = null) : self

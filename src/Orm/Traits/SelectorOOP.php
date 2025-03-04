@@ -235,6 +235,34 @@ trait SelectorOOP
         return $this->store_vars('return_as', OrmReturnType::EXECUTION);
     }
 
+    /**
+     * Handles conflict when inserting into a table with unique columns
+     * @param array<string> $unique_columns
+     * @param array<string> $update_columns
+     * @param "UPDATE"|"IGNORE"|"REPLACE"|"NOTHING" $action
+     * @param string|null $constraint a unique constraint name created by the database admin or developer
+     * @return SelectorOOP|SQL
+     */
+    final public function on_conflict(
+        array $unique_columns = [],
+        array $update_columns = [],
+        string $action = "UPDATE",
+        ?string $constraint = null,
+    ): self
+    {
+        return $this->store_vars('on_conflict', [
+            "unique_columns" => $unique_columns,
+            "update_columns" => $update_columns,
+            "action" => strtoupper($action),
+            "constraint" => $constraint,
+        ]);
+    }
+
+    /**
+     * Used to bind values to placeholders in a query. This accepts a regular non-associative array
+     * @param array $num_array
+     * @return SQL|SelectorOOP
+     */
     final public function bind_num(array $num_array): self
     {
         if(@LayArray::some($num_array, fn($v,$i) => is_string($i))[0])
@@ -243,6 +271,11 @@ trait SelectorOOP
         return $this->store_vars('bind_num', $num_array);
     }
 
+    /**
+     * Used to bind values to placeholders in a query. This accepts an associative array
+     * @param array $assoc_array
+     * @return SQL|SelectorOOP
+     */
     final public function bind_assoc(array $assoc_array): self
     {
         if(@LayArray::some($assoc_array, fn($v,$i) => is_int($i))[0])
@@ -251,27 +284,67 @@ trait SelectorOOP
         return $this->store_vars('bind_assoc', $assoc_array);
     }
 
+    /**
+     * Group the result of a select query by a column.
+     *
+     * This is useful when you have a result with duplicate columns/values;
+     * group will pick one and represent the values by that group.
+     *
+     * @link https://www.w3schools.com/sql/sql_groupby.asp
+     *
+     * @param string $by
+     * @return SQL|SelectorOOP
+     */
     final public function group(string $by): self
     {
         return $this->store_vars('group', ["condition" => $by,], true);
     }
 
+    /**
+     * An alternative to WHERE. It can be used to filter or aggregate a result according to a condition.
+     *
+     * @link https://www.w3schools.com/sql/sql_having.asp
+     * @param string $condition
+     * @return SQL|SelectorOOP
+     */
     final public function having(string $condition): self
     {
         return $this->store_vars('having', ["condition" => $condition,], true);
     }
 
+    /**
+     * Sorts the result of a select query by a column and by an ascending or descending order.
+     *
+     * @param string $column
+     * @param string $order
+     * @return SQL|SelectorOOP
+     */
     final public function sort(string $column, #[ExpectedValues(['ASC', 'asc', 'DESC', 'desc'])] string $order = "ASC"): self
     {
         return $this->store_vars('sort', ["sort" => $column, "type" => $order,], true);
     }
 
+    /**
+     * Select a range of values from a column.
+     *
+     * This is very useful when you're trying to implement a date range
+     * @param string $column
+     * @param string $start
+     * @param string $end
+     * @param bool $fmt_to_date
+     * @param bool $allow_null
+     * @return SQL|SelectorOOP
+     */
     final public function between(string $column, string $start, string $end, bool $fmt_to_date = true, bool $allow_null = true): self
     {
         return $this->store_vars('between', ["col" => $column, "start" => $start, "end" => $end, "format" => $fmt_to_date, "allow_null" => $allow_null]);
     }
 
     /**
+     * Limit the result by a value, and by a page number.
+     *
+     * This is very useful for pagination.
+     *
      * @param int $max_result Specify query result limit
      * @param int $page_number Specifies the page batch based on the limit
      * @param string|null $column_to_check
@@ -282,27 +355,56 @@ trait SelectorOOP
         return $this->store_vars('limit', ["index" => $page_number, "max_result" => $max_result, "column" => $column_to_check,]);
     }
 
+    /**
+     * Tell the orm to not return null or false.
+     *
+     * If it's a select query, and it's empty, instead of returning an null, it will return an empty array.
+     * If it's an update query and the record was not updated, instead of returning false, it will return true.
+     *
+     * Note: When there is an error, it will still throw an exception. This doesn't prevent that.
+     * @return SQL|SelectorOOP
+     */
     final public function not_empty(): self
     {
         $this->no_null();
         return $this->no_false();
     }
 
+    /**
+     * @see not_empty
+     * @return SelectorOOP|SQL
+     */
     final public function no_null(): self
     {
         return $this->store_vars('can_be_null', false);
     }
 
+    /**
+     * @see not_empty
+     * @return SQL|SelectorOOP
+     */
     final public function no_false(): self
     {
         return $this->store_vars('can_be_false', false);
     }
 
+    /**
+     * You can use this to instruct the orm to return a generator instead of an array;
+     * then you can yield the result as needed.
+     *
+     * @return SQL|SelectorOOP
+     */
     final public function use_generator(): self
     {
         return $this->store_vars('return_as', OrmReturnType::GENERATOR);
     }
 
+    /**
+     * Instruct the ORM to loop through the result and return an associative array of results.
+     *
+     * @param string|null $clause
+     * @return array|null
+     */
     final public function loop_assoc(?string $clause = null): ?array
     {
         if ($clause) $this->clause($clause);
@@ -311,16 +413,32 @@ trait SelectorOOP
         return $this->select();
     }
 
+    /**
+     * Instruct the ORM to loop through the result and return an multidimensional array of results.
+     *
+     * @return SQL|SelectorOOP
+     */
     final public function loop(): self
     {
         return $this->store_vars('loop', true);
     }
 
+    /**
+     * Instruct the ORM to return an associative array of results.
+     *
+     * @return SQL|SelectorOOP
+     */
     final public function assoc(): self
     {
         return $this->store_vars('fetch_as', OrmReturnType::ASSOC);
     }
 
+    /**
+     * Instruct the ORM to loop through the result and return a multidimensional array of results that isn't associative.
+     *
+     * @param string|null $clause
+     * @return array|null
+     */
     final public function loop_row(?string $clause = null): ?array
     {
         if ($clause) $this->clause($clause);
@@ -329,22 +447,45 @@ trait SelectorOOP
         return $this->select();
     }
 
+    /**
+     * Instruct the ORM to return a multidimensional array of results that isn't associative.
+     *
+     * @return SQL|SelectorOOP
+     */
     final public function row(): self
     {
         return $this->store_vars('fetch_as', OrmReturnType::NUM);
     }
 
+    /**
+     * Instruct the ORM to return a single row of results.
+     *
+     * @param string|array $columns
+     * @return bool|array
+     */
     final public function then_insert(string|array $columns): bool|array
     {
         $this->column($columns);
         return $this->insert();
     }
 
+    /**
+     * This is used to specify the columns to be selected, inserted or updated.
+     * Accepts a column name or an array of column names with values.
+     *
+     * @param string|array $cols
+     * @return SQL|SelectorOOP
+     */
     final public function column(string|array $cols): self
     {
         return $this->store_vars('columns', $cols);
     }
 
+    /**
+     * Update query with a clause directly here
+     * @param string|null $clause
+     * @return bool
+     */
     final public function then_update(?string $clause = null): bool
     {
         if ($clause)
@@ -353,6 +494,11 @@ trait SelectorOOP
         return $this->edit();
     }
 
+    /**
+     * Select query with a clause directly here
+     * @param string|null $clause
+     * @return array|Generator
+     */
     final public function then_select(?string $clause = null): array|Generator
     {
         if ($clause)
@@ -389,7 +535,7 @@ trait SelectorOOP
      * @param callable $temporary_fn
      * @return mixed
      */
-    private function _store_vars_temporarily(array $vars, callable $temporary_fn): mixed
+    protected function _store_vars_temporarily(array $vars, callable $temporary_fn): mixed
     {
         self::$current_index = 969;
         $this->cached_options[self::$current_index] = $vars;
@@ -404,7 +550,7 @@ trait SelectorOOP
         return $data;
     }
 
-    private function get_vars(): array
+    protected function get_vars(): array
     {
         $r = $this->cached_options[self::$current_index];
         unset($this->cached_options[self::$current_index]);
@@ -416,7 +562,7 @@ trait SelectorOOP
         return $r;
     }
 
-    private function oop_exception(string $message, $exception = null): void
+    protected function oop_exception(string $message, $exception = null): void
     {
         Exception::new()->use_exception("SQL_OOP::ERR", $message, exception: $exception);
     }

@@ -3,21 +3,25 @@ declare(strict_types=1);
 
 namespace BrickLayer\Lay\Core\View;
 
+use BrickLayer\Lay\Core\Annotate\CurrentRouteData;
 use BrickLayer\Lay\Core\Api\ApiEngine;
+use BrickLayer\Lay\Core\Enums\CustomContinueBreak;
 use BrickLayer\Lay\Core\Enums\LayServerType;
 use BrickLayer\Lay\Core\Exception;
-use BrickLayer\Lay\Core\View\Annotate\CurrentRouteData;
-use BrickLayer\Lay\Libs\LayDate;
-use BrickLayer\Lay\Libs\LayFn;
-use JetBrains\PhpStorm\ExpectedValues;
-use BrickLayer\Lay\Core\Enums\CustomContinueBreak;
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\Traits\IsSingleton;
 use BrickLayer\Lay\Core\View\Enums\DomainCacheKeys;
 use BrickLayer\Lay\Core\View\Enums\DomainType;
+use BrickLayer\Lay\Libs\LayDate;
+use BrickLayer\Lay\Libs\LayFn;
+use BrickLayer\Lay\Types\PsalmTypes;
+use JetBrains\PhpStorm\ExpectedValues;
 use ReflectionClass;
 use ReflectionException;
-use Web\Admin\Plaster;
+
+/**
+ * @psalm-import-type CurrentRouteResponse from PsalmTypes
+ */
 
 class Domain {
     use IsSingleton;
@@ -543,7 +547,7 @@ class Domain {
 
     /**
      * @param string $key
-     * @return string|DomainType|array
+     * @return CurrentRouteResponse
      * @return  DomainType|string|array<int>|array{
      * route: string,
      * route_as_array: array<int>,

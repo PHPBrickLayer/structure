@@ -58,32 +58,32 @@ class CronController
 
     public function delete(): array
     {
-        $job_id = self::get_json()->id;
+        $job_id = self::request()->id;
 
         self::cleanse($job_id);
 
         if (!LayCron::new()->unset($job_id)) {
             $this->delete_record($job_id, self::$created_by);
-            return self::resolve(2, "Could not delete job, maybe job has been deleted already");
+            return self::res_warning("Could not delete job, maybe job has been deleted already");
         }
 
         if ($this->delete_record($job_id, self::$created_by))
-            return self::resolve(1, "Cron job deleted successfully");
+            return self::res_success( "Cron job deleted successfully");
 
-        return self::resolve();
+        return self::res_warning();
     }
 
     public function prune_table() : array
     {
         if($this->empty_trash())
-            return self::resolve(1, "Deleted jobs have been removed from the DB");
+            return self::res_warning("Deleted jobs have been removed from the DB");
 
-        return self::resolve();
+        return self::res_warning();
     }
 
     public function add(): array
     {
-        $post = self::get_json();
+        $post = self::request();
 
         $raw_schedule = $post->schedule;
         $raw_script = $post->script;
@@ -94,7 +94,7 @@ class CronController
 
         if ($job = $this->job_exists($post->script, $post->schedule)) {
             $this->play_script($job['id']);
-            return self::resolve(1, "Job exists already! Reactivated successfully");
+            return self::res_success("Job exists already! Reactivated successfully");
         }
 
         $id = $this->uuid();
@@ -108,7 +108,7 @@ class CronController
             $res = $cron->exec($raw_schedule . " " . $raw_script)[''];
 
         if (!$res['exec'])
-            return self::resolve(0, $res['msg']);
+            return self::res_warning($res['message']);
 
         if (
             !$this->new_record([
@@ -118,10 +118,10 @@ class CronController
                 "use_php" => $post->use_php ? 1 : 0,
                 "created_by" => self::$created_by
             ])
-        ) return self::resolve();
+        ) return self::res_warning();
 
 
-        return self::resolve(1, "Job added successfully!");
+        return self::res_success( "Job added successfully!");
     }
 
     public function extract_job_id(array $arg_values): ?string
@@ -138,7 +138,7 @@ class CronController
 
     public function run_script() : array
     {
-        $job_id = self::get_json()->id;
+        $job_id = self::request()->id;
 
         self::cleanse($job_id);
 
@@ -165,28 +165,28 @@ class CronController
 
         exec("'$bin' $script $tag", $out);
 
-        return self::resolve(1, "Script executed!", ['output' => implode(PHP_EOL , $out ?? '')]);
+        return self::res_success( "Script executed!", ['output' => implode(PHP_EOL , $out ?? '')]);
     }
 
     public function pause_script() : array
     {
-        $job_id = self::get_json()->id;
+        $job_id = self::request()->id;
 
         if (!LayCron::new()->unset($job_id))
-            return self::resolve(2, "Could not pause job, maybe job has been paused already");
+            return self::res_warning( "Could not pause job, maybe job has been paused already");
 
         if(
             $this->edit_record($job_id, [
                 "active" => '0'
             ], self::$created_by)
-        ) return self::resolve(1, "Script paused successfully");
+        ) return self::res_success( "Script paused successfully");
 
-        return self::resolve();
+        return self::res_warning();
     }
 
     public function play_script(?string $job_id = null) : array
     {
-        $job_id ??= self::get_json()->id;
+        $job_id ??= self::request()->id;
         $job = $this->get_job($job_id);
 
         $raw_script = $job['script'] . " " . self::JOB_CLI_KEY . " " . $job_id;
@@ -200,15 +200,15 @@ class CronController
             $res = $cron->exec($raw_schedule . " " . $raw_script)[''];
 
         if (!$res['exec'])
-            return self::resolve(0, $res['msg']);
+            return self::res_warning($res['message']);
 
         if(
             $this->edit_record($job_id, [
                 "active" => 1,
             ], self::$created_by)
-        ) return self::resolve(1, "Script executed successfully");
+        ) return self::res_success( "Script executed successfully");
 
-        return self::resolve();
+        return self::res_warning();
     }
 
     public function list(): array

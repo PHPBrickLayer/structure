@@ -4,6 +4,7 @@ namespace  BrickLayer\Lay\Core\Traits;
 
 use BrickLayer\Lay\Core\Api\Enums\ApiStatus;
 use BrickLayer\Lay\Core\CoreException;
+use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayException;
 use BrickLayer\Lay\Libs\LayFn;
 use BrickLayer\Lay\Libs\LayObject;
@@ -12,22 +13,90 @@ use BrickLayer\Lay\Libs\String\Escape;
 use Throwable;
 
 trait ControllerHelper {
-    public static function cleanse(mixed &$value, EscapeType $type = EscapeType::STRIP_TRIM_ESCAPE, bool $strict = true)
+    /**
+     * Cached request form data of an already parsed $_POST data
+     * @var array|object
+     */
+    private static array|object $cached_request_fd;
+
+    /**
+     * Quickly clean a value without having to go through the VCM route or calling the `Escape::clean()` method
+     *
+     * @see Escape::clean()
+     * @see ValidateCleanMap
+     *
+     * @param mixed $value
+     * @param EscapeType $type
+     * @param bool $strict
+     * @return mixed
+     */
+    public static function cleanse(mixed &$value, EscapeType $type = EscapeType::STRIP_TRIM_ESCAPE, bool $strict = true): mixed
     {
         $value = $value ? Escape::clean($value, $type, ['strict' => $strict]) : "";
         return $value;
     }
 
     /**
-     * Get HTTP request form data
+     * Get HTTP request form data.
+     *
+     * This method attempts to get form data once, and caches the response,
+     * except when the $invalidate_cache is set to true
+     *
      * @param bool $throw_error
      * @param bool $as_array
+     * @param bool $invalidate_cache
      * @return array|object
      * @throws \Exception
      */
-    public static function request(bool $throw_error = true, bool $as_array = false): array|object
+    public static function request(bool $throw_error = true, bool $as_array = false, bool $invalidate_cache = false): array|object
     {
-        return LayObject::new()->get_json($throw_error, $as_array);
+        if(isset(self::$cached_request_fd) and !$invalidate_cache)
+            return self::$cached_request_fd;
+
+        if($_SERVER['REQUEST_METHOD'] != "POST") {
+            parse_str(file_get_contents("php://input"), $data);
+
+            if(!$data && $throw_error)
+                Exception::throw_exception(
+                    "Trying to access post data for a [" . $_SERVER['REQUEST_METHOD'] . "] method request",
+                    "LayObject::ERR",
+                );
+
+            self::$cached_request_fd = $data;
+
+            if($as_array)
+                return self::$cached_request_fd;
+
+            self::$cached_request_fd = (object) self::$cached_request_fd;
+
+            return self::$cached_request_fd;
+        }
+
+        $data = file_get_contents("php://input");
+
+        $msg = "No values found in request; check if you actually sent your values as \$_POST";
+        $post = $as_array ? $_POST : (object) $_POST;
+
+        if (!empty($data) && !str_starts_with($data, "{")) {
+            if((is_object($post) && empty(get_object_vars($post))) || empty($post)) {
+                $post = [];
+                @parse_str($data, $post);
+                $post = $as_array ? $post : (object) $post;
+            }
+
+            $msg = "JSON formatted \$_POST needed; but invalid JSON format was found";
+        }
+
+        if ($throw_error && empty($data) && empty($post))
+            Exception::throw_exception(
+                $msg,
+                "LayObject::ERR",
+            );
+
+        self::$cached_request_fd =  json_decode($data, $as_array) ?? $post;
+
+        return self::$cached_request_fd;
+
     }
 
     /**

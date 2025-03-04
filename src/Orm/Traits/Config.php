@@ -419,7 +419,8 @@ trait Config{
         return match ($string) {
             default => null,
             "mysql" => OrmDriver::MYSQL,
-            "sqlite" => OrmDriver::SQLITE
+            "sqlite" | "sqlite3" => OrmDriver::SQLITE,
+            "postgres" => OrmDriver::POSTGRES,
         };
     }
 

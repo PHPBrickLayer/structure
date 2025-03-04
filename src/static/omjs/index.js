@@ -645,7 +645,7 @@ const $cookie = (name = "*", value = null, expire = null, path = "/", domain = "
     let alreadyChecked;
     for (let i = 0; i < form.elements.length; i++) {
         let field = form.elements[i];
-        if (field.name && field.type === "file" && field.disabled === false) hasFile = true;
+        if (field.name && field.type === "file" && field.disabled === false && field.files.length > 0) hasFile = true;
         if (!field.name || field.disabled || field.type === "file" || field.type === "reset" || field.type === "submit" || field.type === "button") continue;
         if (field.type === "select-multiple") $loop(field.options, (v => {
             if (v.selected) addField(field.name, v.value);
@@ -806,7 +806,7 @@ const $preloader = (act = "show") => {
  * @modified 08/01/2025
  * @param {string|Object} url = url of request being sent or an object containing the url and options of the request
  * url should be passed using "action" as the key
- * @param {object} option
+ * @param {object|function|string} option
  * - `option.credential` {boolean} = send request with credentials when working with CORS
  *  - `option.content` {string} = XMLHTTPRequest [default = text/plain] only necessary when user wants to set custom dataType aside json,xml and native formData
  *  - `option.method` {string} = method of request [default = GET]
@@ -820,7 +820,7 @@ const $preloader = (act = "show") => {
  *  - `option.error` {function} = it executes for all kinds of error, it's like the finally of errors
  *  - `option.loaded` {function} = optional callback function that should be executed when the request is successful, either this or a promise
  *  - `option.abort` {function} = function to execute on upload abort
- * @param {anu} data same as `option.data`, only comes in play when three parameter wants to be used
+ * @param {boolean|object|string} data same as `option.data`, only comes in play when three parameter wants to be used
  * @return {Promise}
  */ const $curl = (url, option = {}, data = null) => new Promise(((resolve, reject) => {
     if ($type(url) === "Object") {
@@ -835,7 +835,7 @@ const $preloader = (act = "show") => {
         type: option
     };
     if ($type(data) === "Boolean") {
-        option.strict = data;
+        option.displayError = data;
         data = null;
     }
     let xhr = false, response;

@@ -1,0 +1,14 @@
+ServerSignature Off
+
+# Disable directory browsing
+Options -Indexes
+
+RewriteEngine On
+
+<Files .htaccess>
+RewriteRule ^(.*)$ index.php?brick=$1 [L,QSA]
+Order allow,deny
+Deny from all
+</Files>
+
+RewriteRule ^(.*)$ index.php?brick=$1 [L,QSA]

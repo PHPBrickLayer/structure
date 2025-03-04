@@ -1,0 +1,8 @@
+body {
+    border: solid 2px #e00;
+}
+
+.copyright {
+    position: fixed;
+    bottom: 15px;
+}

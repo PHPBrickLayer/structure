@@ -2,7 +2,7 @@
 
 namespace BrickLayer\Lay\Core\View;
 
-use BrickLayer\Lay\Core\View\Annotate\CurrentRouteData;
+use BrickLayer\Lay\Core\Annotate\CurrentRouteData;
 use BrickLayer\Lay\Core\View\Enums\DomainType;
 use JetBrains\PhpStorm\ExpectedValues;
 

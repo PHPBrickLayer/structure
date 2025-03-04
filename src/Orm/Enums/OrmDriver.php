@@ -6,7 +6,7 @@ namespace BrickLayer\Lay\Orm\Enums;
 enum OrmDriver : string {
     case MYSQL = "mysql";
     case SQLITE = "sqlite3";
-    case POSTGRE = "postgre";
+    case POSTGRES = "postgres";
 
     public static function stringify() : string
     {
