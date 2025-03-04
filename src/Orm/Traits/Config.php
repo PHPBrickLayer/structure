@@ -210,37 +210,31 @@ trait Config{
         if(!$link || !isset($link->host_info))
             return ["host" => "", "user" => "", "db" => "", "connected" => false];
 
-        if(!$link->ping() && !$ignore_no_conn)
-            self::exception(
-                "ConnErr",
-                "No connection detected: <h5 style='color: #008dc5'>Connection might be closed:</h5>",
-            );
-
         $pinged = self::get_pinged_data();
-        $now = time();
 
         if($pinged && self::$DB_ARGS['user'] == $pinged['user'] && self::$DB_ARGS['db'] == $pinged['db'])
             return $pinged;
 
-        $data = $this->query(
-            "SELECT SUBSTRING_INDEX(host, ':', 1) AS host_short, USER AS users, db FROM information_schema.processlist",
-            [ "fetch_as" => OrmReturnType::ASSOC, "query_type" => OrmQueryType::SELECT, ]
-        );
+        try {
+            $data = $this->query(
+                "SELECT SUBSTRING_INDEX(host, ':', 1) AS host_short, USER AS users, db FROM information_schema.processlist",
+                ["fetch_as" => OrmReturnType::ASSOC, "query_type" => OrmQueryType::SELECT,]
+            );
 
-        $data = [
-            "host" => $data['host_short'],
-            "user" => $data['users'],
-            "db" => $data['db'],
-            "connected" => true,
-            "expire" => strtotime("1 hour")
-        ];
+            $data = [
+                "host" => $data['host_short'],
+                "user" => $data['users'],
+                "db" => $data['db'],
+                "connected" => true,
+                "expire" => strtotime("1 hour")
+            ];
 
-        self::cache_pinged_data($data);
+            self::cache_pinged_data($data);
 
-        if (!$ignore_msg)
-            self::exception(
-                "ConnTest",
-                <<<CONN
+            if (!$ignore_msg)
+                self::exception(
+                    "ConnTest",
+                    <<<CONN
                         <h2>Connection Established!</h2>
                     <u>Your connection info states:</u>
                     <div style="color: gold; font-weight: bold; margin: 5px 1px;">
@@ -253,10 +247,21 @@ trait Config{
                         &gt; Database: <u>{$data['db']}</u>
                     </div>
                 CONN,
-                [ "type" => "success" ]
-            );
+                    [ "type" => "success" ]
+                );
 
-        return $data;
+            return $data;
+        } catch (\Throwable $e) {
+            if(!$ignore_no_conn)
+                self::exception(
+                    "ConnErr",
+                    "No connection detected: <h5 style='color: #008dc5'>Connection might be closed:</h5>",
+                    exception: $e
+                );
+
+        }
+
+        return ["host" => "", "user" => "", "db" => "", "connected" => false];
     }
 
     public function close(mysqli|SQLite3|null $link = null, bool $silent_error = false) : bool {
