@@ -135,7 +135,7 @@ trait ControllerHelper {
      *    data: array|null
      * }
      */
-    public static function res_success(string $message = "Successful", array $data = null, ApiStatus|int $code = ApiStatus::OK) : array
+    public static function res_success(string $message = "Successful", ?array $data = null, ApiStatus|int $code = ApiStatus::OK) : array
     {
         return self::__res_send([
             "status" => "success",
