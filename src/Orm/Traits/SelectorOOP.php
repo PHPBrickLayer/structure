@@ -246,7 +246,7 @@ trait SelectorOOP
     final public function on_conflict(
         array $unique_columns = [],
         array $update_columns = [],
-        string $action = "UPDATE",
+        #[ExpectedValues(["UPDATE", "IGNORE", "REPLACE", "NOTHING"])] string $action = "UPDATE",
         ?string $constraint = null,
     ): self
     {
