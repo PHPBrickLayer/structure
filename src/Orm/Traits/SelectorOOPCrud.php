@@ -88,13 +88,15 @@ trait SelectorOOPCrud
             return "INSERT INTO $table $column_and_values ON DUPLICATE KEY UPDATE $update $clause;";
         }
 
+        if($conflict['action'] == 'REPLACE')
+            return "INSERT OR REPLACE INTO $table $column_and_values $clause";
+
         $unique_cols = !empty($conflict['unique_columns'])  ? implode(",", $conflict['unique_columns']) : null;
 
         if(!$unique_cols)
-            return null;
-
-        if($conflict['action'] == 'REPLACE')
-            return "INSERT OR REPLACE INTO $table $column_and_values $clause";
+            $this->oop_exception(
+                "OnConflict Error; Only `REPLACE` actions can be ran without unique columns"
+            );
 
         if($conflict['action'] == 'IGNORE' || $conflict['action'] == 'NOTHING')
             return "INSERT INTO $table $column_and_values ON CONFLICT($unique_cols) DO NOTHING $clause;";

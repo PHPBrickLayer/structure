@@ -68,8 +68,14 @@ trait ValidateCleanMap {
         return self::$_filled_request->{$key} ?? null;
     }
 
-    private function __validate_captcha(string $value, bool $as_jwt = false, ?string $jwt = null) : array
+    private function __validate_captcha(?string $value, bool $as_jwt = false, ?string $jwt = null) : array
     {
+        if(is_null($value))
+            return [
+                "valid" => false,
+                "message" => "Captcha is required",
+            ];
+
         if ($as_jwt) {
             if(is_null($jwt))
                 return [
@@ -204,12 +210,12 @@ trait ValidateCleanMap {
 
         if(isset($options['is_captcha'])) {
             $as_jwt = isset($options['captcha_jwt_field']);
-            $jwt = $as_jwt ? $this->__get_field('captcha_jwt_field') : null;
+            $jwt = $as_jwt ? $this->__get_field($options['captcha_jwt_field']) : null;
 
             $test = $this->__validate_captcha($value, $as_jwt, $jwt);
 
             if(!$test['valid']) {
-                $add_to_entry = $this->__add_error($field, $options['required_message'] ?? "Field: $field_name returned response: " . $test['message']);
+                $add_to_entry = $this->__add_error($field, $options['required_message'] ?? "Field $field_name response: " . $test['message']);
                 self::$_break_validation = true;
             }
 

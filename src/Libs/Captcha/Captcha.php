@@ -37,9 +37,20 @@ class Captcha
         ]);
     }
 
-    public static function as_img()
+    private static function jwt_algo() : AlgorithmManager
     {
-        $code  = self::gen_code();
+        return new AlgorithmManager([ new HS256() ]);
+    }
+
+    /**
+     * Return a base 64 encoded captcha image stored in a session called `LAY_CAPTCHA_CODE`
+     * @param string|null $code
+     * @return string
+     * @throws RandomException
+     */
+    public static function as_img(?string $code = null, bool $set_header = false) : ?string
+    {
+        $code ??= self::gen_code();
 
         $font = __DIR__ . "/font.ttf";
 
@@ -66,15 +77,20 @@ class Captcha
 
         imagedestroy($layer);
 
-        $img = "data:image/png;base64," . base64_encode($img);
+        if($set_header) {
+            header("Content-Type: image/png");
+            echo $img;
+            return null;
+        }
 
-        return [
-            "img" => $img,
-            "jwt"  => self::as_jwt($code)
-        ];
+        return "data:image/png;base64," . base64_encode($img);
     }
 
     /**
+     * Return a JWT token with the captcha code as the payload.
+     * Captcha code is valid for 60 seconds.
+     * @param string|null $captcha
+     * @return string
      * @throws RandomException
      */
     public static function as_jwt(?string $captcha = null) : string
@@ -87,7 +103,7 @@ class Captcha
 
 
         return (new CompactSerializer())->serialize(
-            (  new JWSBuilder( new AlgorithmManager([ new HS256() ]) )  )
+            (  new JWSBuilder( self::jwt_algo() )  )
                 ->create()
                 ->withPayload(json_encode($payload))
                 ->addSignature(self::gen_jwk(), ["alg" => "HS256"])
@@ -96,19 +112,26 @@ class Captcha
         );
     }
 
+    /**
+     * Return an array with a base64 image and a JWT token
+     * @return array
+     * @throws RandomException
+     */
+    public static function as_img_jwt() : array
+    {
+        $code = self::gen_code();
+
+        return [
+            "img" => self::as_img($code),
+            "jwt"  => self::as_jwt($code)
+        ];
+    }
+
     public static function validate_as_jwt(string $jwt, string $captcha_value) : array
     {
-        // The algorithm manager with the HS256 algorithm.
-        $algo = new AlgorithmManager([ new HS256() ]);
+        $jws = (new CompactSerializer())->unserialize($jwt);
 
-        // The JWS Verifier.
-        $jwsVerifier = new JWSVerifier($algo);
-
-        $serializer = new CompactSerializer();
-
-        $jws = $serializer->unserialize($jwt);
-
-        if (!$jwsVerifier->verifyWithKey($jws, self::gen_jwk(), 0))
+        if (!(new JWSVerifier(self::jwt_algo()))->verifyWithKey($jws, self::gen_jwk(), 0))
             return [
                 "valid" => false,
                 "message" => "Invalid token!",
