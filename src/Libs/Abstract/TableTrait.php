@@ -12,6 +12,7 @@ use BrickLayer\Lay\Libs\LayObject;
 use BrickLayer\Lay\Libs\String\Enum\EscapeType;
 use BrickLayer\Lay\Libs\String\Escape;
 use BrickLayer\Lay\Orm\SQL;
+use JetBrains\PhpStorm\ExpectedValues;
 
 trait TableTrait
 {
@@ -136,6 +137,24 @@ trait TableTrait
     public static function created_by(?string $actor_id) : void
     {
         self::$created_by = $actor_id;
+    }
+
+    /**
+     * This response is for functions like cookieStorage that doesn't need to set http_response_code,
+     * yet it needs to return an array
+     *
+     * @param int $code
+     * @param string $message
+     * @param array $data
+     * @return array
+     */
+    public static function response(#[ExpectedValues([0,1,2])] int $code, string $message, array $data = []) : array
+    {
+        return [
+            "code" => $code,
+            "message" => $message,
+            "data" => $data
+        ];
     }
 
 }

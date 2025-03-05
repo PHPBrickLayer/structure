@@ -105,19 +105,12 @@ final class LayCookieStorage
         self::init(self::$table);
 
         if (!isset($_COOKIE[self::$session_user_cookie]))
-            return self::res_warning("Cookie is not set", ['code' => 2]);
+            return self::response(2, "Cookie is not set");
 
-        if ($id = self::decrypt_cookie()) {
-            $data = self::get_user_token($id);
-            $data['code'] = 1;
+        if ($id = self::decrypt_cookie())
+            return self::response(1, "Cookie Found!", self::get_user_token($id));
 
-            return self::res_success("Cookie Found!", $data);
-        }
-
-        return self::res_warning(
-            "Could not decrypt, invalid token saved",
-            ['code' => 0]
-        );
+        return self::response(0, "Could not decrypt, invalid token saved",);
     }
 
     private static function decrypt_cookie(): ?string
