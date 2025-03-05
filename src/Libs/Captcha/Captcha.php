@@ -48,7 +48,7 @@ class Captcha
      * @return string
      * @throws RandomException
      */
-    public static function as_img(?string $code = null) : string
+    public static function as_img(?string $code = null, bool $set_header = false) : ?string
     {
         $code ??= self::gen_code();
 
@@ -76,6 +76,12 @@ class Captcha
         $img = ob_get_clean();
 
         imagedestroy($layer);
+
+        if($set_header) {
+            header("Content-Type: image/png");
+            echo $img;
+            return null;
+        }
 
         return "data:image/png;base64," . base64_encode($img);
     }

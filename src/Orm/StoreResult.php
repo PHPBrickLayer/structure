@@ -20,7 +20,7 @@ class StoreResult
      * @param Closure|null $fun a function that should execute at the end of a given row storage
      * @return Generator|array returns of result that can be accessed as assoc or row or a generator
      */
-    public static function store(mysqli_result|SQLite3Result $exec, bool $return_loop, OrmReturnType $fetch_as = OrmReturnType::BOTH, string $except = "", Closure $fun = null) : Generator|array
+    public static function store(mysqli_result|SQLite3Result $exec, bool $return_loop, OrmReturnType $fetch_as = OrmReturnType::BOTH, string $except = "", ?Closure $fun = null) : Generator|array
     {
         $is_sqlite = SQL::get_driver() == OrmDriver::SQLITE;
 

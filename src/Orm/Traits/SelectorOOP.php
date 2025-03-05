@@ -200,9 +200,46 @@ trait SelectorOOP
         return $this->store_vars('except', $comma_separated_columns);
     }
 
-    final public function where(string $WHERE): self
+    final public function where(string $column, ?string $operator_or_value = null, ?string $value = null): self
     {
+        if(!is_null($operator_or_value)) {
+            $column = self::escape_identifier($column);
+
+            if(is_null($value))
+                $WHERE = "$column='$operator_or_value'";
+            else
+                $WHERE = "$column $operator_or_value '$value'";
+        } else
+            $WHERE = $column;
+
+
         return $this->clause("WHERE $WHERE");
+    }
+
+    final public function or_where(string $column, string $operator_or_value, ?string $value = null): self
+    {
+//        return $this->store_vars('join', ["table" => $join_table, "type" => $type,], true);
+
+        $column = self::escape_identifier($column);
+
+        if(is_null($value))
+            $WHERE = "$column='$operator_or_value'";
+        else
+            $WHERE = "$column $operator_or_value '$value'";
+
+        return $this->clause("OR $WHERE");
+    }
+
+    final public function and_where(string $column, string $operator_or_value, ?string $value = null): self
+    {
+        $column = self::escape_identifier($column);
+
+        if(is_null($value))
+            $WHERE = "$column='$operator_or_value'";
+        else
+            $WHERE = "$column $operator_or_value '$value'";
+
+        return $this->clause("AND $WHERE");
     }
 
     final public function clause(string $clause): self
