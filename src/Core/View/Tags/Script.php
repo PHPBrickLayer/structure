@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace BrickLayer\Lay\Core\View\Tags;
 
-use BrickLayer\Lay\Core\Enums\CustomContinueBreak;
+use BrickLayer\Lay\Core\Enums\LayLoop;
 use BrickLayer\Lay\Core\View\Tags\Traits\Standard;
 use BrickLayer\Lay\Core\View\ViewSrc;
 
@@ -44,12 +44,12 @@ final class Script
         $attr = $this->get_attr(function (&$value, $key) {
             if ($key == "defer") {
                 if (!$value)
-                    return CustomContinueBreak::CONTINUE;
+                    return LayLoop::CONTINUE;
 
                 $value = "true";
             }
 
-            return CustomContinueBreak::FLOW;
+            return LayLoop::FLOW;
         });
 
         $link = "\n\t<script src=\"$src\" $attr></script>";

@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace BrickLayer\Lay\Core\View\Tags;
 
-use BrickLayer\Lay\Core\Enums\CustomContinueBreak;
+use BrickLayer\Lay\Core\Enums\LayLoop;
 use BrickLayer\Lay\Core\View\Tags\Traits\Standard;
 use BrickLayer\Lay\Core\View\ViewSrc;
 
@@ -49,7 +49,7 @@ final class Link
         $attr = $this->get_attr(function ($v, $k) use ($lazy) {
 
             if (($lazy && ($k == "rel" || $k == "media" || $k == "type")) || $k == "src") {
-                return CustomContinueBreak::CONTINUE;
+                return LayLoop::CONTINUE;
             }
 
             return $v;

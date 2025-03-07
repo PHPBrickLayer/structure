@@ -2,6 +2,9 @@
 
 namespace BrickLayer\Lay\Core\Enums;
 
+/**
+ * @deprecated
+ */
 enum CustomContinueBreak : string
 {
     case CONTINUE = "__CONTD.__";

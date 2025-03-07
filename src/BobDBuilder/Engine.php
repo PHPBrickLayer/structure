@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace BrickLayer\Lay\BobDBuilder;
 
 use BrickLayer\Lay\BobDBuilder\Enum\CmdOutType;
-use BrickLayer\Lay\Core\Enums\CustomContinueBreak;
+use BrickLayer\Lay\Core\Enums\LayLoop;
 
 class Engine
 {
@@ -32,7 +32,7 @@ class Engine
         $this->plug->silent = $silent;
 
         foreach ($this->args as $i => $arg) {
-            if($this->plug->run($i, $arg) == CustomContinueBreak::BREAK)
+            if($this->plug->run($i, $arg) == LayLoop::BREAK)
                 break;
         }
 

@@ -2,7 +2,7 @@
 declare(strict_types=1);
 namespace BrickLayer\Lay\Libs;
 
-use BrickLayer\Lay\Core\Enums\CustomContinueBreak;
+use BrickLayer\Lay\Core\Enums\LayLoop;
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Libs\Symlink\LaySymlink;
@@ -145,7 +145,7 @@ class LayDir {
             $s = DIRECTORY_SEPARATOR;
 
             if (is_callable($skip_if) && $skip_if($file, $src_dir, $dest_dir))
-                return CustomContinueBreak::CONTINUE;
+                return LayLoop::CONTINUE;
 
             $current_src = $src_dir . $s . $file;
             $current_dest = $dest_dir . $s . $file;
@@ -159,7 +159,7 @@ class LayDir {
                     $use_symlink, $symlink_db_filename
                 );
 
-                return CustomContinueBreak::FLOW;
+                return LayLoop::FLOW;
             }
 
             $pre_copy_result = null;
@@ -167,11 +167,11 @@ class LayDir {
             if(is_callable($pre_copy))
                 $pre_copy_result = $pre_copy($file, $src_dir, $dest_dir);
 
-            if ($pre_copy_result == CustomContinueBreak::CONTINUE)
-                return CustomContinueBreak::CONTINUE;
+            if ($pre_copy_result == LayLoop::CONTINUE)
+                return LayLoop::CONTINUE;
 
-            if ($pre_copy_result == CustomContinueBreak::BREAK)
-                return CustomContinueBreak::BREAK;
+            if ($pre_copy_result == LayLoop::BREAK)
+                return LayLoop::BREAK;
 
             if($pre_copy_result == "CONTAINS_STATIC")
                 $has_js_css = true;
@@ -190,7 +190,7 @@ class LayDir {
                 $post_copy($file, $src_dir, $dest_dir);
         });
 
-        if($action == CustomContinueBreak::CONTINUE)
+        if($action == LayLoop::CONTINUE)
             return;
 
         if(self::is_empty($dest_dir)) {
@@ -211,7 +211,7 @@ class LayDir {
             self::read($dest_dir, function ($entry, $src, DirectoryIterator $entry_handler) use (&$all_symlinks) {
                 if (!$entry_handler->isLink()) {
                     $all_symlinks = false;
-                    return CustomContinueBreak::BREAK;
+                    return LayLoop::BREAK;
                 }
             }, false);
 
@@ -250,12 +250,12 @@ class LayDir {
 
     /**
      * @param string $directory
-     * @param callable (string $file_name, string $directory, DirectoryIterator $dir_handler) : CustomContinueBreak $action
+     * @param callable (string $file_name, string $directory, DirectoryIterator $dir_handler) : LayLoop $action
      * @param bool $throw_error
-     * @return CustomContinueBreak
+     * @return LayLoop
      * @throws \Exception
      */
-    public static function read(string $directory, callable $action, bool $throw_error = true) : CustomContinueBreak
+    public static function read(string $directory, callable $action, bool $throw_error = true) : LayLoop
     {
         if(!is_dir($directory)) {
             if($throw_error)
@@ -264,27 +264,27 @@ class LayDir {
                     "DirDoesNotExist"
                 );
 
-            return CustomContinueBreak::CONTINUE;
+            return LayLoop::CONTINUE;
         }
 
         $dir_handler = new DirectoryIterator($directory);
-        $result = CustomContinueBreak::FLOW;
+        $result = LayLoop::FLOW;
 
         while ($dir_handler->valid()) {
 
             if(!$dir_handler->isDot())
                 $result = $action($dir_handler->current()->getFilename(), $directory, $dir_handler);
 
-            if($result == CustomContinueBreak::BREAK)
+            if($result == LayLoop::BREAK)
                 break;
 
             $dir_handler->next();
         }
 
-        if($result == CustomContinueBreak::BREAK)
-            return CustomContinueBreak::BREAK;
+        if($result == LayLoop::BREAK)
+            return LayLoop::BREAK;
 
-        return CustomContinueBreak::FLOW;
+        return LayLoop::FLOW;
     }
 
     public static function is_empty(string $directory) : bool
@@ -296,7 +296,7 @@ class LayDir {
             function ($file, $dir, DirectoryIterator $dir_handler) use (&$empty) {
                 $empty = false;
                 $dir_handler->current();
-                return CustomContinueBreak::BREAK;
+                return LayLoop::BREAK;
             },
             false
         );
