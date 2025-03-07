@@ -5,7 +5,7 @@ namespace BrickLayer\Lay\Core\View;
 
 use BrickLayer\Lay\Core\Annotate\CurrentRouteData;
 use BrickLayer\Lay\Core\Api\ApiEngine;
-use BrickLayer\Lay\Core\Enums\CustomContinueBreak;
+use BrickLayer\Lay\Core\Enums\LayLoop;
 use BrickLayer\Lay\Core\Enums\LayServerType;
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
@@ -370,12 +370,12 @@ class Domain {
         ];
     }
 
-    private function test_pattern(string $id, string $pattern) : CustomContinueBreak {
+    private function test_pattern(string $id, string $pattern) : LayLoop {
         if(self::$domain_found)
-            return CustomContinueBreak::BREAK;
+            return LayLoop::BREAK;
 
         if(!$this->is_all_domain_cached())
-            return CustomContinueBreak::CONTINUE;
+            return LayLoop::CONTINUE;
 
         $domain = $this->active_pattern();
 
@@ -412,16 +412,16 @@ class Domain {
         if($is_subdomain && $domain['sub']['value'] == $pattern) {
             $builder = $this->get_cached_domain_details($id)['builder'];
             $this->activate_domain($id, $pattern, $builder);
-            return CustomContinueBreak::BREAK;
+            return LayLoop::BREAK;
         }
 
         if($is_local_domain && $domain['local']['value'] == $pattern) {
             $builder = $this->get_cached_domain_details($id)['builder'];
             $this->activate_domain($id, $pattern, $builder);
-            return CustomContinueBreak::BREAK;
+            return LayLoop::BREAK;
         }
 
-        return CustomContinueBreak::FLOW;
+        return LayLoop::FLOW;
     }
     private function match_cached_domains() : bool {
         if(self::$list_domain_only)
@@ -457,7 +457,7 @@ class Domain {
         foreach ($patterns as $pattern => $id) {
             $rtn = $this->test_pattern($id, $pattern);
 
-            if($rtn == CustomContinueBreak::BREAK)
+            if($rtn == LayLoop::BREAK)
                 return true;
 
             if($id == "default" || $pattern == "*") {

@@ -5,7 +5,7 @@ namespace BrickLayer\Lay\BobDBuilder\Cmd;
 use BrickLayer\Lay\BobDBuilder\BobExec;
 use BrickLayer\Lay\BobDBuilder\EnginePlug;
 use BrickLayer\Lay\BobDBuilder\Interface\CmdLayout;
-use BrickLayer\Lay\Core\Enums\CustomContinueBreak;
+use BrickLayer\Lay\Core\Enums\LayLoop;
 use BrickLayer\Lay\Libs\LayCache;
 use BrickLayer\Lay\Libs\LayDate;
 use BrickLayer\Lay\Libs\LayDir;
@@ -140,7 +140,7 @@ class Deploy implements CmdLayout
                     $last_modified = filemtime($key);
 
                     if(@$track_changes[$key] == $last_modified)
-                        return CustomContinueBreak::CONTINUE;
+                        return LayLoop::CONTINUE;
 
                     $track_changes[$key] = $last_modified;
 
@@ -149,7 +149,7 @@ class Deploy implements CmdLayout
 
                 } catch (Exception){}
 
-                return CustomContinueBreak::FLOW;
+                return LayLoop::FLOW;
             },
 
             // After the file has been copied, work on it if it meets our criteria
@@ -161,14 +161,14 @@ class Deploy implements CmdLayout
 
                     if($match) {
                         $changes++;
-                        return CustomContinueBreak::BREAK;
+                        return LayLoop::BREAK;
                     }
                 }
 
                 // Check if file matches one that needs to be copied only
                 if(in_array($file, $copy_only,true)) {
                     $changes++;
-                    return CustomContinueBreak::CONTINUE;
+                    return LayLoop::CONTINUE;
                 }
 
                 // Start file compression

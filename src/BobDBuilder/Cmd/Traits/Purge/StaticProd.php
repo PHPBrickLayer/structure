@@ -2,7 +2,7 @@
 
 namespace BrickLayer\Lay\BobDBuilder\Cmd\Traits\Purge;
 
-use BrickLayer\Lay\Core\Enums\CustomContinueBreak;
+use BrickLayer\Lay\Core\Enums\LayLoop;
 use BrickLayer\Lay\Libs\LayCache;
 use BrickLayer\Lay\Libs\LayDir;
 
@@ -31,7 +31,7 @@ trait StaticProd
         LayDir::read($this->plug->server->domains, function($domain, $directory) use (&$worked) {
             if(
                 $domain == "Api" ||  $domain == "GitAutoDeploy" || !is_dir($directory . $domain)
-            ) return CustomContinueBreak::CONTINUE;
+            ) return LayLoop::CONTINUE;
 
             $static = $directory . $domain . DIRECTORY_SEPARATOR . "static" . DIRECTORY_SEPARATOR . "prod";
 

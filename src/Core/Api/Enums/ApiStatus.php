@@ -69,4 +69,18 @@ enum ApiStatus : int
 
         return "$code $message";
     }
+
+    public static function is_ok(int|self $code) : bool
+    {
+        if(is_int($code))
+            return $code == self::OK->value;
+
+        return $code == self::OK;
+    }
+
+    public static function is_okay(int|self $code) : bool
+    {
+        return self::is_ok($code);
+    }
+
 }

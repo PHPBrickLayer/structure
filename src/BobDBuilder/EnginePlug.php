@@ -8,7 +8,7 @@ use BrickLayer\Lay\BobDBuilder\Helper\Console\Format\Background;
 use BrickLayer\Lay\BobDBuilder\Helper\Console\Format\Foreground;
 use BrickLayer\Lay\BobDBuilder\Helper\Console\Format\Style;
 use BrickLayer\Lay\BobDBuilder\Interface\CmdLayout;
-use BrickLayer\Lay\Core\Enums\CustomContinueBreak;
+use BrickLayer\Lay\Core\Enums\LayLoop;
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Libs\LayDir;
@@ -101,7 +101,7 @@ class EnginePlug
 
         LayDir::read(__DIR__ . $this->s . "Cmd", function ($class, $src, DirectoryIterator $handler) use ($namespace) {
             if ( $handler->isDir() )
-                return CustomContinueBreak::CONTINUE;
+                return LayLoop::CONTINUE;
 
             $cmd_class = $namespace . "\\" . explode(".php", $class)[0];
 
@@ -135,7 +135,7 @@ class EnginePlug
         });
     }
 
-    public function run(int $index, string $arg): CustomContinueBreak
+    public function run(int $index, string $arg): LayLoop
     {
         $this->current_arg = $arg;
         $this->current_index = $index;
@@ -147,10 +147,10 @@ class EnginePlug
 
         foreach ($this->plugged_args as $key => $arg) {
             if ($this->arg($arg['class'], [...$arg['cmd']], $this->tags[$key], ...$arg['value']))
-                return CustomContinueBreak::BREAK;
+                return LayLoop::BREAK;
         }
 
-        return CustomContinueBreak::CONTINUE;
+        return LayLoop::CONTINUE;
     }
 
     public function extract_tags(array $tags, ...$value_index) : mixed
