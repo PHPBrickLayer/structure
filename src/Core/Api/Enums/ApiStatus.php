@@ -83,4 +83,9 @@ enum ApiStatus : int
         return self::is_ok($code);
     }
 
+    public static function get_code(int|self $code) : int
+    {
+        return is_int($code) ? $code : $code->value;
+    }
+
 }

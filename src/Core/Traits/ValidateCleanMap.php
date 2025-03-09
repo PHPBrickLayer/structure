@@ -28,6 +28,7 @@ use Exception;
  *     sub_dir?: string,
  *     allowed_types?: FileUploadExtension,
  *     max_size?: int,
+ *     max_size_in_mb?: int,
  *     new_file_name?: string,
  *     dimension?: array,
  *     upload_storage?: FileUploadStorage,
@@ -122,7 +123,8 @@ trait ValidateCleanMap {
         array $extension_list,
         array $dimension,
         ?FileUploadStorage $storage = FileUploadStorage::BUCKET,
-        ?string $bucket_url = null
+        ?string $bucket_url = null,
+        ?FileUploadType $upload_type = null,
     ) : array
     {
         // If dev wishes to use a custom upload handler, it must follow the params list chronologically,
@@ -131,7 +133,8 @@ trait ValidateCleanMap {
             return self::$_upload_handler->call(
                 $this,
                 $post_name, $new_name, $upload_sub_dir, $file_limit,
-                $extension_list, $dimension, $storage, $bucket_url
+                $extension_list, $dimension, $storage, $bucket_url,
+                $upload_type
             );
         }
 
@@ -152,6 +155,7 @@ trait ValidateCleanMap {
             "bucket_path" => str_replace("uploads/", "", rtrim($dir, DIRECTORY_SEPARATOR . "/") . "/"),
             "extension_list" => $extension_list,
             "dimension" => $dimension,
+            "upload_type" => $upload_type ?? false
         ]))->response;
 
         if(!$file['uploaded'])
@@ -180,18 +184,27 @@ trait ValidateCleanMap {
             if(isset($options['bucket_url']) || isset(self::$_bucket_url))
                 $options['upload_storage'] ??= FileUploadStorage::BUCKET;
 
+            $max_size = $options['max_size'] ?? self::$_max_size ?? null;
+
+            if(isset($options['max_size_in_mb']))
+                $max_size = $options['max_size_in_mb'] * 1000000;
+
             $file = self::__file_upload_handler(
                 post_name: $field,
                 new_name: $options['new_file_name'],
                 upload_sub_dir: $options['sub_dir'] ?? self::$_sub_dir ?? null,
-                file_limit: $options['max_size'] ?? self::$_max_size ?? null,
+                file_limit: $max_size,
                 extension_list: $options['allowed_types'] ?? self::$_allowed_types ?? null,
                 dimension: $options['dimension'] ?? self::$_dimension ?? [800, 800],
                 storage: $options['upload_storage'] ?? self::$_upload_storage ?? null,
                 bucket_url: $options['bucket_url'] ?? self::$_bucket_url ?? null,
             );
 
-            if(!$is_required && !$file['uploaded'] && $file['error_type'] == FileUploadErrors::FILE_NOT_SET) {
+            if(
+                !$is_required && !$file['uploaded'] && (
+                    $file['error_type'] == FileUploadErrors::FILE_NOT_SET || $file['error_type'] == FileUploadErrors::TMP_FILE_EMPTY
+                )
+            ) {
                 $add_to_entry = false;
                 return $return();
             }
@@ -312,10 +325,12 @@ trait ValidateCleanMap {
      *    hash?: bool,
      *    allowed_types?: FileUploadExtension,
      *    max_size?: int,
+     *    max_size_in_mb?: float,
      *    new_file_name?: string,
      *    sub_dir?: string,
      *    dimension?: array,
      *    upload_storage?: FileUploadStorage,
+     *    upload_type?: FileUploadType,
      *    bucket_url?: string,
      *    min_length?: int,
      *    max_length?: int,
@@ -442,7 +457,12 @@ trait ValidateCleanMap {
         self::$_db_col_required = $options['db_col_required'] ?? null;
         self::$_sub_dir = $options['sub_dir'] ?? null;
         self::$_allowed_types = $options['allowed_types'] ?? null;
+
         self::$_max_size = $options['max_size'] ?? null;
+
+        if(isset($options['max_size_in_mb']))
+            self::$_max_size = $options['max_size_in_mb'] * 1000000;
+
         self::$_new_file_name = $options['new_file_name'] ?? null;
         self::$_dimension = $options['dimension'] ?? null;
         self::$_upload_storage = $options['upload_storage'] ?? null;

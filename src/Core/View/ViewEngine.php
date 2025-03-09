@@ -62,6 +62,7 @@ final class ViewEngine {
                 "lang" => $const[self::key_page]['lang'] ?? "en_US",
                 "html_lang" => $const[self::key_page]['html_lang'] ?? "en",
                 "type" => $const[self::key_page]['type'] ?? "website",
+                "response_code" => $const[self::key_page]['response_code'] ?? 200,
             ],
             self::key_html_attr =>  [
                 "class" =>  $const[self::key_html_attr]['class'] ?? null,
@@ -279,7 +280,7 @@ final class ViewEngine {
 
         $this->add_cache_header($cache);
 
-        http_response_code();
+        http_response_code($meta->{self::key_page}->response_code);
         LayFn::header("Content-Type: text/html");
 
         echo $x;

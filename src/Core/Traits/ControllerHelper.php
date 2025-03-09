@@ -104,6 +104,7 @@ trait ControllerHelper {
      *
      * @param mixed $data The data to be sent in the response.
      * @param int|ApiStatus $code The HTTP status code for the response.
+     * @param bool $send_header
      * @return array{
      *     code: int,
      *     status: string,
@@ -111,12 +112,14 @@ trait ControllerHelper {
      *     data: array|null
      * }
      */
-    private static function __res_send(array $data, ApiStatus|int $code = ApiStatus::OK) : array
+    private static function __res_send(array $data, ApiStatus|int $code = ApiStatus::OK, bool $send_header = false) : array
     {
-        $code = is_int($code) ? $code : $code->value;
+        $code = ApiStatus::get_code($code);
 
         http_response_code($code);
-        LayFn::header("Content-Type: application/json");
+
+        if($send_header)
+            LayFn::header("Content-Type: application/json");
 
         $data['code'] = $code;
         return $data;
@@ -128,6 +131,7 @@ trait ControllerHelper {
      * @param string $message
      * @param array|null $data
      * @param ApiStatus|int $code
+     * @param bool $send_header
      * @return array{
      *    code: int,
      *    status: string,
@@ -135,13 +139,13 @@ trait ControllerHelper {
      *    data: array|null
      * }
      */
-    public static function res_success(string $message = "Successful", ?array $data = null, ApiStatus|int $code = ApiStatus::OK) : array
+    public static function res_success(string $message = "Successful", ?array $data = null, ApiStatus|int $code = ApiStatus::OK, bool $send_header = false) : array
     {
         return self::__res_send([
             "status" => "success",
             "message" => $message,
             "data" => $data,
-        ], $code);
+        ], $code, $send_header);
     }
 
     /**
@@ -150,6 +154,7 @@ trait ControllerHelper {
      * @param string $message
      * @param array|null $data
      * @param ApiStatus|int $code
+     * @param bool $send_header
      * @return array{
      *    code: int,
      *    status: string,
@@ -157,13 +162,13 @@ trait ControllerHelper {
      *    data: array|null
      * }
      */
-    public static function res_warning(string $message = "Something went wrong", ?array $data = null, ApiStatus|int $code = ApiStatus::NOT_ACCEPTABLE) : array
+    public static function res_warning(string $message = "Something went wrong", ?array $data = null, ApiStatus|int $code = ApiStatus::NOT_ACCEPTABLE, bool $send_header = false) : array
     {
         return self::__res_send([
             "status" => "warning",
             "message" => $message,
             "data" => $data
-        ], $code);
+        ], $code, $send_header);
     }
 
     /**
@@ -172,6 +177,7 @@ trait ControllerHelper {
      * @param array|null $errors
      * @param ApiStatus|int $code
      * @param Throwable|null $exception
+     * @param bool $send_header
      * @return array{
      *    code: int,
      *    status: string,
@@ -179,7 +185,7 @@ trait ControllerHelper {
      *    errors: array|null
      * }
      */
-    public static function res_error(string $message = "An internal server error occurred", ?array $errors = null, ApiStatus|int $code = ApiStatus::CONFLICT, ?Throwable $exception = null) : array
+    public static function res_error(string $message = "An internal server error occurred", ?array $errors = null, ApiStatus|int $code = ApiStatus::CONFLICT, ?Throwable $exception = null, bool $send_header = false) : array
     {
         if(!CoreException::$DISPLAYED_ERROR && $code == ApiStatus::INTERNAL_SERVER_ERROR) {
             $last_error = error_get_last();
@@ -200,7 +206,7 @@ trait ControllerHelper {
             "status" => "error",
             "message" => $message,
             "errors" => $errors,
-        ], $code);
+        ], $code, $send_header);
     }
 
 }

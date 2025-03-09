@@ -2,11 +2,18 @@
 
 namespace BrickLayer\Lay\Libs;
 
+use BrickLayer\Lay\Core\Enums\LayLoop;
 use BrickLayer\Lay\Core\Traits\ControllerHelper;
 
 abstract class LayCSV {
     use ControllerHelper;
 
+    /**
+     * @param string $file
+     * @param \Closure<array> $callback
+     * @param int $max_size_kb
+     * @return array
+     */
     public static function process(string $file, \Closure $callback, int $max_size_kb = 1000) : array {
         $file_type = mime_content_type($file);
         $max_size_kb = $max_size_kb /1000;
@@ -21,17 +28,22 @@ abstract class LayCSV {
             return self::res_warning( "Invalid file type received, ensure your file is saved as <b>CSV</b>");
 
         $fh = fopen($file,'r');
-        $output = "";
+        $output = [];
 
-        while ($row = fgetcsv($fh)){
+        while ($row = fgetcsv($fh)) {
             $x = $callback($row);
 
-            if(is_array($x))
-                return $x;
+            if($x instanceof LayLoop::class) {
+                if ($x == LayLoop::CONTINUE)
+                    continue;
 
-            $output .= $x;
+                if ($x == LayLoop::BREAK)
+                    break;
+            }
+
+            $output[] = $x;
         }
 
-        return self::res_success( "Processed successfully", ["output" => $output]);
+        return self::res_success( "Processed successfully", $output);
     }
 }

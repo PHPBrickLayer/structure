@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace BrickLayer\Lay\Core\View;
 
 use BrickLayer\Lay\Core\Annotate\CurrentRouteData;
+use BrickLayer\Lay\Core\Api\Enums\ApiStatus;
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\Traits\IsSingleton;
@@ -66,6 +67,11 @@ final class ViewBuilder
         return $this->store_page_data(ViewEngine::key_local, $key, $value);
     }
 
+    public function set_response_code(ApiStatus|int $code): self
+    {
+        return $this->store_page_data(ViewEngine::key_page, "response_code", ApiStatus::get_code($code));
+    }
+
     private function store_page_data(string $section, ?string $key = null, mixed $value = null): self
     {
         if (self::$view_found)
@@ -119,6 +125,7 @@ final class ViewBuilder
         if (self::$view_found)
             return;
 
+        $this->set_response_code(404);
         self::$is_404 = true;
         self::$route = self::DEFAULT_ROUTE;
 
