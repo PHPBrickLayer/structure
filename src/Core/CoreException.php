@@ -556,6 +556,10 @@ class CoreException
         if($act['display_error'] && $opt['echo_error']) {
             self::$already_caught = true;
             self::$DISPLAYED_ERROR = true;
+
+            if(!$this->throw_as_json)
+                header("Content-Type: text/html");
+
             echo $act['error'];
         }
 

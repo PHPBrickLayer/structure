@@ -11,6 +11,7 @@ use BrickLayer\Lay\Core\View\ViewBuilder;
 use BrickLayer\Lay\Libs\ID\Gen;
 use BrickLayer\Lay\Libs\LayCache;
 use BrickLayer\Lay\Libs\LayDate;
+use BrickLayer\Lay\Libs\LayFn;
 use BrickLayer\Lay\Libs\String\Enum\EscapeType;
 use BrickLayer\Lay\Libs\String\Escape;
 use Closure;
@@ -443,20 +444,20 @@ final class ApiEngine {
 
     public static function set_response_header(int|ApiStatus $code, ?ApiReturnType $return_type = null, ?string $message = null, bool $end_request = true, bool $kill_process = false) : void
     {
-        header($_SERVER['SERVER_PROTOCOL'] . " " . ApiStatus::extract_status($code, $message));
+        LayFn::header($_SERVER['SERVER_PROTOCOL'] . " " . ApiStatus::extract_status($code, $message));
 
         switch ($return_type) {
             case ApiReturnType::JSON:
-                header("Content-Type: application/json");
+                LayFn::header("Content-Type: application/json");
                 break;
             case ApiReturnType::HTML:
-                header("Content-Type: text/html");
+                LayFn::header("Content-Type: text/html");
                 break;
             case ApiReturnType::XML:
-                header("Content-Type: text/xml");
+                LayFn::header("Content-Type: text/xml");
                 break;
             default:
-                header("Content-Type: text/plain");
+                LayFn::header("Content-Type: text/plain");
                 break;
         }
 
