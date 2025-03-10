@@ -170,4 +170,19 @@ final class LayFn
         // Recurse to the next level
         self::recursive_array_update($key_chain, $value, $array_to_update[$current_key]);
     }
+
+    /**
+     * Return environmental variable
+     * @param string $key
+     * @param mixed $default
+     * @return mixed
+     */
+    public static function env(string $key, mixed $default = null) : mixed
+    {
+        $key = strtoupper($key);
+
+        $_ENV[$key] ??= $default;
+
+        return $_ENV[$key];
+    }
 }

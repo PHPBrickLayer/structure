@@ -151,7 +151,7 @@ class SQL
             return $exec;
 
         if ($query_type == OrmQueryType::COUNT) {
-            if(self::$active_driver == OrmDriver::SQLITE)
+            if(OrmDriver::is_sqlite(self::$active_driver))
                 return $this->query_info['data'] = (int)$exec->fetchArray(SQLITE3_NUM);
 
             return $this->query_info['data'] = (int)$exec->fetch_row()[0];
@@ -162,7 +162,7 @@ class SQL
             $can_be_false = false;
 
         // Get affected rows count
-        if(self::$active_driver == OrmDriver::SQLITE && ($query_type == OrmQueryType::SELECT || $query_type == OrmQueryType::SELECT->name)) {
+        if(OrmDriver::is_sqlite(self::$active_driver) && ($query_type == OrmQueryType::SELECT || $query_type == OrmQueryType::SELECT->name)) {
             $x = explode("FROM", $query,2)[1] ?? null;
             $affected_rows = $x ? self::$link->querySingle("SELECT COUNT (*) FROM" . rtrim($x, ";") . ";") : null;
 

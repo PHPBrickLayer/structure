@@ -22,7 +22,7 @@ class StoreResult
      */
     public static function store(mysqli_result|SQLite3Result $exec, bool $return_loop, OrmReturnType $fetch_as = OrmReturnType::BOTH, string $except = "", ?Closure $fun = null) : Generator|array
     {
-        $is_sqlite = SQL::get_driver() == OrmDriver::SQLITE;
+        $is_sqlite = OrmDriver::is_sqlite(SQL::get_driver());
 
         $mysql_fetch = function (?OrmReturnType $custom_fetch_as = null) use ($exec, $fetch_as) : array {
             $fetch = match ($custom_fetch_as ?? $fetch_as) {
