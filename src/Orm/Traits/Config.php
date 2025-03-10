@@ -140,11 +140,11 @@ trait Config{
 
     private function connect_sqlite(string $db_file) : SQLite3
     {
-        if(self::$active_driver !== OrmDriver::SQLITE)
+        if(!OrmDriver::is_sqlite(self::$active_driver))
             self::exception(
                 "MismatchedDriver",
                 "Database connection argument is string [$db_file], but database driver is [" .
-                self::$active_driver->value . "]. Please change db driver to: " . OrmDriver::SQLITE->value
+                self::$active_driver->value . "]. Please change db driver to: " . OrmDriver::SQLITE->value . " or " .  OrmDriver::SQLITE3->value
             );
 
         $db = LayConfig::server_data()->db;
@@ -389,7 +389,7 @@ trait Config{
                         "flag" => $_ENV['DB_SSL_FLAG'] ?? 0
                     ],
                 ],
-                OrmDriver::SQLITE => $_ENV['SQLITE_DB']
+                OrmDriver::SQLITE, OrmDriver::SQLITE3 => $_ENV['SQLITE_DB'],
             };
         }
 
@@ -424,7 +424,7 @@ trait Config{
         return match ($string) {
             default => null,
             "mysql" => OrmDriver::MYSQL,
-            "sqlite" | "sqlite3" => OrmDriver::SQLITE,
+            "sqlite", "sqlite3" => OrmDriver::SQLITE,
             "postgres" => OrmDriver::POSTGRES,
         };
     }

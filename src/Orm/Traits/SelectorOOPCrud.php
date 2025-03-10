@@ -102,7 +102,7 @@ trait SelectorOOPCrud
             return "INSERT INTO $table $column_and_values ON CONFLICT($unique_cols) DO NOTHING $clause;";
 
         $update_cols = "";
-        $excluded = $driver == OrmDriver::SQLITE ? "excluded" : "EXCLUDED";
+        $excluded = OrmDriver::is_sqlite($driver) ? "excluded" : "EXCLUDED";
 
         if(empty($conflict['update_columns']))
             $this->oop_exception("OnConflict Error; Update column cannot be empty when action is implicitly UPDATE");

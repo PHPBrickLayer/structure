@@ -9,7 +9,7 @@ trait Functions
 {
     final public function uuid(): string
     {
-        if(self::get_driver() == OrmDriver::SQLITE)
+        if(OrmDriver::is_sqlite(self::get_driver()))
             return $this->query("SELECT `next` from uuid7")[0];
 
         return $this->query("SELECT UUID()")[0];
