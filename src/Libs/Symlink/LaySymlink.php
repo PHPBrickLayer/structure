@@ -40,7 +40,19 @@ class LaySymlink {
 
         // Make Symlink a relative path for non-windows OS
         $src = str_replace($root, "", $src);
-        $dest = str_replace($root, "", $dest);
+        $dest = rtrim(str_replace($root, "", $dest), DIRECTORY_SEPARATOR);
+        $dest_trail = explode(DIRECTORY_SEPARATOR, $dest);
+        $dest_trail_len = count($dest_trail);
+        $d_slash = "";
+
+        foreach ($dest_trail as $i => $dot) {
+            if($i == $dest_trail_len - 1)
+                break;
+
+            $d_slash .= ".." . DIRECTORY_SEPARATOR;
+        }
+
+        $src = $d_slash . $src;
 
         if(!@symlink($src, $dest))
             Exception::new()->use_exception(
