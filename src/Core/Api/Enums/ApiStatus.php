@@ -88,4 +88,11 @@ enum ApiStatus : int
         return is_int($code) ? $code : $code->value;
     }
 
+    public static function is_value(int|self $code, self $value) : bool
+    {
+        $code = is_int($code) ? $code : $code->value;
+
+        return $code == $value->value;
+    }
+
 }

@@ -36,6 +36,12 @@ class LaySymlink {
             return;
         }
 
+        $root = LayConfig::server_data()->root;
+
+        // Make Symlink a relative path for non-windows OS
+        $src = str_replace($root, "", $src);
+        $dest = str_replace($root, "", $dest);
+
         if(!@symlink($src, $dest))
             Exception::new()->use_exception(
                 "SymlinkFailed",
