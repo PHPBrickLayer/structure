@@ -349,7 +349,7 @@ class Domain {
         self::$current_route = $this->check_route_is_static_file(trim($view,"/")) ?: 'index';
 
         // Strip all search query, it's not needed
-        return explode("?=", self::$current_route, 2)[0];
+        return explode("?", self::$current_route, 2)[0];
     }
 
     private function active_pattern() : array {
