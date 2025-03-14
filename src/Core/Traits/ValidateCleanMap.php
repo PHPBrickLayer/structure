@@ -28,7 +28,7 @@ use Exception;
  *     sub_dir?: string,
  *     allowed_types?: FileUploadExtension,
  *     max_size?: int,
- *     max_size_in_mb?: int,
+ *     max_size_in_mb?: float,
  *     new_file_name?: string,
  *     dimension?: array,
  *     upload_storage?: FileUploadStorage,
@@ -447,7 +447,23 @@ trait ValidateCleanMap {
     /**
      * Set a general rule that applies to every object of a particular request
      *
-     * @param VcmRules $options
+     * @param array{
+     *      required?: bool,
+     *      db_col_required?: bool,
+     *      clean?: bool|array{
+     *        escape: EscapeType,
+     *        strict: bool,
+     *      },
+     *      sub_dir?: string,
+     *      allowed_types?: FileUploadExtension,
+     *      max_size?: int,
+     *      max_size_in_mb?: float,
+     *      new_file_name?: string,
+     *      dimension?: array,
+     *      upload_storage?: FileUploadStorage,
+     *      bucket_url?: string,
+     *      upload_handler?: callable,
+     *   } $options
      * @return ValidateCleanMap
      */
     public function vcm_rules(array $options) : self
@@ -475,7 +491,23 @@ trait ValidateCleanMap {
     /**
      * Initialize the request from the server for validation
      * @param array|object $request Post Request
-     * @param null|VcmRules $vcm_rules vcm rules can also be set via this parameter
+     * @param null|array{
+     *      required?: bool,
+     *      db_col_required?: bool,
+     *      clean?: bool|array{
+     *        escape: EscapeType,
+     *        strict: bool,
+     *      },
+     *      sub_dir?: string,
+     *      allowed_types?: FileUploadExtension,
+     *      max_size?: int,
+     *      max_size_in_mb?: float,
+     *      new_file_name?: string,
+     *      dimension?: array,
+     *      upload_storage?: FileUploadStorage,
+     *      bucket_url?: string,
+     *      upload_handler?: callable,
+     *   } $vcm_rules vcm rules can also be set via this parameter
      * @return self
      */
     public static function vcm_start(array|object $request, ?array $vcm_rules = null) : self
