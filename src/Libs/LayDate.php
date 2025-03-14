@@ -5,9 +5,7 @@ namespace BrickLayer\Lay\Libs;
 use DateTime;
 use BrickLayer\Lay\Core\Traits\IsSingleton;
 
-class LayDate {
-    use IsSingleton;
-
+abstract class LayDate {
     /**
      * @param string|int|null $datetime values accepted by `strtotime` or integer equivalent of a datetime
      * @link https://php.net/manual/en/function.idate.php
