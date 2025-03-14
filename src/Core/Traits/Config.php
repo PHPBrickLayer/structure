@@ -193,10 +193,14 @@ trait Config
 
     public static function is_bot(): bool
     {
-        $header = self::get_header("*");
+        $from = self::get_header("From");
+        $user_agent = self::get_header("User-Agent");
 
-        $exists = preg_match('~(bot|crawl)~i', $header['From'] ?? $header['from'] ?? "", flags: PREG_UNMATCHED_AS_NULL);
-        $exists += preg_match('~(bot|crawl)~i', $header["User-Agent"] ?? $header["user-agent"] ?? 'bot', flags: PREG_UNMATCHED_AS_NULL);
+        $exists = preg_match('~(bot|crawl)~i', $from ?? '', flags: PREG_UNMATCHED_AS_NULL);
+
+        if($exists) return true;
+
+        $exists = preg_match('~(bot|crawl)~i', $user_agent ?? '', flags: PREG_UNMATCHED_AS_NULL);
 
         return (bool) $exists;
     }
