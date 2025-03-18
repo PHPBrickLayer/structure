@@ -305,6 +305,7 @@ trait ValidateCleanMap {
      *    field_name?: string,
      *    required_message?: string,
      *    db_col?: string,
+     *    before_validate?: callable<mixed>,
      *    before_clean?: callable<mixed>,
      *    fun?: callable<mixed>,
      *    after_clean?: callable<mixed>,
@@ -360,6 +361,9 @@ trait ValidateCleanMap {
         $is_required = $options['required'] ?? self::$_required ?? false;
         $field = str_replace("[]", "", $options['field']);
         $value = $this->__get_field($field);
+
+        if(isset($options['before_validate']))
+            $value = $options['before_validate']($value);
 
         if(is_array($value)) {
             foreach ($value as $val) {
