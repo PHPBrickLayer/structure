@@ -185,9 +185,9 @@ trait ControllerHelper {
      *    errors: array|null
      * }
      */
-    public static function res_error(string $message = "An internal server error occurred", ?array $errors = null, ApiStatus|int $code = ApiStatus::CONFLICT, ?Throwable $exception = null, bool $send_header = false) : array
+    public static function res_error(string $message = "An internal server error occurred", ?array $errors = null, ApiStatus|int $code = ApiStatus::CONFLICT, ?Throwable $exception = null, bool $send_header = false, bool $log_error =  true) : array
     {
-        if(!CoreException::$DISPLAYED_ERROR && $code == ApiStatus::INTERNAL_SERVER_ERROR) {
+        if((!CoreException::$DISPLAYED_ERROR && $code == ApiStatus::INTERNAL_SERVER_ERROR) && $log_error) {
             $last_error = error_get_last();
             $msg = "";
 
