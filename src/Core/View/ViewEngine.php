@@ -107,7 +107,7 @@ final class ViewEngine {
 
     private function add_cache_header(?array $cache = null) : void
     {
-        if($cache)
+        if(is_null($cache))
             return;
 
         ApiEngine::add_cache_header(
@@ -148,7 +148,7 @@ final class ViewEngine {
         if($const[self::key_core]['skeleton'])
             $this->create_html_page();
         else {
-            $x = $this->skeleton_body($cache);
+            $x = $this->skeleton_body();
 
             $this->add_cache_header($cache);
 
