@@ -15,6 +15,8 @@ enum FileUploadExtension : string
     case ZIP_OLD =      'application/x-zip-compressed';
 
     // Images
+    case PICTURE = "image/*";
+
     case PNG = "image/png";
     case JPEG = "image/jpeg";
     case HEIC = "image/heic";
