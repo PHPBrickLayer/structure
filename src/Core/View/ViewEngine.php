@@ -63,6 +63,7 @@ final class ViewEngine {
                 "html_lang" => $const[self::key_page]['html_lang'] ?? "en",
                 "type" => $const[self::key_page]['type'] ?? "website",
                 "response_code" => $const[self::key_page]['response_code'] ?? 200,
+                "cache" => $const[self::key_page]['cache'] ?? null,
             ],
             self::key_html_attr =>  [
                 "class" =>  $const[self::key_html_attr]['class'] ?? null,
@@ -119,7 +120,7 @@ final class ViewEngine {
         );
     }
 
-    public function paint(array $page_data, ?array $cache = null) : void {
+    public function paint(array $page_data) : void {
         if(empty(self::$constant_attributes))
             self::constants([]);
 
@@ -146,11 +147,11 @@ final class ViewEngine {
         self::$meta_data = LayArray::to_object($const);
 
         if($const[self::key_core]['skeleton'])
-            $this->create_html_page();
+            $this->create_html_page($const[self::key_page]['cache']);
         else {
             $x = $this->skeleton_body();
 
-            $this->add_cache_header($cache);
+            $this->add_cache_header($const[self::key_page]['cache']);
 
             echo $x;
         }

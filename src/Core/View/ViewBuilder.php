@@ -151,17 +151,9 @@ final class ViewBuilder
     /**
      * Bind a page to a route
      * @param Closure $handler
-     * @param array|null $cache add caching features to your route
      * @return $this
      */
-    public function bind(
-        Closure $handler,
-        #[ArrayShape([
-            'last_mod' => '?int',
-            'max_age' => 'int|string|null',
-            'public' => 'bool|null',
-        ])] ?array $cache = null
-    ): self
+    public function bind(Closure $handler): self
     {
         // Cache default page
         if (self::$route == self::DEFAULT_ROUTE)
@@ -189,7 +181,7 @@ final class ViewBuilder
             self::$view_found = true;
 
             if (isset($current_page['page']['title']) || @$current_page['core']['skeleton'] === false)
-                ViewEngine::new()->paint($current_page, $cache);
+                ViewEngine::new()->paint($current_page);
         }
 
         return $this;
@@ -256,9 +248,8 @@ final class ViewBuilder
     /**
      * Get the metadata of a request received in a ViewBuilder class
      *
-     * @param CoreKey $key
-     * @return DomainType|string|array
-     * @return  CurrenrtRouteResponse DomainType|string|array<int>|array{
+     * @param string $key
+     * @return  DomainType|string|array<int>|array{
      *      route: string,
      *      route_as_array: array<int>,
      *      route_has_end_slash: bool,
@@ -382,6 +373,15 @@ final class ViewBuilder
             "html_lang",
             "lang",
             "type",
+
+            /**
+             * [
+             * 'last_mod' => '?int',
+             * 'max_age' => 'int|string|null',
+             * 'public' => 'bool|null',
+             * ]
+             */
+            "cache",
         ])] string $key,
         ?string    $value
     ): self
