@@ -72,7 +72,8 @@ abstract class ViewCast
     public function init_pages(): void
     {
         $this->builder->init_start()
-            ->page('section', 'app');
+            ->page("cache", null)
+            ->local('section', 'app');
         $this->builder->init_end();
     }
 
