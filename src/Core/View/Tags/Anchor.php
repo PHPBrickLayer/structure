@@ -18,6 +18,11 @@ final class Anchor {
     use Standard;
 
     public function href(?string $link = "", ?string $domain_id = null, ?bool $use_subdomain = null) : self {
+        if(str_starts_with($link, "http")) {
+            $this->link = $link;
+            return $this;
+        }
+
         $dom = DomainResource::get()->domain;
         $link = is_null($link) ? '' : $link;
         $link = ltrim($link, "/");

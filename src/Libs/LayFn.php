@@ -9,7 +9,7 @@ final class LayFn
     private function __construct(){}
     private function __clone(){}
 
-    public static function num_format(?int $num, int $digits) : string
+    public static function num_format(?int $num, int $digits = 0) : string
     {
         if($num == null || $num == 0)
             return "0";
