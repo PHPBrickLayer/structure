@@ -16,6 +16,7 @@ use BrickLayer\Lay\Libs\String\Enum\EscapeType;
 use BrickLayer\Lay\Libs\String\Escape;
 use Closure;
 use Exception;
+use JetBrains\PhpStorm\ArrayShape;
 
 /**
  * @psalm-type VcmRules array{
@@ -191,10 +192,10 @@ trait ValidateCleanMap {
 
             $file = self::__file_upload_handler(
                 post_name: $field,
-                new_name: $options['new_file_name'],
+                new_name: $options['new_file_name'] ?? $field,
                 upload_sub_dir: $options['sub_dir'] ?? self::$_sub_dir ?? null,
                 file_limit: $max_size,
-                extension_list: $options['allowed_types'] ?? self::$_allowed_types ?? null,
+                extension_list: $options['allowed_types'] ?? $options['allowed_extensions'] ?? self::$_allowed_types ?? null,
                 dimension: $options['dimension'] ?? self::$_dimension ?? [800, 800],
                 storage: $options['upload_storage'] ?? self::$_upload_storage ?? null,
                 bucket_url: $options['bucket_url'] ?? self::$_bucket_url ?? null,
@@ -324,7 +325,8 @@ trait ValidateCleanMap {
      *    is_captcha?: bool,
      *    captcha_jwt_field?: string|null,
      *    hash?: bool,
-     *    allowed_types?: FileUploadExtension,
+     *    allowed_types?: Array<int,FileUploadExtension>,
+     *    allowed_extensions?: Array<int,FileUploadExtension>,
      *    max_size?: int,
      *    max_size_in_mb?: float,
      *    new_file_name?: string,
@@ -343,7 +345,7 @@ trait ValidateCleanMap {
      *      message?: string,
      *    },
      *    clean?: bool|array{
-     *      escape: EscapeType|array<EscapeType>,
+     *      escape: EscapeType|array<int,EscapeType>,
      *      strict?: bool,
      *    },
      * } $options
@@ -455,11 +457,12 @@ trait ValidateCleanMap {
      *      required?: bool,
      *      db_col_required?: bool,
      *      clean?: bool|array{
-     *        escape: EscapeType,
+     *        escape: EscapeType|array<int,EscapeType>,
      *        strict: bool,
      *      },
      *      sub_dir?: string,
-     *      allowed_types?: FileUploadExtension,
+     *      allowed_types?: Array<int,FileUploadExtension>,
+     *      allowed_extensions?: Array<int,FileUploadExtension>,
      *      max_size?: int,
      *      max_size_in_mb?: float,
      *      new_file_name?: string,
@@ -476,7 +479,7 @@ trait ValidateCleanMap {
         self::$_clean_by_default = $options['clean'] ?? null;
         self::$_db_col_required = $options['db_col_required'] ?? null;
         self::$_sub_dir = $options['sub_dir'] ?? null;
-        self::$_allowed_types = $options['allowed_types'] ?? null;
+        self::$_allowed_types = $options['allowed_types'] ?? $options['allowed_extensions'] ?? null;
 
         self::$_max_size = $options['max_size'] ?? null;
 
@@ -499,11 +502,12 @@ trait ValidateCleanMap {
      *      required?: bool,
      *      db_col_required?: bool,
      *      clean?: bool|array{
-     *        escape: EscapeType,
+     *          escape: EscapeType|array<int,EscapeType>,
      *        strict: bool,
      *      },
      *      sub_dir?: string,
-     *      allowed_types?: FileUploadExtension,
+     *      allowed_types?: array<int, FileUploadExtension>,
+     *      allowed_extensions?: array<int, FileUploadExtension>,
      *      max_size?: int,
      *      max_size_in_mb?: float,
      *      new_file_name?: string,
