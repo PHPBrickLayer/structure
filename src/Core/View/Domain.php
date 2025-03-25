@@ -356,8 +356,13 @@ class Domain {
         $base = self::$site_data->base_no_proto;
         $sub_domain = explode(".", $base, 3);
         $local_dir = explode("/", self::$current_route, 2);
+        $is_ngrok = @$_SERVER['REMOTE_ADDR'] == "127.0.0.1";
 
         return [
+            "ngrok" => [
+                "value" => $local_dir[0],
+                "found" => $is_ngrok,
+            ],
             "sub" => [
                 "value" => $sub_domain[0],
                 "found" => !($sub_domain[0] == "www")
@@ -392,6 +397,9 @@ class Domain {
         // This condition is looking out for "admin" || "clients" || "vendors" in the `patterns` argument.
         $is_subdomain = $domain['sub']['found'];
 
+        // Determines if a request is from ngrok and treats it like a local domain
+        $is_ngrok = $domain['ngrok']['found'];
+
         // This conditions handles virtual folder.
         // This is a situation were the developer wants to separate various sections of the application into folders.
         // The dev doesn't necessarily have to create folders, hence "virtual folder".
@@ -403,12 +411,13 @@ class Domain {
         //  localhost/example.com/vendors/;
         //
         // This condition is looking out for "/admin" || "/clients" || "/vendors" in the `patterns` argument.
-        $is_local_domain = $domain['local']['found'];
+        $is_local_domain = $domain['local']['found'] ?: $is_ngrok;
 
-        if($is_subdomain && $is_local_domain)
+        if(($is_subdomain && $is_local_domain) && !$is_ngrok)
             $is_local_domain = false;
 
         self::$domain_type = $is_local_domain ? DomainType::LOCAL : DomainType::SUB;
+
 
         if($is_subdomain && $domain['sub']['value'] == $pattern) {
             $builder = $this->get_cached_domain_details($id)['builder'];

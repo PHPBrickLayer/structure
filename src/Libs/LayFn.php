@@ -9,7 +9,7 @@ final class LayFn
     private function __construct(){}
     private function __clone(){}
 
-    public static function num_format(?int $num, int $digits = 0) : string
+    public static function num_format(?int $num, int $digits = 0, string $decimal_separator = ".", string $thousands_separator = ",") : string
     {
         if($num == null || $num == 0)
             return "0";
@@ -34,12 +34,9 @@ final class LayFn
         }
 
         $num = $item ? $num/$item['value'] : $num;
+        $num_format = number_format($num, $digits, $decimal_separator, $thousands_separator);
 
-        return $item ? preg_replace (
-                $regexp,
-                '',
-                number_format($num, $digits)
-            ) . $item['symbol'] : '0';
+        return $item ? preg_replace ($regexp, '', $num_format) . ($item['symbol'] ?? '') : '0';
     }
 
     public static function trim_word(string $string, string $word, ?string $preg_pattern = null) : string
