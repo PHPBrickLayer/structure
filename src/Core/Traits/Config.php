@@ -7,6 +7,7 @@ use BrickLayer\Lay\Core\Enums\LayMode;
 use BrickLayer\Lay\Core\Enums\LayServerType;
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Libs\LayArray;
 use BrickLayer\Lay\Libs\LayFn;
 use BrickLayer\Lay\Libs\Mail\Mailer;
 use BrickLayer\Lay\Orm\Enums\OrmDriver;
@@ -102,7 +103,12 @@ trait Config
         if ($allow_all) {
             $http_origin = "*";
         } else {
-            if (!in_array($http_origin, $allowed_origins, true)) return false;
+            if (
+                !LayArray::any(
+                    $allowed_origins,
+                    fn($v) => rtrim($v, "/") === $http_origin
+                )
+            ) return false;
         }
 
         // in an ideal word, this variable will only be empty if it's the same origin

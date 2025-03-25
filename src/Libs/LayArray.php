@@ -85,6 +85,30 @@ final class LayArray
     }
 
     /**
+     * Loops true an array and runs the callback on each entry.
+     * Returns true if whatever condition is set in the callback is true, then stops looping.
+     * @param array $array
+     * @param callable $callback
+     * @return bool
+     */
+    public static function any(array $array, callable $callback) : bool
+    {
+        $rtn = false;
+
+        foreach ($array as $key => $value)
+        {
+            $condition = $callback($value, $key);
+
+            if($condition) {
+                $rtn = true;
+                break;
+            }
+        }
+
+        return $rtn;
+    }
+
+    /**
      * Flattens multiple dimensions of an array to a single dimension array.
      * The latest values will replace arrays with the same keys
      * @param array $array
