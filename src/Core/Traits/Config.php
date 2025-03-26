@@ -470,7 +470,7 @@ trait Config
      * However, it will only work on production server;
      *
      * @example example.com/blog will be converted to blog.example.com
-     * @return LayConfig
+     * @return self
      */
     public function use_domain_as_sub(): self
     {
