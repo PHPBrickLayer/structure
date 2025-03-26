@@ -3,10 +3,8 @@
 namespace BrickLayer\Lay\BobDBuilder\Cmd\Traits\Purge;
 
 use BrickLayer\Lay\BobDBuilder\BobExec;
-use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Libs\LayArray;
 use BrickLayer\Lay\Libs\LayDir;
-use SplFileObject;
 
 
 trait Domain
