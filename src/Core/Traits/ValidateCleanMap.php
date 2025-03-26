@@ -446,9 +446,10 @@ trait ValidateCleanMap {
                 "VCM::Error"
             );
 
-        if(isset($options['return_struct'])) {
-            $value = $options['return_struct']($value, $options['db_col'] ?? $field);
-        }
+        $return_struct = $options['return_struct'] ?? self::$_return_struct ?? null;
+
+        if($return_struct)
+            $value = $return_struct($value, $options['db_col'] ?? $field, $options);
 
         $result_is_assoc = $options['result_is_assoc'] ?? self::$_result_is_assoc;
 
