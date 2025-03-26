@@ -16,7 +16,6 @@ use BrickLayer\Lay\Libs\String\Enum\EscapeType;
 use BrickLayer\Lay\Libs\String\Escape;
 use Closure;
 use Exception;
-use JetBrains\PhpStorm\ArrayShape;
 
 /**
  * @psalm-type VcmRules array{
@@ -55,6 +54,8 @@ trait ValidateCleanMap {
     private static ?FileUploadStorage $_upload_storage;
     private static ?string $_bucket_url;
     private static ?closure $_upload_handler;
+    private static ?closure $_return_struct;
+    private static bool $_result_is_assoc = true;
 
     private function __add_error(string $field, string $message): bool
     {
@@ -100,8 +101,9 @@ trait ValidateCleanMap {
      * @param int $file_limit
      * @param array $extension_list
      * @param array $dimension
-     * @param FileUploadStorage $storage
+     * @param FileUploadStorage|null $storage
      * @param string|null $bucket_url
+     * @param FileUploadType|null $upload_type
      * @return array{
      *    uploaded: bool,
      *    dev_error: ?string,
@@ -302,6 +304,7 @@ trait ValidateCleanMap {
      *
      * @param array{
      *    request?: array|object,
+     *    result_is_assoc?: bool,
      *    field: string,
      *    field_name?: string,
      *    required_message?: string,
@@ -348,9 +351,10 @@ trait ValidateCleanMap {
      *      escape: EscapeType|array<int,EscapeType>,
      *      strict?: bool,
      *    },
+     *    return_struct?: callable<mixed, string>,
      * } $options
      *
-     * @return ValidateCleanMap
+     * @return self
      */
     public function vcm(array $options ) : self
     {
@@ -442,10 +446,16 @@ trait ValidateCleanMap {
                 "VCM::Error"
             );
 
-        if(isset($options['db_col']))
-            self::$_entries[$options['db_col']] = $value;
+        if(isset($options['return_struct'])) {
+            $value = $options['return_struct']($value, $options['db_col'] ?? $field);
+        }
+
+        $result_is_assoc = $options['result_is_assoc'] ?? self::$_result_is_assoc;
+
+        if($result_is_assoc)
+            self::$_entries[$options['db_col'] ?? $field] = $value;
         else
-            self::$_entries[$field] = $value;
+            self::$_entries[] = $value;
 
         return $this;
     }
@@ -455,6 +465,7 @@ trait ValidateCleanMap {
      *
      * @param array{
      *      required?: bool,
+     *      result_is_assoc?: bool,
      *      db_col_required?: bool,
      *      clean?: bool|array{
      *        escape: EscapeType|array<int,EscapeType>,
@@ -470,6 +481,7 @@ trait ValidateCleanMap {
      *      upload_storage?: FileUploadStorage,
      *      bucket_url?: string,
      *      upload_handler?: callable,
+     *      return_struct?: callable<mixed, string>,
      *   } $options
      * @return ValidateCleanMap
      */
@@ -491,6 +503,8 @@ trait ValidateCleanMap {
         self::$_upload_storage = $options['upload_storage'] ?? null;
         self::$_bucket_url = $options['bucket_url'] ?? null;
         self::$_upload_handler = $options['upload_handler'] ?? null;
+        self::$_return_struct = $options['return_struct'] ?? null;
+        self::$_result_is_assoc = $options['result_is_assoc'] ?? true;
 
         return $this;
     }
@@ -500,6 +514,7 @@ trait ValidateCleanMap {
      * @param array|object $request Post Request
      * @param null|array{
      *      required?: bool,
+     *      result_is_assoc?: bool,
      *      db_col_required?: bool,
      *      clean?: bool|array{
      *          escape: EscapeType|array<int,EscapeType>,
@@ -515,6 +530,7 @@ trait ValidateCleanMap {
      *      upload_storage?: FileUploadStorage,
      *      bucket_url?: string,
      *      upload_handler?: callable,
+     *      return_struct?: callable<mixed, string>,
      *   } $vcm_rules vcm rules can also be set via this parameter
      * @return self
      */
@@ -537,6 +553,8 @@ trait ValidateCleanMap {
         self::$_upload_storage = null;
         self::$_bucket_url = null;
         self::$_upload_handler = null;
+        self::$_return_struct = null;
+        self::$_result_is_assoc = true;
 
         $me = new self();
 
