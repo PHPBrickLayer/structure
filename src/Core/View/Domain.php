@@ -334,6 +334,9 @@ class Domain {
         if(LayConfig::new()->get_server_type() == LayServerType::APACHE)
             $request_uri = $_GET[$get_name] ?? '';
 
+        // Strip all search query, it's not needed
+        $request_uri = explode("?", $request_uri, 2)[0];
+
         $root_url = self::$site_data->base_no_proto;
         $root_file_system = rtrim(explode("index.php", $_SERVER['SCRIPT_NAME'])[0], "/");
 
@@ -348,8 +351,7 @@ class Domain {
         self::$current_route_has_end_slash = str_ends_with($view,"/");
         self::$current_route = $this->check_route_is_static_file(trim($view,"/")) ?: 'index';
 
-        // Strip all search query, it's not needed
-        return explode("?", self::$current_route, 2)[0];
+        return self::$current_route;
     }
 
     private function active_pattern() : array {
