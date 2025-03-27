@@ -55,21 +55,29 @@ trait Config
             header_remove('Server');
         }
 
-        if (isset($flags['only_cookies'])) ini_set("session.use_only_cookies", ((int)$flags['only_cookies']) . "");
+        if (isset($flags['only_cookies']))
+            ini_set("session.use_only_cookies", ((int)$flags['only_cookies']) . "");
 
-        if (self::$ENV_IS_PROD && (isset($flags['http_only']) || isset($flags['httponly']))) $cookie_opt['httponly'] = filter_var($flags['httponly'] ?? $flags['http_only'], FILTER_VALIDATE_BOOL);
+        if (self::$ENV_IS_PROD && (isset($flags['http_only']) || isset($flags['httponly'])))
+            $cookie_opt['httponly'] = filter_var($flags['httponly'] ?? $flags['http_only'], FILTER_VALIDATE_BOOL);
 
-        if (self::$ENV_IS_PROD && isset($flags['secure'])) $cookie_opt['secure'] = filter_var($flags['secure'], FILTER_VALIDATE_BOOL);
+        if (self::$ENV_IS_PROD && isset($flags['secure']))
+            $cookie_opt['secure'] = filter_var($flags['secure'], FILTER_VALIDATE_BOOL);
 
-        if (self::$ENV_IS_PROD && isset($flags['samesite'])) $cookie_opt['samesite'] = ucfirst($flags['samesite']);
+        if (self::$ENV_IS_PROD && isset($flags['samesite']))
+            $cookie_opt['samesite'] = ucfirst($flags['samesite']);
 
-        if (isset($flags['domain'])) $cookie_opt['domain'] = "." . $flags['domain'];
+        if (isset($flags['domain']))
+            $cookie_opt['domain'] = "." . $flags['domain'];
 
-        if (isset($flags['path'])) $cookie_opt['path'] = $flags['path'];
+        if (isset($flags['path']))
+            $cookie_opt['path'] = $flags['path'];
 
-        if (isset($flags['lifetime'])) $cookie_opt['lifetime'] = $flags['lifetime'];
+        if (isset($flags['lifetime']))
+            $cookie_opt['lifetime'] = $flags['lifetime'];
 
-        if (!empty($cookie_opt)) session_set_cookie_params($cookie_opt);
+        if (!empty($cookie_opt))
+            session_set_cookie_params($cookie_opt);
 
         if (isset($_SESSION)) return;
 
@@ -121,9 +129,11 @@ trait Config
         // Access-Control headers are received during OPTIONS requests
         if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
 
-            if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_METHOD'])) header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
+            if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_METHOD']))
+                header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
 
-            if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS'])) header("Access-Control-Allow-Headers:{$_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS']}");
+            if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS']))
+                header("Access-Control-Allow-Headers:{$_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS']}");
 
             exit(0);
         }
@@ -413,6 +423,7 @@ trait Config
      *
      * @param string ...$extensions
      * @return LayConfig
+     * @example ignore_file_extensions("xml", "json")
      */
     public function ignore_file_extensions(string ...$extensions): self
     {
@@ -442,7 +453,7 @@ trait Config
     }
 
     /**
-     * [NOT RECOMMENDED]
+     * ##[NOT RECOMMENDED]
      * If you have no intention of minifying your static assets with the built-in `php bob deploy` command, this means
      * you don't want your application requesting for assets in the `prod` folder of the respective asset file,
      * then use this method.
@@ -545,7 +556,7 @@ trait Config
         self::initialize();
     }
 
-    public function is_mobile(): bool
+    public static function is_mobile(): bool
     {
         return !empty($_SERVER['HTTP_USER_AGENT']) && preg_match('~(Mobile)~i', $_SERVER['HTTP_USER_AGENT'], flags: PREG_UNMATCHED_AS_NULL);
     }
