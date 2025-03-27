@@ -6,6 +6,7 @@ use BrickLayer\Lay\BobDBuilder\EnginePlug;
 use BrickLayer\Lay\BobDBuilder\Interface\CmdLayout;
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Libs\LayDate;
+use BrickLayer\Lay\Libs\LayFn;
 
 class Composer implements CmdLayout
 {
@@ -33,13 +34,17 @@ class Composer implements CmdLayout
 
         $command = file_exists($root . "composer.lock") ? "update" : "install";
 
-        if(LayConfig::new()->get_os() == "WINDOWS")
-            $composer = "composer";
-        else {
-            $composer = trim(shell_exec("which composer"));
+        $composer = LayFn::env("COMPOSER_BIN");
 
-            if(str_contains($composer, "not found"))
-                $composer = "/usr/local/bin/composer";
+        if(!$composer) {
+            if (LayConfig::new()->get_os() == "WINDOWS")
+                $composer = "composer";
+            else {
+                $composer = trim(shell_exec("which composer"));
+
+                if (str_contains($composer, "not found"))
+                    $composer = "/usr/local/bin/composer";
+            }
         }
 
         $cmd = "export HOME=$root && cd $root && $composer $command --no-dev --optimize-autoloader";
