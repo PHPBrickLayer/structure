@@ -1,6 +1,9 @@
 #!/usr/bin/env php
 <?php
 
-include_once __DIR__ . DIRECTORY_SEPARATOR . "vendor" . DIRECTORY_SEPARATOR . "autoload.php";
+if(!defined("SAFE_TO_INIT_LAY"))
+    define("SAFE_TO_INIT_LAY", true);
+
+include_once __DIR__ . DIRECTORY_SEPARATOR . "foundation.php";
 
 new \BrickLayer\Lay\BobDBuilder\Engine($argv);
