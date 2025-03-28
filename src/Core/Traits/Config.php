@@ -44,6 +44,9 @@ trait Config
         "lifetime" => "int",
     ])] array $flags = []): void
     {
+        if(self::get_mode() == LayMode::CLI)
+            return;
+
         $cookie_opt = [];
         $flags['expose_php'] ??= false;
         $flags['timezone'] ??= 'Africa/Lagos';
@@ -99,6 +102,9 @@ trait Config
      */
     public static function set_cors(array $allowed_origins = [], bool $allow_all = false, ?Closure $fun = null, bool $lazy_cors = true): bool
     {
+        if(self::get_mode() == LayMode::CLI)
+            return true;
+
         if ($lazy_cors) {
             self::$CACHED_CORS = [$allowed_origins, $allow_all, $fun];
             return true;

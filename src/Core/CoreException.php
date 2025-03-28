@@ -15,6 +15,8 @@ use BrickLayer\Lay\Libs\LayFn;
 use BrickLayer\Lay\Orm\SQL;
 use Throwable;
 
+//TODO: Log file cannot be written to by multiple processes, so find a way
+// to write all the necessary logs and exceptions to a single file
 class CoreException
 {
     use IsSingleton;
