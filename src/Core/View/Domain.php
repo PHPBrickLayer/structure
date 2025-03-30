@@ -340,8 +340,10 @@ class Domain {
         $root_url = self::$site_data->base_no_proto;
         $root_file_system = rtrim(explode("index.php", $_SERVER['SCRIPT_NAME'])[0], "/");
 
-        $view = str_replace("/index.php", "", $request_uri);
-        $view = str_replace([$root_url, $root_file_system], "", $view);
+        $view = str_replace(["/index.php", "/index.html"], "", $request_uri);
+
+        if($view !== $root_file_system)
+            $view = str_replace([$root_url, $root_file_system], "", $view);
 
         if($root != "/")
             $view = str_replace(["/$root/","/$root","$root/"],"", $view);
