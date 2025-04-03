@@ -12,6 +12,9 @@ trait Functions
         if(OrmDriver::is_sqlite(self::get_driver()))
             return $this->query("SELECT `next` from uuid7")[0];
 
+        if(OrmDriver::POSTGRES == self::get_driver())
+            return $this->query("SELECT gen_random_uuid()")[0];
+
         return $this->query("SELECT UUID()")[0];
     }
 

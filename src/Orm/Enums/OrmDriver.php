@@ -2,7 +2,8 @@
 
 namespace BrickLayer\Lay\Orm\Enums;
 
-//TODO: Implement support for POSTGRE
+use BrickLayer\Lay\Orm\Interfaces\OrmConnections;
+
 enum OrmDriver : string {
     case MYSQL = "mysql";
     case SQLITE = "sqlite";
@@ -22,4 +23,22 @@ enum OrmDriver : string {
     {
         return $driver == self::SQLITE || $driver == self::SQLITE3;
     }
+
+    public static function to_orm_connections(self $driver, mixed $db_link): OrmConnections|bool
+    {
+        if(!$db_link)
+            return false;
+
+        if($driver == self::MYSQL)
+            return new \BrickLayer\Lay\Orm\Connections\MySql($db_link);
+
+        if($driver == self::POSTGRES)
+            return new \BrickLayer\Lay\Orm\Connections\Postgres($db_link);
+
+        if($driver == self::SQLITE || $driver == self::SQLITE3)
+            return new \BrickLayer\Lay\Orm\Connections\Sqlite($db_link);
+
+        return false;
+    }
+
 }
