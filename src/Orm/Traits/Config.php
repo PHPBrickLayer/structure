@@ -243,7 +243,7 @@ trait Config{
 
     private function set_db(array|string $args) : void
     {
-        if(self::$active_driver == OrmDriver::SQLITE || self::$active_driver == OrmDriver::SQLITE3) {
+        if(OrmDriver::is_sqlite(self::$active_driver)) {
             $this->connect_sqlite($args);
             return;
         }
@@ -420,7 +420,7 @@ trait Config{
             $parse_bool = fn(string $key, bool $default) => filter_var($_ENV[$key] ?? $default, FILTER_VALIDATE_BOOLEAN);
 
             $connection = match ($driver) {
-                default => [
+                OrmDriver::MYSQL, OrmDriver::POSTGRES => [
                     "host" => LayFn::env('DB_HOST'),
                     "user" => LayFn::env('DB_USERNAME'),
                     "password" => LayFn::env('DB_PASSWORD'),
@@ -440,7 +440,7 @@ trait Config{
                         "flag" => LayFn::env('DB_SSL_FLAG', 0),
                     ],
                 ],
-                OrmDriver::SQLITE, OrmDriver::SQLITE3 => LayFn::env('SQLITE_DB'),
+                default => LayFn::env('SQLITE_DB'),
             };
         }
 
