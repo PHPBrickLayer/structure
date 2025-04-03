@@ -575,7 +575,7 @@ trait Config
         return $this;
     }
 
-    public static function connect(?array $connection_params = null, ?OrmDriver $driver = null): SQL
+    public static function connect(array|null|string $connection_params = null, ?OrmDriver $driver = null): SQL
     {
         self::is_init();
 

@@ -31,6 +31,7 @@
     "suggest" : {
         "ext-sqlite3": "If you need to use SQLite",
         "ext-mysqli": "If you need to use MySQL/MariaDB",
+        "ext-pgsql": "If you need to use Postgres",
         "ext-gd": "For better image manipulation, using Libs\\LayImage class",
         "ext-exif": "For added support to image manipulation using LayImage",
         "ext-dom": "For Dom manipulation using Libs\\String\\WordCount class",

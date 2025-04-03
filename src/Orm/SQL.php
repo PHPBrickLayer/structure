@@ -114,11 +114,11 @@ class SQL
 
         try {
             $exec = self::$link->query($query);
-        } catch (Exception|\mysqli_sql_exception $e) {
+        } catch (\Throwable $e) {
             $has_error = true;
 
             $query_type = is_string($query_type) ? $query_type : $query_type->name;
-            $error = isset(self::$link->error) ? self::$link->error : null;
+            $error = self::$link->error ?? null;
 
             if (method_exists(self::$link, "lastErrorMsg"))
                 $error = self::$link->lastErrorMsg() ?? null;
@@ -164,7 +164,7 @@ class SQL
         // Get affected rows count
         if(OrmDriver::is_sqlite(self::$active_driver) && ($query_type == OrmQueryType::SELECT || $query_type == OrmQueryType::SELECT->name)) {
             $x = explode("FROM", $query,2)[1] ?? null;
-            $affected_rows = $x ? self::$link->querySingle("SELECT COUNT (*) FROM" . rtrim($x, ";") . ";") : null;
+            $affected_rows = $x ? self::$link->link->querySingle("SELECT COUNT (*) FROM" . rtrim($x, ";") . ";") : null;
 
             // The whole point of this block is to return the value of uuid()
             // while using the sqlite driver, since uuid is not a valid function in sqlite
@@ -181,7 +181,7 @@ class SQL
             }
         }
 
-        $affected_rows = $affected_rows ?? self::$link->affected_rows ?? self::$link->changes();
+        $affected_rows ??= self::$link->affected_rows($exec);
 
         $this->query_info['rows'] = $affected_rows;
 
