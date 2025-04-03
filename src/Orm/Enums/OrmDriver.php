@@ -8,7 +8,7 @@ enum OrmDriver : string {
     case MYSQL = "mysql";
     case SQLITE = "sqlite";
     case SQLITE3 = "sqlite3";
-    case POSTGRES = "postgres";
+    case POSTGRES = "pgsql";
 
     public static function stringify() : string
     {
