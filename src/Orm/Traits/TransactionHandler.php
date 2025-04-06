@@ -6,8 +6,10 @@ namespace BrickLayer\Lay\Orm\Traits;
 
 use BrickLayer\Lay\Core\LayException;
 use BrickLayer\Lay\Orm\Enums\OrmExecStatus;
+use Closure;
 use JetBrains\PhpStorm\ArrayShape;
 use JetBrains\PhpStorm\ExpectedValues;
+use Throwable;
 
 trait TransactionHandler
 {
@@ -155,19 +157,24 @@ trait TransactionHandler
 
     /**
      * This function wraps all your operations in a callback function, inside a transaction, and also wrapped in a try catch block
-     * @param callable $scoped_operations
+     * @param Closure(static): array{
+     *     status: 'success' | 'warning' | 'error',
+     * } $scoped_operations The operation that should be run in the transaction block.
+     * It must return an array with the key `status` included. and to commit your transaction,
+     * `status` must equal `success`
+     *
      * @param int $flags [optional] A bitmask of MYSQLI_TRANS_COR_* constants.
      * @param string|null $name [optional] If provided then ROLLBACK $name is executed.
-     * @return array
+     * @return array{
+     *    status: bool,
+     *    message: 'COMMIT' | 'ROLLBACK' | 'EXCEPTION',
+     *    exception?: ?Throwable,
+     *    data?: mixed,
+     * }
+     * @throws \Exception
      */
-    #[ArrayShape([
-        'status' => 'bool',
-        'message' => 'string',
-        'exception' => '?Throwable',
-        'data' => 'mixed',
-    ])]
     final public static function scoped_transaction(
-        callable $scoped_operations,
+        Closure $scoped_operations,
         bool $throw_exception = true,
         ?callable $on_exception = null,
         #[ExpectedValues([
@@ -180,12 +187,18 @@ trait TransactionHandler
     {
         try{
             self::new()->begin_transaction($flags, $name);
+
             $output = $scoped_operations(self::new()) ?? null;
-            self::new()->commit_or_rollback($flags, $name);
+            $commit = $output['status'] == "success";
+
+            if($commit)
+                self::new()->commit($flags, $name);
+            else
+                self::new()->rollback($flags, $name);
 
             return [
                 "status" => true,
-                "message" => "Operation successful",
+                "message" => $commit ? "COMMIT" : "ROLLBACK",
                 "data" => $output
             ];
         } catch (\Throwable $exception) {
@@ -196,7 +209,7 @@ trait TransactionHandler
 
                 return [
                     "status" => false,
-                    "message" => "Operation failed",
+                    "message" => "EXCEPTION",
                     "exception" => $exception,
                 ];
             }
@@ -208,7 +221,7 @@ trait TransactionHandler
 
             return [
                 "status" => false,
-                "message" => "Operation failed",
+                "message" => "EXCEPTION",
                 "exception" => $exception,
             ];
         }
