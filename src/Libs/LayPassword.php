@@ -2,18 +2,28 @@
 declare(strict_types=1);
 namespace BrickLayer\Lay\Libs;
 
+use BrickLayer\Lay\Core\LayException;
+
 /**
  * Password Encrypt Class for basic hashing
 */
 abstract class LayPassword {
 
+    /**
+     * Has a password using PHP's default password_hash method.
+     * ## Please don't use this method for verification, call the `verify` method instead.
+     * If a `$hashed_password` is null, this method will return a new password instead of returning false
+     *
+     * @param string $password
+     * @param string|null $hashed_password
+     * @return string|bool
+     */
     public static function hash(string $password, ?string $hashed_password = null): string|bool {
-        $hashed = password_hash($password,PASSWORD_DEFAULT);
+        if(is_null($hashed_password))
+            return password_hash($password,PASSWORD_DEFAULT);
 
-        if($hashed_password)
-            $hashed = password_verify($password,$hashed_password);
-
-        return $hashed;
+        LayException::log("You are verifying password the wrong way");
+        return password_verify($password, $hashed_password);
     }
 
     /**
@@ -24,7 +34,7 @@ abstract class LayPassword {
      */
     public static function verify(string $plain_password, string $hashed_password) : bool
     {
-        return self::hash($plain_password, $hashed_password);
+        return password_verify($plain_password,$hashed_password);
     }
     /**
      * Encrypts and Decrypts
