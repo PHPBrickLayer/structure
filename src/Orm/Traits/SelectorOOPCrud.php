@@ -3,6 +3,7 @@
 namespace BrickLayer\Lay\Orm\Traits;
 
 use BrickLayer\Lay\Core\LayException;
+use BrickLayer\Lay\Libs\LayFn;
 use BrickLayer\Lay\Libs\String\Enum\EscapeType;
 use BrickLayer\Lay\Libs\String\Escape;
 use BrickLayer\Lay\Orm\Enums\OrmDriver;
@@ -24,7 +25,7 @@ trait SelectorOOPCrud
     {
         $d = $this->get_vars();
         $d['can_be_null'] = false;
-        $d['clause'] = $d['clause'] ?? "";
+        $d['clause'] = $this->parse_clause($d) ?? '';
         $sort = $d['sort'] ?? null;
         $d['columns'] = $d['columns'] ?? $d['values'] ?? "*";
 
@@ -129,7 +130,7 @@ trait SelectorOOPCrud
         $d = $this->get_vars();
         $column_and_values = $column_and_values ?? $d['values'] ?? $d['columns'];
         $table = $d['table'] ?? null;
-        $clause = $d['clause'] ?? null;
+        $clause = $this->parse_clause($d);
         $is_mysql = self::get_driver() == OrmDriver::MYSQL;
 
         if (empty($table))
@@ -223,7 +224,7 @@ trait SelectorOOPCrud
     {
         $d = $this->get_vars();
         $table = $d['table'] ?? null;
-        $clause = $d['clause'] ?? null;
+        $clause = $this->parse_clause($d);
 
         if (empty($table))
             $this->oop_exception("You did not initialize the `table`. Use the `->table(String)` method like this: `->value('your_table_name')`");
@@ -297,7 +298,7 @@ trait SelectorOOPCrud
         $d = $this->get_vars();
         $columns = $d['columns'] ?? null;
         $values = $d['values'] ?? null;
-        $clause = $d['clause'] ?? null;
+        $clause = $this->parse_clause($d);
         $table = $d['table'] ?? null;
 
         if (empty($columns))
@@ -328,7 +329,7 @@ trait SelectorOOPCrud
     {
         $d = $this->get_vars();
         $values = $d['values'] ?? $d['columns'] ?? "NOTHING";
-        $clause = $d['clause'] ?? null;
+        $clause = $this->parse_clause($d);
         $table = $d['table'] ?? null;
 
         if ($values === "NOTHING")
@@ -397,7 +398,7 @@ trait SelectorOOPCrud
         $having = $d['having'] ?? null;
         $sort = $d['sort'] ?? null;
         $limit = $d['limit'] ?? null;
-        $clause = $d['clause'] ?? "";
+        $clause = $this->parse_clause($d) ?? "";
         $cols = $d['values'] ?? $d['columns'] ?? "*";
         $between = $d['between'] ?? null;
         $between_allow_null = true;
@@ -493,7 +494,7 @@ trait SelectorOOPCrud
         $d = $this->get_vars();
         $col = $column ?? "*";
 
-        $where = $where ? "WHERE $where" : ($d['clause'] ?? null);
+        $where = $where ? "WHERE $where" : ($this->parse_clause($d) ?? null);
         $table = $d['table'] ?? null;
 
         if (empty($table))
@@ -512,9 +513,10 @@ trait SelectorOOPCrud
     final public function delete(?string $where = null, bool $delete_all_records = false): bool
     {
         $d = $this->get_vars();
+        $d['clause'] = $this->parse_clause($d);
 
-        if(empty($where) && @empty($d['clause']))
-            $this->oop_exception("You cannot delete without a clause. Use the `->clause(String)` or `->where(String)` to indicate a clause. If you wish to delete without a clause, then use the `->query(String)` method to construct your query");
+        if(empty($where) && empty($d['clause']))
+            $this->oop_exception("You cannot delete without a clause. Use the `->clause(String)` or `->where(String)` to indicate a clause. If you wish to delete without a clause, then `\$delete_all_records` must be true");
 
         $d['clause'] = $where ? "WHERE $where" : $d['clause'];
         $d['query_type'] = OrmQueryType::DELETE;
@@ -530,6 +532,14 @@ trait SelectorOOPCrud
             [$this->query("DELETE FROM $table {$d['clause']}", $d), $d],
             'bool'
         );
+    }
+
+    private function parse_clause(array $data) : ?string
+    {
+        if(isset($data['clause_array']))
+            $data['clause'] = implode(" ", $data['clause_array']);
+
+        return $data['clause'] ?? null;
     }
 
     private function capture_result(array $result_and_opt, string $return_type = 'array'): mixed

@@ -22,13 +22,21 @@ trait SelectorOOP
 
     public static function escape_identifier(string $identifier) : string
     {
+        $identifier = trim($identifier, "`\"");
+
+        $iden = explode(".", $identifier, 2);
+
         if(self::get_driver() == OrmDriver::MYSQL) {
-            $identifier = trim($identifier, "`");
-            return "`$identifier`";
+            if(!isset($iden[1]))
+                return "`$identifier`";
+
+            return "`{$iden[0]}`" . "." . "`{$iden[1]}`";
         }
 
-        $identifier = trim($identifier, '"');
-        return "\"$identifier\"";
+        if(!isset($iden[1]))
+            return "\"$identifier\"";
+
+        return "\"{$iden[0]}\"" . "." . "\"{$iden[1]}\"";
     }
 
     /**
@@ -200,7 +208,7 @@ trait SelectorOOP
         return $this->store_vars('except', $comma_separated_columns);
     }
 
-    final public function where(string $column, ?string $operator_or_value = null, ?string $value = null): self
+    private function process_where(string $column, ?string $operator_or_value = null, ?string $value = null) : string
     {
         if(!is_null($operator_or_value)) {
             $column = self::escape_identifier($column);
@@ -212,39 +220,42 @@ trait SelectorOOP
         } else
             $WHERE = $column;
 
+        return $WHERE;
+    }
 
-        return $this->clause("WHERE $WHERE");
+    final public function where(string $column, ?string $operator_or_value = null, ?string $value = null): self
+    {
+        $WHERE = $this->process_where($column,$operator_or_value,$value);
+
+        return $this->clause_array("WHERE $WHERE");
     }
 
     final public function or_where(string $column, string $operator_or_value, ?string $value = null): self
     {
-//        return $this->store_vars('join', ["table" => $join_table, "type" => $type,], true);
+        $WHERE = $this->process_where($column,$operator_or_value,$value);
 
-        $column = self::escape_identifier($column);
-
-        if(is_null($value))
-            $WHERE = "$column='$operator_or_value'";
-        else
-            $WHERE = "$column $operator_or_value '$value'";
-
-        return $this->clause("OR $WHERE");
+        return $this->clause_array("OR $WHERE");
     }
 
     final public function and_where(string $column, string $operator_or_value, ?string $value = null): self
     {
-        $column = self::escape_identifier($column);
+        $WHERE = $this->process_where($column,$operator_or_value,$value);
 
-        if(is_null($value))
-            $WHERE = "$column='$operator_or_value'";
-        else
-            $WHERE = "$column $operator_or_value '$value'";
-
-        return $this->clause("AND $WHERE");
+        return $this->clause_array("AND $WHERE");
     }
 
     final public function clause(string $clause): self
     {
         return $this->store_vars('clause', $clause);
+    }
+
+    final public function clause_array(string $clause): self
+    {
+        $clause_arr = $this->cached_options[self::$current_index]['clause_array'] ?? [];
+
+        $clause_arr[] = $clause;
+
+        return $this->store_vars('clause_array', $clause_arr);
     }
 
     final public function fun(Closure $function): self
