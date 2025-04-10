@@ -9,6 +9,7 @@ use BrickLayer\Lay\Core\Enums\LayLoop;
 use BrickLayer\Lay\Core\Enums\LayServerType;
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Core\LayException;
 use BrickLayer\Lay\Core\Traits\IsSingleton;
 use BrickLayer\Lay\Core\View\Enums\DomainCacheKeys;
 use BrickLayer\Lay\Core\View\Enums\DomainType;
@@ -20,6 +21,8 @@ use ReflectionException;
 
 class Domain {
     use IsSingleton;
+
+    private static bool $included_once = false;
 
     private static string $current_route;
     private static array $current_route_details;
@@ -602,4 +605,35 @@ class Domain {
     {
         return isset(self::$current_route_details);
     }
+
+    /**
+     * Instruct Domain to include the Domain entries from the /web/index.php file if it hasn't been included already.
+     *
+     * When mock is true, the domain's Plaster is not called, but other important things like CORS are called
+     * @param bool $mock
+     * @return void
+     */
+    public static function set_entries_from_file(bool $mock = true) : void
+    {
+        if(self::is_in_use() || self::$included_once) return;
+
+        self::$mocking_domain = $mock;
+
+        $domain_entries = LayConfig::server_data()->web . "index.php";
+        $is_domain_entry_file = $_SERVER['SCRIPT_FILENAME'] == $domain_entries;
+
+        if($is_domain_entry_file)
+            LayException::throw_exception(
+                "Cannot call this method inside $domain_entries file"
+            );
+
+        include_once $domain_entries;
+        self::$included_once = true;
+    }
+
+    public static function included_once() : bool
+    {
+        return self::$included_once;
+    }
+
 }

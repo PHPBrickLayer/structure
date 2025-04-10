@@ -2,6 +2,8 @@
 
 namespace BrickLayer\Lay\Libs;
 
+use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Core\View\Domain;
 use JetBrains\PhpStorm\NoReturn;
 
 final class LayFn
@@ -77,6 +79,24 @@ final class LayFn
 
         header("Content-Type: application/json");
         echo json_encode($data);
+        die;
+    }
+
+    #[NoReturn]
+    /**
+     * var_dump and die. But with CORS and all the important headers in place for better debugging across domains
+     *
+     */
+    public static function vd(mixed $value, mixed ...$values) : void
+    {
+        Domain::set_entries_from_file();
+
+        self::header("Content-Type: text/html");
+        LayConfig::call_lazy_cors();
+
+        $message['dump'] = $value;
+        $message['trace'] = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2);
+        var_dump($message, ...$values);
         die;
     }
 
@@ -180,6 +200,6 @@ final class LayFn
 
         $_ENV[$key] ??= $default;
 
-        return gettype($default) == "boolean" ? filter_var($_ENV[$key], FILTER_VALIDATE_BOOLEAN) : $_ENV[$key];
+        return $_ENV[$key];
     }
 }
