@@ -557,6 +557,7 @@ class CoreException
 
         // Call CORS so that the HTTP response returns the correct code, rather than CORS error, especially
         // when CORS has been well set.
+        Domain::set_entries_from_file();
         LayConfig::call_lazy_cors();
 
         if($act['display_error'] && $opt['echo_error']) {
