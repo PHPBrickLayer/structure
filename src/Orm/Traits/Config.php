@@ -430,7 +430,7 @@ trait Config{
                     "charset" => LayFn::env('DB_CHARSET'),
                     "silent" => LayFn::env('DB_ALLOW_STARTUP_ERROR', false),
                     "auto_commit" => LayFn::env('DB_AUTO_COMMIT', true),
-                    "persist_connection" => filter_var(LayFn::env('DB_PERSIST_CONNECTION', false), FILTER_VALIDATE_BOOLEAN),
+                    "persist_connection" => LayFn::env('DB_PERSIST_CONNECTION', false),
                     "ssl" => [
                         "key" => LayFn::env('DB_SSL_KEY'),
                         "certificate" => LayFn::env('DB_SSL_CERTIFICATE'),
