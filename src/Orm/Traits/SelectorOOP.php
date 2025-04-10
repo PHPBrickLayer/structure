@@ -30,13 +30,13 @@ trait SelectorOOP
             if(!isset($iden[1]))
                 return "`$identifier`";
 
-            return "`{$iden[0]}`" . "." . "`{$iden[1]}`";
+            return "`$iden[0]`.`$iden[1]`";
         }
 
         if(!isset($iden[1]))
             return "\"$identifier\"";
 
-        return "\"{$iden[0]}\"" . "." . "\"{$iden[1]}\"";
+        return "\"$iden[0]\".\"$iden[1]\"";
     }
 
     /**
