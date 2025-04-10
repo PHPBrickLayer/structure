@@ -46,7 +46,7 @@ trait SelectorOOPCrud
         }
 
         return $this->capture_result(
-            [$this->query("SELECT {$d['columns']} FROM {$d['table']} {$d['clause']} $column_to_check LIMIT 1", $d), $d],
+            [$this->query(/** @lang text */ "SELECT {$d['columns']} FROM {$d['table']} {$d['clause']} $column_to_check LIMIT 1", $d), $d],
         );
     }
 
@@ -70,10 +70,10 @@ trait SelectorOOPCrud
             $update = "";
 
             if($conflict['action'] == 'IGNORE' || $conflict['action'] == 'NOTHING')
-                return "INSERT IGNORE INTO $table $column_and_values $clause";
+                return /** @lang text */ "INSERT IGNORE INTO $table $column_and_values $clause";
 
             if($conflict['action'] == 'REPLACE')
-                return "REPLACE INTO $table $column_and_values $clause";
+                return /** @lang text */ "REPLACE INTO $table $column_and_values $clause";
 
             if(empty($conflict['update_columns']))
                 $this->oop_exception(
@@ -86,11 +86,11 @@ trait SelectorOOPCrud
 
             $update = rtrim($update, ",");
 
-            return "INSERT INTO $table $column_and_values ON DUPLICATE KEY UPDATE $update $clause;";
+            return /** @lang text */ "INSERT INTO $table $column_and_values ON DUPLICATE KEY UPDATE $update $clause;";
         }
 
         if($conflict['action'] == 'REPLACE')
-            return "INSERT OR REPLACE INTO $table $column_and_values $clause";
+            return /** @lang text */ "INSERT OR REPLACE INTO $table $column_and_values $clause";
 
         $unique_cols = !empty($conflict['unique_columns'])  ? implode(",", $conflict['unique_columns']) : null;
 
@@ -100,7 +100,7 @@ trait SelectorOOPCrud
             );
 
         if($conflict['action'] == 'IGNORE' || $conflict['action'] == 'NOTHING')
-            return "INSERT INTO $table $column_and_values ON CONFLICT($unique_cols) DO NOTHING $clause;";
+            return /** @lang text */ "INSERT INTO $table $column_and_values ON CONFLICT($unique_cols) DO NOTHING $clause;";
 
         $update_cols = "";
         $excluded = OrmDriver::is_sqlite($driver) ? "excluded" : "EXCLUDED";
@@ -113,7 +113,7 @@ trait SelectorOOPCrud
         }
         $update_cols = rtrim($update_cols, ",");
 
-        return "INSERT INTO $table $column_and_values ON CONFLICT ($unique_cols) DO UPDATE SET $update_cols $clause;";
+        return /** @lang text */ "INSERT INTO $table $column_and_values ON CONFLICT ($unique_cols) DO UPDATE SET $update_cols $clause;";
     }
 
     /**
@@ -195,7 +195,7 @@ trait SelectorOOPCrud
             $column_and_values = "SET $column_and_values";
 
         $table = self::escape_identifier($table);
-        $query = $this->handle_insert_conflict($d, $table, $column_and_values, $clause) ?? "INSERT INTO $table $column_and_values $clause";
+        $query = $this->handle_insert_conflict($d, $table, $column_and_values, $clause) ?? /** @lang text */ "INSERT INTO $table $column_and_values $clause";
 
         $op = $this->capture_result(
             [$this->query($query, $d) ?? false, $d],
@@ -205,7 +205,7 @@ trait SelectorOOPCrud
         if($return_object && isset($insert_id)) {
             $id = self::escape_identifier("id");
 
-            return $this->query("SELECT * FROM $table WHERE $id='$insert_id'", [
+            return $this->query(/** @lang text */ "SELECT * FROM $table WHERE $id='$insert_id'", [
                 'query_type' => OrmQueryType::SELECT,
                 'loop' => false,
                 'can_be_null' => false,
@@ -276,7 +276,7 @@ trait SelectorOOPCrud
         $table = self::escape_identifier($table);
         $d['query_type'] = OrmQueryType::INSERT;
 
-        $query = $this->handle_insert_conflict($d, $table, $column_and_values, $clause) ?? "INSERT INTO $table $column_and_values $clause";
+        $query = $this->handle_insert_conflict($d, $table, $column_and_values, $clause) ?? /** @lang text */ "INSERT INTO $table $column_and_values $clause";
 
         return $this->capture_result(
             [$this->query($query, $d) ?? false, $d],
@@ -320,7 +320,7 @@ trait SelectorOOPCrud
         $table = self::escape_identifier($table);
 
         return $this->capture_result(
-            [$this->query("INSERT INTO $table ($columns) $values $clause", $d) ?? false, $d],
+            [$this->query(/** @lang text */ "INSERT INTO $table ($columns) $values $clause", $d) ?? false, $d],
             'bool'
         );
     }
@@ -383,14 +383,14 @@ trait SelectorOOPCrud
         $table = self::escape_identifier($table);
 
         return $this->capture_result(
-            [$this->query("UPDATE $table SET $values $clause", $d), $d],
+            [$this->query(/** @lang text */ "UPDATE $table SET $values $clause", $d), $d],
             'bool'
         );
     }
 
     final public function update() : bool { return $this->edit(); }
 
-    final public function select(?array $__Internal__ = null): array|null|Generator|\mysqli_result|\SQLite3Result
+    final public function select(?array $__Internal__ = null): array|null|Generator|\mysqli_result|\SQLite3Result|\PgSql\Result
     {
         $d = $__Internal__ ?? $this->get_vars();
         $table = $d['table'] ?? null;
@@ -474,7 +474,7 @@ trait SelectorOOPCrud
         $clause = $this->bind_param($clause, $d);
 
         $rtn = $this->capture_result(
-            [$this->query("SELECT $cols FROM $table $clause", $d), $d],
+            [$this->query(/** @lang text */ "SELECT $cols FROM $table $clause", $d), $d],
             $return_type
         );
 
@@ -505,7 +505,7 @@ trait SelectorOOPCrud
         $where = $this->_join($d) . $where;
 
         return $this->capture_result(
-            [$this->query("SELECT COUNT($col) FROM $table $where", $d), $d],
+            [$this->query(/** @lang text */ "SELECT COUNT($col) FROM $table $where", $d), $d],
             'int'
         );
     }
@@ -529,7 +529,7 @@ trait SelectorOOPCrud
             $this->oop_exception("You didn't specify a clause for your hard delete statement. If you wish to delete all the records on the table, then update the `delete_all_records` argument on the `->delete()` method");
 
         return $this->capture_result(
-            [$this->query("DELETE FROM $table {$d['clause']}", $d), $d],
+            [$this->query(/** @lang text */ "DELETE FROM $table {$d['clause']}", $d), $d],
             'bool'
         );
     }
