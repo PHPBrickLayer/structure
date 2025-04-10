@@ -7,6 +7,7 @@ use BrickLayer\Lay\Core\Enums\LayMode;
 use BrickLayer\Lay\Core\Enums\LayServerType;
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Core\View\Domain;
 use BrickLayer\Lay\Libs\LayArray;
 use BrickLayer\Lay\Libs\LayFn;
 use BrickLayer\Lay\Libs\Mail\Mailer;
@@ -14,7 +15,6 @@ use BrickLayer\Lay\Orm\Enums\OrmDriver;
 use BrickLayer\Lay\Orm\SQL;
 use Closure;
 use JetBrains\PhpStorm\ArrayShape;
-use mysqli;
 use TypeError;
 
 trait Config
@@ -88,9 +88,19 @@ trait Config
         $_SESSION[self::$SESSION_KEY] ??= [];
     }
 
-    public static function call_lazy_cors(): void
+    public static function call_lazy_cors(bool $about_to_die = false): void
     {
-        if (isset(self::$CACHED_CORS)) self::set_cors(...self::$CACHED_CORS, lazy_cors: false);
+        if (isset(self::$CACHED_CORS)) {
+            self::set_cors(...self::$CACHED_CORS, lazy_cors: false);
+            return;
+        }
+
+        if($about_to_die) {
+            Domain::current_route_data("*");
+        }
+
+
+
     }
 
     /**
@@ -191,7 +201,7 @@ trait Config
         return null;
     }
 
-    public static function close_orm(?mysqli $link = null): void
+    public static function close_orm(mixed $link = null): void
     {
         self::is_init();
         if (!isset(self::$SQL_INSTANCE)) return;
