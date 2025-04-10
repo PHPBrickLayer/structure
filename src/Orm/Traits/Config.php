@@ -417,8 +417,6 @@ trait Config{
             self::exception("InvalidOrmDriver", "An invalid db driver was received: [" . @$_ENV['DB_DRIVER'] . "]. Please specify the `DB_DRIVER`. Valid keys includes any of the following: [" . OrmDriver::stringify() . "]");
 
         if($connection === null) {
-            $parse_bool = fn(string $key, bool $default) => filter_var($_ENV[$key] ?? $default, FILTER_VALIDATE_BOOLEAN);
-
             $connection = match ($driver) {
                 OrmDriver::MYSQL, OrmDriver::POSTGRES => [
                     "host" => LayFn::env('DB_HOST'),

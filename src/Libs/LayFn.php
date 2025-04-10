@@ -200,6 +200,9 @@ final class LayFn
 
         $_ENV[$key] ??= $default;
 
+        if(gettype($default) == "boolean")
+            $_ENV[$key] = filter_var($_ENV[$key], FILTER_VALIDATE_BOOL);
+
         return $_ENV[$key];
     }
 }
