@@ -555,6 +555,10 @@ class CoreException
         if($opt['return_as_string'])
             return $act;
 
+        // Call CORS so that the HTTP response returns the correct code, rather than CORS error, especially
+        // when CORS has been well set.
+        LayConfig::call_lazy_cors();
+
         if($act['display_error'] && $opt['echo_error']) {
             self::$already_caught = true;
             self::$DISPLAYED_ERROR = true;

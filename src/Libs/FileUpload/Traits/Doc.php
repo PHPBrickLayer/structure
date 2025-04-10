@@ -105,7 +105,7 @@ trait Doc {
         $tmp_file = $file['tmp_name'];
         $add_mod_time ??= true;
 
-        if($extension) {
+        if(@$extension) {
             $file_ext = is_string($extension) ? $extension : $extension->name;
             $file_ext = "." . strtolower($file_ext);
         }
