@@ -10,7 +10,7 @@ abstract class LayCSV {
 
     /**
      * @param string $file
-     * @param \Closure<array> $callback
+     * @param \Closure(array): array|LayLoop $callback
      * @param int $max_size_kb
      * @return array
      */
