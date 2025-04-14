@@ -32,6 +32,7 @@ class Domain {
     private static bool $list_domain_only = false;
     private static bool $cli_mode = false;
     private static bool $mocking_domain = false;
+    private static bool $thrown_exception = false;
 
     private static bool $lay_init = false;
     private static LayConfig $layConfig;
@@ -622,10 +623,15 @@ class Domain {
         $domain_entries = LayConfig::server_data()->web . "index.php";
         $is_domain_entry_file = $_SERVER['SCRIPT_FILENAME'] == $domain_entries;
 
-        if($is_domain_entry_file)
-            LayException::throw_exception(
-                "Cannot call this method inside $domain_entries file"
-            );
+//        if($is_domain_entry_file) {
+//            if(self::$thrown_exception)
+//                return;
+//
+//            self::$thrown_exception = true;
+//            LayException::throw_exception(
+//                "Cannot call this method inside $domain_entries file"
+//            );
+//        }
 
         include_once $domain_entries;
         self::$included_once = true;
