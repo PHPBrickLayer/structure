@@ -468,8 +468,9 @@ class CoreException
         $dir = LayConfig::server_data()->exceptions;
         $file_log = $dir . date("Y-m-d") . ".log";
 
+        //TODO: Make it possible to increment the number by the exception file, not just 2
         if(file_exists($file_log) && filesize($file_log) > 1559928) {
-            $file_log = $dir . date("Y-m-d") . "2.log";
+            $file_log = $dir . date("Y-m-d") . "-2.log";
         }
 
         LayDir::make($dir, 0755, true);
@@ -500,7 +501,7 @@ class CoreException
 
     /**
      * @throws \Exception
-     * @return array{
+     * @return null|array{
      *     act: string,
      *     error: string,
      *     as_string: bool

@@ -288,8 +288,17 @@ trait ValidateCleanMap {
         if(isset($options['must_contain']) && !in_array($value, $options['must_contain']))
             $add_to_entry = $this->__add_error($field, "$field_name must be one of: " . implode(', ', $options['must_contain']));
 
-        if(isset($options['must_validate']) && !$options['must_validate']['fun']($value))
-            $add_to_entry = $this->__add_error($field, $options['must_validate']['message'] ?? "$field_name has not satisfied the criteria for submission");
+        if(isset($options['must_validate'])) {
+            if(isset($options['must_validate']['fun'])) {
+                if(!$options['must_validate']['fun']($value))
+                    $add_to_entry = $this->__add_error($field, $options['must_validate']['message'] ?? "$field_name has not satisfied the criteria for submission");
+            } else {
+                $has_error = $options['must_validate']['fun_str']($value);
+
+                if($has_error)
+                    $add_to_entry = $this->__add_error($field, $has_error);
+            }
+        }
 
         if(isset($options['hash'])) {
             $apply_clean = false;
@@ -309,13 +318,14 @@ trait ValidateCleanMap {
      *    field_name?: string,
      *    required_message?: string,
      *    db_col?: string,
-     *    before_validate?: callable<mixed>,
-     *    before_clean?: callable<mixed>,
-     *    fun?: callable<mixed>,
-     *    after_clean?: callable<mixed>,
-     *    must_contain?: array<string>,
+     *    before_validate?: callable(mixed) : string,
+     *    before_clean?: callable(mixed) : string,
+     *    fun?: callable(mixed) : string,
+     *    after_clean?: callable(mixed) : string,
+     *    must_contain?: array<int, string>,
      *    must_validate?: array{
-     *      fun: callable<mixed>,
+     *      fun: callable(mixed) : bool,
+     *      fun_str: callable(mixed) : string|null,
      *      message: string,
      *    },
      *    json_encode?: bool,
@@ -324,12 +334,13 @@ trait ValidateCleanMap {
      *    is_name?: bool,
      *    is_num?: bool,
      *    is_date?: bool,
+     *    is_datetime?: bool,
      *    is_file?: bool,
      *    is_captcha?: bool,
      *    captcha_jwt_field?: string|null,
      *    hash?: bool,
-     *    allowed_types?: Array<int,FileUploadExtension>,
-     *    allowed_extensions?: Array<int,FileUploadExtension>,
+     *    allowed_types?: array<int,FileUploadExtension>,
+     *    allowed_extensions?: array<int,FileUploadExtension>,
      *    max_size?: int,
      *    max_size_in_mb?: float,
      *    new_file_name?: string,
@@ -351,7 +362,7 @@ trait ValidateCleanMap {
      *      escape: EscapeType|array<int,EscapeType>,
      *      strict?: bool,
      *    },
-     *    return_struct?: callable<mixed, string>,
+     *    return_struct?: callable(mixed, string, array) : mixed,
      * } $options
      *
      * @return self
@@ -364,7 +375,7 @@ trait ValidateCleanMap {
         if(empty(self::$_filled_request) || self::$_break_validation)
             return $this;
 
-        $is_required = $options['required'] ?? self::$_required ?? false;
+        $is_required = $options['required'] ?? self::$_required ?? true;
         $field = str_replace("[]", "", $options['field']);
         $value = $this->__get_field($field);
 
@@ -405,9 +416,9 @@ trait ValidateCleanMap {
         // Break on error or empty value
         if(!$add_to_entry || empty($value)) return $this;
 
-        if(isset($options['is_date'])) {
+        if(isset($options['is_date']) || isset($options['is_datetime'])) {
             $old_value = $value;
-            $value = LayDate::date($old_value, format_index: 0);
+            $value = LayDate::date($old_value, format_index: isset($options['is_date']) ? 0 : -1);
             $apply_clean = false;
 
             if(!LayDate::is_valid($value)) {
