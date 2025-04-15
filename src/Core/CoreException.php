@@ -15,8 +15,6 @@ use BrickLayer\Lay\Libs\LayFn;
 use BrickLayer\Lay\Orm\SQL;
 use Throwable;
 
-//TODO: Log file cannot be written to by multiple processes, so find a way
-// to write all the necessary logs and exceptions to a single file
 class CoreException
 {
     use IsSingleton;
@@ -466,12 +464,7 @@ class CoreException
             return $rtn;
 
         $dir = LayConfig::server_data()->exceptions;
-        $file_log = $dir . date("Y-m-d") . ".log";
-
-        //TODO: Make it possible to increment the number by the exception file, not just 2
-        if(file_exists($file_log) && filesize($file_log) > 1559928) {
-            $file_log = $dir . date("Y-m-d") . "-2.log";
-        }
+        $file_log = $this->increment_log_file($dir . date("Y-m-d") . ".log");
 
         LayDir::make($dir, 0755, true);
 
@@ -483,9 +476,26 @@ class CoreException
         $stack_raw
         DEBUG;
 
-        @file_put_contents($file_log, $body, FILE_APPEND);
+        @file_put_contents($file_log, $body, FILE_APPEND|LOCK_EX);
 
         return $rtn;
+    }
+
+    private function increment_log_file(string $file_log) : string
+    {
+        if(file_exists($file_log) && filesize($file_log) > 1559928) {
+            $end_char = explode("_-_", $file_log);
+            $end_char = end($end_char);
+
+            if($end_char && is_numeric($end_char))
+                $end_char = ((int) $end_char) + 1;
+            else
+                $end_char = 2;
+
+            $file_log = $this->increment_log_file($file_log . "_-_" . $end_char);
+        }
+
+        return $file_log;
     }
 
     private function convertRaw($print_val, $replace, &$body): void

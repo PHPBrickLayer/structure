@@ -122,10 +122,10 @@ trait SelectorOOPCrud
      * This function returns the inserted row if it detects an id column and $return_object is true;
      * Otherwise it returns a true on success and false on fail
      * @param array|null $column_and_values
-     * @param bool $return_object if true and `$column_and_values` contains an id column, it returns the inserted object
+     * @param bool $return_record if true and `$column_and_values` contains an id column, it returns the inserted object
      * @return bool|array
      */
-    final public function insert(?array $column_and_values = null, bool $return_object = false): bool|array
+    final public function insert(?array $column_and_values = null, bool $return_record = false): bool|array
     {
         $d = $this->get_vars();
         $column_and_values = $column_and_values ?? $d['values'] ?? $d['columns'];
@@ -202,7 +202,7 @@ trait SelectorOOPCrud
             'bool',
         );
 
-        if($return_object && isset($insert_id)) {
+        if($return_record && isset($insert_id)) {
             $id = self::escape_identifier("id");
 
             return $this->query(/** @lang text */ "SELECT * FROM $table WHERE $id='$insert_id'", [
@@ -218,9 +218,10 @@ trait SelectorOOPCrud
     /**
      * Insert multiple rows
      * @param array $multi_column_and_values
+     * @param bool $auto_add_uid Add col `id` to the column entries if it doesn't exist. This does not work for auto_increment col
      * @return bool
      */
-    final public function insert_multi(array $multi_column_and_values): bool
+    final public function insert_multi(array $multi_column_and_values, bool $auto_add_uid = false): bool
     {
         $d = $this->get_vars();
         $table = $d['table'] ?? null;
@@ -231,10 +232,19 @@ trait SelectorOOPCrud
 
         $columns = [];
         $values = "";
+        $add_id = function ($val) {
+            $insert_id = $val;
+
+            if(trim(strtolower($val)) == 'uuid()')
+                $insert_id = $this->uuid();
+
+            return $insert_id;
+        };
 
         try {
             foreach ($multi_column_and_values as $entry) {
                 $values .= "(";
+                $has_col_id = false;
 
                 foreach ($entry as $col => $val) {
                     if(!isset($columns[$col]))
@@ -248,12 +258,8 @@ trait SelectorOOPCrud
                     }
 
                     if($col == 'id') {
-                        $insert_id = $val;
-
-                        if(trim(strtolower($val)) == 'uuid()')
-                            $insert_id = $this->uuid();
-
-                        $val = $insert_id;
+                        $val = $add_id($val);
+                        $has_col_id = true;
                     }
 
                     // If value is not a function like uuid(), timestamp(), etc; enclose it quotes
@@ -261,6 +267,13 @@ trait SelectorOOPCrud
                         $val = "'$val'";
 
                     $values .= "$val,";
+                }
+
+                if(!$has_col_id && $auto_add_uid) {
+                    if(!isset($columns['id']))
+                        $columns['id'] = self::escape_identifier('id');
+
+                    $values .= "'" . $add_id('uuid()') . "',";
                 }
 
                 $values = rtrim($values, ",") . "),";

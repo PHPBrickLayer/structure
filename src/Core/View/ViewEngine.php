@@ -274,8 +274,14 @@ final class ViewEngine {
         </body></html>
         STR;
 
-        if($layConfig::$ENV_IS_PROD && $layConfig::is_page_compressed())
-            $page = preg_replace("/>(\s)+</m","><",preg_replace("/<!--(.|\s)*?-->/","",$page));
+        if($layConfig::$ENV_IS_PROD && $layConfig::is_page_compressed()) {
+            $page = str_replace(
+                ['@styletop', '@scripttop', '@style', '@script'],
+                ["@styletop ", "@scripttop ", "@style ", "@script "],
+                $page
+            );
+            $page = preg_replace("/>(\s)+</m", "><", preg_replace("/<!--(.|\s)*?-->/", "", $page));
+        }
 
         $x = "<!DOCTYPE html>\n" . $page;
 
@@ -313,45 +319,92 @@ final class ViewEngine {
         $this->add_view_section(self::key_body);
         $body = ob_get_clean();
 
-        $pattern = '/
-            @styletop\n(?P<style_top>.*?)\s*@endstyle
-            | @scripttop\n(?P<script_top>.*?)\s*@endscript
-            | @style\n(?P<style_dwn>.*?)\s*@endstyle
-            | @script\n(?P<script_dwn>.*?)\s*@endscript
-            | (?P<html_content>.*?)
-            (?=@styletop\n|\@scripttop\n|\@script\n|\@style\n|\z)  # Lookahead for the next annotation or end of string
-        /sxi';
-
-        preg_match_all($pattern, $body, $matches, PREG_UNMATCHED_AS_NULL);
+        $parsed = $this->parse_html_content($body);
 
         self::$head_styles = [
-            "pre" => implode($matches['style_top']),
-            "app" => implode($matches['style_dwn']),
+            "pre" => implode("\n", $parsed['style_top']),
+            "app" => implode("\n", $parsed['style_dwn']),
         ];
 
         ob_start();
 
-        // TODO: Find a way to render more than 1.5mb of HTML page
-        if(empty($matches['html_content'])) {
+        if(empty($parsed['html_content'])) {
             $length = LayFn::num_format(strlen($body), 6) . "B";
-
-            Exception::log(
-                "It seems the html_content of the page is empty. Maybe you are rendering a page that is very large. Body Size: $length",
-                log_title: "ViewEngine::PageTooLarge",
-            );
-
-            $matches['html_content'] = ["<h1 style='padding: 2rem'>HTML Page Exceeds Limit. Current Page Size is: $length</h1>"];
+            Exception::log("Parsed HTML content is empty. Body Size: $length", log_title: "ViewEngine::PageTooLarge");
+            echo "<h1 style='padding: 2rem'>HTML Page Could Not Be Parsed. Size: $length</h1>";
         }
-
-        echo implode($matches['html_content']);
+        else
+            echo implode('', $parsed['html_content']);
 
         $this->core_script();
-        echo implode($matches['script_top']);
+        echo implode('', $parsed['script_top']);
         $this->add_view_section(self::key_script);
         $this->dump_assets("js");
-        echo implode($matches['script_dwn']);
+        echo implode('', $parsed['script_dwn']);
 
         return ob_get_clean();
+    }
+
+    public function parse_html_content(string $body): array
+    {
+        $sections = [
+            'style_top' => [],
+            'script_top' => [],
+            'style_dwn' => [],
+            'script_dwn' => [],
+            'html_content' => [],
+        ];
+
+        $tags = [
+            '@styletop' => ['end' => '@endstyle', 'key' => 'style_top'],
+            '@scripttop' => ['end' => '@endscript', 'key' => 'script_top'],
+            '@style' => ['end' => '@endstyle', 'key' => 'style_dwn'],
+            '@script' => ['end' => '@endscript', 'key' => 'script_dwn'],
+        ];
+
+        $offset = 0;
+        $length = strlen($body);
+
+        while ($offset < $length) {
+            $next_tag_pos = $length;
+            $next_tag = null;
+
+            // Find the nearest tag
+            foreach ($tags as $start => $meta) {
+                $pos = strpos($body, $start, $offset);
+                if ($pos !== false && $pos < $next_tag_pos) {
+                    $next_tag_pos = $pos;
+                    $next_tag = $start;
+                }
+            }
+
+            // If no tags found, the rest is HTML content
+            if ($next_tag === null) {
+                $sections['html_content'][] = substr($body, $offset);
+                break;
+            }
+
+            // Capture content before the tag as HTML
+            if ($next_tag_pos > $offset) {
+                $sections['html_content'][] = substr($body, $offset, $next_tag_pos - $offset);
+            }
+
+            $end_tag = $tags[$next_tag]['end'];
+            $block_start = $next_tag_pos + strlen($next_tag);
+            $end_pos = strpos($body, $end_tag, $block_start);
+
+            if ($end_pos === false) {
+                // Broken layout block, skip
+                break;
+            }
+
+            $content = substr($body, $block_start, $end_pos - $block_start);
+            $sections[$tags[$next_tag]['key']][] = trim($content);
+
+            $offset = $end_pos + strlen($end_tag);
+        }
+
+        return $sections;
     }
 
     private function add_view_section(string $view_section) : void

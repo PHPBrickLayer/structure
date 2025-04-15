@@ -6,6 +6,7 @@ namespace BrickLayer\Lay\Core\View;
 use BrickLayer\Lay\Core\Annotate\CurrentRouteData;
 use BrickLayer\Lay\Core\Api\ApiEngine;
 use BrickLayer\Lay\Core\Enums\LayLoop;
+use BrickLayer\Lay\Core\Enums\LayMode;
 use BrickLayer\Lay\Core\Enums\LayServerType;
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
@@ -327,6 +328,12 @@ class Domain {
 
         self::init_lay();
 
+        if(LayConfig::get_mode() == LayMode::CLI) {
+            self::$cli_mode = true;
+            self::$current_route_has_end_slash = false;
+            return self::$current_route = "index";
+        }
+
         if(isset(self::$current_route))
             return self::$current_route;
 
@@ -621,8 +628,10 @@ class Domain {
         self::$mocking_domain = $mock;
 
         $domain_entries = LayConfig::server_data()->web . "index.php";
-        $is_domain_entry_file = $_SERVER['SCRIPT_FILENAME'] == $domain_entries;
 
+        //TODO: Find a way to fix the infinite loop when there is an exception before the view is displayed
+//        $is_domain_entry_file = $_SERVER['SCRIPT_FILENAME'] == $domain_entries;
+//
 //        if($is_domain_entry_file) {
 //            if(self::$thrown_exception)
 //                return;
