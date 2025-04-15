@@ -224,7 +224,7 @@ trait Config{
 
             if($silent) {
                 $connected = @pg_connect($conn_arg);
-                if(!$connected) return;
+                if(!$connected) return false;
             }
             else
                 $connected = pg_connect($conn_arg);
@@ -239,7 +239,7 @@ trait Config{
 
         $is_mac = LayConfig::get_os() == "MAC";
 
-        // Check if it's a MAC OS, if so don't use host, because MAC has a pgsql bug, that makes it crash apache
+        // Check if it's a MacOS, if so don't use host, because MAC has a pgsql bug, that makes it crash apache
         $conn_arg = $is_mac ? "" : "host=$host ";
 
         $project_name = "Lay_" . LayConfig::get_project_identity();
