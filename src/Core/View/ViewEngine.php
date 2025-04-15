@@ -322,8 +322,8 @@ final class ViewEngine {
         $parsed = $this->parse_html_content($body);
 
         self::$head_styles = [
-            "pre" => implode('', $parsed['style_top']),
-            "app" => implode('', $parsed['style_dwn']),
+            "pre" => implode("\n", $parsed['style_top']),
+            "app" => implode("\n", $parsed['style_dwn']),
         ];
 
         ob_start();
