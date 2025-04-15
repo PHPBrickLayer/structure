@@ -2,7 +2,7 @@
 
 namespace BrickLayer\Lay\Libs;
 
-final class LayArray
+abstract class LayArray
 {
     /**
      * Enhanced array search, this will search for values even in multiple dimensions of arrays.
@@ -216,5 +216,23 @@ final class LayArray
         }
 
         return $object1;
+    }
+
+    /**
+     * Return array map properly
+     *
+     * @param array $array
+     * @param callable(mixed, mixed):array $callback
+     * @return array
+     */
+    public static function map(array $array, callable $callback) : array
+    {
+        $all = [];
+
+        foreach ($array as $k => $v) {
+            $all[] = $callback($v, $k);
+        }
+
+        return $all;
     }
 }

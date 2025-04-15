@@ -219,23 +219,38 @@ trait Config{
         $port = (int) $port;
         self::$db_name = $db;
 
+        $connect_now = function (string $conn_arg) use ($silent) {
+            $silent = filter_var(@$silent, FILTER_VALIDATE_BOOL);
+
+            if($silent) {
+                $connected = @pg_connect($conn_arg);
+                if(!$connected) return;
+            }
+            else
+                $connected = pg_connect($conn_arg);
+
+            return $connected;
+        };
+
         if(self::is_connected()) {
             $this->get_link();
             return;
         }
 
-        $silent = filter_var(@$silent, FILTER_VALIDATE_BOOL);
+        $is_mac = LayConfig::get_os() == "MAC";
+
+        // Check if it's a MAC OS, if so don't use host, because MAC has a pgsql bug, that makes it crash apache
+        $conn_arg = $is_mac ? "" : "host=$host ";
 
         $project_name = "Lay_" . LayConfig::get_project_identity();
-        $conn_arg = LayConfig::$ENV_IS_PROD ? "host=$host " : "";
         $conn_arg .= "port=$port dbname=$db user=$user password=$password options='--client_encoding=$charset --application_name=$project_name'";
 
-        if($silent) {
-            $connected = @pg_connect($conn_arg);
-            if(!$connected) return;
+        $connected = $connect_now($conn_arg);
+
+        if(!$connected && $is_mac) {
+            $conn_arg .= $conn_arg = " host=$host";
+            $connected = $connect_now($conn_arg);
         }
-        else
-            $connected = pg_connect($conn_arg);
 
         self::$connected = true;
         $this->set_link(new Postgres($connected));

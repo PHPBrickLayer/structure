@@ -315,7 +315,7 @@ final class LayCron
     public function log_output(string $output) : void
     {
         $this->cron_db();
-        file_put_contents($this->output_file, $output . PHP_EOL, FILE_APPEND);
+        file_put_contents($this->output_file, $output . PHP_EOL, FILE_APPEND|LOCK_EX);
     }
 
     /**

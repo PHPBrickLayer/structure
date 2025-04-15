@@ -332,11 +332,24 @@ final class ViewEngine {
         ob_start();
 
         // TODO: Find a way to render more than 1.5mb of HTML page
-        if(empty($matches['html_content'])) {
+        if(empty($matches['html_content']) || preg_last_error() !== PREG_NO_ERROR) {
+            $error_code = preg_last_error();
+
+            $error_msg = match($error_code) {
+                PREG_NO_ERROR => "No error",
+                PREG_INTERNAL_ERROR => "Internal PCRE error",
+                PREG_BACKTRACK_LIMIT_ERROR => "Backtrack limit was exhausted",
+                PREG_RECURSION_LIMIT_ERROR => "Recursion limit was exhausted",
+                PREG_BAD_UTF8_ERROR => "Malformed UTF-8 data",
+                PREG_BAD_UTF8_OFFSET_ERROR => "Invalid UTF-8 offset",
+                PREG_JIT_STACKLIMIT_ERROR => "JIT stack limit reached",
+                default => "Unknown error",
+            };
+
             $length = LayFn::num_format(strlen($body), 6) . "B";
 
             Exception::log(
-                "It seems the html_content of the page is empty. Maybe you are rendering a page that is very large. Body Size: $length",
+                "Regex parsing failed: $error_msg. Body Size: $length",
                 log_title: "ViewEngine::PageTooLarge",
             );
 
@@ -352,6 +365,53 @@ final class ViewEngine {
         echo implode($matches['script_dwn']);
 
         return ob_get_clean();
+    }
+
+    function parse_custom_blocks(string $body): array {
+        $tags = [
+            '@styletop' => ['end' => '@endstyle', 'key' => 'style_top'],
+            '@scripttop' => ['end' => '@endscript', 'key' => 'script_top'],
+            '@style' => ['end' => '@endstyle', 'key' => 'style_dwn'],
+            '@script' => ['end' => '@endscript', 'key' => 'script_dwn'],
+        ];
+
+        $sections = [
+            'style_top' => [],
+            'script_top' => [],
+            'style_dwn' => [],
+            'script_dwn' => [],
+            'html_content' => [],
+        ];
+
+        $lines = explode("\n", $body);
+        $current = null;
+        $buffer = [];
+
+        foreach ($lines as $line) {
+            $trimmed = trim($line);
+
+            if ($current === null) {
+                foreach ($tags as $start => $info) {
+                    if (str_starts_with($trimmed, $start)) {
+                        $current = $info['key'];
+                        $buffer = [];
+                        continue 2;
+                    }
+                }
+                $sections['html_content'][] = $line;
+            } else {
+                $end_tag = array_search($current, array_column($tags, 'key'));
+                $end_marker = $tags[$end_tag]['end'];
+                if (str_starts_with($trimmed, $end_marker)) {
+                    $sections[$current][] = implode("\n", $buffer);
+                    $current = null;
+                } else {
+                    $buffer[] = $line;
+                }
+            }
+        }
+
+        return $sections;
     }
 
     private function add_view_section(string $view_section) : void
