@@ -7,7 +7,6 @@ use BrickLayer\Lay\Core\CoreException;
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayException;
 use BrickLayer\Lay\Libs\LayFn;
-use BrickLayer\Lay\Libs\LayObject;
 use BrickLayer\Lay\Libs\String\Enum\EscapeType;
 use BrickLayer\Lay\Libs\String\Escape;
 use Throwable;
@@ -20,7 +19,23 @@ trait ControllerHelper {
     private static array|object $cached_request_fd;
 
     /**
-     * Quickly clean a value without having to go through the VCM route or calling the `Escape::clean()` method
+     * Quickly escape and replace a value without going through the VCM route or the `Escape::clean()` method.
+     *
+     * @see Escape::clean()
+     * @see ValidateCleanMap
+     *
+     * @param mixed &$value
+     * @param EscapeType $type
+     * @param bool $strict
+     * @return void
+     */
+    public static function cleanse(mixed &$value, EscapeType $type = EscapeType::STRIP_TRIM_ESCAPE, bool $strict = true): void
+    {
+        $value = $value ? Escape::clean($value, $type, ['strict' => $strict]) : "";
+    }
+
+    /**
+     * Quickly escape and return the escaped value.
      *
      * @see Escape::clean()
      * @see ValidateCleanMap
@@ -30,10 +45,12 @@ trait ControllerHelper {
      * @param bool $strict
      * @return mixed
      */
-    public static function cleanse(mixed &$value, EscapeType $type = EscapeType::STRIP_TRIM_ESCAPE, bool $strict = true): mixed
+    public static function clean(mixed $value, EscapeType $type = EscapeType::STRIP_TRIM_ESCAPE, bool $strict = true): mixed
     {
-        $value = $value ? Escape::clean($value, $type, ['strict' => $strict]) : "";
-        return $value;
+        if(!$value)
+            return "";
+
+        return Escape::clean($value, $type, ['strict' => $strict]);
     }
 
     /**
@@ -173,11 +190,13 @@ trait ControllerHelper {
 
     /**
      * Send an error HTTP response body
+     *
      * @param string $message
      * @param array|null $errors
      * @param ApiStatus|int $code
      * @param Throwable|null $exception
      * @param bool $send_header
+     * @param bool $log_error
      * @return array{
      *    code: int,
      *    status: string,

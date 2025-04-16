@@ -3,7 +3,7 @@
  * @author Osahenrumwen Aigbogun
  * @version 2.0.0
  * @since 23/11/2019
- * @modified 13/02/2025
+ * @modified 16/04/2025
  * @license
  * Copyright (c) 2019 Osai LLC | osaitech.dev/about.
  *
@@ -818,6 +818,7 @@ const $preloader = (act = "show") => {
  *  - `option.preload` {function} = function to carryout before response is received
  *  - `option.progress` {function} = function to execute, while upload is in progress [one arg (response)]
  *  - `option.error` {function} = it executes for all kinds of error, it's like the finally of errors
+ *  - `option.addError` {function} = This function is executed on top of the default error handler of this method
  *  - `option.loaded` {function} = optional callback function that should be executed when the request is successful, either this or a promise
  *  - `option.abort` {function} = function to execute on upload abort
  * @param {boolean|object|string} data same as `option.data`, only comes in play when three parameter wants to be used
@@ -851,11 +852,12 @@ const $preloader = (act = "show") => {
     let method = option.method ?? "get";
     let type = option.type ?? "text";
     let returnType = option.return ?? option.type ?? null;
-    let alert_error = option.alert ?? false;
+    let alertError = option.alert ?? false;
     let displayError = option.displayError ?? true;
     let preload = option.preload ?? (() => "preload");
     let progress = option.progress ?? (() => "progress");
     let error = option.error ?? (() => "error");
+    let addError = option.addError ?? (() => "error");
     let debounce = option.debounce ?? 0;
     debounce = !debounce ? 0 : debounce;
     data = option.data ?? option.form ?? data ?? null;
@@ -887,10 +889,11 @@ const $preloader = (act = "show") => {
             } catch (e) {
                 alertType = "fail";
             }
-            if (alert_error) alert(msg); else osNote(msg, alertType, {
+            if (alertError) alert(msg); else osNote(msg, alertType, {
                 duration: -1,
                 showCopy: true
             });
+            if (addError !== "error") addError();
         }
         reject({
             statusText: xhr.e ?? xhr.statusText,
