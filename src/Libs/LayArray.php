@@ -2,6 +2,8 @@
 
 namespace BrickLayer\Lay\Libs;
 
+use BrickLayer\Lay\Core\LayException;
+
 abstract class LayArray
 {
     /**
@@ -59,6 +61,8 @@ abstract class LayArray
     }
 
     /**
+     *
+     * @deprecated use `any` or `every` to express yourself. Some is confusing in the way it is used
      * Returns a new array of list of values when the callback resolves to true and ignores the value of it returns false
      * @param array $array
      * @param callable $callback
@@ -67,17 +71,35 @@ abstract class LayArray
      */
     public static function some(array $array, callable $callback, bool $preserve_key = false) : array
     {
-        $rtn = [];
+        LayException::log("Depreciated method `some` used; Use `any` or `every` instead. `some` is confusing");
+        return [self::any($array, $callback)['value']];
+    }
+
+    /**
+     * Loops through the array and returns the first array that satisfies the condition set.
+     * Returns null if nothing checks out
+     *
+     * @param array $array
+     * @param callable($value,$key):bool $condition
+     * @return null|array{
+     *     key: string|int,
+     *     value: mixed,
+     * }
+     */
+    public static function any(array $array, callable $condition) : ?array
+    {
+        $rtn = null;
 
         foreach ($array as $key => $value)
         {
-            if($callback($value, $key)) {
-                if($preserve_key) {
-                    $rtn[$key] = $value;
-                    continue;
-                }
+            $cond = $condition($value, $key);
 
-                $rtn[] = $value;
+            if($cond) {
+                $rtn = [
+                    "key" => $key,
+                    "value" => $value
+                ];
+                break;
             }
         }
 
@@ -85,27 +107,31 @@ abstract class LayArray
     }
 
     /**
-     * Loops true an array and runs the callback on each entry.
-     * Returns true if whatever condition is set in the callback is true, then stops looping.
+     * Returns an array of every value that satisfies the condition set in the `$condition` argument.
+     * Returns null if nothing satisfies.
+     *
      * @param array $array
-     * @param callable $callback
-     * @return bool
+     * @param callable($value,$key):bool $condition
+     * @param bool $preserve_key
+     * @return null|array
      */
-    public static function any(array $array, callable $callback) : bool
+    public static function every(array $array, callable $condition, bool $preserve_key = true) : ?array
     {
-        $rtn = false;
+        $rtn = [];
 
         foreach ($array as $key => $value)
         {
-            $condition = $callback($value, $key);
+            $cond = $condition($value, $key);
 
-            if($condition) {
-                $rtn = true;
-                break;
+            if($cond) {
+                if($preserve_key)
+                    $rtn[$key] = $value;
+                else
+                    $rtn[] = $value;
             }
         }
 
-        return $rtn;
+        return empty($rtn) ? null :  $rtn;
     }
 
     /**
