@@ -96,7 +96,7 @@ class SQL
             $qr = explode(" ", trim($query), 2);
             $query_type = strtoupper(substr($qr[1], 0, 5));
             $query_type = $query_type == OrmQueryType::COUNT->name ? $query_type : strtoupper($qr[0]);
-            $query_type = LayArray::some(OrmQueryType::cases(), fn($v) => $v->name === $query_type)[0] ?? $query_type;
+            $query_type = LayArray::any(OrmQueryType::cases(), fn($v) => $v->name === $query_type)['value'] ?? $query_type;
         }
 
         if ($debug)

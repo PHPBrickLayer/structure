@@ -49,18 +49,18 @@ trait SelectorOOP
      * @param array $filter_list List of filler words than need to be removed
      * @return string
      * @example relevance_query (
-     * "Egypt minister",
-     * [
-     *  "blogs.title" => [
-     *      'full' => 10,
-     *      'keyword' => 8
-     *  ],
-     * "blogs.subtitle" => [
-     *      'full' => 8,
-     *      'keyword' => 5
+     *  "Egypt minister",
+     *  [
+     *      "blogs.title" => [
+     *          'full' => 10,
+     *          'keyword' => 8
      *      ],
-     * "blogs.tags" => 3,
-     * "blogs.keyword" => 2,
+     *      "blogs.subtitle" => [
+     *          'full' => 8,
+     *          'keyword' => 5
+     *      ],
+     *      "blogs.tags" => 3,
+     *      "blogs.keyword" => 2,
      * ]);
      */
     final public function relevance_query(
@@ -238,7 +238,7 @@ trait SelectorOOP
     {
         $WHERE = $this->process_where($column,$operator_or_value,$value);
 
-        $prepend_where = @$this->cached_options[self::$current_index]['has_used_where'] == true ? "" : "WHERE";
+        $prepend_where = @$this->cached_options[self::$current_index]['has_used_where'] ? "" : "WHERE";
 
         $this->set_where();
 
@@ -260,7 +260,7 @@ trait SelectorOOP
     }
 
     /**
-     * @param 'and'|'or'|'AND'|'OR' $prepend
+     * @param null|'and'|'or'|'AND'|'OR' $prepend
      * @param callable(self):string $where_callback
      * @return SQL|SelectorOOP
      */
@@ -368,7 +368,7 @@ trait SelectorOOP
      */
     final public function bind_num(array $num_array): self
     {
-        if(@LayArray::some($num_array, fn($v,$i) => is_string($i))[0])
+        if(LayArray::any($num_array, fn($v,$i) => is_string($i)))
             $this->oop_exception("`->bind_num()` method accepts numbered index only. If you wish to use named index, use `->bind_assoc`");
 
         return $this->store_vars('bind_num', $num_array);
@@ -381,7 +381,7 @@ trait SelectorOOP
      */
     final public function bind_assoc(array $assoc_array): self
     {
-        if(@LayArray::some($assoc_array, fn($v,$i) => is_int($i))[0])
+        if(LayArray::any($assoc_array, fn($v,$i) => is_int($i)))
             $this->oop_exception("`->bind_assoc()` method accepts stringed index only. If you wish to use numbered index, use `->bind_num`");
 
         return $this->store_vars('bind_assoc', $assoc_array);
@@ -461,7 +461,7 @@ trait SelectorOOP
     /**
      * Tell the orm to not return null or false.
      *
-     * If it's a select query, and it's empty, instead of returning an null, it will return an empty array.
+     * If it's a select query, and it's empty, instead of returning a null, it will return an empty array.
      * If it's an update query and the record was not updated, instead of returning false, it will return true.
      *
      * Note: When there is an error, it will still throw an exception. This doesn't prevent that.
@@ -517,7 +517,7 @@ trait SelectorOOP
     }
 
     /**
-     * Instruct the ORM to loop through the result and return an multidimensional array of results.
+     * Instruct the ORM to loop through the result and return a multidimensional array of results.
      *
      * @return SQL|SelectorOOP
      */
