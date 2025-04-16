@@ -19,6 +19,7 @@ trait SelectorOOP
 {
     private static int $current_index = 0;
     private array $cached_options = [];
+    private bool $using_bracket = false;
 
     public static function escape_identifier(string $identifier) : string
     {
@@ -193,7 +194,12 @@ trait SelectorOOP
         return $this->store_vars('case', $then_column_for_assignment_is, $switch_id, $when_column_for_condition_is);
     }
 
-    final public function join(string $join_table, #[ExpectedValues(['right', 'inner', 'left', ''])] string $type = ""): self
+    /**
+     * @param 'right'|'inner'|'left'|'RIGHT'|'INNER'|'LEFT' $join_table
+     * @param string $type
+     * @return SelectorOOP|SQL
+     */
+    final public function join(string $join_table, #[ExpectedValues(['right', 'inner', 'left'])] string $type = ""): self
     {
         return $this->store_vars('join', ["table" => $join_table, "type" => $type,], true);
     }
@@ -214,9 +220,14 @@ trait SelectorOOP
             $column = self::escape_identifier($column);
 
             if(is_null($value))
-                $WHERE = "$column='$operator_or_value'";
+                $WHERE = str_starts_with($operator_or_value, "(") ?
+                    "$column=$operator_or_value" :
+                    "$column='$operator_or_value'";
+
             else
-                $WHERE = "$column $operator_or_value '$value'";
+                $WHERE = str_starts_with($value, "(") ?
+                    "$column $operator_or_value $value":
+                    "$column $operator_or_value '$value'";
         } else
             $WHERE = $column;
 
@@ -227,21 +238,43 @@ trait SelectorOOP
     {
         $WHERE = $this->process_where($column,$operator_or_value,$value);
 
-        return $this->clause_array("WHERE $WHERE");
+        $prepend_where = @$this->cached_options[self::$current_index]['has_used_where'] == true ? "" : "WHERE";
+
+        $this->set_where();
+
+        return $this->clause_array("$prepend_where $WHERE");
     }
 
     final public function or_where(string $column, string $operator_or_value, ?string $value = null): self
     {
         $WHERE = $this->process_where($column,$operator_or_value,$value);
 
-        return $this->clause_array("OR $WHERE");
+        return $this->clause_array(" OR $WHERE");
     }
 
     final public function and_where(string $column, string $operator_or_value, ?string $value = null): self
     {
         $WHERE = $this->process_where($column,$operator_or_value,$value);
 
-        return $this->clause_array("AND $WHERE");
+        return $this->clause_array(" AND $WHERE");
+    }
+
+    /**
+     * @param 'and'|'or'|'AND'|'OR' $prepend
+     * @param callable(self):string $where_callback
+     * @return SQL|SelectorOOP
+     */
+    final public function bracket(
+        callable $where_callback,
+        #[ExpectedValues(["and", "or", "AND", "OR"])] ?string $prepend = null,
+    ): self
+    {
+        $this->using_bracket = true;
+        $where_callback($this);
+        $this->using_bracket = false;
+
+        $WHERE = trim(implode("", $this->cached_options[self::$current_index]['clause_string']));
+        return $this->clause_array(strtoupper($prepend ??= "") . " ($WHERE)");
     }
 
     final public function clause(string $clause): self
@@ -249,13 +282,35 @@ trait SelectorOOP
         return $this->store_vars('clause', $clause);
     }
 
-    final public function clause_array(string $clause): self
+    private function clause_array(string $clause): self
     {
+        if($this->using_bracket) {
+            $this->clause_string_for_bracket($clause);
+            return $this;
+        }
+
         $clause_arr = $this->cached_options[self::$current_index]['clause_array'] ?? [];
 
         $clause_arr[] = $clause;
 
         return $this->store_vars('clause_array', $clause_arr);
+    }
+
+    private function clause_string_for_bracket(string $clause): self
+    {
+        $clause_arr = $this->cached_options[self::$current_index]['clause_string'] ?? [];
+
+        $clause_arr[] = $clause;
+
+        return $this->store_vars('clause_string', $clause_arr);
+    }
+
+    private function set_where(): void
+    {
+        if(@$this->cached_options[self::$current_index]['has_used_where'] == true)
+            return;
+
+        $this->store_vars('has_used_where', true);
     }
 
     final public function fun(Closure $function): self
