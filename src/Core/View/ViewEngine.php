@@ -421,15 +421,19 @@ final class ViewEngine {
         if($meta_view instanceof Closure)
             echo $meta_view($meta);
 
-        elseif($meta_view)
-            echo $this->insert_view(explode(".view", $meta_view)[0], "view", true);
+        elseif($meta_view) {
+            $path = pathinfo($meta_view);
+            $ext = $path['extension'] ?? 'view';
+            $meta_view = $path['dirname'] . DIRECTORY_SEPARATOR . $path['filename'];
+            echo $this->insert_view($meta_view, "view", $ext, true);
+        }
 
         self::$meta_data->{$view_section} = ob_get_clean();
 
         // This includes the `inc file` related to the section.
         // That is: body.inc for `body section`, head.inc for `head section`.
         if($meta->{self::key_core}->skeleton === true)
-            $this->insert_view($view_section, "inc", false);
+            $this->insert_view($view_section, "inc", "inc", false);
 
         // The echos the body value without the skeleton of Lay.
         // This only works with the `body` method, it doesn't work with `head` or `script` method
@@ -439,15 +443,14 @@ final class ViewEngine {
         }
     }
 
-    private function insert_view(?string $file, string $type, bool $as_string) : ?string
+    private function insert_view(?string $file, string $type, string $ext, bool $as_string) : ?string
     {
         $domain = DomainResource::get()->domain;
         $inc_root = $domain->layout;
         $view_root = $domain->plaster;
         $root = $type == "inc" ? $inc_root : $view_root;
-        $type = "." . $type;
 
-        $file = $root . $file . $type;
+        $file = $root . $file .  ".$ext";
 
         DomainResource::make_plaster(self::$meta_data);
 
