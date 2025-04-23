@@ -1039,14 +1039,6 @@ final class ApiEngine {
     }
 
     /**
-     * @param bool $print
-     * @return string|bool|null Returns `null` when no api was his; Returns `false` on error; Returns json encoded string on success
-     */
-    public function print_as_json(bool $print = true) : string|bool|null {
-        return $this->print_as(self::$method_return_type ?? ApiReturnType::JSON, $print);
-    }
-
-    /**
      * @param ApiReturnType|null $return_type
      * @param bool $print
      * @return string|bool|null Returns `null` when no api was hit; Returns `false` on error; Returns json encoded string or html on success,
@@ -1079,7 +1071,12 @@ final class ApiEngine {
         }
 
         if($print) {
-            self::set_response_header(http_response_code(), $return_type, "Ok");
+            $code = null;
+
+            if(is_array(self::$bind_return_value))
+                $code = self::$bind_return_value['code'] ?? null;
+
+            self::set_response_header(http_response_code($code), $return_type, "Ok");
             print_r($x);
             die;
         }
@@ -1167,9 +1164,7 @@ final class ApiEngine {
         $uri = self::$route_uri_raw ?? "";
 
         if(self::$route_found) {
-            if($print_existing_result)
-                self::$engine->print_as_json();
-
+            self::$engine->print_as(self::$method_return_type ?? ApiReturnType::JSON, $print_existing_result);
             return null;
         }
 
