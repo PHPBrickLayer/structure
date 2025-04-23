@@ -12,6 +12,9 @@ use BrickLayer\Lay\Libs\String\Enum\EscapeType;
 use BrickLayer\Lay\Libs\String\Escape;
 use JetBrains\PhpStorm\ArrayShape;
 
+/**
+ * @deprecated
+ */
 final class ImageLib {
     private int $img_file_size;
     private array $img_file_ratio;

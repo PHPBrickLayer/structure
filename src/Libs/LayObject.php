@@ -7,6 +7,9 @@ use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayException;
 use BrickLayer\Lay\Core\Traits\IsSingleton;
 
+/**
+ * @deprecated
+ */
 class LayObject
 {
     use IsSingleton;
