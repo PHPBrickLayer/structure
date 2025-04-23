@@ -320,7 +320,6 @@ trait ValidateCleanMap {
      *    db_col?: string,
      *    before_validate?: callable(mixed) : string,
      *    before_clean?: callable(mixed) : string,
-     *    fun?: callable(mixed) : string,
      *    after_clean?: callable(mixed) : string,
      *    must_contain?: array<int, string>,
      *    must_validate?: array{
@@ -428,6 +427,7 @@ trait ValidateCleanMap {
             }
         }
 
+        //TODO: Depreciate fun option
         if(isset($options['fun']) || isset($options['before_clean']))
             $value = ($options['fun'] ?? $options['before_clean'])($value);
 
