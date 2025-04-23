@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace BrickLayer\Lay\Libs;
 
+use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\LayException;
 
 /**
@@ -45,13 +46,14 @@ abstract class LayPassword {
      */
     public static function crypt(?string $string, bool $encrypt = true): ?string {
         if($string == null) return null;
-        $layer_1 = '@91_$!9u(2&y=uy+**43|\ur`y`3ut2%%iu#4#3(oo[u{3{4y7367622556';
-        $layer = hash("sha512","soft-salted-prefix-bini-name-included-to-avoid-brute-force-ukpato-evboehia-okogbo" .
-            $layer_1 . "soft-salted-suffix-you-should-expect-giegbefumwen-maybe-ehose-nohaso");
+
+        $salt = LayFn::env('LAY_CRYPT_SALT', LayConfig::app_id() ?? 'weak-salted-key');
+
+        $layer = hash("sha512", "ukpato-" . $salt . "-nohaso");
 
         $encrypt_method = "AES-256-CBC";
         $key = hash( 'sha512', $layer);
-        $iv = substr( hash( 'sha512', $layer_1 ), 0, 16 );
+        $iv = substr( hash( 'sha512', $salt ), 0, 16 );
 
         if($encrypt)
             $output = base64_encode(openssl_encrypt($string, $encrypt_method, $key, 0, $iv));

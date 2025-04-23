@@ -221,4 +221,9 @@ final class LayCookieStorage
     {
         self::destroy_cookie($cookie_name);
     }
+
+    public static function get(string $cookie_name) : mixed
+    {
+        return $_COOKIE[$cookie_name] ?? null;
+    }
 }
