@@ -18,9 +18,11 @@ trait Image {
     /**
      * Check image width and height size
      * @param $image_file string file to be checked for size
-     * @return array
+     * @return array{
+     *     width: int,
+     *     height: int,
+     * }
      */
-    #[ArrayShape(['width' => 'int', 'height' => 'int'])]
     public function get_ratio(string $image_file) : array
     {
         list($w_orig,$h_orig) = getimagesize($image_file);
@@ -41,23 +43,33 @@ trait Image {
      * @param bool $resize default: false
      * @param int|null $width resize image width
      * @param bool $add_mod_time
-     * @return array
+     * @return array{
+     *    created: bool,
+     *    ext?: string,
+     *    url?: string,
+     *    size?: int,
+     *    width?: int,
+     *    height?: int,
+     *    dev_error?: string,
+     *    error?: string,
+     *    error_type?: FileUploadErrors,
+     * }
      * @throws \Exception
      */
-    #[ArrayShape([
-        "created" => 'bool',
-        "ext" => 'string',
-        "url" => 'string',
-        "size" => 'int',
-        "width" => 'int',
-        "height" => 'int',
-        "dev_error" => "string",
-        "error" => "string",
-        "error_type" => "BrickLayer\\Lay\\Libs\\FileUpload\\Enums\\FileUploadErrors",
-    ])]
     public function create(string $tmp_img, string $new_img, int $quality = 80, bool $resize = false, ?int $width = null, bool $add_mod_time = true) : array
     {
-        $ext = image_type_to_extension(exif_imagetype($tmp_img),false);
+        $img_type = exif_imagetype($tmp_img);
+
+        if($img_type === false)
+            return [
+                "created" => false,
+                "dev_error" => "image_type_to_extension failed to create an image for a file $tmp_img; Class: " . self::class,
+                "error" => "Invalid image file received",
+                "error_type" => FileUploadErrors::IMG_CREATION,
+                "ext" => "null",
+            ];
+
+        $ext = image_type_to_extension($img_type,false);
         $mod_time = $add_mod_time ? "-" .  filemtime($tmp_img) : "";
         $new_img .= $mod_time . ($ext == "gif" ? ".$ext" : ".webp");
         $filename = pathinfo($new_img, PATHINFO_FILENAME) . ($ext == "gif" ? ".$ext" : ".webp");
@@ -122,21 +134,20 @@ trait Image {
 
     /**
      * @param array $options
-     * @return array
+     * @return array{
+     *  uploaded: bool,
+     *  dev_error: string,
+     *  error: string,
+     *  error_type: FileUploadErrors,
+     *  upload_type: FileUploadType,
+     *  storage: FileUploadStorage,
+     *  url: string,
+     *  size: int,
+     *  width: int,
+     *  height: int,
+     * }
      * @throws \Exception
      */
-    #[ArrayShape([
-        'uploaded' => 'bool',
-        'dev_error' => 'string',
-        'error' => 'string',
-        'error_type' => "BrickLayer\\Lay\\Libs\\FileUpload\\Enums\\FileUploadErrors",
-        'upload_type' => "BrickLayer\\Lay\\Libs\\FileUpload\\Enums\\FileUploadType",
-        'storage' => "BrickLayer\\Lay\\Libs\\FileUpload\\Enums\\FileUploadStorage",
-        'url' => 'string',
-        'size' => 'int',
-        'width' => 'int',
-        'height' => 'int',
-    ])]
     public function image_upload(
         #[ArrayShape([
             // Name of file from the form
