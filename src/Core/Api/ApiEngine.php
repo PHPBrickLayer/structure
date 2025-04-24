@@ -1071,10 +1071,10 @@ final class ApiEngine {
         }
 
         if($print) {
-            $code = null;
+            $code = 0;
 
             if(is_array(self::$bind_return_value))
-                $code = self::$bind_return_value['code'] ?? null;
+                $code = self::$bind_return_value['code'] ?? 0;
 
             self::set_response_header(http_response_code($code), $return_type, "Ok");
             print_r($x);
