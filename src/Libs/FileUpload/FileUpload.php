@@ -8,23 +8,26 @@ use BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadExtension;
 use BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadStorage;
 use BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadType;
 use BrickLayer\Lay\Libs\FileUpload\Traits\Doc;
+use BrickLayer\Lay\Libs\FileUpload\Traits\ImageOld;
 use BrickLayer\Lay\Libs\FileUpload\Traits\Image;
-use BrickLayer\Lay\Libs\LayArray;
 use JetBrains\PhpStorm\ArrayShape;
 
 final class FileUpload {
-    #[ArrayShape([
-        'uploaded' => 'bool',
-        'dev_error' => 'string',
-        'error' => 'string',
-        'error_type' => "BrickLayer\\Lay\\Libs\\FileUpload\\Enums\\FileUploadErrors",
-        'upload_type' => "BrickLayer\\Lay\\Libs\\FileUpload\\Enums\\FileUploadType",
-        'storage' => "BrickLayer\\Lay\\Libs\\FileUpload\\Enums\\FileUploadStorage",
-        'url' => 'string',
-        'size' => 'int',
-        'width' => 'int',
-        'height' => 'int',
-    ])]
+
+    /**
+     * @var null|array{
+     *   uploaded: bool,
+     *   dev_error: string,
+     *   error: string,
+     *   error_type: FileUploadErrors,
+     *   upload_type: FileUploadType,
+     *   storage: FileUploadStorage,
+     *   url: string,
+     *   size: int,
+     *   width: int,
+     *   height: int,
+     * }
+     */
     public ?array $response = null;
 
     protected ?FileUploadStorage $storage = null;
@@ -103,7 +106,6 @@ final class FileUpload {
 
             return $this->response = $req;
         }
-
 
         if($opts['upload_type'] ?? false) {
             if($opts['upload_type'] instanceof FileUploadType)

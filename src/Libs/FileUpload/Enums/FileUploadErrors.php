@@ -13,5 +13,7 @@ enum FileUploadErrors
     case FTP_UPLOAD_FAILED;
     case DISK_UPLOAD_FAILED;
     case IMG_CREATION;
+    case IMG_COPY_FAILED;
     case IMG_COMPLETION;
+    case LIB_IMAGICK_NOT_FOUND;
 }

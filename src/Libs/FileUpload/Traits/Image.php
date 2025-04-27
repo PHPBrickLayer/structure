@@ -1,8 +1,10 @@
 <?php
 declare(strict_types=1);
+
 namespace BrickLayer\Lay\Libs\FileUpload\Traits;
 
 use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Core\LayException;
 use BrickLayer\Lay\Libs\Aws\Bucket;
 use BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadErrors;
 use BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadStorage;
@@ -11,10 +13,12 @@ use BrickLayer\Lay\Libs\ID\Gen;
 use BrickLayer\Lay\Libs\LayDir;
 use BrickLayer\Lay\Libs\String\Enum\EscapeType;
 use BrickLayer\Lay\Libs\String\Escape;
+use Imagick;
+use ImagickException;
 use JetBrains\PhpStorm\ArrayShape;
 
-trait Image {
-
+trait Image
+{
     /**
      * Check image width and height size
      * @param $image_file string file to be checked for size
@@ -23,14 +27,20 @@ trait Image {
      *     height: int,
      * }
      */
-    public function get_ratio(string $image_file) : array
+    public function get_ratio(string $image_file): array
     {
-        list($w_orig,$h_orig) = getimagesize($image_file);
+        try {
+            $image = new Imagick($image_file);
+            $width = $image->getImageWidth();
+            $height = $image->getImageHeight();
+            $image->clear();
 
-        if(!$w_orig || !$h_orig)
-            $this->exception("An invalid image file was sent for upload: " . $image_file);
+            return ["width" => $width, "height" => $height];
+        } catch (ImagickException $e) {
+            LayException::throw_exception("An invalid image file was sent for upload: " . $image_file, exception: $e);
+        }
 
-        return ["width" => $w_orig,"height" => $h_orig];
+        return ["width" => null, "height" => null];
     }
 
     /**
@@ -56,26 +66,41 @@ trait Image {
      * }
      * @throws \Exception
      */
-    public function create(string $tmp_img, string $new_img, int $quality = 80, bool $resize = false, ?int $width = null, bool $add_mod_time = true) : array
+    public function create(string $tmp_img, string $new_img, int $quality = 80, bool $resize = false, ?int $width = null, bool $add_mod_time = true): array
     {
-        $img_type = exif_imagetype($tmp_img);
+        try {
+            $img = new Imagick($tmp_img);
+            $format = strtolower($img->getImageFormat());
+            $ext = $format === 'gif' ? 'gif' : 'webp';
+            $mod_time = $add_mod_time ? "-" . filemtime($tmp_img) : "";
+            $new_img .= $mod_time . ".$ext";
+            $filename = pathinfo($new_img, PATHINFO_FILENAME) . ".$ext";
 
-        if($img_type === false)
-            return [
-                "created" => false,
-                "dev_error" => "image_type_to_extension failed to create an image for a file $tmp_img; Class: " . self::class,
-                "error" => "Invalid image file received",
-                "error_type" => FileUploadErrors::IMG_CREATION,
-                "ext" => "null",
-            ];
+            if ($resize && $width !== null) {
+                $img->resizeImage($width, $width, Imagick::FILTER_CATROM, 1, true);
+            }
 
-        $ext = image_type_to_extension($img_type,false);
-        $mod_time = $add_mod_time ? "-" .  filemtime($tmp_img) : "";
-        $new_img .= $mod_time . ($ext == "gif" ? ".$ext" : ".webp");
-        $filename = pathinfo($new_img, PATHINFO_FILENAME) . ($ext == "gif" ? ".$ext" : ".webp");
+            $img->setImageCompressionQuality($quality);
 
-        if($ext == "gif" && !$resize) {
-            copy($tmp_img, $new_img);
+            if ($ext === 'gif') {
+                $created = $img->writeImage($new_img);
+            } else {
+                $img->setImageFormat('webp');
+                $created = $img->writeImage($new_img);
+            }
+
+            $img->clear();
+
+            if (!$created) {
+                return [
+                    "created" => false,
+                    "dev_error" => "Imagick failed to create a new image; Class: " . self::class,
+                    "error" => "Could not complete image processing",
+                    "error_type" => FileUploadErrors::IMG_CREATION,
+                    "ext" => $ext,
+                ];
+            }
+
             $ratio = $this->get_ratio($new_img);
 
             return [
@@ -86,50 +111,10 @@ trait Image {
                 "width" => $ratio['width'],
                 "height" => $ratio['height'],
             ];
+
+        } catch (ImagickException $e) {
+            LayException::throw_exception("Image creation failed", exception: $e);
         }
-
-        $img = @call_user_func("imagecreatefrom$ext", $tmp_img);
-
-        if(!$img)
-            return [
-                "created" => false,
-                "dev_error" => "imagecreatefrom$ext failed to create an image for a file with extension: $ext; Class: " . self::class,
-                "error" => "Could not process image any further",
-                "error_type" => FileUploadErrors::IMG_CREATION,
-                "ext" => $ext,
-            ];
-
-        if($resize)
-            $img = imagescale($img, $width);
-
-        imagealphablending($img, TRUE);
-        imagesavealpha($img, true);
-
-        if($ext == "gif")
-            $created = imagegif($img, $new_img);
-        else
-            $created = imagewebp($img, $new_img, $quality);
-
-        if(!$created)
-            return [
-                "created" => false,
-                "dev_error" => "imagewebp or imagegif failed create a new image; Class: " . self::class,
-                "error" => "Could not perfect image processing",
-                "error_type" => FileUploadErrors::IMG_COMPLETION,
-                "ext" => $ext,
-            ];
-
-        imagedestroy($img);
-        $ratio = $this->get_ratio($new_img);
-
-        return [
-            "created" => true,
-            "ext" => $ext,
-            "url" => $filename,
-            "size" => $this->file_size($new_img),
-            "width" => $ratio['width'],
-            "height" => $ratio['height'],
-        ];
     }
 
     /**
@@ -206,13 +191,13 @@ trait Image {
             )
         ) return $check;
 
-        if (!extension_loaded("gd"))
+        if (!extension_loaded("imagick"))
             return $this->upload_response(
                 false,
                 [
-                    'dev_error' => "For image upload to work, GD Library needs to be installed. Use `sudo apt install php-gd` in linux, `pecl install gd` in mac, or enable the extension in your `php.ini` on windows",
+                    'dev_error' => "For image upload to work, imagick Library needs to be installed. Use `sudo apt install php-gd` in linux, `pecl install gd` in mac, or enable the extension in your `php.ini` on windows",
                     'error' => "Could not complete upload process, an error occurred",
-                    'error_type' => $created['error_type'],
+                    'error_type' => FileUploadErrors::LIB_IMAGICK_NOT_FOUND,
                 ]
             );
 
@@ -230,7 +215,7 @@ trait Image {
                 [
                     'dev_error' => "Failed to copy temporary image <b>FROM</b; $tmp_file <b>TO</b> $tmpImg <b>USING</b> (\$_FILES['$post_name']), ensure location exists, or you have permission; Class: " . self::class,
                     'error' => "Could not complete upload process, an error occurred",
-                    'error_type' => $created['error_type'],
+                    'error_type' => FileUploadErrors::IMG_COPY_FAILED,
                 ]
             );
 
