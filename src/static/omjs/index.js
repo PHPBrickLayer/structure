@@ -3,7 +3,7 @@
  * @author Osahenrumwen Aigbogun
  * @version 2.0.0
  * @since 23/11/2019
- * @modified 16/04/2025
+ * @modified 13/02/2025
  * @license
  * Copyright (c) 2019 Osai LLC | osaitech.dev/about.
  *
@@ -388,76 +388,77 @@ const $img2blob = img => {
     return canvas.toDataURL("image/png");
 };
 
-const $media = ({srcElement: srcElement, previewElement: previewElement, then: then = null, on: on = "change", useReader: useReader = true}) => {
-    const currentMediaSrc = previewElement.src;
-    let previewMedia = srcElement => {
-        let srcProcessed = [];
-        switch (srcElement.type) {
-            default:
-                previewElement.src = srcElement.value !== "" ? srcElement.value : currentMediaSrc;
-                break;
-
-            case "file":
-                if (useReader) {
-                    const reader = new FileReader;
-                    $on(reader, "load", (() => {
-                        if (srcElement.value === "") return previewElement.src = currentMediaSrc;
-                        previewElement.src = reader.result;
-                        then && then(reader.result);
-                    }), "on");
-                    if (srcElement.files[0]) return reader.readAsDataURL(srcElement.files[0]);
-                    previewElement.src = currentMediaSrc;
-                }
-                if (srcElement.multiple) return osNote("Media preview doesn't support preview for multiple files");
-                if (srcElement.value === "") return previewElement.src = currentMediaSrc;
-                srcProcessed = URL.createObjectURL(srcElement.files[0]);
-                previewElement.src = srcProcessed;
-                then && then(srcProcessed);
-                break;
-        }
-    };
-    if (!on) return previewMedia(srcElement);
-    if ($type(srcElement) !== "Array") return $on(srcElement, on, (() => previewMedia(srcElement)), "on");
-    $loop(srcElement, (src => $on(src, on, (() => previewMedia(src)), "on")));
-};
-
 const $exceeds = (element, size) => {
     if (element.type !== "file") return;
     if (element.files.length === 0) return false;
     return element.files[0].size > size;
 };
 
-const $mediaPreview = (elementToWatch, placeToPreview, other = {}) => {
-    let placeholder = other.default ?? null;
-    let type = other.type ?? 0;
-    let event_wrap = other.event ?? true;
-    let operation = other.operation ?? (() => "operation");
-    let previewPlaceholder = placeholder ?? placeToPreview.src;
-    let previewMedia = () => {
-        let srcProcessed = [];
-        if (type === 1) {
-            let reader = new FileReader;
-            $on(reader, "load", (() => {
-                if (elementToWatch.value !== "") {
-                    placeToPreview.src = reader.result;
-                    if (operation !== "operation") operation(reader.result);
-                } else placeToPreview.src = previewPlaceholder;
-            }), "on");
-            reader.readAsDataURL(elementToWatch.files[0]);
-        } else if (type === 2) placeToPreview.src = elementToWatch.value !== "" ? elementToWatch.value : previewPlaceholder; else {
-            if (placeToPreview !== "multiple") {
-                if (elementToWatch.value !== "") {
-                    srcProcessed = URL.createObjectURL(elementToWatch.files[0]);
-                    placeToPreview.src = srcProcessed;
-                } else placeToPreview.src = previewPlaceholder;
-            } else {
-                if (elementToWatch.value !== "") Array.from(elementToWatch.files).forEach((file => srcProcessed.push(URL.createObjectURL(file))));
-            }
-            if (operation !== "operation") operation(srcProcessed);
+const $media = ({srcElement: srcElement, previewElement: previewElement, then: then = null, on: on = "change", useReader: useReader = true}) => {
+    const currentMediaSrc = previewElement.src;
+    let defaultInputFile = null;
+    let checkedHEIC = false;
+    let prepHEICForPreview = async file => {
+        if (!$id("lay-heic-converter")) {
+            const script = $doc.createElement("script");
+            script.src = "https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js";
+            script.id = "lay-heic-converter";
+            script.onerror = () => console.log("An error occured while trying to add heic2any previewer");
+            script.onload = async () => {
+                defaultInputFile = await heic2any({
+                    blob: file,
+                    toType: "image/jpeg",
+                    quality: .5
+                });
+                checkedHEIC = true;
+                previewMedia();
+            };
+            $doc.head.appendChild(script);
         }
     };
-    if (event_wrap === true) $on(elementToWatch, "change", previewMedia, "on"); else if ($type(event_wrap) === "String") $on(elementToWatch, event_wrap, previewMedia, "on"); else previewMedia();
+    let previewMedia = _srcElement => {
+        _srcElement = _srcElement ?? srcElement;
+        if (_srcElement?.multiple) return osNote("Media preview doesn't support preview for multiple files");
+        let srcProcessed = [];
+        const inputFile = defaultInputFile ?? _srcElement.files[0];
+        if (inputFile?.type === "image/heic" && !checkedHEIC) {
+            return prepHEICForPreview(inputFile);
+        }
+        switch (_srcElement.type) {
+            default:
+                previewElement.src = _srcElement.value !== "" ? _srcElement.value : currentMediaSrc;
+                break;
+
+            case "file":
+                if (useReader) {
+                    const reader = new FileReader;
+                    $on(reader, "load", (() => {
+                        if (_srcElement.value === "") return previewElement.src = currentMediaSrc;
+                        previewElement.src = reader.result;
+                        then && then(reader.result);
+                    }), "on");
+                    if (inputFile) return reader.readAsDataURL(inputFile);
+                    previewElement.src = currentMediaSrc;
+                }
+                if (_srcElement.value === "") return previewElement.src = currentMediaSrc;
+                srcProcessed = URL.createObjectURL(inputFile);
+                previewElement.src = srcProcessed;
+                then && then(srcProcessed);
+                break;
+        }
+    };
+    if (!on || on === "") return previewMedia(srcElement);
+    if ($type(srcElement) === "Array") return $loop(srcElement, (src => $on(src, on, (() => previewMedia(src)), "on")));
+    return $on(srcElement, on, (() => previewMedia(srcElement)), "on");
 };
+
+const $mediaPreview = (elementToWatch, placeToPreview, other = {}) => $media({
+    srcElement: elementToWatch,
+    previewElement: placeToPreview,
+    useReader: other.type === 1,
+    then: other.operation,
+    on: other.event ?? "change"
+});
 
 const $showPassword = (callbackFn = (fieldType => fieldType), throwError = true) => {
     $sela($id("toggle-password") ? "#toggle-password" : ".osai-show-password").$loop((ele => {
