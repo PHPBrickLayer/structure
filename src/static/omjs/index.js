@@ -396,26 +396,27 @@ const $exceeds = (element, size) => {
 
 const $media = ({srcElement: srcElement, previewElement: previewElement, then: then = null, on: on = "change", useReader: useReader = true}) => {
     const currentMediaSrc = previewElement.src;
-    if (!$id("lay-media-previewer-loader")) $sel("head").$html("beforeend", `<style id="lay-media-previewer-loader">.lay-media-previewer-loader{position: absolute; left: 0; right: 0; top: 5px; bottom: 5px; background: rgba(0,0,0,.5); margin: auto; width: ${previewElement.width - 10}px; display: flex;justify-content: center;align-items: center;font-weight: bold;color: #fff;letter-spacing: .3rem; border-radius: 15px; animation: pulse 2s infinite linear; transition: .6s ease-in-out</style>`);
+    if (!$id("lay-media-previewer-loader")) $sel("head").$html("beforeend", `<style id="lay-media-previewer-loader">.lay-media-previewer-loader{position: absolute; left: 0; right: 0; top: 5px; bottom: 5px; background: rgba(0,0,0,.5); margin: auto; width: 100px; display: flex;justify-content: center;align-items: center;font-weight: bold;color: #fff;letter-spacing: .3rem; border-radius: 15px; animation: pulse 2s infinite linear; transition: .6s ease-in-out</style>`);
     let defaultInputFile = null;
     let checkedHEIC = false;
     let prepHEICForPreview = async file => {
+        const convert = async () => {
+            defaultInputFile = await heic2any({
+                blob: file,
+                toType: "image/jpeg",
+                quality: .8
+            });
+            checkedHEIC = true;
+            previewMedia();
+        };
         if (!$id("lay-heic-converter")) {
             const script = $doc.createElement("script");
             script.src = "https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js";
             script.id = "lay-heic-converter";
             script.onerror = () => console.log("An error occured while trying to add heic2any previewer");
-            script.onload = async () => {
-                defaultInputFile = await heic2any({
-                    blob: file,
-                    toType: "image/jpeg",
-                    quality: .5
-                });
-                checkedHEIC = true;
-                previewMedia();
-            };
+            script.onload = () => convert();
             $doc.head.appendChild(script);
-        }
+        } else convert();
     };
     let previewMedia = _srcElement => {
         _srcElement = _srcElement ?? srcElement;
@@ -425,7 +426,7 @@ const $media = ({srcElement: srcElement, previewElement: previewElement, then: t
         if (!wrapper.$sel(".lay-media-previewer-loader")) {
             wrapper.style.position = "relative";
             wrapper.$html("afterbegin", `<div class="lay-media-previewer-loader">Loading...</div>`);
-        }
+        } else wrapper.$sel(".lay-media-previewer-loader").style.display = "flex";
         if (inputFile?.type === "image/heic" && !checkedHEIC) {
             return prepHEICForPreview(inputFile);
         }
@@ -442,7 +443,7 @@ const $media = ({srcElement: srcElement, previewElement: previewElement, then: t
                         wrapper.$sel(".lay-media-previewer-loader").style.display = "none";
                         if (_srcElement.value === "") return previewElement.src = currentMediaSrc;
                         previewElement.src = reader.result;
-                        then && then(reader.result);
+                        then && then(inputFile, reader.result);
                     }), "on");
                     if (inputFile) return reader.readAsDataURL(inputFile);
                     previewElement.src = currentMediaSrc;
@@ -451,7 +452,7 @@ const $media = ({srcElement: srcElement, previewElement: previewElement, then: t
                 if (_srcElement.value === "") return previewElement.src = currentMediaSrc;
                 const srcProcessed = URL.createObjectURL(inputFile);
                 previewElement.src = srcProcessed;
-                then && then(srcProcessed);
+                then && then(inputFile, srcProcessed);
                 break;
         }
     };
