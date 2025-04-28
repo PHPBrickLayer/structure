@@ -7,7 +7,7 @@ use BrickLayer\Lay\BobDBuilder\Helper\Console\Console;
 use BrickLayer\Lay\BobDBuilder\Helper\Console\Format\Foreground;
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
-use BrickLayer\Lay\Libs\LayDir;
+use BrickLayer\Lay\Libs\Dir\LayDir;
 use BrickLayer\Lay\Libs\LayFn;
 
 class LaySymlink {

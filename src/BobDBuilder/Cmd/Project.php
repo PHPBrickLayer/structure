@@ -6,9 +6,7 @@ use BrickLayer\Lay\BobDBuilder\BobExec;
 use BrickLayer\Lay\BobDBuilder\EnginePlug;
 use BrickLayer\Lay\BobDBuilder\Interface\CmdLayout;
 use BrickLayer\Lay\Core\LayConfig;
-use BrickLayer\Lay\Libs\ID\Gen;
-use BrickLayer\Lay\Libs\LayDir;
-use BrickLayer\Lay\Libs\LayFn;
+use BrickLayer\Lay\Libs\Dir\LayDir;
 
 class Project implements CmdLayout
 {

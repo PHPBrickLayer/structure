@@ -11,7 +11,7 @@ use BrickLayer\Lay\BobDBuilder\Interface\CmdLayout;
 use BrickLayer\Lay\Core\Enums\LayLoop;
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
-use BrickLayer\Lay\Libs\LayDir;
+use BrickLayer\Lay\Libs\Dir\LayDir;
 use DirectoryIterator;
 use Error;
 use ReflectionClass;

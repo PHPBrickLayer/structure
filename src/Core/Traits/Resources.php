@@ -1,8 +1,8 @@
 <?php
 declare(strict_types=1);
 namespace BrickLayer\Lay\Core\Traits;
+use BrickLayer\Lay\Libs\Dir\LayDir;
 use BrickLayer\Lay\Libs\ID\Gen;
-use BrickLayer\Lay\Libs\LayDir;
 use Dotenv\Dotenv;
 
 trait Resources {

@@ -2,17 +2,9 @@
 declare(strict_types=1);
 namespace BrickLayer\Lay\Libs\Mail;
 
-use BrickLayer\Lay\Core\LayConfig;
-use BrickLayer\Lay\Core\LayException;
-use BrickLayer\Lay\Core\View\DomainResource;
 use BrickLayer\Lay\Libs\Abstract\TableTrait;
-use BrickLayer\Lay\Libs\Cron\CronController;
 use BrickLayer\Lay\Libs\Cron\LayCron;
 use BrickLayer\Lay\Libs\LayDate;
-use BrickLayer\Lay\Libs\LayDir;
-use JetBrains\PhpStorm\ArrayShape;
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\SMTP;
 
 class MailerQueueHandler {
 

@@ -396,6 +396,7 @@ const $exceeds = (element, size) => {
 
 const $media = ({srcElement: srcElement, previewElement: previewElement, then: then = null, on: on = "change", useReader: useReader = true}) => {
     const currentMediaSrc = previewElement.src;
+    if (!$id("lay-media-previewer-loader")) $sel("head").$html("beforeend", `<style id="lay-media-previewer-loader">.lay-media-previewer-loader{position: absolute; left: 0; right: 0; top: 5px; bottom: 5px; background: rgba(0,0,0,.5); margin: auto; width: ${previewElement.width - 10}px; display: flex;justify-content: center;align-items: center;font-weight: bold;color: #fff;letter-spacing: .3rem; border-radius: 15px; animation: pulse 2s infinite linear; transition: .6s ease-in-out</style>`);
     let defaultInputFile = null;
     let checkedHEIC = false;
     let prepHEICForPreview = async file => {
@@ -419,13 +420,18 @@ const $media = ({srcElement: srcElement, previewElement: previewElement, then: t
     let previewMedia = _srcElement => {
         _srcElement = _srcElement ?? srcElement;
         if (_srcElement?.multiple) return osNote("Media preview doesn't support preview for multiple files");
-        let srcProcessed = [];
         const inputFile = defaultInputFile ?? _srcElement.files[0];
+        const wrapper = previewElement.parentElement;
+        if (!wrapper.$sel(".lay-media-previewer-loader")) {
+            wrapper.style.position = "relative";
+            wrapper.$html("afterbegin", `<div class="lay-media-previewer-loader">Loading...</div>`);
+        }
         if (inputFile?.type === "image/heic" && !checkedHEIC) {
             return prepHEICForPreview(inputFile);
         }
         switch (_srcElement.type) {
             default:
+                wrapper.$sel(".lay-media-previewer-loader").style.display = "none";
                 previewElement.src = _srcElement.value !== "" ? _srcElement.value : currentMediaSrc;
                 break;
 
@@ -433,6 +439,7 @@ const $media = ({srcElement: srcElement, previewElement: previewElement, then: t
                 if (useReader) {
                     const reader = new FileReader;
                     $on(reader, "load", (() => {
+                        wrapper.$sel(".lay-media-previewer-loader").style.display = "none";
                         if (_srcElement.value === "") return previewElement.src = currentMediaSrc;
                         previewElement.src = reader.result;
                         then && then(reader.result);
@@ -440,8 +447,9 @@ const $media = ({srcElement: srcElement, previewElement: previewElement, then: t
                     if (inputFile) return reader.readAsDataURL(inputFile);
                     previewElement.src = currentMediaSrc;
                 }
+                wrapper.$sel(".lay-media-previewer-loader").style.display = "none";
                 if (_srcElement.value === "") return previewElement.src = currentMediaSrc;
-                srcProcessed = URL.createObjectURL(inputFile);
+                const srcProcessed = URL.createObjectURL(inputFile);
                 previewElement.src = srcProcessed;
                 then && then(srcProcessed);
                 break;

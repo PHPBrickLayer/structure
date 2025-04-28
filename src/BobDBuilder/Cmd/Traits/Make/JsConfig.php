@@ -2,8 +2,7 @@
 
 namespace BrickLayer\Lay\BobDBuilder\Cmd\Traits\Make;
 
-use BrickLayer\Lay\BobDBuilder\BobExec;
-use BrickLayer\Lay\Libs\LayDir;
+use BrickLayer\Lay\Libs\Dir\LayDir;
 
 
 trait JsConfig

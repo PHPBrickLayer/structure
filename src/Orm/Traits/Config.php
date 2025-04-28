@@ -2,7 +2,7 @@
 declare(strict_types=1);
 namespace BrickLayer\Lay\Orm\Traits;
 use BrickLayer\Lay\Core\LayConfig;
-use BrickLayer\Lay\Libs\LayDir;
+use BrickLayer\Lay\Libs\Dir\LayDir;
 use BrickLayer\Lay\Libs\LayFn;
 use BrickLayer\Lay\Orm\Connections\MySql;
 use BrickLayer\Lay\Orm\Connections\Postgres;
@@ -11,10 +11,6 @@ use BrickLayer\Lay\Orm\Enums\OrmDriver;
 use BrickLayer\Lay\Orm\Enums\OrmQueryType;
 use BrickLayer\Lay\Orm\Enums\OrmReturnType;
 use BrickLayer\Lay\Orm\Interfaces\OrmConnections;
-use BrickLayer\Lay\Orm\SQL;
-use JetBrains\PhpStorm\ArrayShape;
-use mysqli;
-use PgSql\Connection;
 use SQLite3;
 
 trait Config{

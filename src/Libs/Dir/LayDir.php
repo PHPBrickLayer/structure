@@ -1,10 +1,12 @@
 <?php
 declare(strict_types=1);
-namespace BrickLayer\Lay\Libs;
+namespace BrickLayer\Lay\Libs\Dir;
 
 use BrickLayer\Lay\Core\Enums\LayLoop;
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Libs\Dir\Enums\SortOrder;
+use BrickLayer\Lay\Libs\LayFn;
 use BrickLayer\Lay\Libs\Symlink\LaySymlink;
 use BrickLayer\Lay\Libs\Symlink\SymlinkTrackType;
 use Closure;
@@ -252,10 +254,16 @@ class LayDir {
      * @param string $directory
      * @param callable (string $file_name, string $directory, DirectoryIterator $dir_handler) : LayLoop $action
      * @param bool $throw_error
+     * @param SortOrder|callable $sort
      * @return LayLoop
      * @throws \Exception
      */
-    public static function read(string $directory, callable $action, bool $throw_error = true) : LayLoop
+    public static function read(
+        string $directory,
+        callable $action,
+        bool $throw_error = true,
+        SortOrder|callable $sort = SortOrder::DEFAULT
+    ) : LayLoop
     {
         if(!is_dir($directory)) {
             if($throw_error)
@@ -267,22 +275,70 @@ class LayDir {
             return LayLoop::CONTINUE;
         }
 
+        $entries = [];
         $dir_handler = new DirectoryIterator($directory);
-        $result = LayLoop::FLOW;
+        $empty = true;
 
         while ($dir_handler->valid()) {
-
-            if(!$dir_handler->isDot())
-                $result = $action($dir_handler->current()->getFilename(), $directory, $dir_handler);
-
-            if($result == LayLoop::BREAK)
-                break;
+            if(!$dir_handler->isDot()) {
+                $entries[] = clone $dir_handler->current();
+                $empty = false;
+            }
 
             $dir_handler->next();
         }
 
-        if($result == LayLoop::BREAK)
-            return LayLoop::BREAK;
+        if($empty) return LayLoop::BREAK;
+
+        switch ($sort) {
+            default: usort($entries, $sort); break;
+
+            case SortOrder::DEFAULT: break;
+
+            case SortOrder::NAME_ASC:
+                usort($entries, function (DirectoryIterator $a, DirectoryIterator $b){
+                    return strcmp($a->getFileName(), $b->getFilename());
+                });
+            break;
+
+            case SortOrder::NAME_DESC:
+                usort($entries, function (DirectoryIterator $a, DirectoryIterator $b){
+                    return strcmp($b->getFileName(), $a->getFilename());
+                });
+            break;
+
+            case SortOrder::TIME_ASC:
+                usort($entries, function (DirectoryIterator $a, DirectoryIterator $b){
+                    return $a->getMTime() - $b->getMTime();
+                });
+            break;
+
+            case SortOrder::TIME_DESC:
+                usort($entries, function (DirectoryIterator $a, DirectoryIterator $b){
+                    return $b->getMTime() - $a->getMTime();
+                });
+            break;
+
+            case SortOrder::SIZE_ASC:
+                usort($entries, function (DirectoryIterator $a, DirectoryIterator $b){
+                    return $a->getSize() - $b->getSize();
+                });
+            break;
+
+            case SortOrder::SIZE_DESC:
+                usort($entries, function (DirectoryIterator $a, DirectoryIterator $b){
+                    return $b->getSize() - $a->getSize();
+                });
+            break;
+
+        }
+
+        foreach ($entries as $entry) {
+            $result = $action($entry->current()->getFilename(), $directory, $entry);
+
+            if($result == LayLoop::BREAK)
+                break;
+        }
 
         return LayLoop::FLOW;
     }
@@ -298,7 +354,7 @@ class LayDir {
                 $dir_handler->current();
                 return LayLoop::BREAK;
             },
-            false
+            false,
         );
 
         return $empty;

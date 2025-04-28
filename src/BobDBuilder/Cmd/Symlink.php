@@ -12,7 +12,7 @@ use BrickLayer\Lay\BobDBuilder\Cmd\Traits\Symlink\Uploads;
 use BrickLayer\Lay\BobDBuilder\EnginePlug;
 use BrickLayer\Lay\BobDBuilder\Interface\CmdLayout;
 use BrickLayer\Lay\Core\LayConfig;
-use BrickLayer\Lay\Libs\LayDir;
+use BrickLayer\Lay\Libs\Dir\LayDir;
 use BrickLayer\Lay\Libs\Symlink\LaySymlink;
 use BrickLayer\Lay\Libs\Symlink\SymlinkTrackType;
 
