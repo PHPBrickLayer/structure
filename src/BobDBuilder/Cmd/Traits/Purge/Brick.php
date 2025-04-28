@@ -2,8 +2,7 @@
 
 namespace BrickLayer\Lay\BobDBuilder\Cmd\Traits\Purge;
 
-use BrickLayer\Lay\Libs\LayDir;
-use BrickLayer\Lay\Libs\String\Pluralize;
+use BrickLayer\Lay\Libs\Dir\LayDir;
 
 trait Brick
 {

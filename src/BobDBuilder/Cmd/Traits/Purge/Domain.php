@@ -3,8 +3,7 @@
 namespace BrickLayer\Lay\BobDBuilder\Cmd\Traits\Purge;
 
 use BrickLayer\Lay\BobDBuilder\BobExec;
-use BrickLayer\Lay\Libs\LayArray;
-use BrickLayer\Lay\Libs\LayDir;
+use BrickLayer\Lay\Libs\Dir\LayDir;
 
 
 trait Domain

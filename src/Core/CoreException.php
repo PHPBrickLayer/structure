@@ -10,7 +10,7 @@ use BrickLayer\Lay\Core\Api\Enums\ApiStatus;
 use BrickLayer\Lay\Core\Enums\LayMode;
 use BrickLayer\Lay\Core\Traits\IsSingleton;
 use BrickLayer\Lay\Core\View\Domain;
-use BrickLayer\Lay\Libs\LayDir;
+use BrickLayer\Lay\Libs\Dir\LayDir;
 use BrickLayer\Lay\Libs\LayFn;
 use BrickLayer\Lay\Orm\SQL;
 use Throwable;

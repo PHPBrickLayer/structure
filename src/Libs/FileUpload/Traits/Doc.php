@@ -4,11 +4,10 @@ namespace BrickLayer\Lay\Libs\FileUpload\Traits;
 
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Libs\Aws\Bucket;
+use BrickLayer\Lay\Libs\Dir\LayDir;
 use BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadErrors;
 use BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadStorage;
 use BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadType;
-use BrickLayer\Lay\Libs\ID\Gen;
-use BrickLayer\Lay\Libs\LayDir;
 use BrickLayer\Lay\Libs\LayFn;
 use BrickLayer\Lay\Libs\String\Enum\EscapeType;
 use BrickLayer\Lay\Libs\String\Escape;

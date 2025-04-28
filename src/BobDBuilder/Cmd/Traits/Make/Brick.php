@@ -2,7 +2,7 @@
 
 namespace BrickLayer\Lay\BobDBuilder\Cmd\Traits\Make;
 
-use BrickLayer\Lay\Libs\LayDir;
+use BrickLayer\Lay\Libs\Dir\LayDir;
 use BrickLayer\Lay\Libs\String\Pluralize;
 
 trait Brick

@@ -2,8 +2,8 @@
 
 namespace BrickLayer\Lay\BobDBuilder\Cmd\Traits\Make;
 
+use BrickLayer\Lay\Libs\Dir\LayDir;
 use BrickLayer\Lay\Libs\ID\Gen;
-use BrickLayer\Lay\Libs\LayDir;
 
 
 trait AutoDeploy
