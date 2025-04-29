@@ -10,8 +10,8 @@ use BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadExtension;
 use BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadStorage;
 use BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadType;
 use BrickLayer\Lay\Libs\FileUpload\FileUpload;
+use BrickLayer\Lay\Libs\LayCrypt\LayCrypt;
 use BrickLayer\Lay\Libs\LayDate;
-use BrickLayer\Lay\Libs\LayPassword;
 use BrickLayer\Lay\Libs\String\Enum\EscapeType;
 use BrickLayer\Lay\Libs\String\Escape;
 use Closure;
@@ -302,7 +302,7 @@ trait ValidateCleanMap {
 
         if(isset($options['hash'])) {
             $apply_clean = false;
-            $value = LayPassword::hash($value);
+            $value = LayCrypt::hash($value);
         }
 
         return $return();

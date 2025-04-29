@@ -5,6 +5,7 @@ namespace BrickLayer\Lay\Libs;
 
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Libs\Abstract\TableTrait;
+use BrickLayer\Lay\Libs\LayCrypt\LayCrypt;
 
 /**
  * Store session as cookie through accurate environment storage and encrypted storage token.
@@ -39,6 +40,7 @@ final class LayCookieStorage
 
     protected static function table_creation_query() : void
     {
+
         self::orm()->query("CREATE TABLE IF NOT EXISTS `" . self::$table . "` (
                 `id` char(36) UNIQUE PRIMARY KEY,
                 `created_by` char(36) NOT NULL,
@@ -125,7 +127,7 @@ final class LayCookieStorage
         if (!$cookie)
             return null;
 
-        return LayPassword::crypt($cookie, false);
+        return LayCrypt::basic($cookie, false);
     }
 
     private static function get_user_token(string $id): array
@@ -153,7 +155,7 @@ final class LayCookieStorage
             "id" => $id,
             "created_by" => $user_id,
             "created_at" => $now,
-            "auth" => LayPassword::hash($user_id),
+            "auth" => LayCrypt::basic($user_id),
             "expire" => $expire,
             "env_info" => $env_info
         ]);
@@ -199,7 +201,7 @@ final class LayCookieStorage
 
         return self::set_cookie(
             self::$session_user_cookie,
-            LayPassword::crypt(LayCookieStorage::save_user_token($immutable_key))
+            LayCrypt::basic(LayCookieStorage::save_user_token($immutable_key))
         );
     }
 
