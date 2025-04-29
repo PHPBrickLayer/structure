@@ -2,19 +2,12 @@
 
 namespace BrickLayer\Lay\Libs\Captcha;
 
-use BrickLayer\Lay\Core\LayConfig;
-use BrickLayer\Lay\Libs\LayDate;
+use BrickLayer\Lay\Libs\LayCrypt\LayCrypt;
 use BrickLayer\Lay\Libs\LayFn;
-use Jose\Component\Core\AlgorithmManager;
-use Jose\Component\Core\JWK;
-use Jose\Component\Core\JWT;
-use Jose\Component\Core\Util\Base64UrlSafe;
-use Jose\Component\Signature\Algorithm\HS256;
-use Jose\Component\Signature\JWSBuilder;
-use Jose\Component\Signature\JWSVerifier;
-use Jose\Component\Signature\Serializer\CompactSerializer;
+use Imagick;
+use ImagickDraw;
+use ImagickPixel;
 use Random\RandomException;
-use ReallySimpleJWT\Token;
 
 class Captcha
 {
@@ -27,125 +20,110 @@ class Captcha
         return substr($random_num, 0, 6);
     }
 
-    private static function gen_jwk() : JWK
-    {
-        $secret = hash('sha256', $_ENV['CAPTCHA_SECRET'] ?? LayConfig::get_project_identity(), true);
-
-        return new JWK([
-            "kty" => "oct",
-            "k" => Base64UrlSafe::encodeUnpadded($secret),
-        ]);
-    }
-
-    private static function jwt_algo() : AlgorithmManager
-    {
-        return new AlgorithmManager([ new HS256() ]);
-    }
-
     /**
      * Return a base 64 encoded captcha image stored in a session called `LAY_CAPTCHA_CODE`
      * @param string|null $code
-     * @return string
+     * @param bool $set_header
+     * @return null|string
      * @throws RandomException
+     * @throws \ImagickDrawException
+     * @throws \ImagickException
      */
     public static function as_img(?string $code = null, bool $set_header = false) : ?string
     {
         $code ??= self::gen_code();
 
-        $font = __DIR__ . "/font.ttf";
-
         $_SESSION['LAY_CAPTCHA_CODE'] = $code;
+        $width = 100;
+        $height = 55;
 
-        $layer = imagecreatetruecolor(90, 50);
+        $image = new Imagick();
+        $image->newImage($width, $height, new ImagickPixel('transparent'));
+        $image->setImageFormat('png');
 
-        imagealphablending($layer, TRUE);
-        imagesavealpha($layer, true);
+        $draw = new ImagickDraw();
+        $draw->setFont(__DIR__ . "/font.ttf");
+        $draw->setFontSize(30);
+        $draw->setFillColor(new ImagickPixel('white'));
+        $draw->setTextAntialias(true);
 
-        $white = imagecolorallocate($layer, 255, 255, 255);
-        $black = imagecolorallocate($layer, 0, 0, 0);
-        $transparent = imagecolorallocatealpha($layer, 255, 255, 255, 127);
+        $metrics = $image->queryFontMetrics($draw, $code);
+        $textX = ($width - $metrics['textWidth']) / 2 - 5;
+        $textY = ($height + $metrics['textHeight']) / 2 - 15;
 
-        imagefill($layer, 0, 0, $transparent);
+        // Shadow
+        $shadow = clone $draw;
+        $shadow->setFillColor(new ImagickPixel('black'));
+        $image->annotateImage($shadow, $textX - 1, $textY - 1, 0, $code); // White shadow
 
-        imagettftext($layer, 26, 2, 2, 39, $black, $font, $code);
+        // Actual text
+        $image->annotateImage($draw, $textX, $textY, 0, $code); // black foreground
 
-        imagettftext($layer, 26, 2, 1, 39, $white, $font, $code);
-
-        ob_start();
-        imagepng($layer);
-        $img = ob_get_clean();
-
-        imagedestroy($layer);
+        // Add noise (random dots)
+        $noise = new ImagickDraw();
+        for ($i = 0; $i < 150; $i++) {
+            $noise->setFillColor(new ImagickPixel(sprintf('#%06X', mt_rand(0, 0xFFFFFF))));
+            $x = mt_rand(0, $width);
+            $y = mt_rand(0, $height);
+            $noise->point($x, $y);
+        }
+        $image->drawImage($noise);
 
         if($set_header) {
             header("Content-Type: image/png");
-            echo $img;
+            echo $image;
+            $image->clear();
             return null;
         }
 
-        return "data:image/png;base64," . base64_encode($img);
-    }
+        $data = $image->getImageBlob();
+        $image->clear();
 
-    /**
-     * Return a JWT token with the captcha code as the payload.
-     * Captcha code is valid for 60 seconds.
-     * @param string|null $captcha
-     * @return string
-     * @throws RandomException
-     */
-    public static function as_jwt(?string $captcha = null) : string
-    {
-        $payload = [
-            "captcha" => $captcha ?? self::gen_code(),
-            "expire" => (int) LayDate::date("60 seconds", figure: true),
-            "issued" => LayDate::now(),
-        ];
-
-
-        return (new CompactSerializer())->serialize(
-            (  new JWSBuilder( self::jwt_algo() )  )
-                ->create()
-                ->withPayload(json_encode($payload))
-                ->addSignature(self::gen_jwk(), ["alg" => "HS256"])
-                ->build(),
-            0
-        );
+        return "data:image/png;base64," . base64_encode($data);
     }
 
     /**
      * Return an array with a base64 image and a JWT token
-     * @return array
+     * @return array{
+     *     img: ?string,
+     *     jwt: string,
+     * }
      * @throws RandomException
+     * @throws \ImagickDrawException
+     * @throws \ImagickException
      */
     public static function as_img_jwt() : array
     {
         $code = self::gen_code();
 
+        LayCrypt::set_jwt_secret(LayFn::env('CAPTCHA_SECRET'));
+
         return [
             "img" => self::as_img($code),
-            "jwt"  => self::as_jwt($code)
+            "jwt"  => LayCrypt::gen_jwt([
+                "captcha" => $code,
+            ])
         ];
     }
 
+    /**
+     * @param string $jwt
+     * @param string $captcha_value
+     * @return array{
+     *     valid: bool,
+     *     message: string,
+     * }
+     */
     public static function validate_as_jwt(string $jwt, string $captcha_value) : array
     {
-        $jws = (new CompactSerializer())->unserialize($jwt);
+        LayCrypt::set_jwt_secret(LayFn::env('CAPTCHA_SECRET'));
 
-        if (!(new JWSVerifier(self::jwt_algo()))->verifyWithKey($jws, self::gen_jwk(), 0))
-            return [
-                "valid" => false,
-                "message" => "Invalid token!",
-            ];
+        $test = LayCrypt::verify_jwt($jwt);
 
-        $payload = json_decode($jws->getPayload(), true);
+        if(!$test['valid'])
+            return $test;
 
-        if (LayDate::expired($payload['expire']))
-            return [
-                "valid" => false,
-                "message" => "Token has expired!",
-            ];
-
-        if ($payload['captcha'] !== $captcha_value)
+        if ($test['data']['captcha'] !== $captcha_value)
             return [
                 "valid" => false,
                 "message" => "Invalid captcha value!",
@@ -157,6 +135,13 @@ class Captcha
         ];
     }
 
+    /**
+     * @param string $value
+     * @return array{
+     *     valid: bool,
+     *     message: string,
+     * }
+     */
     public static function validate_as_session(string $value) : array
     {
         if (!isset($_SESSION["LAY_CAPTCHA_CODE"]))

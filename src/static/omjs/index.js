@@ -396,7 +396,7 @@ const $exceeds = (element, size) => {
 
 const $media = ({srcElement: srcElement, previewElement: previewElement, then: then = null, on: on = "change", useReader: useReader = true}) => {
     const currentMediaSrc = previewElement.src;
-    if (!$id("lay-media-previewer-loader")) $sel("head").$html("beforeend", `<style id="lay-media-previewer-loader">.lay-media-previewer-loader{position: absolute; left: 0; right: 0; top: 5px; bottom: 5px; background: rgba(0,0,0,.5); margin: auto; width: 100px; display: flex;justify-content: center;align-items: center;font-weight: bold;color: #fff;letter-spacing: .3rem; border-radius: 15px; animation: pulse 2s infinite linear; transition: .6s ease-in-out</style>`);
+    if (!$id("lay-media-previewer-loader")) $sel("head").$html("beforeend", `<style id="lay-media-previewer-loader">.lay-media-previewer-loader{font-size: 1rem; position: absolute; left: 0; right: 0; top: 5px; bottom: 5px; background: rgba(0,0,0,.5); margin: auto; width: 150px; display: flex;justify-content: center;align-items: center;font-weight: bold;color: #fff;letter-spacing: .3rem; border-radius: 15px; animation: pulse 2s infinite linear; transition: .6s ease-in-out</style>`);
     let defaultInputFile = null;
     let checkedHEIC = false;
     let prepHEICForPreview = async file => {
