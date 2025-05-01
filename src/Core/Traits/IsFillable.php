@@ -8,8 +8,22 @@ use BrickLayer\Lay\Orm\SQL;
  * A model cannot be fillable and also a singleton
  */
 trait IsFillable {
+    /**
+     * @var string
+     * @abstract Must overwrite
+     */
     public static string $table;
+
+    /**
+     * @var string
+     * @abstract Overwrite when necessary
+     */
     protected static string $primary_key_col = "id";
+
+    /**
+     * @var array
+     * @readonly
+     */
     protected static array $columns;
 
     public static function db() : SQL
@@ -37,6 +51,9 @@ trait IsFillable {
      */
     public function fill(string|array|null $record_or_id = null, bool $invalidate = false) : self
     {
+        if(empty($record_or_id))
+            return $this;
+
         $by_id = is_array($record_or_id) && !$invalidate ?
             fn() => $record_or_id :
             fn() => static::db()->where(static::$primary_key_col, $record_or_id)->then_select();
@@ -62,7 +79,7 @@ trait IsFillable {
         return static::$columns[$key] ?? null;
     }
 
-    public function __isset($key)
+    public function __isset($key) : bool
     {
         return isset(static::$columns[$key]);
     }

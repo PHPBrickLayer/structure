@@ -98,7 +98,7 @@ class LayCrypt
         string $expires = '60 seconds',
     ): string
     {
-        $payload ??= [];
+        $payload = [ 'data' => $payload ];
 
         $payload['iat'] = LayDate::now();
         $payload['nbf'] = LayDate::now();
@@ -151,13 +151,13 @@ class LayCrypt
         if (LayDate::greater($payload['nbf']))
             return [
                 "valid" => false,
-                "message" => "Token is not yet active",
+                "message" => "Token is not yet active!",
                 "data" => null,
             ];
 
         return [
             "valid" => true,
-            "message" => "Token valid",
+            "message" => "Token valid!",
             "data" => $payload
         ];
     }

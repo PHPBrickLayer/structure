@@ -17,25 +17,6 @@ use BrickLayer\Lay\Libs\String\Escape;
 use Closure;
 use Exception;
 
-/**
- * @psalm-type VcmRules array{
- *     required?: bool,
- *     db_col_required?: bool,
- *     clean?: bool|array{
- *       escape: EscapeType,
- *       strict: bool,
- *     },
- *     sub_dir?: string,
- *     allowed_types?: FileUploadExtension,
- *     max_size?: int,
- *     max_size_in_mb?: float,
- *     new_file_name?: string,
- *     dimension?: array,
- *     upload_storage?: FileUploadStorage,
- *     bucket_url?: string,
- *     upload_handler?: callable,
- *  }
- */
 
 trait ValidateCleanMap {
     private static array|object|null $_filled_request;
@@ -44,7 +25,7 @@ trait ValidateCleanMap {
     private static ?bool $_break_validation = false;
 
     private static ?bool $_required;
-    private static ?bool $_db_col_required;
+    private static ?bool $_alias_required;
     private static array|bool|null $_clean_by_default;
     private static ?string $_sub_dir;
     private static ?array $_allowed_types;
@@ -257,8 +238,16 @@ trait ValidateCleanMap {
         if(isset($options['is_email']) && !filter_var($value, FILTER_VALIDATE_EMAIL))
             $add_to_entry = $this->__add_error($field, "Received an invalid email format for: $field_name");
 
+        if(isset($options['is_bool'])) {
+            if(!in_array(strtolower($value . ''), ['true', 'false', '1', '0']))
+                $add_to_entry = $this->__add_error($field, "$field_name is not a valid boolean");
+        }
+
         if(isset($options['is_num']) && !is_numeric($value))
             $add_to_entry = $this->__add_error($field, "$field_name is not a valid number");
+
+        if(isset($options['is_uuid']) && preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i', $value) !== 1)
+            $add_to_entry = $this->__add_error($field, "$field_name is not valid! A malformed value was encountered");
 
         if(isset($options['min_length']) && (strlen($value) < $options['min_length']))
             $add_to_entry = $this->__add_error($field, "$field_name must be at least {$options['min_length']} characters long");
@@ -317,6 +306,7 @@ trait ValidateCleanMap {
      *    field: string,
      *    field_name?: string,
      *    required_message?: string,
+     *    alias?: string,
      *    db_col?: string,
      *    before_validate?: callable(mixed) : string,
      *    before_clean?: callable(mixed) : string,
@@ -332,7 +322,9 @@ trait ValidateCleanMap {
      *    is_email?: bool,
      *    is_name?: bool,
      *    is_num?: bool,
+     *    is_bool?: bool,
      *    is_date?: bool,
+     *    is_uuid?: bool,
      *    is_datetime?: bool,
      *    is_file?: bool,
      *    is_captcha?: bool,
@@ -361,7 +353,7 @@ trait ValidateCleanMap {
      *      escape: EscapeType|array<int,EscapeType>,
      *      strict?: bool,
      *    },
-     *    return_struct?: callable(mixed, string, array) : mixed,
+     *    return_struct?: callable(mixed, string, array<string, mixed>) : mixed,
      * } $options
      *
      * @return self
@@ -396,12 +388,6 @@ trait ValidateCleanMap {
 
             $x['add_to_entry'] = true;
             $x['apply_clean'] = false;
-
-            if(!isset($options['db_col']))
-                LayException::throw_exception(
-                    "DB column for field [$field] must be specified. This field has the [] symbol, and this symbol is invalid for a db column name",
-                    "VCM::Error"
-                );
         } else {
             $x = $this->__validate(
                 $field, $value,
@@ -428,18 +414,18 @@ trait ValidateCleanMap {
         }
 
         //TODO: Depreciate fun option
-        if(isset($options['fun']) || isset($options['before_clean']))
-            $value = ($options['fun'] ?? $options['before_clean'])($value);
+        if(isset($options['before_clean']) || isset($options['fun']))
+            $value = ($options['before_clean'] ?? $options['fun'])($value);
 
         if($apply_clean) {
             // Clean and Map field
-            $clean = $options['clean'] ?? self::$_clean_by_default ?? null;
+            $clean = $options['clean'] ?? self::$_clean_by_default ?? true;
 
             if ($clean) {
                 $clean_type = is_array($clean) ? ($clean['escape'] ?? EscapeType::STRIP_TRIM_ESCAPE) : EscapeType::STRIP_TRIM_ESCAPE;
                 $strict = $is_required ? ($clean['strict'] ?? false) : false;
 
-                if (is_numeric($value))
+                if (is_numeric($value) || is_bool($value))
                     $strict = false;
 
                 $value = Escape::clean($value, $clean_type, [
@@ -451,21 +437,23 @@ trait ValidateCleanMap {
         if(isset($options['after_clean']))
             $value = $options['after_clean']($value);
 
-        if(self::$_db_col_required && !isset($options['db_col']))
+        $alias = $options['alias'] ?? $options['db_col'] ?? null;
+
+        if(self::$_alias_required && !$alias)
             LayException::throw_exception(
-                "DB column for field [$field] was not specified and is required by the validation rule",
+                "An alias for field [$field] was not specified and is required by the validation rule. Please set one using the `alias` key",
                 "VCM::Error"
             );
 
         $return_struct = $options['return_struct'] ?? self::$_return_struct ?? null;
 
         if($return_struct)
-            $value = $return_struct($value, $options['db_col'] ?? $field, $options);
+            $value = $return_struct($value, $alias ?? $field, $options);
 
         $result_is_assoc = $options['result_is_assoc'] ?? self::$_result_is_assoc;
 
         if($result_is_assoc)
-            self::$_entries[$options['db_col'] ?? $field] = $value;
+            self::$_entries[$alias ?? $field] = $value;
         else
             self::$_entries[] = $value;
 
@@ -478,7 +466,7 @@ trait ValidateCleanMap {
      * @param array{
      *      required?: bool,
      *      result_is_assoc?: bool,
-     *      db_col_required?: bool,
+     *      alias_required?: bool,
      *      clean?: bool|array{
      *        escape: EscapeType|array<int,EscapeType>,
      *        strict: bool,
@@ -501,7 +489,7 @@ trait ValidateCleanMap {
     {
         self::$_required = $options['required'] ?? null;
         self::$_clean_by_default = $options['clean'] ?? null;
-        self::$_db_col_required = $options['db_col_required'] ?? null;
+        self::$_alias_required = $options['alias_required'] ?? null;
         self::$_sub_dir = $options['sub_dir'] ?? null;
         self::$_allowed_types = $options['allowed_types'] ?? $options['allowed_extensions'] ?? null;
 
@@ -527,7 +515,7 @@ trait ValidateCleanMap {
      * @param null|array{
      *      required?: bool,
      *      result_is_assoc?: bool,
-     *      db_col_required?: bool,
+     *      alias_required?: bool,
      *      clean?: bool|array{
      *          escape: EscapeType|array<int,EscapeType>,
      *        strict: bool,
@@ -555,7 +543,7 @@ trait ValidateCleanMap {
         self::$_break_validation = false;
 
         self::$_required = null;
-        self::$_db_col_required = null;
+        self::$_alias_required = null;
         self::$_clean_by_default = null;
         self::$_sub_dir = null;
         self::$_allowed_types = null;

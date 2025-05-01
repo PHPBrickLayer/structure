@@ -216,22 +216,20 @@ trait SelectorOOP
 
     private function process_where(string $column, ?string $operator_or_value = null, ?string $value = null) : string
     {
-        if(!is_null($operator_or_value)) {
-            $column = self::escape_identifier($column);
+        if($operator_or_value === null)
+            return $column;
 
-            if(is_null($value))
-                $WHERE = str_starts_with($operator_or_value, "(") ?
-                    "$column=$operator_or_value" :
-                    "$column='$operator_or_value'";
+        $column = self::escape_identifier($column);
 
-            else
-                $WHERE = str_starts_with($value, "(") ?
-                    "$column $operator_or_value $value":
-                    "$column $operator_or_value '$value'";
-        } else
-            $WHERE = $column;
+        if(is_null($value)) {
+            return str_starts_with($operator_or_value, "(") || strtolower($operator_or_value) == 'null' ?
+                "$column=$operator_or_value" :
+                "$column='$operator_or_value'";
+        }
 
-        return $WHERE;
+        return str_starts_with($value, "(") || strtolower($value) == 'null' ?
+            "$column $operator_or_value $value" :
+            "$column $operator_or_value '$value'";
     }
 
     final public function where(string $column, ?string $operator_or_value = null, ?string $value = null): self

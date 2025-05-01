@@ -329,9 +329,13 @@ final class ViewEngine {
         ob_start();
 
         if(empty($parsed['html_content'])) {
-            $length = LayFn::num_format(strlen($body), 6) . "B";
-            Exception::log("Parsed HTML content is empty. Body Size: $length", log_title: "ViewEngine::PageTooLarge");
-            echo "<h1 style='padding: 2rem'>HTML Page Could Not Be Parsed. Size: $length</h1>";
+            $length = LayFn::num_format(strlen($body), 6);
+
+            if($length > 0) {
+                $length = $length . "B";
+                Exception::log("Parsed HTML content is empty. Body Size: $length", log_title: "ViewEngine::PageTooLarge");
+                echo "<h1 style='padding: 2rem'>HTML Page Could Not Be Parsed. Size: $length</h1>";
+            }
         }
         else
             echo implode('', $parsed['html_content']);
