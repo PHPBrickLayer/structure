@@ -36,7 +36,7 @@
         "ext-exif": "For added support to image manipulation using LayImage",
         "ext-dom": "For Dom manipulation using Libs\\String\\WordCount class",
         "ext-libxml": "For Dom manipulation using Libs\\String\\WordCount class",
-        "ext-openssl": "For password hashing using Libs\\LayPassword"
+        "ext-openssl": "For password hashing using Libs\\LayCrypt\\LayCrypt"
     },
     "require-dev": {
         "phpunit/phpunit": "^10.3.2",
