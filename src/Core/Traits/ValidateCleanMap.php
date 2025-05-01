@@ -17,25 +17,6 @@ use BrickLayer\Lay\Libs\String\Escape;
 use Closure;
 use Exception;
 
-/**
- * @psalm-type VcmRules array{
- *     required?: bool,
- *     alias_required?: bool,
- *     clean?: bool|array{
- *       escape: EscapeType,
- *       strict: bool,
- *     },
- *     sub_dir?: string,
- *     allowed_types?: FileUploadExtension,
- *     max_size?: int,
- *     max_size_in_mb?: float,
- *     new_file_name?: string,
- *     dimension?: array,
- *     upload_storage?: FileUploadStorage,
- *     bucket_url?: string,
- *     upload_handler?: callable,
- *  }
- */
 
 trait ValidateCleanMap {
     private static array|object|null $_filled_request;
@@ -265,6 +246,9 @@ trait ValidateCleanMap {
         if(isset($options['is_num']) && !is_numeric($value))
             $add_to_entry = $this->__add_error($field, "$field_name is not a valid number");
 
+        if(isset($options['is_uuid']) && preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i', $value) !== 1)
+            $add_to_entry = $this->__add_error($field, "$field_name is not valid! A malformed value was encountered");
+
         if(isset($options['min_length']) && (strlen($value) < $options['min_length']))
             $add_to_entry = $this->__add_error($field, "$field_name must be at least {$options['min_length']} characters long");
 
@@ -340,6 +324,7 @@ trait ValidateCleanMap {
      *    is_num?: bool,
      *    is_bool?: bool,
      *    is_date?: bool,
+     *    is_uuid?: bool,
      *    is_datetime?: bool,
      *    is_file?: bool,
      *    is_captcha?: bool,
@@ -368,7 +353,7 @@ trait ValidateCleanMap {
      *      escape: EscapeType|array<int,EscapeType>,
      *      strict?: bool,
      *    },
-     *    return_struct?: callable(mixed, string, array) : mixed,
+     *    return_struct?: callable(mixed, string, array<string, mixed>) : mixed,
      * } $options
      *
      * @return self

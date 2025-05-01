@@ -157,8 +157,10 @@ trait TransactionHandler
 
     /**
      * This function wraps all your operations in a callback function, inside a transaction, and also wrapped in a try catch block
-     * @param Closure(static): array{
+     * @param callable(static): array{
      *     status: 'success' | 'warning' | 'error',
+     *     message: 'COMMIT' | 'ROLLBACK' | 'EXCEPTION',
+     *     data: mixed,
      * } $scoped_operations The operation that should be run in the transaction block.
      * It must return an array with the key `status` included. and to commit your transaction,
      * `status` must equal `success`
@@ -174,7 +176,7 @@ trait TransactionHandler
      * @throws \Exception
      */
     final public static function scoped_transaction(
-        Closure $scoped_operations,
+        callable $scoped_operations,
         bool $throw_exception = true,
         ?callable $on_exception = null,
         #[ExpectedValues([
