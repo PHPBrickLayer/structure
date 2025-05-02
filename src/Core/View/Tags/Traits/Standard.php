@@ -30,8 +30,10 @@ trait Standard {
      *
      * @param string $key
      * @param string $value
+     * @return self
      */
-    public function attr(string $key, string $value) : \BrickLayer\Lay\Core\View\Tags\Script {
+    public function attr(string $key, string $value) : self
+    {
         $this->attr[$key] = $value;
         return $this;
     }
@@ -41,8 +43,10 @@ trait Standard {
      *
      * @param string $key
      * @param string $value
+     * @return self
      */
-    public function data(string $key, string $value) : \BrickLayer\Lay\Core\View\Tags\Script {
+    public function data(string $key, string $value) : self
+    {
         $this->attr["data-" . $key] = $value;
         return $this;
     }
@@ -50,18 +54,20 @@ trait Standard {
     /**
      * @param string ...$rules CSS Styles
      */
-    public function style(string ...$rules) : \BrickLayer\Lay\Core\View\Tags\Script
+    public function style(string ...$rules) : self
     {
         $this->attr["style"] = implode(";", $rules);
         return $this;
     }
 
-    public function class(string $class_name) : \BrickLayer\Lay\Core\View\Tags\Script {
+    public function class(string $class_name) : self
+    {
         $this->attr['class'] = $class_name;
         return $this;
     }
 
-    private function get_attr(?\Closure $callback = null) : string {
+    private function get_attr(?\Closure $callback = null) : string
+    {
         $attr = "";
 
         foreach($this->attr as $key => $value) {

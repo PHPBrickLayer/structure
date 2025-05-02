@@ -27,7 +27,7 @@ final class Postgres implements OrmConnections
      * @return Result|false
      */
     #[Override]
-    public function exec(string $query, array $params = []) : Result|bool
+    public function exec(string $query, array $params = []) : Result|false
     {
         return pg_query_params($this->link, $query, $params);
     }

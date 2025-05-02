@@ -2,7 +2,9 @@
 
 namespace BrickLayer\Lay\Orm\Enums;
 
-use BrickLayer\Lay\Orm\Interfaces\OrmConnections;
+use BrickLayer\Lay\Orm\Connections\MySql;
+use BrickLayer\Lay\Orm\Connections\Postgres;
+use BrickLayer\Lay\Orm\Connections\Sqlite;
 
 enum OrmDriver : string {
     case MYSQL = "mysql";
@@ -24,19 +26,19 @@ enum OrmDriver : string {
         return $driver == self::SQLITE || $driver == self::SQLITE3;
     }
 
-    public static function to_orm_connections(self $driver, mixed $db_link): \BrickLayer\Lay\Orm\Connections\MySql|\BrickLayer\Lay\Orm\Connections\Postgres|\BrickLayer\Lay\Orm\Connections\Sqlite|false|bool
+    public static function to_orm_connections(self $driver, mixed $db_link): MySql|Postgres|Sqlite|false
     {
         if(!$db_link)
             return false;
 
         if($driver == self::MYSQL)
-            return new \BrickLayer\Lay\Orm\Connections\MySql($db_link);
+            return new MySql($db_link);
 
         if($driver == self::POSTGRES)
-            return new \BrickLayer\Lay\Orm\Connections\Postgres($db_link);
+            return new Postgres($db_link);
 
         if($driver == self::SQLITE || $driver == self::SQLITE3)
-            return new \BrickLayer\Lay\Orm\Connections\Sqlite($db_link);
+            return new Sqlite($db_link);
 
         return false;
     }

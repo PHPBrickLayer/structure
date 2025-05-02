@@ -80,18 +80,6 @@ final class StoreResult
                 $result = $fun($result, $k, $exec_result);
         };
 
-//        if($is_sqlite) {
-//            $k = 0;
-//
-//            while ($result = $link->fetch_result($exec_result, $mode)) {
-//                $loop_handler($k, $result);
-//                $k++;
-//                yield $result;
-//            }
-//
-//            return [];
-//        }
-
         foreach ($link->fetch_result($exec_result, $mode) as $k => $result) {
             $loop_handler($k, $result);
             yield $result;

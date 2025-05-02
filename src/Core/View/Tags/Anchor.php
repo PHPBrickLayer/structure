@@ -72,7 +72,12 @@ final class Anchor {
         return $this->link;
     }
 
-    public function target(#[ExpectedValues(['_blank','_parent','_top','_self'])] string $target) : Standard|Img|self|Link|Script {
+    /**
+     * @param string $target
+     * @return self
+     */
+    public function target(#[ExpectedValues(['_blank','_parent','_top','_self'])] string $target) : self
+    {
         return $this->attr('target', $target);
     }
 

@@ -25,12 +25,12 @@ final class Link
         self::$me->attr = self::ATTRIBUTES ?? [];
     }
 
-    public function media(string $media): Standard|Img|Anchor|self|Script
+    public function media(string $media): self
     {
         return $this->attr('media', $media);
     }
 
-    public function type(string $type): Standard|Img|Anchor|self|Script
+    public function type(string $type): self
     {
         return $this->attr('type', $type);
     }
@@ -71,7 +71,7 @@ final class Link
         return $link;
     }
 
-    public function rel(string $rel): Standard|Img|Anchor|self|Script
+    public function rel(string $rel): self
     {
         $this->rel_set = true;
         return $this->attr('rel', $rel);

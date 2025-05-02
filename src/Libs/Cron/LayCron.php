@@ -58,7 +58,7 @@ final class LayCron
      *
      * @throws \Exception
      */
-    public static function dump_crontab(bool $project_scope = true, bool $suppress_win_exception = false) : string|false|bool
+    public static function dump_crontab(bool $project_scope = true, bool $suppress_win_exception = false) : string|bool
     {
         if(LayConfig::get_os() == "WINDOWS") {
             if($suppress_win_exception)

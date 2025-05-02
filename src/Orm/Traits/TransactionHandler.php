@@ -168,11 +168,18 @@ trait TransactionHandler
      * @param int $flags [optional] A bitmask of MYSQLI_TRANS_COR_* constants.
      * @param string|null $name [optional] If provided then ROLLBACK $name is executed.
      *
-     * @return ((mixed|string)[]|\Throwable|bool|null|string)[]
+     * @return array{
+     *     status: bool,
+     *     message: 'COMMIT'|'EXCEPTION'|'ROLLBACK',
+     *     exception?: \Throwable,
+     *     data?: null|array{
+     *        status: 'error'|'success'|'warning',
+     *        message: 'COMMIT'|'EXCEPTION'|'ROLLBACK',
+     *        data: mixed
+     *     }
+ *      }
      *
      * @throws \Exception
-     *
-     * @psalm-return array{status: bool, message: 'COMMIT'|'EXCEPTION'|'ROLLBACK', exception?: \Throwable, data?: array{status: 'error'|'success'|'warning', message: 'COMMIT'|'EXCEPTION'|'ROLLBACK', data: mixed}|null}
      */
     final public static function scoped_transaction(
         callable $scoped_operations,

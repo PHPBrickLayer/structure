@@ -77,12 +77,12 @@ final class ViewBuilder
     }
 
     /**
-     * @param bool|int|null|string $value
-     * @param (array|null|string)[]|Closure|null|string $key
+     * @param mixed $value
+     * @param string|null $key
      *
      * @psalm-param Closure|array<array|null|string>|null|string $key
      */
-    private function store_page_data(string $section, array|string|Closure|null $key = null, int|bool|string|null $value = null): self
+    private function store_page_data(string $section, ?string $key = null, mixed $value = null): self
     {
         if (self::$view_found)
             return $this;
