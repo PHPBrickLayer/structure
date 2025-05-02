@@ -195,7 +195,7 @@ abstract  class DomainResource
      *
      * @psalm-return array{last_mod: false|int, content: false|string}|false|null|string
      */
-    public static function include_file(string $file, string $type = "inc", array $option = []) : array|string|false|null|null|array
+    public static function include_file(string $file, string $type = "inc", array $option = []) : array|string|false|null
     {
         LayConfig::is_init();
 

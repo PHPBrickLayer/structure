@@ -14,6 +14,9 @@ use BrickLayer\Lay\Orm\SQL;
 use Closure;
 use Generator;
 use JetBrains\PhpStorm\ExpectedValues;
+use mysqli_result;
+use PgSql\Result;
+use SQLite3Result;
 
 trait SelectorOOP
 {
@@ -203,7 +206,7 @@ trait SelectorOOP
      * @param 'right'|'inner'|'left'|'RIGHT'|'INNER'|'LEFT' $join_table
      * @param string $type
      */
-    final public function join(string $join_table, #[ExpectedValues(['right', 'inner', 'left'])] string $type = ""): \BrickLayer\Lay\Orm\SQL
+    final public function join(string $join_table, #[ExpectedValues(['right', 'inner', 'left'])] string $type = ""): SQL
     {
         return $this->store_vars('join', ["table" => $join_table, "type" => $type,], true);
     }
@@ -268,7 +271,7 @@ trait SelectorOOP
     final public function bracket(
         callable $where_callback,
         #[ExpectedValues(["and", "or", "AND", "OR"])] ?string $prepend = null,
-    ): \BrickLayer\Lay\Orm\SQL
+    ): SQL
     {
         $this->using_bracket = true;
         $where_callback($this);
@@ -352,7 +355,7 @@ trait SelectorOOP
         array $update_columns = [],
         #[ExpectedValues(["UPDATE", "IGNORE", "REPLACE", "NOTHING"])] string $action = "UPDATE",
         ?string $constraint = null,
-    ): \BrickLayer\Lay\Orm\SQL
+    ): SQL
     {
         return $this->store_vars('on_conflict', [
             "unique_columns" => $unique_columns,
@@ -367,7 +370,7 @@ trait SelectorOOP
      *
      * @param array $num_array
      */
-    final public function bind_num(array $num_array): \BrickLayer\Lay\Orm\SQL
+    final public function bind_num(array $num_array): SQL
     {
         if(LayArray::any($num_array, fn($v,$i) => is_string($i)))
             $this->oop_exception("`->bind_num()` method accepts numbered index only. If you wish to use named index, use `->bind_assoc`");
@@ -380,7 +383,7 @@ trait SelectorOOP
      *
      * @param array $assoc_array
      */
-    final public function bind_assoc(array $assoc_array): \BrickLayer\Lay\Orm\SQL
+    final public function bind_assoc(array $assoc_array): SQL
     {
         if(LayArray::any($assoc_array, fn($v,$i) => is_int($i)))
             $this->oop_exception("`->bind_assoc()` method accepts stringed index only. If you wish to use numbered index, use `->bind_num`");
@@ -398,7 +401,7 @@ trait SelectorOOP
      *
      * @param string $by
      */
-    final public function group(string $by): \BrickLayer\Lay\Orm\SQL
+    final public function group(string $by): SQL
     {
         return $this->store_vars('group', ["condition" => $by,], true);
     }
@@ -410,7 +413,7 @@ trait SelectorOOP
      *
      * @param string $condition
      */
-    final public function having(string $condition): \BrickLayer\Lay\Orm\SQL
+    final public function having(string $condition): SQL
     {
         return $this->store_vars('having', ["condition" => $condition,], true);
     }
@@ -421,7 +424,7 @@ trait SelectorOOP
      * @param string $column
      * @param string $order
      */
-    final public function sort(string $column, #[ExpectedValues(['ASC', 'asc', 'DESC', 'desc'])] string $order = "ASC"): \BrickLayer\Lay\Orm\SQL
+    final public function sort(string $column, #[ExpectedValues(['ASC', 'asc', 'DESC', 'desc'])] string $order = "ASC"): SQL
     {
         return $this->store_vars('sort', ["sort" => $column, "type" => $order,], true);
     }
@@ -437,7 +440,7 @@ trait SelectorOOP
      * @param bool $fmt_to_date
      * @param bool $allow_null
      */
-    final public function between(string $column, string $start, string $end, bool $fmt_to_date = true, bool $allow_null = true): \BrickLayer\Lay\Orm\SQL
+    final public function between(string $column, string $start, string $end, bool $fmt_to_date = true, bool $allow_null = true): SQL
     {
         return $this->store_vars('between', ["col" => $column, "start" => $start, "end" => $end, "format" => $fmt_to_date, "allow_null" => $allow_null]);
     }
@@ -451,7 +454,7 @@ trait SelectorOOP
      * @param int $page_number Specifies the page batch based on the limit
      * @param string|null $column_to_check
      */
-    final public function limit(int $max_result, int $page_number = 1, ?string $column_to_check = null): \BrickLayer\Lay\Orm\SQL
+    final public function limit(int $max_result, int $page_number = 1, ?string $column_to_check = null): SQL
     {
         return $this->store_vars('limit', ["index" => $page_number, "max_result" => $max_result, "column" => $column_to_check,]);
     }
@@ -474,7 +477,7 @@ trait SelectorOOP
     /**
      * @see not_empty
      */
-    final public function no_null(): \BrickLayer\Lay\Orm\SQL
+    final public function no_null(): SQL
     {
         return $this->store_vars('can_be_null', false);
     }
@@ -482,7 +485,7 @@ trait SelectorOOP
     /**
      * @see not_empty
      */
-    final public function no_false(): \BrickLayer\Lay\Orm\SQL
+    final public function no_false(): SQL
     {
         return $this->store_vars('can_be_false', false);
     }
@@ -491,7 +494,7 @@ trait SelectorOOP
      * You can use this to instruct the orm to return a generator instead of an array;
      * then you can yield the result as needed.
      */
-    final public function use_generator(): \BrickLayer\Lay\Orm\SQL
+    final public function use_generator(): SQL
     {
         return $this->store_vars('return_as', OrmReturnType::GENERATOR);
     }
@@ -513,7 +516,7 @@ trait SelectorOOP
     /**
      * Instruct the ORM to loop through the result and return a multidimensional array of results.
      */
-    final public function loop(): \BrickLayer\Lay\Orm\SQL
+    final public function loop(): SQL
     {
         return $this->store_vars('loop', true);
     }
@@ -521,7 +524,7 @@ trait SelectorOOP
     /**
      * Instruct the ORM to return an associative array of results.
      */
-    final public function assoc(): \BrickLayer\Lay\Orm\SQL
+    final public function assoc(): SQL
     {
         return $this->store_vars('fetch_as', OrmReturnType::ASSOC);
     }
@@ -543,7 +546,7 @@ trait SelectorOOP
     /**
      * Instruct the ORM to return a multidimensional array of results that isn't associative.
      */
-    final public function row(): \BrickLayer\Lay\Orm\SQL
+    final public function row(): SQL
     {
         return $this->store_vars('fetch_as', OrmReturnType::NUM);
     }
@@ -566,7 +569,7 @@ trait SelectorOOP
      *
      * @param string|array $cols
      */
-    final public function column(string|array $cols): \BrickLayer\Lay\Orm\SQL
+    final public function column(string|array $cols): SQL
     {
         return $this->store_vars('columns', $cols);
     }
@@ -589,9 +592,9 @@ trait SelectorOOP
      *
      * @param string|null $clause
      *
-     * @return \Generator|\PgSql\Result|\SQLite3Result|\mysqli_result|array|null
+     * @return Generator|Result|SQLite3Result|mysqli_result|array|null
      */
-    final public function then_select(?string $clause = null): array|\PgSql\Result|\SQLite3Result|\mysqli_result|\Generator|null|Generator
+    final public function then_select(?string $clause = null): array|Result|SQLite3Result|mysqli_result|null|Generator
     {
         if ($clause)
             $this->clause($clause);
@@ -601,7 +604,7 @@ trait SelectorOOP
         return $this->select();
     }
 
-    private function store_vars(string $key, mixed $value, $id1 = null, $id2 = null): \BrickLayer\Lay\Orm\SQL
+    private function store_vars(string $key, mixed $value, $id1 = null, $id2 = null): SQL
     {
         $index = max(self::$current_index, 0);
 

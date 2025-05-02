@@ -469,7 +469,7 @@ trait Config{
      *
      * @throws \Exception
      */
-    public static function get_driver() : \BrickLayer\Lay\Orm\Enums\OrmDriver|false|bool
+    public static function get_driver() : OrmDriver|false
     {
         if(isset(self::$active_driver))
             return self::$active_driver;

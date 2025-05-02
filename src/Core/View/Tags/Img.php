@@ -2,10 +2,7 @@
 declare(strict_types=1);
 namespace BrickLayer\Lay\Core\View\Tags;
 
-use BrickLayer\Lay\Core\LayConfig;
-use BrickLayer\Lay\Core\View\Enums\DomainType;
-use BrickLayer\Lay\Core\View\ViewBuilder;
-use BrickLayer\Lay\Core\View\Domain;
+use BrickLayer\Lay\Core\View\Tags\Traits\Standard;
 use BrickLayer\Lay\Core\View\ViewSrc;
 
 final class Img {
@@ -13,16 +10,18 @@ final class Img {
         "alt" => "Page Image"
     ];
 
-    use \BrickLayer\Lay\Core\View\Tags\Traits\Standard;
+    use Standard;
 
     private bool $prepend_domain_on_src = true;
 
 
-    public function width(int|string $width) : Traits\Standard|self|Anchor|Link|Script {
+    public function width(int|string $width) : self
+    {
         return $this->attr('width',(string)  $width);
     }
 
-    public function height(int|string $height) : Traits\Standard|self|Anchor|Link|Script {
+    public function height(int|string $height) : self
+    {
         return $this->attr('height', (string) $height);
     }
 
@@ -32,7 +31,8 @@ final class Img {
         return $this;
     }
 
-    public function alt(string $alt_text) : Traits\Standard|self|Anchor|Link|Script {
+    public function alt(string $alt_text) : self
+    {
         return $this->attr('alt', $alt_text);
     }
 
@@ -42,7 +42,8 @@ final class Img {
         return $this;
     }
 
-    public function srcset(string $srcset) : Traits\Standard|self|Anchor|Link|Script {
+    public function srcset(string $srcset) : self
+    {
         $srcset = ViewSrc::gen($srcset, $this->prepend_domain_on_src);
         return $this->attr('srcset', $srcset);
     }

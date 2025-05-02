@@ -607,7 +607,7 @@ trait ValidateCleanMap {
      *
      * @return array|null|string
      */
-    public static function vcm_errors(bool $as_string = true) : array|string|null|null|string
+    public static function vcm_errors(bool $as_string = true) : array|string|null
     {
         $errors = self::$_errors ?? null;
 

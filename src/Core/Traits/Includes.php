@@ -36,7 +36,7 @@ trait Includes {
         "last_mod" => "int",
         "content" => "string"
     ])]
-    public function inc_file(?string $file, string $type = "inc", bool $once = true, bool $as_string = false, ?array $local = [], bool $use_referring_domain = true, bool $use_get_content = false, bool $error_file_not_found = true, bool $get_last_mod = false) : array|string|null|null|array
+    public function inc_file(?string $file, string $type = "inc", bool $once = true, bool $as_string = false, ?array $local = [], bool $use_referring_domain = true, bool $use_get_content = false, bool $error_file_not_found = true, bool $get_last_mod = false) : array|string|null
     {
         return DomainResource::include_file(
             $file, $type,

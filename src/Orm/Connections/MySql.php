@@ -41,16 +41,12 @@ final class MySql implements OrmConnections
         return isset($this->link->host_info);
     }
 
-    /**
-     * @return int|numeric-string
-     *
-     * @psalm-return int<-1, max>|numeric-string
-     */
     #[Override]
     /**
      * @param mysqli_result|null $result
+     * @return int
      */
-    public function affected_rows(mixed $result = null) : int|string
+    public function affected_rows(mixed $result = null) : int
     {
         return $this->link->affected_rows;
     }

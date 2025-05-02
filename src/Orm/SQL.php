@@ -19,6 +19,7 @@ use BrickLayer\Lay\Orm\Traits\TransactionHandler;
 use Generator;
 use JetBrains\PhpStorm\ArrayShape;
 use mysqli_result;
+use PgSql\Result;
 use SQLite3Result;
 
 /**
@@ -62,23 +63,20 @@ final class SQL
     /**
      * Query Engine
      * @param string $query
-     * @param array $option Adjust the function to fit your use case;
-     * @return int|bool|array|mysqli_result|SQLite3Result|Generator|null
+     * @param array{
+     *  debug: bool,
+     *  catch: bool,
+     *  can_be_null: bool,
+     *  can_be_false: bool,
+     *  loop: bool,
+     *  except: string,
+     *  return_as: OrmReturnType,
+     *  query_type: OrmQueryType,
+     *  fetch_as: OrmReturnType,
+     * } $option Adjust the function to fit your use case;
+     * @return int|bool|array|mysqli_result|SQLite3Result|Result|Generator|null
      */
-    final public function query(
-        string $query,
-        #[ArrayShape([
-            "debug" => "bool",
-            "catch" => "bool",
-            "can_be_null" => "bool",
-            "can_be_false" => "bool",
-            "loop" => "bool",
-            "except" => "string",
-            "return_as" => "BrickLayer\\Lay\\Orm\\Enums\\OrmReturnType",
-            "query_type" => "BrickLayer\\Lay\\Orm\\Enums\\OrmQueryType",
-            "fetch_as" => "BrickLayer\\Lay\\Orm\\Enums\\OrmReturnType",
-        ])] array $option = []
-    ): int|bool|array|null|mysqli_result|SQLite3Result|Generator
+    final public function query(string $query, array $option = []): int|bool|array|null|mysqli_result|SQLite3Result|Result|Generator
     {
         if (!isset(self::$link))
             self::exception(

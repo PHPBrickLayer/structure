@@ -74,12 +74,13 @@ final class Domain {
     }
 
     /**
-     * @param array|null|string $value
-     * @param null|string[]|true $key
+     * @param mixed $value
+     * @param null|string|int $key
      *
      * @psalm-param array{pattern: string, id: string}|null|true $key
      */
-    private function domain_cache_key(DomainCacheKeys $key_type, array|bool|null $key = null, array|string|null $value = null, bool $cache = true) : mixed {
+    private function domain_cache_key(DomainCacheKeys $key_type, string|null|int $key = null, mixed $value = null, bool $cache = true) : mixed
+    {
         $cache = $cache && self::$cache_domains;
         $this->read_cached_domain_ram();
 

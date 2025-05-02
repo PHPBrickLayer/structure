@@ -115,6 +115,14 @@ trait Image
         } catch (ImagickException $e) {
             LayException::throw_exception("Image creation failed", exception: $e);
         }
+
+        return [
+            "created" => false,
+            "dev_error" => "Imagick failed to create a new image; No action was taken; Class: " . self::class,
+            "error" => "Could not complete image processing",
+            "error_type" => FileUploadErrors::IMG_CREATION,
+            "ext" => null,
+        ];
     }
 
     /**
