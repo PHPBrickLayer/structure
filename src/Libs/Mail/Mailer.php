@@ -12,7 +12,7 @@ use PHPMailer\PHPMailer\Exception;
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\SMTP;
 
-final class Mailer {
+class Mailer {
     private static PHPMailer $mail_link;
 
     private static array $credentials = [
@@ -221,9 +221,9 @@ final class Mailer {
     }
 
     /**
-     * Override this method and create your own template for your projects.
      * @param string $message
      * @return string
+     * @abstract Must override this method and create your own template for your projects.
      */
     public function email_template(string $message) : string {
         $text_color = "#000000";
@@ -255,6 +255,7 @@ final class Mailer {
     /**
      * A function placeholder that is meant to be overwritten.
      * You can use it to set constants or procedures you want to be applied across all your emails before sending.
+     * @abstract
      *
      * This method runs immediately after the $mailer is initialized in this class
      * @return void
