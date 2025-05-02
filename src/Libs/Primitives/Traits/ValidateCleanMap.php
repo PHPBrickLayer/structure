@@ -1,6 +1,6 @@
 <?php
 
-namespace BrickLayer\Lay\Core\Traits;
+namespace BrickLayer\Lay\Libs\Primitives\Traits;
 
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\LayException;

@@ -7,12 +7,11 @@ use BrickLayer\Lay\Core\Annotate\CurrentRouteData;
 use BrickLayer\Lay\Core\Api\Enums\ApiStatus;
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
-use BrickLayer\Lay\Core\Traits\IsSingleton;
 use BrickLayer\Lay\Core\View\Enums\DomainType;
 use BrickLayer\Lay\Core\View\Tags\Anchor;
 use BrickLayer\Lay\Libs\LayArray;
+use BrickLayer\Lay\Libs\Primitives\Traits\IsSingleton;
 use Closure;
-use JetBrains\PhpStorm\ArrayShape;
 use JetBrains\PhpStorm\ExpectedValues;
 use JetBrains\PhpStorm\NoReturn;
 

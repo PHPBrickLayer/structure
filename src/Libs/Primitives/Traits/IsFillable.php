@@ -1,5 +1,5 @@
 <?php
-namespace BrickLayer\Lay\Core\Traits;
+namespace BrickLayer\Lay\Libs\Primitives\Traits;
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Orm\SQL;
 
@@ -70,6 +70,16 @@ trait IsFillable {
 
         if(static::$columns[static::$primary_key_col] != $record_or_id)
             static::$columns = $by_id();
+
+        return $this;
+    }
+
+    public function refresh(): self
+    {
+        $id = static::$columns[static::$primary_key_col] ?? null;
+
+        if ($id)
+            return $this->fill($id, true);
 
         return $this;
     }

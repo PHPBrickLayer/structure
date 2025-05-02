@@ -2,8 +2,8 @@
 
 namespace BrickLayer\Lay\Libs;
 
-use BrickLayer\Lay\Core\Enums\LayLoop;
-use BrickLayer\Lay\Core\Traits\ControllerHelper;
+use BrickLayer\Lay\Libs\Primitives\Enums\LayLoop;
+use BrickLayer\Lay\Libs\Primitives\Traits\ControllerHelper;
 
 abstract class LayCSV {
     use ControllerHelper;

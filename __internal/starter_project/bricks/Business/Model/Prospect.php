@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace Bricks\Business\Model;
 
-use BrickLayer\Lay\Core\Traits\IsSingleton;
+use BrickLayer\Lay\Libs\Primitives\Traits\IsSingleton;
 use Utils\Traits\ModelHelper;
 
 class Prospect

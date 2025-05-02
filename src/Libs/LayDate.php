@@ -3,7 +3,6 @@ declare(strict_types=1);
 namespace BrickLayer\Lay\Libs;
 
 use DateTime;
-use BrickLayer\Lay\Core\Traits\IsSingleton;
 
 abstract class LayDate {
     /**

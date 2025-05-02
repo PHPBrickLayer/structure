@@ -2,9 +2,9 @@
 
 namespace BrickLayer\Lay\BobDBuilder\Cmd\Traits\Purge;
 
-use BrickLayer\Lay\Core\Enums\LayLoop;
 use BrickLayer\Lay\Libs\Dir\LayDir;
 use BrickLayer\Lay\Libs\LayCache;
+use BrickLayer\Lay\Libs\Primitives\Enums\LayLoop;
 
 
 trait StaticProd

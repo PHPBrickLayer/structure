@@ -8,6 +8,7 @@ use BrickLayer\Lay\BobDBuilder\Cmd\Traits\Make\Domain;
 use BrickLayer\Lay\BobDBuilder\Cmd\Traits\Make\JsConfig;
 use BrickLayer\Lay\BobDBuilder\EnginePlug;
 use BrickLayer\Lay\BobDBuilder\Interface\CmdLayout;
+use Override;
 
 class Make implements CmdLayout
 {
@@ -20,6 +21,7 @@ class Make implements CmdLayout
     private array $tags;
     private string $internal_dir;
 
+    #[Override]
     public function _init(EnginePlug $plug): void
     {
         $this->plug = $plug;
@@ -36,6 +38,7 @@ class Make implements CmdLayout
         $this->plug->write_talk($msg, ['silent' => true]);
     }
 
+    #[Override]
     public function _spin(): void
     {
         $this->tags = $this->plug->tags;

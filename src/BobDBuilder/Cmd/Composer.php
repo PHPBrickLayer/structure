@@ -7,11 +7,13 @@ use BrickLayer\Lay\BobDBuilder\Interface\CmdLayout;
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Libs\LayDate;
 use BrickLayer\Lay\Libs\LayFn;
+use Override;
 
 class Composer implements CmdLayout
 {
     private EnginePlug $plug;
 
+    #[Override]
     public function _init(EnginePlug $plug): void
     {
         $this->plug = $plug;
@@ -19,6 +21,7 @@ class Composer implements CmdLayout
         $plug->add_arg($this, ["up_composer"], 'update_composer', true);
     }
 
+    #[Override]
     public function _spin(): void
     {
         if (!isset($this->plug->tags['update_composer']))

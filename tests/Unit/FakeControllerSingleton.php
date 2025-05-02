@@ -2,7 +2,7 @@
 
 namespace Unit;
 
-use BrickLayer\Lay\Core\Traits\IsSingleton;
+use BrickLayer\Lay\Libs\Primitives\Traits\IsSingleton;
 
 class FakeControllerSingleton
 {

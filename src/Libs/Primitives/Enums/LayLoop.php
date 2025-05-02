@@ -1,6 +1,6 @@
 <?php
 
-namespace BrickLayer\Lay\Core\Enums;
+namespace BrickLayer\Lay\Libs\Primitives\Enums;
 
 enum LayLoop
 {

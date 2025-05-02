@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace BrickLayer\Lay\BobDBuilder;
 
 use BrickLayer\Lay\BobDBuilder\Enum\CmdOutType;
-use BrickLayer\Lay\Core\Enums\LayLoop;
+use BrickLayer\Lay\Libs\Primitives\Enums\LayLoop;
 
 class Engine
 {

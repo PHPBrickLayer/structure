@@ -2,10 +2,10 @@
 
 namespace Bricks\Business\Controller;
 
-use BrickLayer\Lay\Core\Traits\ControllerHelper;
-use BrickLayer\Lay\Core\Traits\IsSingleton;
-use BrickLayer\Lay\Core\Traits\ValidateCleanMap;
 use BrickLayer\Lay\Libs\LayDate;
+use BrickLayer\Lay\Libs\Primitives\Traits\ControllerHelper;
+use BrickLayer\Lay\Libs\Primitives\Traits\IsSingleton;
+use BrickLayer\Lay\Libs\Primitives\Traits\ValidateCleanMap;
 use Bricks\Business\Model\Newsletter;
 use Utils\Email\Email;
 

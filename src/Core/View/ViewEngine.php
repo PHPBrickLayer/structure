@@ -3,14 +3,14 @@ declare(strict_types=1);
 namespace BrickLayer\Lay\Core\View;
 
 use BrickLayer\Lay\Core\Api\ApiEngine;
-use BrickLayer\Lay\Libs\LayArray;
-use BrickLayer\Lay\Libs\LayFn;
-use Closure;
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
-use BrickLayer\Lay\Core\Traits\IsSingleton;
 use BrickLayer\Lay\Core\View\Tags\Link;
 use BrickLayer\Lay\Core\View\Tags\Script;
+use BrickLayer\Lay\Libs\LayArray;
+use BrickLayer\Lay\Libs\LayFn;
+use BrickLayer\Lay\Libs\Primitives\Traits\IsSingleton;
+use Closure;
 
 //TODO: Find a way to generate static pages for domains
 // The static pages should be able to use classes when necessary for things that are dynamic like a blog page
