@@ -62,11 +62,11 @@ final class ViewBuilder
     }
 
     /**
-     * @param Closure|string $value
-     *
-     * @psalm-param 'app'|'error'|'home'|Closure(null|string=, null|string=, bool|null=):string $value
+     * @param string $key
+     * @param mixed $value
+     * @return ViewBuilder
      */
-    public function local(string $key, string|Closure $value): self
+    public function local(string $key, mixed $value): self
     {
         return $this->store_page_data(ViewEngine::key_local, $key, $value);
     }
@@ -77,10 +77,11 @@ final class ViewBuilder
     }
 
     /**
-     * @param mixed $value
+     * @param string $section
      * @param string|null $key
-     *
-     * @psalm-param Closure|array<array|null|string>|null|string $key
+     * @param mixed $value
+     * @return ViewBuilder
+     * @throws \Exception
      */
     private function store_page_data(string $section, ?string $key = null, mixed $value = null): self
     {

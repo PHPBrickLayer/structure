@@ -5,47 +5,46 @@ namespace BrickLayer\Lay\Libs\Primitives\Abstracts;
 
 use BrickLayer\Lay\Libs\LayArray;
 
-abstract class ResourceHelper
+abstract readonly class ResourceHelper
 {
-    private static array $resource;
-
     /**
      * Define how you want the resource to be mapped
      * @return array
      */
-    abstract protected function schema(): array;
-
-    /**
-     * Returns a 1D array of the mapped resource
-     * @return array
-     */
-    public final function props(): array
-    {
-        return self::$resource;
-    }
+    abstract public function props(): array;
 
     /**
      * Maps a 2D array to the defined schema and returns the formatted array
      * @param array $data
      * @return array<int|string, array>
      */
-    public static final function collection(array $data): array
+    public final function collection(array $data): array
     {
         return LayArray::map($data, fn($d) => new static($d));
     }
 
-    public function __construct(protected array|object $data)
+    /**
+     * @param array|object $data Can accept an array, stdclass, or you model class, since classes are objects in php
+     * Then you can access them directly like a property in your props method
+     */
+    public function __construct(private array|object $data)
     {
-        self::$resource = $this->schema();
+        return $this->props();
     }
 
     public function __get(string $name) : mixed
     {
-        return self::$resource[$name] ?? null;
+        if(is_object($this->data))
+            return $this->data->$name ?? null;
+
+        return $this->data[$name] ?? null;
     }
 
     public function __isset($name) : bool
     {
-        return isset(self::$resource[$name]);
+        if(is_object($this->data))
+            return isset($this->data->$name);
+
+        return isset($this->data[$name]);
     }
 }

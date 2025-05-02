@@ -10,7 +10,7 @@ abstract class RequestHelper
 {
     use ValidateCleanMap, ControllerHelper;
 
-    public string|null $error = null;
+    public ?string $error = null;
     public array $data;
 
     abstract protected function validation_rules(): void;
@@ -30,7 +30,7 @@ abstract class RequestHelper
         return $data;
     }
 
-    public function validate(): static
+    public final function validate(): static
     {
         $this->before_validation();
 
@@ -46,15 +46,14 @@ abstract class RequestHelper
         return $this;
     }
 
-    public function __get(string $key) : mixed
+    public final function __get(string $key) : mixed
     {
         return $this->data[$key] ?? null;
     }
 
-    public function __isset($key) : bool
+    public final function __isset($key) : bool
     {
         return isset($this->data[$key]);
     }
-
 
 }

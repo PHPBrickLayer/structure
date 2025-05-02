@@ -374,7 +374,7 @@ trait ValidateCleanMap {
      *    return_struct?: callable(mixed, string, array<string, mixed>) : mixed,
      * } $options
      */
-    public function vcm(array $options ) : \BrickLayer\Lay\Libs\Primitives\Abstracts\RequestHelper
+    public function vcm(array $options ) : self
     {
         if(isset($options['request']) && empty(self::$_filled_request))
             self::vcm_start($options['request']);
@@ -500,7 +500,7 @@ trait ValidateCleanMap {
      *      return_struct?: callable<mixed, string>,
      *   } $options
      */
-    public function vcm_rules(array $options) : \BrickLayer\Lay\Libs\Primitives\Abstracts\RequestHelper
+    public function vcm_rules(array $options) : self
     {
         self::$_required = $options['required'] ?? null;
         self::$_clean_by_default = $options['clean'] ?? null;
