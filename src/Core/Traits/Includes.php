@@ -25,14 +25,18 @@ trait Includes {
      * @param bool $use_get_content [Relevant when `$as_string` is true]. It instructs the function to use `file_get_contents` instead of `include`
      * @param bool $error_file_not_found
      * @param bool $get_last_mod [Relevant when `$as_string` is true]. It instructs the function to return an array with last_mod as a key
-     * @return string|array|null
+     *
+     * @return (int|string)[]|null|string
+     *
      * @throws \Exception
+     *
+     * @psalm-return array{last_mod: int, content: string}|null|string
      */
     #[ArrayShape([
         "last_mod" => "int",
         "content" => "string"
     ])]
-    public function inc_file(?string $file, string $type = "inc", bool $once = true, bool $as_string = false, ?array $local = [], bool $use_referring_domain = true, bool $use_get_content = false, bool $error_file_not_found = true, bool $get_last_mod = false) : string|null|array
+    public function inc_file(?string $file, string $type = "inc", bool $once = true, bool $as_string = false, ?array $local = [], bool $use_referring_domain = true, bool $use_get_content = false, bool $error_file_not_found = true, bool $get_last_mod = false) : array|string|null|null|array
     {
         return DomainResource::include_file(
             $file, $type,

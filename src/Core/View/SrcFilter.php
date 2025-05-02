@@ -2,7 +2,7 @@
 
 namespace BrickLayer\Lay\Core\View;
 
-class SrcFilter
+final class SrcFilter
 {
     public static function go(string $src) : string {
         $client = DomainResource::get();

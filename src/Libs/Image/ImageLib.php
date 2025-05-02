@@ -23,10 +23,12 @@ final class ImageLib {
 
     /**
      * @param string $file_name_or_post_name The path to the file or the name of the file from a post request
-     * @return int
+     *
+     * @return false|int
+     *
      * @throws \Exception
      */
-    public function file_size(string $file_name_or_post_name) : int
+    public function file_size(string $file_name_or_post_name) : int|false
     {
         $files = @$_FILES[$file_name_or_post_name];
 
@@ -47,8 +49,12 @@ final class ImageLib {
 
     /**
      * Check image width and height size
+     *
      * @param $image_file string file to be checked for size
-     * @return array
+     *
+     * @return int[]
+     *
+     * @psalm-return array{width: int, height: int}
      */
     #[ArrayShape(['width' => 'int', 'height' => 'int'])]
     public function get_ratio(string $image_file) : array
@@ -115,9 +121,14 @@ final class ImageLib {
      *
      * This function moves your uploaded image, creates the directory,
      * resizes the image and returns the image name and extension (image.webp)
+     *
      * @param array $options
-     * @return array
+     *
+     * @return (BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadErrors::EXCEEDS_FILE_LIMIT|BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadErrors::FILE_NOT_SET|BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadErrors::TMP_FILE_EMPTY|bool|int|mixed|string)[]
+     *
      * @throws \Exception
+     *
+     * @psalm-return array{uploaded: bool, url?: string, size?: int, width?: mixed, height?: mixed, error?: string, error_type?: BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadErrors::EXCEEDS_FILE_LIMIT|BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadErrors::FILE_NOT_SET|BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadErrors::TMP_FILE_EMPTY}
      */
     #[ArrayShape([
         'uploaded' => 'bool',
@@ -162,7 +173,12 @@ final class ImageLib {
 
         $directory = rtrim($directory,DIRECTORY_SEPARATOR);
 
-        $operation = function ($imgName, $tmp_name) use (
+        $operation = /**
+         * @return (int|mixed|string|true)[]
+         *
+         * @psalm-return array{uploaded: true, url: string, size: int, width: mixed, height: mixed}
+         */
+        function ($imgName, $tmp_name) use (
             $directory,
             $post_name,
             $new_name,
@@ -170,7 +186,7 @@ final class ImageLib {
             $copy_tmp_file,
             $quality,
             $add_mod_time,
-        ){
+        ): array{
             $lay = LayConfig::new();
 
             $tmpFolder = $lay::mk_tmp_dir();

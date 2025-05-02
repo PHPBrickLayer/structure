@@ -43,9 +43,6 @@ trait Resources {
 
         $obj->uploads_no_root   =   "uploads" . $slash;
 
-        //TODO: Delete the implementation and this section soon
-        self::internal_mk_tmp_dir($obj->temp, $obj->root);
-
         self::$server = $obj;
     }
 
@@ -153,25 +150,6 @@ trait Resources {
         return self::$CLIENT_VALUES;
     }
 
-    private static function internal_mk_tmp_dir(string $temp_dir, string $root) : void
-    {
-        //TODO: Delete this after all legacy projects have been updated. Delete the root arg as well
-        // START
-        $old_temp_dir = $root . ".lay_temp";
-
-        if(is_dir($old_temp_dir)) {
-            $new_dir_is_empty = LayDir::is_empty($temp_dir);
-
-            if($new_dir_is_empty) {
-                rmdir($temp_dir);
-                rename($old_temp_dir, $temp_dir);
-            }
-        }
-
-        //TODO: Delete this after all legacy projects have been updated
-        //END
-    }
-
     public static function mk_tmp_dir () : string {
         $dir = self::server_data()->temp;
 
@@ -198,7 +176,7 @@ trait Resources {
         $identity_file = self::server_data()->lay . "identity";
         $static_id = self::server_data()->project_id ?? null;
 
-        $gen_id = function () use ($identity_file) {
+        $gen_id = function () use ($identity_file): string {
             $new_id = Gen::uuid(32);
             self::server_data()->project_id = $new_id;
 

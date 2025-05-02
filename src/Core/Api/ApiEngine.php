@@ -177,8 +177,8 @@ final class ApiEngine {
     private static function exception(
         string $title,
         string $message,
-               $exception = null, array
-               $header = ["code" => 500, "msg" => "Internal Server Error", "throw_header" => true]
+        \Error|\Exception|null $exception = null,
+        array $header = ["code" => 500, "msg" => "Internal Server Error", "throw_header" => true]
     ) : void {
         $active_route = self::$active_route ?? null;
 
@@ -225,7 +225,12 @@ final class ApiEngine {
         }
     }
 
-    private static function update_global_props(string $key, mixed $value) : void
+    /**
+     * @param (int|null|string)[]|bool|callable|null|string $value
+     *
+     * @psalm-param bool|callable|list{int, string, null|string}|null|string $value
+     */
+    private static function update_global_props(string $key, array|string|callable|bool|null $value) : void
     {
         self::update_class_props($key, $value);
 
@@ -400,7 +405,7 @@ final class ApiEngine {
 
     private static function stringify_request(bool $always_stringify = true) : string
     {
-        $stringify = fn() => implode("/", self::$current_request_uri);
+        $stringify = fn(): string => implode("/", self::$current_request_uri);
 
         if($always_stringify)
             self::$current_uri_string = $stringify();
@@ -744,7 +749,12 @@ final class ApiEngine {
         self:: $limiter_route = [];
     }
 
-    private static function set_return_value(mixed $return_array = null) : void
+    /**
+     * @param (int|mixed|string)[]|null $return_array
+     *
+     * @psalm-param array{code: 429, msg: 'TOO MANY REQUESTS', message: 'TOO MANY REQUESTS', expire: mixed}|null $return_array
+     */
+    private static function set_return_value(array|null $return_array = null) : void
     {
         self::$bind_return_value = $return_array ?? self::$bind_return_value ?? null;
         self::$route_found = true;
@@ -866,7 +876,10 @@ final class ApiEngine {
 
     /**
      * This object is used in debug mode to store routes in a predictable data object
-     * @return array
+     *
+     * @return (((bool|mixed|null)[]|bool)[]|ApiReturnType|string)[]
+     *
+     * @psalm-return array{route: string, route_name: string, method: string, return_type: ApiReturnType, using_middleware: array{route: bool, group: bool}, rate_limiter: array{route: array{used: bool, reqs: mixed|null, duration: mixed|null, key: mixed|null}, group: array{used: bool, reqs: mixed|null, duration: mixed|null, key: mixed|null}, global: array{used: bool, reqs: mixed|null, duration: mixed|null, key: mixed|null}}}
      */
     private static function matched_uri_obj() : array
     {
@@ -975,6 +988,11 @@ final class ApiEngine {
         return $this;
     }
 
+    /**
+     * @return (bool|mixed|string)[]
+     *
+     * @psalm-return array{found: bool, request: string,...}
+     */
     public function found() : array
     {
         $x = self::matched_uri_obj();
@@ -1160,7 +1178,10 @@ final class ApiEngine {
         return self::$engine;
     }
 
-    public static function end(bool $print_existing_result = true) : ?string {
+    /**
+     * @return null
+     */
+    public static function end(bool $print_existing_result = true)  {
         $uri = self::$route_uri_raw ?? "";
 
         if(self::$route_found) {

@@ -136,10 +136,12 @@ final class FileUpload {
 
     /**
      * @param string $file_name_or_post_name The path to the file or the name of the file from a post request
-     * @return int
+     *
+     * @return false|int|null
+     *
      * @throws \Exception
      */
-    public function file_size(string $file_name_or_post_name) : int
+    public function file_size(string $file_name_or_post_name) : int|false|null
     {
         $files = $_FILES[$file_name_or_post_name] ?? null;
 
@@ -162,6 +164,11 @@ final class FileUpload {
         Exception::throw_exception($message, "FileUpload");
     }
 
+    /**
+     * @return (FileUploadStorage|FileUploadType|bool|mixed|null)[]
+     *
+     * @psalm-return array{uploaded: bool, url?: mixed, size?: mixed, storage: FileUploadStorage|null, upload_type: FileUploadType|null, width?: mixed|null, height?: mixed|null, dev_error?: mixed, error?: mixed, error_type?: mixed}
+     */
     #[ArrayShape([
         'uploaded' => 'bool',
         'dev_error' => 'string',

@@ -6,7 +6,7 @@ use BrickLayer\Lay\Core\LayException;
 use BrickLayer\Lay\Orm\Enums\OrmQueryType;
 use BrickLayer\Lay\Orm\Enums\OrmReturnType;
 
-class SqlBuild
+final class SqlBuild
 {
     // $build = new SqlBuild();
     // $build->table('users')->select(
@@ -30,7 +30,7 @@ class SqlBuild
 
     /// START UTILITY
     ///
-    public function eq(string $column, mixed $value, bool $unquote = false) : string
+    public function eq(string $column, int $value, bool $unquote = false) : string
     {
         if($value == null)
             $unquote = true;
@@ -95,19 +95,19 @@ class SqlBuild
 
     public function __construct(private string $sql_table) {}
 
-    public function table(string $table) : self
+    public function table(string $table) : static
     {
         $this->sql_table = $table;
         return $this;
     }
 
-    public function debug() : self
+    public function debug() : static
     {
         $this->debug_query = true;
         return $this;
     }
 
-    public function catch() : self
+    public function catch() : static
     {
         $this->catch_error = true;
         return $this;
@@ -128,7 +128,7 @@ class SqlBuild
     /**
      * @throws \Exception
      */
-    public function select(string ...$columns) : self
+    public function select(string ...$columns) : static
     {
         $this->check_table_set();
 
@@ -165,7 +165,7 @@ class SqlBuild
         return SQL::new()->open($this->sql_table)->column($columns)->clause($this->clause)->edit();
     }
 
-    public function where(string ...$clause) : self
+    public function where(string ...$clause) : static
     {
         $this->clause = "WHERE " . join(" ", $clause) . " ";
         return $this;
@@ -178,8 +178,10 @@ class SqlBuild
 
     /**
      * @throws \Exception
+     *
+     * @return \Generator|\SQLite3Result|\mysqli_result|array|bool|int|null
      */
-    public function assoc(bool $allow_null = true) : ?array
+    public function assoc(bool $allow_null = true) : array|int|bool|\Generator|\SQLite3Result|\mysqli_result|null
     {
         if(!in_array($this->query_type, [OrmQueryType::SELECT, OrmQueryType::COUNT]))
             self::exception("You are fetch a query as an associative array when it's not a select query", "WrongQueryType");
@@ -194,8 +196,10 @@ class SqlBuild
 
     /**
      * @throws \Exception
+     *
+     * @return \Generator|\SQLite3Result|\mysqli_result|array|bool|int|null
      */
-    public function loop_assoc(bool $allow_null = true) : ?array
+    public function loop_assoc(bool $allow_null = true) : array|int|bool|\Generator|\SQLite3Result|\mysqli_result|null
     {
         if(!in_array($this->query_type, [OrmQueryType::SELECT, OrmQueryType::COUNT]))
             self::exception("You are fetch a query as an associative array when it's not a select query", "WrongQueryType");

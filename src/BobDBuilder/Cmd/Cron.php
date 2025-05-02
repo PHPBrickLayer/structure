@@ -8,7 +8,7 @@ use BrickLayer\Lay\Libs\Cron\LayCron;
 use BrickLayer\Lay\Libs\LayDate;
 use Override;
 
-class Cron implements CmdLayout
+final class Cron implements CmdLayout
 {
     private EnginePlug $plug;
 

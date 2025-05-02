@@ -27,37 +27,36 @@ trait Standard {
 
     /**
      * Element Attributes
+     *
      * @param string $key
      * @param string $value
-     * @return Img|Anchor|Link|Script|Standard
      */
-    public function attr(string $key, string $value) : self {
+    public function attr(string $key, string $value) : \BrickLayer\Lay\Core\View\Tags\Script {
         $this->attr[$key] = $value;
         return $this;
     }
 
     /**
      * Data Attributes
+     *
      * @param string $key
      * @param string $value
-     * @return Img|Anchor|Link|Script|Standard
      */
-    public function data(string $key, string $value) : self {
+    public function data(string $key, string $value) : \BrickLayer\Lay\Core\View\Tags\Script {
         $this->attr["data-" . $key] = $value;
         return $this;
     }
 
     /**
      * @param string ...$rules CSS Styles
-     * @return self
      */
-    public function style(string ...$rules) : self
+    public function style(string ...$rules) : \BrickLayer\Lay\Core\View\Tags\Script
     {
         $this->attr["style"] = implode(";", $rules);
         return $this;
     }
 
-    public function class(string $class_name) : self {
+    public function class(string $class_name) : \BrickLayer\Lay\Core\View\Tags\Script {
         $this->attr['class'] = $class_name;
         return $this;
     }

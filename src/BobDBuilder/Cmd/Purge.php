@@ -10,7 +10,7 @@ use BrickLayer\Lay\BobDBuilder\EnginePlug;
 use BrickLayer\Lay\BobDBuilder\Interface\CmdLayout;
 use Override;
 
-class Purge implements CmdLayout
+final class Purge implements CmdLayout
 {
     use Domain;
     use Brick;

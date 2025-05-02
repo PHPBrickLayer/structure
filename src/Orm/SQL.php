@@ -24,7 +24,7 @@ use SQLite3Result;
 /**
  * Simple Query Language
  **/
-class SQL
+final class SQL
 {
     use IsSingleton;
     use Config;
@@ -46,7 +46,10 @@ class SQL
     public array $query_info;
 
 
-    public static function exception(string $title, string $message, array $opts = [], $exception = null) : void
+    /**
+     * @param \Throwable|array $opts
+     */
+    public static function exception(string $title, string $message, array|\Throwable $opts = [], $exception = null) : void
     {
         CoreException::new()->use_exception(
             "OrmExp_" . $title,

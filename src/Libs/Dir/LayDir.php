@@ -12,7 +12,7 @@ use BrickLayer\Lay\Libs\Symlink\SymlinkTrackType;
 use Closure;
 use DirectoryIterator;
 
-class LayDir {
+final class LayDir {
     public static bool $result;
     private static LaySymlink $symlink;
 
@@ -227,11 +227,14 @@ class LayDir {
 
     /**
      * Make a directory if it doesn't exist. Throws error if application doesn't have permission to access the location
+     *
      * @param string $directory
      * @param int $permission
      * @param bool $recursive
      * @param $context
-     * @return bool
+     *
+     * @return true
+     *
      * @throws \Exception
      */
     public static function make(

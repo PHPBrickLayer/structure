@@ -52,13 +52,15 @@ trait SelectorOOPCrud
 
     /**
      * Handles insert conflict
+     *
      * @param array $orm_vars
      * @param string $table
      * @param string $column_and_values
      * @param string|null $clause
-     * @return string|null
+     *
+     * @return null|string
      */
-    private function handle_insert_conflict(array $orm_vars, string $table, string $column_and_values, ?string $clause = null) : ?string
+    private function handle_insert_conflict(array $orm_vars, string $table, string $column_and_values, ?string $clause = null) : string|null
     {
         $conflict = $orm_vars['on_conflict'] ?? null;
 
@@ -612,7 +614,7 @@ trait SelectorOOPCrud
         };
     }
 
-    private function bind_param(string $string, array $data) : string
+    private function bind_param(string $string, array $data) : string|null
     {
         $bind_num = $data['bind_num'] ?? null;
         $bind_assoc = $data['bind_assoc'] ?? null;

@@ -18,12 +18,12 @@ final class Script
 
     private bool $prepend_domain_on_src = true;
 
-    public function type(string $type): self
+    public function type(string $type): Standard|Img|Anchor|Link|self
     {
         return $this->attr('type', $type);
     }
 
-    public function async(bool $choice): self
+    public function async(bool $choice): Standard|Img|Anchor|Link|self
     {
         return $this->attr('async', (string)$choice);
     }
@@ -60,7 +60,7 @@ final class Script
         return $link;
     }
 
-    public function defer(bool $choice): self
+    public function defer(bool $choice): Standard|Img|Anchor|Link|self
     {
         return $this->attr('defer', (string)$choice);
     }

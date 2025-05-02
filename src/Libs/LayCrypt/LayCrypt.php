@@ -43,9 +43,10 @@ class LayCrypt
      *
      * @param string|null $string value to encrypt
      * @param bool $encrypt true [default]
-     * @return string|null
+     *
+     * @return null|string
      */
-    public static function basic(?string $string, bool $encrypt = true): ?string {
+    public static function basic(?string $string, bool $encrypt = true): string|null {
         if($string == null) return null;
 
         $salt = LayFn::env('LAY_CRYPT_SALT', LayConfig::app_id() ?? 'weak-salted-key');

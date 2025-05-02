@@ -4,7 +4,7 @@ namespace BrickLayer\Lay\Libs\Cron;
 
 use BrickLayer\Lay\Core\LayConfig;
 
-class JustOnce
+final class JustOnce
 {
     public static function yes(string $schedule, string $job, string $job_id) : string
     {

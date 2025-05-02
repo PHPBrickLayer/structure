@@ -11,7 +11,7 @@ use mysqli_result;
 use PgSql\Result;
 use SQLite3Result;
 
-class StoreResult
+final class StoreResult
 {
     /**
      * @param mysqli_result|SQLite3Result|Result $exec_result mysqli_result
@@ -19,7 +19,10 @@ class StoreResult
      * @param OrmReturnType $fetch_as string how result should be returned [assoc|row] default = both
      * @param string $except
      * @param Closure|null $fun a function that should execute at the end of a given row storage
-     * @return Generator|array returns of result that can be accessed as assoc or row or a generator
+     *
+     * @return Generator returns of result that can be accessed as assoc or row or a generator
+     *
+     * @psalm-return Generator<int, mixed, mixed, array|mixed|true>
      */
     public static function store(mixed $exec_result, bool $return_loop, OrmReturnType $fetch_as = OrmReturnType::BOTH, string $except = "", ?Closure $fun = null) : Generator|array
     {
@@ -69,7 +72,7 @@ class StoreResult
             return $result;
         }
 
-        $loop_handler = function ($k, &$result) use ($fun, $except, $exec_result) {
+        $loop_handler = function ($k, &$result) use ($fun, $except, $exec_result): void {
             if (!empty($except))
                 $result = self::exempt_column($result, $except);
 

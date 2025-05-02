@@ -190,7 +190,10 @@ trait Config
         return self::$COMPRESS_HTML;
     }
 
-    public static function app_id(): ?string
+    /**
+     * @return false|null|string
+     */
+    public static function app_id(): string|false|null
     {
         self::is_init();
         $id = self::server_data()->lay . "identity";
@@ -265,7 +268,12 @@ trait Config
             }
         }
 
-        $authorization_header = function ($all): ?array {
+        $authorization_header = /**
+         * @return (null|string)[]|null
+         *
+         * @psalm-return array{scheme: string, data: null|string}|null
+         */
+        function ($all): array|null {
             $auth = $all['Authorization'] ?? $all['authorization'] ?? $all['AUTHORIZATION'] ?? null;
 
             if(!$auth)
@@ -299,6 +307,11 @@ trait Config
         return $all[$key] ?? $all[$key_lower] ?? $all[strtoupper($key)] ?? null;
     }
 
+    /**
+     * @return (mixed|string)[]|null
+     *
+     * @psalm-return array{agent: string, product?: string, platform?: string, engine?: string, browser?: mixed|string}|null
+     */
     #[ArrayShape([
         "agent" => "string",
         "product" => "string",
@@ -306,7 +319,7 @@ trait Config
         "engine" => "string",
         "browser" => "string",
     ])]
-    public static function user_agent() : ?array
+    public static function user_agent() : array|null
     {
         $agent = $_SERVER['HTTP_USER_AGENT'] ?? null;
 
@@ -507,14 +520,13 @@ trait Config
     /**
      * Prevents the data sent through the ViewHandler of a specific domain from being cached.
      * This only takes effect in development environment, if Lay detects the server is in production, it'll cache by default
-     * @return Config|LayConfig
      */
-    public function dont_cache_domains(): self
+    public function dont_cache_domains(): \BrickLayer\Lay\Core\LayConfig
     {
         return $this->switch("cache_domains", false);
     }
 
-    public function set_global_api(string $uri): self
+    public function set_global_api(string $uri): \BrickLayer\Lay\Core\LayConfig
     {
         self::$GLOBAL_API = $uri;
         return $this;
@@ -577,7 +589,7 @@ trait Config
         return !empty($_SERVER['HTTP_USER_AGENT']) && preg_match('~(Mobile)~i', $_SERVER['HTTP_USER_AGENT'], flags: PREG_UNMATCHED_AS_NULL);
     }
 
-    public function init_orm(bool $connect_by_default = true): self
+    public function init_orm(bool $connect_by_default = true): \BrickLayer\Lay\Core\LayConfig
     {
         if ($connect_by_default)
             self::connect();

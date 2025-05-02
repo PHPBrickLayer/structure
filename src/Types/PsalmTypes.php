@@ -35,4 +35,4 @@ use BrickLayer\Lay\Core\View\Enums\DomainType;
  * @psalm-type CoreKey="use_lay_script"|"skeleton"|"append_site_name"|"allow_page_embed"|"page_embed_whitelist"
  */
 
-class PsalmTypes {}
+final class PsalmTypes {}

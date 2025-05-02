@@ -157,6 +157,7 @@ trait TransactionHandler
 
     /**
      * This function wraps all your operations in a callback function, inside a transaction, and also wrapped in a try catch block
+     *
      * @param callable(static): array{
      *     status: 'success' | 'warning' | 'error',
      *     message: 'COMMIT' | 'ROLLBACK' | 'EXCEPTION',
@@ -164,16 +165,14 @@ trait TransactionHandler
      * } $scoped_operations The operation that should be run in the transaction block.
      * It must return an array with the key `status` included. and to commit your transaction,
      * `status` must equal `success`
-     *
      * @param int $flags [optional] A bitmask of MYSQLI_TRANS_COR_* constants.
      * @param string|null $name [optional] If provided then ROLLBACK $name is executed.
-     * @return array{
-     *    status: bool,
-     *    message: 'COMMIT' | 'ROLLBACK' | 'EXCEPTION',
-     *    exception?: ?Throwable,
-     *    data?: mixed,
-     * }
+     *
+     * @return ((mixed|string)[]|\Throwable|bool|null|string)[]
+     *
      * @throws \Exception
+     *
+     * @psalm-return array{status: bool, message: 'COMMIT'|'EXCEPTION'|'ROLLBACK', exception?: \Throwable, data?: array{status: 'error'|'success'|'warning', message: 'COMMIT'|'EXCEPTION'|'ROLLBACK', data: mixed}|null}
      */
     final public static function scoped_transaction(
         callable $scoped_operations,

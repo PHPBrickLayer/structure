@@ -17,7 +17,7 @@ use BrickLayer\Lay\Libs\Symlink\LaySymlink;
 use BrickLayer\Lay\Libs\Symlink\SymlinkTrackType;
 use Override;
 
-class Symlink implements CmdLayout
+final class Symlink implements CmdLayout
 {
     private EnginePlug $plug;
     private static string $link_db;
@@ -74,18 +74,6 @@ class Symlink implements CmdLayout
     {
         self::$lay_symlink = new LaySymlink("zz_project_symlinks.json");
         self::$link_db = self::$lay_symlink->current_db();
-
-        //TODO: Delete this section after legacy projects have been updated
-        $old_links = $this->plug->server->root . "symlinks.json";
-
-        if(file_exists($old_links))
-            rename($old_links, self::$link_db);
-
-        $old_links = LayConfig::server_data()->lay . "symlinks" . DIRECTORY_SEPARATOR . "project_symlinks.json";
-
-        if(file_exists($old_links))
-            rename($old_links, self::$link_db);
-        //TODO: END Deletion
     }
 
     private function track_link(string $src, string $dest, SymlinkTrackType $link_type) : void

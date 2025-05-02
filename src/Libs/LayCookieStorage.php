@@ -130,7 +130,7 @@ final class LayCookieStorage
         return LayCrypt::basic($cookie, false);
     }
 
-    private static function get_user_token(string $id): array
+    private static function get_user_token(string $id): array|\Generator
     {
         self::cleanse($id);
 
@@ -139,7 +139,7 @@ final class LayCookieStorage
             ->then_select("WHERE id='$id'");
     }
 
-    private static function store_user_token(string $user_id): ?string
+    private static function store_user_token(string $user_id): string
     {
         $orm = self::orm();
         $env_info = self::browser_info();
@@ -163,7 +163,7 @@ final class LayCookieStorage
         return $id;
     }
 
-    private static function destroy_cookie($name): void
+    private static function destroy_cookie(string $name): void
     {
         self::set_cookie($name, "", ["expires" => "now",]);
     }

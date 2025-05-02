@@ -138,7 +138,7 @@ abstract  class DomainResource
         self::$plaster = $values;
     }
 
-    private static function make_plaster_local(mixed $values) : void
+    private static function make_plaster_local(array|object $values) : void
     {
         if(isset(self::$plaster->local))
             self::$plaster->local = $values;
@@ -188,13 +188,14 @@ abstract  class DomainResource
      *     error_file_not_found: bool,
      *     get_last_mod: bool,
      * } $option
-     * @return string|null|array{
-     *     last_mod: int,
-     *     content: String,
-     * }
+     *
+     * @return (false|int|string)[]|false|null|string
+     *
      * @throws \Exception
+     *
+     * @psalm-return array{last_mod: false|int, content: false|string}|false|null|string
      */
-    public static function include_file(string $file, string $type = "inc", array $option = []) : string|null|array
+    public static function include_file(string $file, string $type = "inc", array $option = []) : array|string|false|null|null|array
     {
         LayConfig::is_init();
 

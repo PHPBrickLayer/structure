@@ -8,7 +8,7 @@ use BrickLayer\Lay\Libs\String\Enum\EscapeType;
 use JetBrains\PhpStorm\ArrayShape;
 use WeakMap;
 
-class Escape
+final class Escape
 {
     protected static array $stock_escape_string = ["%3D", "%21", "%2B", "%40", "%23", "%24", "%25", "%5E", "%26", "%2A", "%28", "%29", "%27", "%22", "%3A", "%3B", "%3C", "%3D", "%3E", "%3F", "%2F", "%5C", "%7C", "%60", "%2C", "_", "-", "–", "%0A", "%E2", "%80", "%99", "%E2%80%98", "%E2%80%99"];
     protected static array $escape_string = [];
@@ -101,13 +101,13 @@ class Escape
             return $value;
 
         $map = new WeakMap();
-        $map[EscapeType::P_ESCAPE] = fn($val = null) => LayConfig::get_orm($connect_db)->escape_string((string) $value);
-        $map[EscapeType::P_STRIP] = fn($val = null) => strip_tags((string)($val ?? $value), $allowedTags);
-        $map[EscapeType::P_TRIM] = fn($val = null) => trim($val ?? $value);
-        $map[EscapeType::P_SPEC_CHAR] = fn($val = null) => htmlspecialchars($val ?? $value, $flags, $encoding, $double_encode);
-        $map[EscapeType::P_ENCODE_URL] = fn($val = null) => rawurlencode($val ?? $value);
-        $map[EscapeType::P_REPLACE] = fn ($val = null) => str_replace($find, $replace, $val ?? $value);
-        $map[EscapeType::P_URL] = function ($val = null) use ($find, $value, $p_url_replace) {
+        $map[EscapeType::P_ESCAPE] = fn($val = null): string => LayConfig::get_orm($connect_db)->escape_string((string) $value);
+        $map[EscapeType::P_STRIP] = fn($val = null): string => strip_tags((string)($val ?? $value), $allowedTags);
+        $map[EscapeType::P_TRIM] = fn($val = null): string => trim($val ?? $value);
+        $map[EscapeType::P_SPEC_CHAR] = fn($val = null): string => htmlspecialchars($val ?? $value, $flags, $encoding, $double_encode);
+        $map[EscapeType::P_ENCODE_URL] = fn($val = null): string => rawurlencode($val ?? $value);
+        $map[EscapeType::P_REPLACE] = fn ($val = null): string => str_replace($find, $replace, $val ?? $value);
+        $map[EscapeType::P_URL] = function ($val = null) use ($find, $value, $p_url_replace): string {
             rsort($find);
 
             $value = $val ?? $value;
@@ -194,7 +194,10 @@ class Escape
         self::$escape_string = self::$stock_escape_string;
     }
 
-    public static function add_escape_string(...$escape_string): void
+    /**
+     * @psalm-param '/' $escape_string
+     */
+    public static function add_escape_string(string ...$escape_string): void
     {
         self::$escape_string = [...self::$escape_string, ...$escape_string];
     }

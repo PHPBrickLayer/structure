@@ -18,7 +18,7 @@ use ReflectionClass;
 use ReflectionException;
 use TypeError;
 
-class EnginePlug
+final class EnginePlug
 {
     public bool $operation_successful = true;
     public bool $show_intro = true;
@@ -153,7 +153,12 @@ class EnginePlug
         return LayLoop::CONTINUE;
     }
 
-    public function extract_tags(array $tags, ...$value_index) : mixed
+    /**
+     * @param bool|int $value_index
+     *
+     * @psalm-param 0|bool $value_index
+     */
+    public function extract_tags(array $tags, int|bool ...$value_index) : mixed
     {
         $out = false;
 

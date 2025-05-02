@@ -215,7 +215,7 @@ trait Config{
         $port = (int) $port;
         self::$db_name = $db;
 
-        $connect_now = function (string $conn_arg) use ($silent) {
+        $connect_now = function (string $conn_arg) use ($silent): \PgSql\Connection|false {
             $silent = filter_var(@$silent, FILTER_VALIDATE_BOOL);
 
             if($silent) {
@@ -468,9 +468,8 @@ trait Config{
      * Returns false if exception is caught
      *
      * @throws \Exception
-     * @return OrmDriver|bool
      */
-    public static function get_driver() : OrmDriver|bool
+    public static function get_driver() : \BrickLayer\Lay\Orm\Enums\OrmDriver|false|bool
     {
         if(isset(self::$active_driver))
             return self::$active_driver;

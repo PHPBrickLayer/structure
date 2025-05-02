@@ -6,7 +6,7 @@ use BrickLayer\Lay\Libs\Cron\LayCron;
 use BrickLayer\Lay\Libs\LayDate;
 use BrickLayer\Lay\Libs\Primitives\Traits\TableTrait;
 
-class MailerQueueHandler {
+final class MailerQueueHandler {
 
     use TableTrait;
 
@@ -124,7 +124,7 @@ class MailerQueueHandler {
         return $this->change_status($id, MailerStatus::SENT);
     }
 
-    public function next_items() : array
+    public function next_items() : array|\Generator
     {
         return self::orm(self::$table)->loop()
             ->where("(`status`='" . MailerStatus::QUEUED->name . "' OR `status`='" . MailerStatus::RETRY->name . "') AND deleted=0")

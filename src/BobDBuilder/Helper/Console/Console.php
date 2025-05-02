@@ -16,7 +16,7 @@ use BrickLayer\Lay\BobDBuilder\Helper\Console\Format\Style;
  * Original colored CLI output script:
  * (C) Jesse Donat https://github.com/donatj
  */
-class Console {
+final class Console {
 
     /**
      * Logs a string to console.

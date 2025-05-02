@@ -24,7 +24,7 @@ enum OrmDriver : string {
         return $driver == self::SQLITE || $driver == self::SQLITE3;
     }
 
-    public static function to_orm_connections(self $driver, mixed $db_link): OrmConnections|bool
+    public static function to_orm_connections(self $driver, mixed $db_link): \BrickLayer\Lay\Orm\Connections\MySql|\BrickLayer\Lay\Orm\Connections\Postgres|\BrickLayer\Lay\Orm\Connections\Sqlite|false|bool
     {
         if(!$db_link)
             return false;

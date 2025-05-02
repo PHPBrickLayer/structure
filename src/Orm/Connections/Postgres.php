@@ -7,12 +7,12 @@ use Override;
 use PgSql\Connection;
 use PgSql\Result;
 
-class Postgres implements OrmConnections
+final class Postgres implements OrmConnections
 {
     public function __construct(public readonly Connection $link){}
 
     #[Override]
-    public function query(string $query) : Result
+    public function query(string $query) : Result|false
     {
         return pg_query($this->link, $query);
     }
@@ -23,6 +23,9 @@ class Postgres implements OrmConnections
         pg_close($this->link);
     }
 
+    /**
+     * @return Result|false
+     */
     #[Override]
     public function exec(string $query, array $params = []) : Result|bool
     {
@@ -50,6 +53,11 @@ class Postgres implements OrmConnections
         return pg_affected_rows($result);
     }
 
+    /**
+     * @return array[]
+     *
+     * @psalm-return array<array>
+     */
     #[Override]
     /**
      * @param Result|null $result
