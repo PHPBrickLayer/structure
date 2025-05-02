@@ -2,7 +2,7 @@
 
 namespace BrickLayer\Lay\Core\Annotate;
 
-class CurrentRouteData
+final class CurrentRouteData
 {
     const ANNOTATE = [
         'route',

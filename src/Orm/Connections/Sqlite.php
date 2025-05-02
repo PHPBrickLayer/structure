@@ -7,10 +7,13 @@ use Override;
 use SQLite3;
 use SQLite3Result;
 
-class Sqlite implements OrmConnections
+final class Sqlite implements OrmConnections
 {
     public function __construct(public readonly SQLite3 $link){}
 
+    /**
+     * @return SQLite3Result|false
+     */
     #[Override]
     public function query(string $query): SQLite3Result|bool
     {
@@ -36,6 +39,9 @@ class Sqlite implements OrmConnections
     }
 
     // SQLITE is a file, so checking if it's connected doesn't make sense
+    /**
+     * @return true
+     */
     #[Override]
     public function is_connected() : bool
     {

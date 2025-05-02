@@ -38,6 +38,9 @@ trait ValidateCleanMap {
     private static ?closure $_return_struct;
     private static bool $_result_is_assoc = true;
 
+    /**
+     * @return false
+     */
     private function __add_error(string $field, string $message): bool
     {
         self::$_errors[$field] = $message;
@@ -52,6 +55,11 @@ trait ValidateCleanMap {
         return self::$_filled_request->{$key} ?? null;
     }
 
+    /**
+     * @return (bool|string)[]
+     *
+     * @psalm-return array{valid: bool, message: string}
+     */
     private function __validate_captcha(?string $value, bool $as_jwt = false, ?string $jwt = null) : array
     {
         if(is_null($value))
@@ -153,6 +161,11 @@ trait ValidateCleanMap {
         return $file;
     }
 
+    /**
+     * @return true[]
+     *
+     * @psalm-return array{apply_clean: true, add_to_entry: true}
+     */
     private function __validate(string $field, mixed &$value, bool $is_required, array $options) : array
     {
         $field_name = str_replace(["_", "-"], " ", $options['field_name'] ?? $field);
@@ -160,7 +173,12 @@ trait ValidateCleanMap {
         $add_to_entry = true;
         $apply_clean = true;
 
-        $return = function() use (&$apply_clean, &$add_to_entry) {
+        $return = /**
+         * @return true[]
+         *
+         * @psalm-return array{apply_clean: true, add_to_entry: true}
+         */
+        function() use (&$apply_clean, &$add_to_entry): array {
             return ["apply_clean" => $apply_clean, "add_to_entry" => $add_to_entry];
         };
 
@@ -355,10 +373,8 @@ trait ValidateCleanMap {
      *    },
      *    return_struct?: callable(mixed, string, array<string, mixed>) : mixed,
      * } $options
-     *
-     * @return self
      */
-    public function vcm(array $options ) : self
+    public function vcm(array $options ) : \BrickLayer\Lay\Libs\Primitives\Abstracts\RequestHelper
     {
         if(isset($options['request']) && empty(self::$_filled_request))
             self::vcm_start($options['request']);
@@ -483,9 +499,8 @@ trait ValidateCleanMap {
      *      upload_handler?: callable,
      *      return_struct?: callable<mixed, string>,
      *   } $options
-     * @return ValidateCleanMap
      */
-    public function vcm_rules(array $options) : self
+    public function vcm_rules(array $options) : \BrickLayer\Lay\Libs\Primitives\Abstracts\RequestHelper
     {
         self::$_required = $options['required'] ?? null;
         self::$_clean_by_default = $options['clean'] ?? null;
@@ -587,10 +602,12 @@ trait ValidateCleanMap {
 
     /**
      * Return all the errors received by the validator
+     *
      * @param bool $as_string
-     * @return array|string|null
+     *
+     * @return array|null|string
      */
-    public static function vcm_errors(bool $as_string = true) : array|null|string
+    public static function vcm_errors(bool $as_string = true) : array|string|null|null|string
     {
         $errors = self::$_errors ?? null;
 

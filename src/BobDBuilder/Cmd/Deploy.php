@@ -14,7 +14,7 @@ use DirectoryIterator;
 use Exception;
 use Override;
 
-class Deploy implements CmdLayout
+final class Deploy implements CmdLayout
 {
     private EnginePlug $plug;
     private string $root;
@@ -23,7 +23,6 @@ class Deploy implements CmdLayout
     private ?string $copy_only;
     private string $no_cache;
     private bool $push_git = true;
-    private bool $git_only = false;
 
     private function talk(string $message) : void
     {
@@ -49,7 +48,8 @@ class Deploy implements CmdLayout
 
         $this->commit_msg = $this->plug->extract_tags(["-m", "-g"], 0)[0] ?? null;
         $this->push_git = $this->plug->extract_tags(["-ng", "--no-git"], false)[0] ?? $this->push_git;
-        $this->git_only = $this->plug->extract_tags(["-go", "--git-only"], true)[0] ?? false;
+        $git_only = false;
+        $git_only = $this->plug->extract_tags(["-go", "--git-only"], true)[0] ?? false;
 
         $ignore = $this->plug->extract_tags(["--ignore"], 0);
         $copy = $this->plug->extract_tags(["--copy-only"], 0);
@@ -94,7 +94,7 @@ class Deploy implements CmdLayout
             new BobExec("link:refresh --silent");
         }
 
-        if($this->git_only) {
+        if($git_only) {
             $this->talk("- Pushing to git only *--git-only* tag detected");
             $this->push_with_git();
             return;
@@ -129,8 +129,8 @@ class Deploy implements CmdLayout
 
         $track_changes = $cache->read("*") ?? [];
 
-        $is_css = fn($file) => strtolower(substr(trim($file),-4, 4)) === ".css";
-        $is_js = fn($file) => strtolower(substr(trim($file),-3, 3)) === ".js";
+        $is_css = fn($file): bool => strtolower(substr(trim($file),-4, 4)) === ".css";
+        $is_js = fn($file): bool => strtolower(substr(trim($file),-3, 3)) === ".js";
 
         LayDir::copy(
             $src_dir, $output_dir,

@@ -7,7 +7,7 @@ use BrickLayer\Lay\Libs\LayFn;
 use BrickLayer\Lay\Libs\Primitives\Traits\IsSingleton;
 use BrickLayer\Lay\Libs\Primitives\Traits\TableTrait;
 
-class CronController
+final class CronController
 {
     use IsSingleton;
     use TableTrait;
@@ -42,7 +42,7 @@ class CronController
         ");
     }
 
-    public function job_exists(string $script, string $schedule) : array
+    public function job_exists(string $script, string $schedule) : array|\Generator
     {
         self::init(self::$table);
 
@@ -56,6 +56,11 @@ class CronController
     ///     Methods    ////
     ///                ////
 
+    /**
+     * @return (array|int|null|string)[]
+     *
+     * @psalm-return array{code: int, status: string, message: string, data: array|null}
+     */
     public function delete(): array
     {
         $job_id = self::request()->id;
@@ -73,6 +78,11 @@ class CronController
         return self::res_warning();
     }
 
+    /**
+     * @return (array|int|null|string)[]
+     *
+     * @psalm-return array{code: int, status: string, message: string, data: array|null}
+     */
     public function prune_table() : array
     {
         if($this->empty_trash())
@@ -81,6 +91,11 @@ class CronController
         return self::res_warning();
     }
 
+    /**
+     * @return (array|int|null|string)[]
+     *
+     * @psalm-return array{code: int, status: string, message: string, data: array|null}
+     */
     public function add(): array
     {
         $post = self::request();
@@ -124,7 +139,7 @@ class CronController
         return self::res_success( "Job added successfully!");
     }
 
-    public function extract_job_id(array $arg_values): ?string
+    public function extract_job_id(array $arg_values): string|bool|int|null
     {
         return LayFn::extract_cli_tag(self::JOB_CLI_KEY, true);
     }
@@ -136,6 +151,11 @@ class CronController
         ]);
     }
 
+    /**
+     * @return (array|int|null|string)[]
+     *
+     * @psalm-return array{code: int, status: string, message: string, data: array|null}
+     */
     public function run_script() : array
     {
         $job_id = self::request()->id;
@@ -168,6 +188,11 @@ class CronController
         return self::res_success( "Script executed!", ['output' => implode(PHP_EOL , $out ?? '')]);
     }
 
+    /**
+     * @return (array|int|null|string)[]
+     *
+     * @psalm-return array{code: int, status: string, message: string, data: array|null}
+     */
     public function pause_script() : array
     {
         $job_id = self::request()->id;
@@ -184,6 +209,11 @@ class CronController
         return self::res_warning();
     }
 
+    /**
+     * @return (array|int|null|string)[]
+     *
+     * @psalm-return array{code: int, status: string, message: string, data: array|null}
+     */
     public function play_script(?string $job_id = null) : array
     {
         $job_id ??= self::request()->id;

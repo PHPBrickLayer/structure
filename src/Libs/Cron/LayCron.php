@@ -53,10 +53,12 @@ final class LayCron
 
     /**
      * @param bool $suppress_win_exception
-     * @return string|bool
+     *
+     * @return false|string
+     *
      * @throws \Exception
      */
-    public static function dump_crontab(bool $project_scope = true, bool $suppress_win_exception = false) : string|bool
+    public static function dump_crontab(bool $project_scope = true, bool $suppress_win_exception = false) : string|false|bool
     {
         if(LayConfig::get_os() == "WINDOWS") {
             if($suppress_win_exception)
@@ -126,20 +128,25 @@ final class LayCron
         return $this->jobs_list[$uid] ?? null;
     }
 
-    private function db_job_all() : ?array {
+    private function db_job_all() : array {
         $this->db_data_init();
         return $this->jobs_list;
     }
 
+    /**
+     * @return string[]
+     *
+     * @psalm-return array<string>
+     */
     private function db_job_exists(string $job) : array {
         return LayArray::search($job, $this->db_job_all());
     }
 
-    private function db_email_exists() : ?string {
+    private function db_email_exists() : bool {
         return $this->report_email == $this->db_get_email();
     }
 
-    private function db_get_email() : ?string {
+    private function db_get_email() : string {
         $this->db_data_init();
         return $this->report_email;
     }
@@ -183,7 +190,7 @@ final class LayCron
         return $all_jobs;
     }
 
-    private function crontab_save() : bool {
+    private function crontab_save() : int|bool {
         $mailto = $this->report_email ? 'MAILTO=' . $this->report_email : 'MAILTO=""';
         $mailto .= PHP_EOL;
         $cron_jobs = implode("", $this->jobs_list);
@@ -385,14 +392,12 @@ final class LayCron
     /**
      * @param string|int $uid
      * @param bool $add_schedule
-     * @return array|null
-     * @return array{
-     *     schedule: string,
-     *     binary: string,
-     *     script: string
-     * }
+     *
+     * @return null|string[]
+     *
+     * @psalm-return array{schedule: string, binary: string, script: string}|null
      */
-    public function get_job(string|int $uid) : ?array {
+    public function get_job(string|int $uid) : array|null {
         $job = $this->db_job_by_id($uid);
 
         if(!$job)

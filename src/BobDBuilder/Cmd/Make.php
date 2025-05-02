@@ -10,7 +10,7 @@ use BrickLayer\Lay\BobDBuilder\EnginePlug;
 use BrickLayer\Lay\BobDBuilder\Interface\CmdLayout;
 use Override;
 
-class Make implements CmdLayout
+final class Make implements CmdLayout
 {
     use Domain;
     use Brick;

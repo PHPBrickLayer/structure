@@ -9,7 +9,7 @@ use BrickLayer\Lay\Libs\LayDate;
 use BrickLayer\Lay\Libs\LayFn;
 use Override;
 
-class Composer implements CmdLayout
+final class Composer implements CmdLayout
 {
     private EnginePlug $plug;
 

@@ -9,7 +9,7 @@ use ImagickDraw;
 use ImagickPixel;
 use Random\RandomException;
 
-class Captcha
+final class Captcha
 {
     /**
      * @throws RandomException
@@ -29,7 +29,7 @@ class Captcha
      * @throws \ImagickDrawException
      * @throws \ImagickException
      */
-    public static function as_img(?string $code = null, bool $set_header = false) : ?string
+    public static function as_img(?string $code = null, bool $set_header = false) : string|null
     {
         $code ??= self::gen_code();
 
@@ -109,10 +109,10 @@ class Captcha
     /**
      * @param string $jwt
      * @param string $captcha_value
-     * @return array{
-     *     valid: bool,
-     *     message: string,
-     * }
+     *
+     * @return (array|bool|null|string)[]
+     *
+     * @psalm-return array{valid: bool, message: string, data?: array|null}
      */
     public static function validate_as_jwt(string $jwt, string $captcha_value) : array
     {
@@ -137,10 +137,10 @@ class Captcha
 
     /**
      * @param string $value
-     * @return array{
-     *     valid: bool,
-     *     message: string,
-     * }
+     *
+     * @return (bool|string)[]
+     *
+     * @psalm-return array{valid: bool, message: 'Captcha value is not set'|'Invalid captcha received!'|'Valid captcha value!'}
      */
     public static function validate_as_session(string $value) : array
     {

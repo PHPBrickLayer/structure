@@ -197,12 +197,10 @@ trait ControllerHelper {
      * @param Throwable|null $exception
      * @param bool $send_header
      * @param bool $log_error
-     * @return array{
-     *    code: int,
-     *    status: string,
-     *    message: string,
-     *    errors: array|null
-     * }
+     *
+     * @return (array|int|null|string)[]
+     *
+     * @psalm-return array{code: int, status: string, message: string, data: array|null}
      */
     public static function res_error(string $message = "An internal server error occurred", ?array $errors = null, ApiStatus|int $code = ApiStatus::CONFLICT, ?Throwable $exception = null, bool $send_header = false, bool $log_error =  true) : array
     {

@@ -4,7 +4,7 @@ namespace BrickLayer\Lay\Libs;
 
 use BrickLayer\Lay\Libs\Primitives\Traits\IsSingleton;
 
-class LayCalendarEvent
+final class LayCalendarEvent
 {
     use IsSingleton;
     /**

@@ -6,7 +6,7 @@ use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Libs\Primitives\Traits\IsSingleton;
 
-class LayCache
+final class LayCache
 {
     use IsSingleton;
 
@@ -23,7 +23,12 @@ class LayCache
         return isset($this->cache_store) && file_exists($this->cache_store);
     }
 
-    public function store(string $key, mixed $value): bool
+    /**
+     * @param (int|string)[] $value
+     *
+     * @psalm-param array{request_count: 1, expire: int|string, interval: string, requests_allowed: int} $value
+     */
+    public function store(string $key, array $value): bool
     {
         $cache = $this->read("*") ?? [];
         $cache[$key] = $value;
@@ -37,7 +42,7 @@ class LayCache
         return !($cache === false);
     }
 
-    public function update(array $key_chain, mixed $value): bool
+    public function update(array $key_chain, int $value): bool
     {
         try{
             $cache_store = file_get_contents($this->cache_store);
@@ -79,7 +84,7 @@ class LayCache
         return  null;
     }
 
-    public function cache_file(string $path_to_cache = "./", bool $use_lay_temp_dir = true, bool $invalidate = false): self
+    public function cache_file(string $path_to_cache = "./", bool $use_lay_temp_dir = true, bool $invalidate = false): static
     {
         $server = LayConfig::server_data();
 

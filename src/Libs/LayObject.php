@@ -10,7 +10,7 @@ use BrickLayer\Lay\Libs\Primitives\Traits\IsSingleton;
 /**
  * @deprecated
  */
-class LayObject
+final class LayObject
 {
     use IsSingleton;
 

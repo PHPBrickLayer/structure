@@ -34,24 +34,12 @@ abstract class ViewCast
      * Get the metadata of the request received from the client for the current route
      *
      * @param string $key
-     * @return DomainType|string|array
-     * @return  DomainType|string|array<int>|array{
-     *     route: string,
-     *     route_as_array: array<int>,
-     *     route_has_end_slash: bool,
-     *     domain_name: string,
-     *     domain_type: DomainType,
-     *     domain_id: string,
-     *     domain_root: string,
-     *     domain_referrer: string,
-     *     domain_uri: string,
-     *     domain_base: string,
-     *     pattern: string,
-     *     plaster: string,
-     *     layout: string,
-     * }
+     *
+     * @return (DomainType|bool|int|int[]|string)[]|DomainType|string
+     *
+     * @psalm-return DomainType|array<DomainType|array<int>|bool|int|string>|string
      */
-    final protected function request(#[ExpectedValues(CurrentRouteData::ANNOTATE)] string $key) : DomainType|string|array
+    final protected function request(#[ExpectedValues(CurrentRouteData::ANNOTATE)] string $key) : array|string|DomainType|string|array
     {
         return $this->builder->request($key);
     }

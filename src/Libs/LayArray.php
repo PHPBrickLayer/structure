@@ -8,17 +8,15 @@ abstract class LayArray
 {
     /**
      * Enhanced array search, this will search for values even in multiple dimensions of arrays.
+     *
      * @param mixed $needle
      * @param array $haystack
      * @param bool $strict choose between == or === comparison operator
      * @param array $__RESULT_INDEX__ ***Do not modify this option, it is readonly to the developer***
-     * @return string[] <p>Returns the first occurrence of the value in an array that contains the value
-     * as interpreted by the function and the keys based on the total dimension it took to find the value.</p>
-     * <code>::search("2", ["ss", [[2]], '2'], true) </code>
-     * <code>== ['value' => '2', index => [1,2]]</code>
      *
-     * <code>::search("2", ["ss", [[2]], '2']) </code>
-     * <code>== ['value' => '2', index => [1,0,0]]</code>
+     * @return (array|bool|mixed|string)[] <p>Returns the first occurrence of the value in an array that contains the value as interpreted by the function and the keys based on the total dimension it took to find the value.</p> <code>::search("2", ["ss", [[2]], '2'], true) </code> <code>== ['value' => '2', index => [1,2]]</code> <code>::search("2", ["ss", [[2]], '2']) </code> <code>== ['value' => '2', index => [1,0,0]]</code>
+     *
+     * @psalm-return array{value: mixed|string, index: array|string, found: bool|string,...}
      */
     public static function search(mixed $needle, array $haystack, bool $strict = false, array $__RESULT_INDEX__ = []) : array
     {
@@ -61,13 +59,16 @@ abstract class LayArray
     }
 
     /**
-     *
      * @deprecated use `any` or `every` to express yourself. Some is confusing in the way it is used
      * Returns a new array of list of values when the callback resolves to true and ignores the value of it returns false
+     *
      * @param array $array
      * @param callable $callback
      * @param bool $preserve_key
-     * @return array
+     *
+     * @return (mixed|null)[]
+     *
+     * @psalm-return list{mixed|null}
      */
     public static function some(array $array, callable $callback, bool $preserve_key = false) : array
     {
@@ -113,9 +114,8 @@ abstract class LayArray
      * @param array $array
      * @param callable($value,$key):bool $condition
      * @param bool $preserve_key
-     * @return null|array
      */
-    public static function every(array $array, callable $condition, bool $preserve_key = true) : ?array
+    public static function every(array $array, callable $condition, bool $preserve_key = true) : array|null
     {
         $rtn = [];
 
@@ -167,7 +167,7 @@ abstract class LayArray
         return $arr;
     }
 
-    public static function to_object($array) {
+    public static function to_object(array|object|null $array): object {
         if (is_object($array))
             return $array;
 
@@ -249,7 +249,10 @@ abstract class LayArray
      *
      * @param array $array
      * @param callable(mixed, mixed):array $callback
-     * @return array
+     *
+     * @return array[]
+     *
+     * @psalm-return list{0?: array,...}
      */
     public static function map(array $array, callable $callback) : array
     {

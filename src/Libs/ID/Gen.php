@@ -10,7 +10,7 @@ use BrickLayer\Lay\Libs\String\Enum\EscapeType;
 use BrickLayer\Lay\Libs\String\Escape;
 use Random\RandomException;
 
-class Gen
+final class Gen
 {
     use IsSingleton;
     private static int $recursion_index = 0;

@@ -36,7 +36,7 @@
 
 namespace BrickLayer\Lay\Libs\String;
 
-class Pluralize
+final class Pluralize
 {
     public static array $plural = [
         '/(quiz)$/i'               => "$1zes",
@@ -117,7 +117,7 @@ class Pluralize
         return json_decode(file_get_contents(__DIR__ . DIRECTORY_SEPARATOR . 'unchangeable.json'), true);
     }
 
-    public static function to_plural(string $string ) : string
+    public static function to_plural(string $string ) : string|null
     {
         // save some time in the case that singular and plural are the same
         if ( in_array( strtolower( $string ), self::unchangeable() ) )
@@ -142,7 +142,7 @@ class Pluralize
         return $string;
     }
 
-    public static function to_singular(string $string) : string
+    public static function to_singular(string $string) : string|null
     {
         // save some time in the case that singular and plural are the same
         if ( in_array( strtolower( $string ), self::unchangeable() ) )

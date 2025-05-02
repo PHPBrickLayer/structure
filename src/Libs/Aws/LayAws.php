@@ -7,7 +7,7 @@ use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Libs\Aws\Enums\AwsS3Client;
 use BrickLayer\Lay\Libs\Primitives\Traits\IsSingleton;
 
-class LayAws
+final class LayAws
 {
     use IsSingleton;
     

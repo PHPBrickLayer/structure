@@ -12,7 +12,7 @@ use PHPMailer\PHPMailer\Exception;
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\SMTP;
 
-class Mailer {
+final class Mailer {
     private static PHPMailer $mail_link;
 
     private static array $credentials = [
@@ -93,6 +93,10 @@ class Mailer {
     /**
      * @throws Exception
      * @throws \Exception
+     *
+     * @return (mixed|null)[]
+     *
+     * @psalm-return array{to: mixed|null, name: mixed|null}
      */
     private function start_process() : array
     {
@@ -341,10 +345,12 @@ class Mailer {
 
     /**
      * Sends the email to the server, rather than the client.
-     * @return bool The result of the queued email
+     *
+     * @return bool|null The result of the queued email
+     *
      * @throws Exception
      */
-    final public function to_server(bool $queue = true, int $priority = 0) : bool {
+    final public function to_server(bool $queue = true, int $priority = 0) : bool|null {
         $this->to_client = false;
 
         if(!$queue)
@@ -355,10 +361,12 @@ class Mailer {
 
     /**
      * Sends the email to the client. This is the default behaviour
-     * @return bool The result of the queued email
+     *
+     * @return bool|null The result of the queued email
+     *
      * @throws Exception
      */
-    final public function to_client(bool $queue = true, int $priority = 0) : bool {
+    final public function to_client(bool $queue = true, int $priority = 0) : bool|null {
         $this->to_client = true;
 
         if(!$queue)
@@ -390,7 +398,7 @@ class Mailer {
         return $this;
     }
 
-    final public function send() : ?bool
+    final public function send() : bool
     {
         $recipient = $this->start_process();
 
@@ -442,10 +450,9 @@ class Mailer {
      * 5 means push to the front of the queue.
      * 0 means take to the back of the queue
      *
-     * @return bool|null
      * @throws Exception
      */
-    final public function queue(#[ExpectedValues([0,1,2,3,4,5])] int $priority = 0) : ?bool {
+    final public function queue(#[ExpectedValues([0,1,2,3,4,5])] int $priority = 0) : bool {
         if($this->debug)
             $this->send();
 

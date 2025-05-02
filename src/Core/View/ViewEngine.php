@@ -293,7 +293,10 @@ final class ViewEngine {
         echo $x;
     }
 
-    private function skeleton_head() : string
+    /**
+     * @return false|string
+     */
+    private function skeleton_head() : string|false
     {
         $onpage_styles_pre = "";
         $onpage_styles_app = "";
@@ -313,7 +316,10 @@ final class ViewEngine {
         return ob_get_clean();
     }
 
-    private function skeleton_body() : string
+    /**
+     * @return false|string
+     */
+    private function skeleton_body() : string|false
     {
         ob_start();
         $this->add_view_section(self::key_body);
@@ -349,6 +355,11 @@ final class ViewEngine {
         return ob_get_clean();
     }
 
+    /**
+     * @return string[][]
+     *
+     * @psalm-return array{style_top: list{0?: string,...}, script_top: list{0?: string,...}, style_dwn: list{0?: string,...}, script_dwn: list{0?: string,...}, html_content: list{0?: string,...}}
+     */
     public function parse_html_content(string $body): array
     {
         $sections = [
@@ -447,7 +458,10 @@ final class ViewEngine {
         }
     }
 
-    private function insert_view(?string $file, string $type, string $ext, bool $as_string) : ?string
+    /**
+     * @return false|null|string
+     */
+    private function insert_view(?string $file, string $type, string $ext, bool $as_string) : string|false|null
     {
         $domain = DomainResource::get()->domain;
         $inc_root = $domain->layout;
@@ -475,8 +489,8 @@ final class ViewEngine {
     {
         $resolve_asset = function (string|array &$asset, string|int $assets_key) use ($asset_type) : string {
             $asset_template = $asset_type == "js" ?
-                fn ($src, $attr = []) => $this->script_tag_template($src, $attr):
-                fn ($href, $attr = []) => $this->link_tag_template($href, $attr);
+                fn ($src, $attr = []): string => $this->script_tag_template($src, $attr):
+                fn ($href, $attr = []): string => $this->link_tag_template($href, $attr);
 
             // If the asset item found is not the asset type indicated.
             // That is: if Painter is looking for `js` file, and it sees css, it should return an empty string.
@@ -572,7 +586,7 @@ final class ViewEngine {
     private function core_script() : void {
         $meta = self::$meta_data;
         $layConfig = LayConfig::new();
-        $js_template = fn ($src, $attr = []) => $this->script_tag_template($src, $attr);
+        $js_template = fn ($src, $attr = []): string => $this->script_tag_template($src, $attr);
         $core_script = "";
 
         if(!$meta->{self::key_core}->use_lay_script) {

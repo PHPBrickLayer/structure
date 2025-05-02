@@ -9,7 +9,7 @@ use GuzzleHttp\Promise\Utils;
 use JetBrains\PhpStorm\ArrayShape;
 use BrickLayer\Lay\Libs\Aws\Enums\AwsS3Client;
 
-class Bucket
+final class Bucket
 {
     public static S3Client $client;
     
@@ -129,6 +129,9 @@ class Bucket
         return $promise->wait();
     }
 
+    /**
+     * @psalm-return list{0?: mixed,...}
+     */
     public function list(string $directory, bool $src_only = true, ?callable $callback = null) : array
     {
         $files = [];

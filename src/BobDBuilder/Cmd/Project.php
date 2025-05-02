@@ -9,7 +9,7 @@ use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Libs\Dir\LayDir;
 use Override;
 
-class Project implements CmdLayout
+final class Project implements CmdLayout
 {
     private EnginePlug $plug;
     private array $tags;

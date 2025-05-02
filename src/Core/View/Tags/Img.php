@@ -18,11 +18,11 @@ final class Img {
     private bool $prepend_domain_on_src = true;
 
 
-    public function width(int|string $width) : self {
+    public function width(int|string $width) : Traits\Standard|self|Anchor|Link|Script {
         return $this->attr('width',(string)  $width);
     }
 
-    public function height(int|string $height) : self {
+    public function height(int|string $height) : Traits\Standard|self|Anchor|Link|Script {
         return $this->attr('height', (string) $height);
     }
 
@@ -32,7 +32,7 @@ final class Img {
         return $this;
     }
 
-    public function alt(string $alt_text) : self {
+    public function alt(string $alt_text) : Traits\Standard|self|Anchor|Link|Script {
         return $this->attr('alt', $alt_text);
     }
 
@@ -42,7 +42,7 @@ final class Img {
         return $this;
     }
 
-    public function srcset(string $srcset) : self {
+    public function srcset(string $srcset) : Traits\Standard|self|Anchor|Link|Script {
         $srcset = ViewSrc::gen($srcset, $this->prepend_domain_on_src);
         return $this->attr('srcset', $srcset);
     }

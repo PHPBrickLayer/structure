@@ -43,7 +43,10 @@ final class LayFn
 
     public static function trim_word(string $string, string $word, ?string $preg_pattern = null) : string
     {
-        $len = function ($str) {
+        $len = /**
+         * @psalm-return int<0, max>
+         */
+        function ($str): int {
             if (function_exists("mb_strlen"))
                 return mb_strlen($str);
 
@@ -135,11 +138,15 @@ final class LayFn
 
     /**
      * Extract the word from a string using regex
+     *
      * @param string $pattern
      * @param string $subject
-     * @return array|null
+     *
+     * @return null|string[]
+     *
+     * @psalm-return array<string>|null
      */
-    public static function extract_word(string $pattern, string $subject) : ?array
+    public static function extract_word(string $pattern, string $subject) : array|null
     {
         $pattern = '~' . $pattern . '~';
 

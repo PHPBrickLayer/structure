@@ -85,7 +85,7 @@ trait TableTrait
         ])->where("id='$id'")->edit();
     }
 
-    public function record_list(int $page = 1, int $limit = 100) : array
+    public function record_list(int $page = 1, int $limit = 100) : array|\Generator
     {
         self::init(self::$table);
 
@@ -96,7 +96,7 @@ trait TableTrait
             ->then_select();
     }
 
-    public function record_by_id(string $id, bool $even_deleted = false) : array
+    public function record_by_id(string $id, bool $even_deleted = false) : array|\Generator
     {
         self::init(self::$table);
 
@@ -141,7 +141,10 @@ trait TableTrait
      * @param int $code
      * @param string $message
      * @param array $data
-     * @return array
+     *
+     * @return (array|int|string)[]
+     *
+     * @psalm-return array{code: int, message: string, data: array}
      */
     public static function response(#[ExpectedValues([0,1,2])] int $code, string $message, array $data = []) : array
     {

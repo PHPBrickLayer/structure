@@ -10,7 +10,7 @@ use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Libs\Dir\LayDir;
 use BrickLayer\Lay\Libs\LayFn;
 
-class LaySymlink {
+final class LaySymlink {
     private string $json_filename;
 
     /**
@@ -113,7 +113,7 @@ class LaySymlink {
 
     public function refresh_link(bool $recursive = false) : void
     {
-        $refresh = function ($db_file) {
+        $refresh = function ($db_file): void {
             if(!file_exists($db_file))
                 return;
 
@@ -146,7 +146,7 @@ class LaySymlink {
 
     public function prune_link(bool $recursive = false) : void
     {
-        $prune = function ($db_file) {
+        $prune = function ($db_file): void {
             if(!file_exists($db_file))
                 return;
 

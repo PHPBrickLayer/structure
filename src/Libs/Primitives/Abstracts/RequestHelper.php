@@ -30,7 +30,7 @@ abstract class RequestHelper
         return $data;
     }
 
-    public function validate(): self
+    public function validate(): static
     {
         $this->before_validation();
 

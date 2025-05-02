@@ -6,7 +6,7 @@ namespace BrickLayer\Lay\BobDBuilder;
 use BrickLayer\Lay\BobDBuilder\Enum\CmdOutType;
 use BrickLayer\Lay\Libs\Primitives\Enums\LayLoop;
 
-class Engine
+final class Engine
 {
     public EnginePlug $plug;
     private static float $process_duration;

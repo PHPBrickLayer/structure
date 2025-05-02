@@ -15,9 +15,7 @@ use BrickLayer\Lay\Libs\Primitives\Traits\IsSingleton;
 use BrickLayer\Lay\Orm\SQL;
 use Throwable;
 
-//TODO: Log file cannot be written to by multiple processes, so find a way
-// to write all the necessary logs and exceptions to a single file
-class CoreException
+final class CoreException
 {
     use IsSingleton;
 
@@ -101,6 +99,10 @@ class CoreException
 
     /**
      * @throws \Exception
+     *
+     * @return (bool|string)[]|null
+     *
+     * @psalm-return array{act: string, error: string, as_string: bool}|null
      */
     public function use_exception(
         string     $title,
@@ -117,7 +119,7 @@ class CoreException
         bool       $return_as_string = false,
         bool       $ascii = true,
         bool       $echo_error = true,
-    ): ?array
+    ): array|null
     {
         if($exception) {
             $file_all = $exception->getFile();
@@ -204,6 +206,11 @@ class CoreException
         $this->show_exception($opts);
     }
 
+    /**
+     * @return (bool|string)[]
+     *
+     * @psalm-return array{error: false|string, display_error: bool}
+     */
     private function container(?string $title, ?string $body, array $other = []): array
     {
         $title_color = "#5656f5";
@@ -476,12 +483,7 @@ class CoreException
             return $rtn;
 
         $dir = LayConfig::server_data()->exceptions;
-        $file_log = $dir . date("Y-m-d") . ".log";
-
-        //TODO: Make it possible to increment the number by the exception file, not just 2
-        if(file_exists($file_log) && filesize($file_log) > 1559928) {
-            $file_log = $dir . date("Y-m-d") . "-2.log";
-        }
+        $file_log = $this->increment_log_file($dir . date("Y-m-d") . ".log");
 
         LayDir::make($dir, 0755, true);
 
@@ -498,7 +500,27 @@ class CoreException
         return $rtn;
     }
 
-    private function convertRaw($print_val, $replace, &$body): void
+    private function increment_log_file(string $file_log) : string
+    {
+        if(file_exists($file_log) && filesize($file_log) > 1559928) {
+            $end_char = explode("_-_", $file_log);
+            $end_char = end($end_char);
+
+            if($end_char && is_numeric($end_char))
+                $end_char = ((int) $end_char) + 1;
+            else
+                $end_char = 2;
+
+            $file_log = $this->increment_log_file($file_log . "_-_" . $end_char);
+        }
+
+        return $file_log;
+    }
+
+    /**
+     * @param null|string $body
+     */
+    private function convertRaw($print_val, $replace, string|null &$body): void
     {
         ob_start();
         print_r($print_val);
@@ -511,13 +533,18 @@ class CoreException
 
     /**
      * @throws \Exception
+     *
      * @return null|array{
      *     act: string,
      *     error: string,
      *     as_string: bool
      * }
+     *
+     * @param (Throwable|array|bool|mixed|null|string)[] $opt
+     *
+     * @psalm-param array{title?: string, body_includes?: string, kill?: bool, ascii?: bool, return_as_string?: bool, trace?: array, raw?: array, echo_error?: bool, use_lay_error?: bool, exception_type?: 'error'|mixed, exception_object?: Throwable|null, show_internal_trace?: mixed|null|true, json_packet?: array|null, show_exception_trace?: true} $opt
      */
-    private function show_exception($opt = []): ?array
+    private function show_exception(array $opt = []): ?array
     {
         if(self::$already_caught)
             return null;

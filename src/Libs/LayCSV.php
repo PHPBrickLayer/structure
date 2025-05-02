@@ -10,9 +10,12 @@ abstract class LayCSV {
 
     /**
      * @param string $file
-     * @param \Closure(array): array|LayLoop $callback
+     * @param \Closure $callback
      * @param int $max_size_kb
-     * @return array
+     *
+     * @return (array|int|null|string)[]
+     *
+     * @psalm-return array{code: int, status: string, message: string, data: array|null}
      */
     public static function process(string $file, \Closure $callback, int $max_size_kb = 1000) : array {
         $file_type = mime_content_type($file);

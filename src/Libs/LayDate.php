@@ -123,7 +123,7 @@ abstract class LayDate {
         return date($format, $strtotime);
     }
 
-    public static function now() : int
+    public static function now() : string|int
     {
         return self::date("", figure: true);
     }
@@ -148,7 +148,10 @@ abstract class LayDate {
         return self::week_of_year($date) - self::week_of_year($first_day_of_month) + 1;
     }
 
-    public static function week_of_year($date) : int
+    /**
+     * @param false|int $date
+     */
+    public static function week_of_year(int|false $date) : int
     {
         $week_of_year = intval(date("W", $date));
 
@@ -164,7 +167,7 @@ abstract class LayDate {
         return $week_of_year;
     }
 
-    public static function elapsed(string $current_time, int $depth = 1, string $format = "M d, o", bool $append_ago = true): string
+    public static function elapsed(string $current_time, int $depth = 1, string $format = "M d, o", bool $append_ago = true): string|int
     {
         $now = new DateTime;
         $ago = new DateTime($current_time);

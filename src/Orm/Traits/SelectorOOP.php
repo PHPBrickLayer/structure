@@ -70,7 +70,12 @@ trait SelectorOOP
         array $filter_list = ["in","it","a","the","of","or","I","you","he","me","us","they","she","to","but","that","this","those","then"]
     ) : string
     {
-        $filter_words = function ($query) use ($filter_list) : array {
+        $filter_words = /**
+         * @return string[]
+         *
+         * @psalm-return list<string>
+         */
+        function ($query) use ($filter_list) : array {
             $words = [];
 
             $c = 0;
@@ -97,7 +102,7 @@ trait SelectorOOP
 
         $keywords = $filter_words($query);
 
-        $format = function($token, $col, $score, $op = "LIKE") {
+        $format = function($token, $col, $score, $op = "LIKE"): string {
             $op = $op ? strtolower($op) : null;
 
             if($op == "=")
@@ -197,9 +202,8 @@ trait SelectorOOP
     /**
      * @param 'right'|'inner'|'left'|'RIGHT'|'INNER'|'LEFT' $join_table
      * @param string $type
-     * @return SelectorOOP|SQL
      */
-    final public function join(string $join_table, #[ExpectedValues(['right', 'inner', 'left'])] string $type = ""): self
+    final public function join(string $join_table, #[ExpectedValues(['right', 'inner', 'left'])] string $type = ""): \BrickLayer\Lay\Orm\SQL
     {
         return $this->store_vars('join', ["table" => $join_table, "type" => $type,], true);
     }
@@ -260,12 +264,11 @@ trait SelectorOOP
     /**
      * @param null|'and'|'or'|'AND'|'OR' $prepend
      * @param callable(self):string $where_callback
-     * @return SQL|SelectorOOP
      */
     final public function bracket(
         callable $where_callback,
         #[ExpectedValues(["and", "or", "AND", "OR"])] ?string $prepend = null,
-    ): self
+    ): \BrickLayer\Lay\Orm\SQL
     {
         $this->using_bracket = true;
         $where_callback($this);
@@ -338,18 +341,18 @@ trait SelectorOOP
 
     /**
      * Handles conflict when inserting into a table with unique columns
+     *
      * @param array<string> $unique_columns
      * @param array<string> $update_columns
      * @param "UPDATE"|"IGNORE"|"REPLACE"|"NOTHING" $action
      * @param string|null $constraint a unique constraint name created by the database admin or developer
-     * @return SelectorOOP|SQL
      */
     final public function on_conflict(
         array $unique_columns = [],
         array $update_columns = [],
         #[ExpectedValues(["UPDATE", "IGNORE", "REPLACE", "NOTHING"])] string $action = "UPDATE",
         ?string $constraint = null,
-    ): self
+    ): \BrickLayer\Lay\Orm\SQL
     {
         return $this->store_vars('on_conflict', [
             "unique_columns" => $unique_columns,
@@ -361,10 +364,10 @@ trait SelectorOOP
 
     /**
      * Used to bind values to placeholders in a query. This accepts a regular non-associative array
+     *
      * @param array $num_array
-     * @return SQL|SelectorOOP
      */
-    final public function bind_num(array $num_array): self
+    final public function bind_num(array $num_array): \BrickLayer\Lay\Orm\SQL
     {
         if(LayArray::any($num_array, fn($v,$i) => is_string($i)))
             $this->oop_exception("`->bind_num()` method accepts numbered index only. If you wish to use named index, use `->bind_assoc`");
@@ -374,10 +377,10 @@ trait SelectorOOP
 
     /**
      * Used to bind values to placeholders in a query. This accepts an associative array
+     *
      * @param array $assoc_array
-     * @return SQL|SelectorOOP
      */
-    final public function bind_assoc(array $assoc_array): self
+    final public function bind_assoc(array $assoc_array): \BrickLayer\Lay\Orm\SQL
     {
         if(LayArray::any($assoc_array, fn($v,$i) => is_int($i)))
             $this->oop_exception("`->bind_assoc()` method accepts stringed index only. If you wish to use numbered index, use `->bind_num`");
@@ -394,9 +397,8 @@ trait SelectorOOP
      * @link https://www.w3schools.com/sql/sql_groupby.asp
      *
      * @param string $by
-     * @return SQL|SelectorOOP
      */
-    final public function group(string $by): self
+    final public function group(string $by): \BrickLayer\Lay\Orm\SQL
     {
         return $this->store_vars('group', ["condition" => $by,], true);
     }
@@ -405,10 +407,10 @@ trait SelectorOOP
      * An alternative to WHERE. It can be used to filter or aggregate a result according to a condition.
      *
      * @link https://www.w3schools.com/sql/sql_having.asp
+     *
      * @param string $condition
-     * @return SQL|SelectorOOP
      */
-    final public function having(string $condition): self
+    final public function having(string $condition): \BrickLayer\Lay\Orm\SQL
     {
         return $this->store_vars('having', ["condition" => $condition,], true);
     }
@@ -418,9 +420,8 @@ trait SelectorOOP
      *
      * @param string $column
      * @param string $order
-     * @return SQL|SelectorOOP
      */
-    final public function sort(string $column, #[ExpectedValues(['ASC', 'asc', 'DESC', 'desc'])] string $order = "ASC"): self
+    final public function sort(string $column, #[ExpectedValues(['ASC', 'asc', 'DESC', 'desc'])] string $order = "ASC"): \BrickLayer\Lay\Orm\SQL
     {
         return $this->store_vars('sort', ["sort" => $column, "type" => $order,], true);
     }
@@ -429,14 +430,14 @@ trait SelectorOOP
      * Select a range of values from a column.
      *
      * This is very useful when you're trying to implement a date range
+     *
      * @param string $column
      * @param string $start
      * @param string $end
      * @param bool $fmt_to_date
      * @param bool $allow_null
-     * @return SQL|SelectorOOP
      */
-    final public function between(string $column, string $start, string $end, bool $fmt_to_date = true, bool $allow_null = true): self
+    final public function between(string $column, string $start, string $end, bool $fmt_to_date = true, bool $allow_null = true): \BrickLayer\Lay\Orm\SQL
     {
         return $this->store_vars('between', ["col" => $column, "start" => $start, "end" => $end, "format" => $fmt_to_date, "allow_null" => $allow_null]);
     }
@@ -449,9 +450,8 @@ trait SelectorOOP
      * @param int $max_result Specify query result limit
      * @param int $page_number Specifies the page batch based on the limit
      * @param string|null $column_to_check
-     * @return SelectorOOP|SQL
      */
-    final public function limit(int $max_result, int $page_number = 1, ?string $column_to_check = null): self
+    final public function limit(int $max_result, int $page_number = 1, ?string $column_to_check = null): \BrickLayer\Lay\Orm\SQL
     {
         return $this->store_vars('limit', ["index" => $page_number, "max_result" => $max_result, "column" => $column_to_check,]);
     }
@@ -473,18 +473,16 @@ trait SelectorOOP
 
     /**
      * @see not_empty
-     * @return SelectorOOP|SQL
      */
-    final public function no_null(): self
+    final public function no_null(): \BrickLayer\Lay\Orm\SQL
     {
         return $this->store_vars('can_be_null', false);
     }
 
     /**
      * @see not_empty
-     * @return SQL|SelectorOOP
      */
-    final public function no_false(): self
+    final public function no_false(): \BrickLayer\Lay\Orm\SQL
     {
         return $this->store_vars('can_be_false', false);
     }
@@ -492,10 +490,8 @@ trait SelectorOOP
     /**
      * You can use this to instruct the orm to return a generator instead of an array;
      * then you can yield the result as needed.
-     *
-     * @return SQL|SelectorOOP
      */
-    final public function use_generator(): self
+    final public function use_generator(): \BrickLayer\Lay\Orm\SQL
     {
         return $this->store_vars('return_as', OrmReturnType::GENERATOR);
     }
@@ -516,20 +512,16 @@ trait SelectorOOP
 
     /**
      * Instruct the ORM to loop through the result and return a multidimensional array of results.
-     *
-     * @return SQL|SelectorOOP
      */
-    final public function loop(): self
+    final public function loop(): \BrickLayer\Lay\Orm\SQL
     {
         return $this->store_vars('loop', true);
     }
 
     /**
      * Instruct the ORM to return an associative array of results.
-     *
-     * @return SQL|SelectorOOP
      */
-    final public function assoc(): self
+    final public function assoc(): \BrickLayer\Lay\Orm\SQL
     {
         return $this->store_vars('fetch_as', OrmReturnType::ASSOC);
     }
@@ -550,10 +542,8 @@ trait SelectorOOP
 
     /**
      * Instruct the ORM to return a multidimensional array of results that isn't associative.
-     *
-     * @return SQL|SelectorOOP
      */
-    final public function row(): self
+    final public function row(): \BrickLayer\Lay\Orm\SQL
     {
         return $this->store_vars('fetch_as', OrmReturnType::NUM);
     }
@@ -575,9 +565,8 @@ trait SelectorOOP
      * Accepts a column name or an array of column names with values.
      *
      * @param string|array $cols
-     * @return SQL|SelectorOOP
      */
-    final public function column(string|array $cols): self
+    final public function column(string|array $cols): \BrickLayer\Lay\Orm\SQL
     {
         return $this->store_vars('columns', $cols);
     }
@@ -597,10 +586,12 @@ trait SelectorOOP
 
     /**
      * Select query with a clause directly here
+     *
      * @param string|null $clause
-     * @return array|Generator
+     *
+     * @return \Generator|\PgSql\Result|\SQLite3Result|\mysqli_result|array|null
      */
-    final public function then_select(?string $clause = null): array|Generator
+    final public function then_select(?string $clause = null): array|\PgSql\Result|\SQLite3Result|\mysqli_result|\Generator|null|Generator
     {
         if ($clause)
             $this->clause($clause);
@@ -610,7 +601,7 @@ trait SelectorOOP
         return $this->select();
     }
 
-    private function store_vars(string $key, mixed $value, $id1 = null, $id2 = null): self
+    private function store_vars(string $key, mixed $value, $id1 = null, $id2 = null): \BrickLayer\Lay\Orm\SQL
     {
         $index = max(self::$current_index, 0);
 

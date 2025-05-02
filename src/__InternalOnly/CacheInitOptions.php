@@ -7,9 +7,14 @@ use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Libs\LayDate;
 
 //TODO: Consider implementing a caching system for site_data and server_data to reduce memory usage
-class CacheInitOptions {
+final class CacheInitOptions {
     private const OPTIONS_CACHE_DIR = "cached_opts" . DIRECTORY_SEPARATOR;
 
+    /**
+     * @return (array|bool|null)[]
+     *
+     * @psalm-return array{error: bool, expired: bool, cached: bool, data: array|null}
+     */
     private static function cache_result_dto(bool $file_exists = true, bool $cached = true, bool $expired = true, ?array $data = null) : array
     {
         return [

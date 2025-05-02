@@ -174,9 +174,10 @@ abstract class LayMail {
 
     /**
      * Sends the email to the server, rather than the client.
-     * @return bool The result of the queued email
+     *
+     * @return bool|null The result of the queued email
      */
-    final public function to_server() : bool {
+    final public function to_server() : bool|null {
         $this->to_client = false;
         return $this->queue();
     }
@@ -184,9 +185,10 @@ abstract class LayMail {
 
     /**
      * Sends the email to the client. This is the default behaviour
-     * @return bool The result of the queued email
+     *
+     * @return bool|null The result of the queued email
      */
-    final public function to_client() : bool {
+    final public function to_client() : bool|null {
         $this->to_client = true;
         return $this->queue();
     }

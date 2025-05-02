@@ -7,7 +7,7 @@ use mysqli;
 use mysqli_result;
 use Override;
 
-class MySql implements OrmConnections
+final class MySql implements OrmConnections
 {
     public function __construct(public readonly mysqli $link) {}
 
@@ -41,11 +41,16 @@ class MySql implements OrmConnections
         return isset($this->link->host_info);
     }
 
+    /**
+     * @return int|numeric-string
+     *
+     * @psalm-return int<-1, max>|numeric-string
+     */
     #[Override]
     /**
      * @param mysqli_result|null $result
      */
-    public function affected_rows(mixed $result = null) : int
+    public function affected_rows(mixed $result = null) : int|string
     {
         return $this->link->affected_rows;
     }

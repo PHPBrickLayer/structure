@@ -2,7 +2,7 @@
 
 namespace BrickLayer\Lay\BobDBuilder;
 
-class BobExec
+final class BobExec
 {
     public int $response_code = 0;
 

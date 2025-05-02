@@ -19,7 +19,7 @@ use JetBrains\PhpStorm\ExpectedValues;
 use ReflectionClass;
 use ReflectionException;
 
-class Domain {
+final class Domain {
     use IsSingleton;
 
     private static bool $included_once = false;
@@ -73,7 +73,13 @@ class Domain {
             self::$domain_ram = $_SESSION[self::$domain_list_key];
     }
 
-    private function domain_cache_key(DomainCacheKeys $key_type, string|null|int $key = null, mixed $value = null, bool $cache = true) : mixed {
+    /**
+     * @param array|null|string $value
+     * @param null|string[]|true $key
+     *
+     * @psalm-param array{pattern: string, id: string}|null|true $key
+     */
+    private function domain_cache_key(DomainCacheKeys $key_type, array|bool|null $key = null, array|string|null $value = null, bool $cache = true) : mixed {
         $cache = $cache && self::$cache_domains;
         $this->read_cached_domain_ram();
 
@@ -273,7 +279,7 @@ class Domain {
         return $view;
     }
 
-    private function include_static_assets($route) : void
+    private function include_static_assets(string $route) : void
     {
         $referer = LayConfig::get_header("Referer");
         $from_js_module = $referer && str_contains($referer, ".js");
@@ -368,6 +374,11 @@ class Domain {
         return self::$current_route;
     }
 
+    /**
+     * @return (bool|string)[][]
+     *
+     * @psalm-return array{ngrok: array{value: string, found: bool}, sub: array{value: string, found: bool}, local: array{value: string, found: bool}}
+     */
     private function active_pattern() : array {
         $base = self::$site_data->base_no_proto;
         $sub_domain = explode(".", $base, 3);
