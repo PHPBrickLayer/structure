@@ -5,7 +5,7 @@ namespace BrickLayer\Lay\Libs;
 
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayException;
-use BrickLayer\Lay\Core\Traits\IsSingleton;
+use BrickLayer\Lay\Libs\Primitives\Traits\IsSingleton;
 
 /**
  * @deprecated

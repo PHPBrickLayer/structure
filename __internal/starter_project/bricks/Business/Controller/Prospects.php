@@ -3,10 +3,10 @@
 namespace Bricks\Business\Controller;
 
 use BrickLayer\Lay\Core\LayConfig;
-use BrickLayer\Lay\Core\Traits\ControllerHelper;
-use BrickLayer\Lay\Core\Traits\IsSingleton;
-use BrickLayer\Lay\Core\Traits\ValidateCleanMap;
 use BrickLayer\Lay\Libs\LayDate;
+use BrickLayer\Lay\Libs\Primitives\Traits\ControllerHelper;
+use BrickLayer\Lay\Libs\Primitives\Traits\IsSingleton;
+use BrickLayer\Lay\Libs\Primitives\Traits\ValidateCleanMap;
 use BrickLayer\Lay\Libs\String\Enum\EscapeType;
 use Bricks\Business\Model\Prospect;
 use Utils\Email\Email;

@@ -1,5 +1,5 @@
 <?php
-namespace BrickLayer\Lay\Core\Traits;
+namespace BrickLayer\Lay\Libs\Primitives\Traits;
 /**
  * Singleton Implementation
  */

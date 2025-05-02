@@ -2,10 +2,10 @@
 
 namespace BrickLayer\Lay\Libs\Cron;
 
-use BrickLayer\Lay\Core\Traits\IsSingleton;
-use BrickLayer\Lay\Libs\Abstract\TableTrait;
 use BrickLayer\Lay\Libs\LayDate;
 use BrickLayer\Lay\Libs\LayFn;
+use BrickLayer\Lay\Libs\Primitives\Traits\IsSingleton;
+use BrickLayer\Lay\Libs\Primitives\Traits\TableTrait;
 
 class CronController
 {

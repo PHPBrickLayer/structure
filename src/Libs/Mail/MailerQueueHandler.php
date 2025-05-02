@@ -2,9 +2,9 @@
 declare(strict_types=1);
 namespace BrickLayer\Lay\Libs\Mail;
 
-use BrickLayer\Lay\Libs\Abstract\TableTrait;
 use BrickLayer\Lay\Libs\Cron\LayCron;
 use BrickLayer\Lay\Libs\LayDate;
+use BrickLayer\Lay\Libs\Primitives\Traits\TableTrait;
 
 class MailerQueueHandler {
 

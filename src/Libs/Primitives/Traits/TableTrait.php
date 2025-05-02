@@ -1,16 +1,11 @@
 <?php
 declare(strict_types=1);
 
-namespace BrickLayer\Lay\Libs\Abstract;
+namespace BrickLayer\Lay\Libs\Primitives\Traits;
 
-use BrickLayer\Lay\Core\Api\Enums\ApiStatus;
 use BrickLayer\Lay\Core\LayConfig;
-use BrickLayer\Lay\Core\Traits\ControllerHelper;
 use BrickLayer\Lay\Libs\Cron\CronController;
 use BrickLayer\Lay\Libs\LayDate;
-use BrickLayer\Lay\Libs\LayObject;
-use BrickLayer\Lay\Libs\String\Enum\EscapeType;
-use BrickLayer\Lay\Libs\String\Escape;
 use BrickLayer\Lay\Orm\SQL;
 use JetBrains\PhpStorm\ExpectedValues;
 

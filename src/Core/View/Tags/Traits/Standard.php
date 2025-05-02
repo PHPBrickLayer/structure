@@ -4,11 +4,11 @@ declare(strict_types=1);
 namespace BrickLayer\Lay\Core\View\Tags\Traits;
 
 
-use BrickLayer\Lay\Core\Enums\LayLoop;
 use BrickLayer\Lay\Core\View\Tags\Anchor;
 use BrickLayer\Lay\Core\View\Tags\Img;
 use BrickLayer\Lay\Core\View\Tags\Link;
 use BrickLayer\Lay\Core\View\Tags\Script;
+use BrickLayer\Lay\Libs\Primitives\Enums\LayLoop;
 
 trait Standard {
     private static self $me;

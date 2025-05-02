@@ -2,11 +2,11 @@
 declare(strict_types=1);
 namespace BrickLayer\Lay\Libs\Dir;
 
-use BrickLayer\Lay\Core\Enums\LayLoop;
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Libs\Dir\Enums\SortOrder;
 use BrickLayer\Lay\Libs\LayFn;
+use BrickLayer\Lay\Libs\Primitives\Enums\LayLoop;
 use BrickLayer\Lay\Libs\Symlink\LaySymlink;
 use BrickLayer\Lay\Libs\Symlink\SymlinkTrackType;
 use Closure;
@@ -359,6 +359,5 @@ class LayDir {
 
         return $empty;
     }
-
 
 }

@@ -5,7 +5,7 @@ namespace BrickLayer\Lay\Libs\ID;
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\LayException;
-use BrickLayer\Lay\Core\Traits\IsSingleton;
+use BrickLayer\Lay\Libs\Primitives\Traits\IsSingleton;
 use BrickLayer\Lay\Libs\String\Enum\EscapeType;
 use BrickLayer\Lay\Libs\String\Escape;
 use Random\RandomException;

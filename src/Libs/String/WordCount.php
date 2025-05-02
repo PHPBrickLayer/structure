@@ -2,7 +2,7 @@
 
 namespace BrickLayer\Lay\Libs\String;
 
-use BrickLayer\Lay\Core\Traits\IsSingleton;
+use BrickLayer\Lay\Libs\Primitives\Traits\IsSingleton;
 use DOMDocument;
 
 class WordCount

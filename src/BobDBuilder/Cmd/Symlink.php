@@ -15,6 +15,7 @@ use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Libs\Dir\LayDir;
 use BrickLayer\Lay\Libs\Symlink\LaySymlink;
 use BrickLayer\Lay\Libs\Symlink\SymlinkTrackType;
+use Override;
 
 class Symlink implements CmdLayout
 {
@@ -31,6 +32,7 @@ class Symlink implements CmdLayout
         $this->init_db();
     }
 
+    #[Override]
     public function _init(EnginePlug $plug): void
     {
         $this->plug = $plug;
@@ -46,6 +48,7 @@ class Symlink implements CmdLayout
         $plug->add_arg($this, ["link:rm"], 'link_remove', 0, 1, 2, 3);
     }
 
+    #[Override]
     public function _spin(): void
     {
         $this->init_db();

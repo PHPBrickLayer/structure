@@ -5,17 +5,16 @@ namespace BrickLayer\Lay\Core\View;
 
 use BrickLayer\Lay\Core\Annotate\CurrentRouteData;
 use BrickLayer\Lay\Core\Api\ApiEngine;
-use BrickLayer\Lay\Core\Enums\LayLoop;
 use BrickLayer\Lay\Core\Enums\LayMode;
 use BrickLayer\Lay\Core\Enums\LayServerType;
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
-use BrickLayer\Lay\Core\LayException;
-use BrickLayer\Lay\Core\Traits\IsSingleton;
 use BrickLayer\Lay\Core\View\Enums\DomainCacheKeys;
 use BrickLayer\Lay\Core\View\Enums\DomainType;
 use BrickLayer\Lay\Libs\LayDate;
 use BrickLayer\Lay\Libs\LayFn;
+use BrickLayer\Lay\Libs\Primitives\Enums\LayLoop;
+use BrickLayer\Lay\Libs\Primitives\Traits\IsSingleton;
 use JetBrains\PhpStorm\ExpectedValues;
 use ReflectionClass;
 use ReflectionException;
@@ -282,13 +281,15 @@ class Domain {
         if(!$from_js_module)
             return;
 
-        $js = LayConfig::new()->inc_file(
+        $js = DomainResource::include_file(
             $route . ".js",
             "domain_root",
-            as_string: true,
-            use_get_content: true,
-            error_file_not_found: false,
-            get_last_mod: true,
+            [
+                "as_string" => true,
+                "use_get_content" => true,
+                "error_file_not_found" => false,
+                "get_last_mod" => true,
+            ]
         );
 
         if($js) {

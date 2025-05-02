@@ -4,8 +4,8 @@ declare(strict_types=1);
 namespace BrickLayer\Lay\Libs;
 
 use BrickLayer\Lay\Core\LayConfig;
-use BrickLayer\Lay\Libs\Abstract\TableTrait;
 use BrickLayer\Lay\Libs\LayCrypt\LayCrypt;
+use BrickLayer\Lay\Libs\Primitives\Traits\TableTrait;
 
 /**
  * Store session as cookie through accurate environment storage and encrypted storage token.

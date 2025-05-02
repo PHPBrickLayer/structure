@@ -4,8 +4,8 @@ namespace BrickLayer\Lay\Libs\Aws;
 
 use Aws\Credentials\Credentials;
 use BrickLayer\Lay\Core\Exception;
-use BrickLayer\Lay\Core\Traits\IsSingleton;
 use BrickLayer\Lay\Libs\Aws\Enums\AwsS3Client;
+use BrickLayer\Lay\Libs\Primitives\Traits\IsSingleton;
 
 class LayAws
 {
