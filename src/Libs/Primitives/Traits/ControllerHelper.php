@@ -7,6 +7,7 @@ use BrickLayer\Lay\Core\CoreException;
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayException;
 use BrickLayer\Lay\Libs\LayFn;
+use BrickLayer\Lay\Libs\Primitives\Abstracts\ResourceHelper;
 use BrickLayer\Lay\Libs\String\Enum\EscapeType;
 use BrickLayer\Lay\Libs\String\Escape;
 use Throwable;
@@ -146,7 +147,7 @@ trait ControllerHelper {
      * Send a success HTTP response body
      *
      * @param string $message
-     * @param array|null $data
+     * @param array|null|ResourceHelper $data
      * @param ApiStatus|int $code
      * @param bool $send_header
      * @return array{
@@ -156,12 +157,12 @@ trait ControllerHelper {
      *    data: array|null
      * }
      */
-    public static function res_success(string $message = "Successful", ?array $data = null, ApiStatus|int $code = ApiStatus::OK, bool $send_header = false) : array
+    public static function res_success(string $message = "Successful", array|null|ResourceHelper $data = null, ApiStatus|int $code = ApiStatus::OK, bool $send_header = false) : array
     {
         return self::__res_send([
             "status" => "success",
             "message" => $message,
-            "data" => $data,
+            "data" => $data instanceOf ResourceHelper ? $data->props() : $data,
         ], $code, $send_header);
     }
 
@@ -169,7 +170,7 @@ trait ControllerHelper {
      * Send a warning HTTP response body
      *
      * @param string $message
-     * @param array|null $data
+     * @param array|null|ResourceHelper $data
      * @param ApiStatus|int $code
      * @param bool $send_header
      * @return array{
@@ -179,12 +180,12 @@ trait ControllerHelper {
      *    data: array|null
      * }
      */
-    public static function res_warning(string $message = "Something went wrong", ?array $data = null, ApiStatus|int $code = ApiStatus::NOT_ACCEPTABLE, bool $send_header = false) : array
+    public static function res_warning(string $message = "Something went wrong", array|null|ResourceHelper $data = null, ApiStatus|int $code = ApiStatus::NOT_ACCEPTABLE, bool $send_header = false) : array
     {
         return self::__res_send([
             "status" => "warning",
             "message" => $message,
-            "data" => $data
+            "data" => $data instanceOf ResourceHelper ? $data->props() : $data,
         ], $code, $send_header);
     }
 

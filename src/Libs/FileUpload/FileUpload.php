@@ -94,6 +94,9 @@ final class FileUpload {
         array $opts = []
     )
     {
+        if(empty($opts))
+            return $this;
+
         $req = $this->check_all_requirements(
             post_name: $opts['post_name'] ?? null,
             custom_mime:  $opts['custom_mime'] ?? null,

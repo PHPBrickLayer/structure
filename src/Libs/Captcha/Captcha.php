@@ -2,6 +2,7 @@
 
 namespace BrickLayer\Lay\Libs\Captcha;
 
+use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Libs\LayCrypt\LayCrypt;
 use BrickLayer\Lay\Libs\LayFn;
 use Imagick;
@@ -18,6 +19,11 @@ final class Captcha
     {
         $random_num    = md5(random_bytes(64));
         return substr($random_num, 0, 6);
+    }
+
+    private static function set_captcha_secret() : void
+    {
+        LayCrypt::set_jwt_secret(LayFn::env('CAPTCHA_SECRET', LayConfig::app_id() . '-LAY-CAPTCHA-SEC'));
     }
 
     /**
@@ -96,7 +102,7 @@ final class Captcha
     {
         $code = self::gen_code();
 
-        LayCrypt::set_jwt_secret(LayFn::env('CAPTCHA_SECRET'));
+        self::set_captcha_secret();
 
         return [
             "img" => self::as_img($code),
@@ -116,7 +122,7 @@ final class Captcha
      */
     public static function validate_as_jwt(string $jwt, string $captcha_value) : array
     {
-        LayCrypt::set_jwt_secret(LayFn::env('CAPTCHA_SECRET'));
+        self::set_captcha_secret();
 
         $test = LayCrypt::verify_jwt($jwt);
 
