@@ -10,40 +10,48 @@ abstract class RequestHelper
 {
     use ValidateCleanMap, ControllerHelper;
 
-    public ?string $error = null;
-    public array $data;
+    public readonly string $error;
+    private array $data;
 
-    abstract protected function validation_rules(): void;
+    abstract protected function rules(): void;
+
+    public final function props() : array
+    {
+        return $this->data;
+    }
 
     /**
      * By default, it's responsible for digesting the request and setting the default rules
      */
-    protected function before_validation() : void
+    protected function pre_validate() : void
     {
         self::vcm_start(self::request(), [
-            'required' => true,
+            'required' => false,
         ]);
     }
 
-    protected function after_validation(array $data): array
+    protected function post_validate(array $data): array
     {
         return $data;
     }
 
-    public final function validate(): static
+    protected final function validate(): static
     {
-        $this->before_validation();
+        $this->pre_validate();
 
-        $this->validation_rules();
+        $this->rules();
 
-        if ($errors = self::vcm_errors()) {
-            $this->error = $errors;
+        if ($this->error = self::vcm_errors())
             return $this;
-        }
 
-        $this->data = $this->after_validation(self::vcm_data());
+        $this->data = $this->post_validate(self::vcm_data());
 
         return $this;
+    }
+
+    public function __construct()
+    {
+        return $this->validate();
     }
 
     public final function __get(string $key) : mixed
