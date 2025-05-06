@@ -754,7 +754,7 @@ final class ApiEngine {
      *
      * @psalm-param array{code: 429, msg: 'TOO MANY REQUESTS', message: 'TOO MANY REQUESTS', expire: mixed}|null $return_array
      */
-    private static function set_return_value(array|null $return_array = null) : void
+    private static function set_return_value(mixed $return_array = null) : void
     {
         self::$bind_return_value = $return_array ?? self::$bind_return_value ?? null;
         self::$route_found = true;
