@@ -102,14 +102,12 @@ class LayCrypt
         $payload = [ 'data' => $payload ];
 
         $payload['iat'] = LayDate::now();
-        $payload['nbf'] = LayDate::now();
+        $payload['nbf'] = $payload['iat'];
         $payload['exp'] = LayDate::date($expires, figure: true);
         $payload['iss'] = $issuer ?? LayConfig::site_data()->base_no_proto_no_www;
 
         if($audience)
             $payload['aud'] = $audience;
-
-        $payload = json_encode($payload);
 
         return (new CompactSerializer())->serialize(
             (  new JWSBuilder( self::jwt_algo() )  )
@@ -142,6 +140,13 @@ class LayCrypt
 
         $payload = json_decode($jws->getPayload(), true);
 
+        if(!$payload)
+            return [
+                "valid" => false,
+                "message" => "Invalid payload!",
+                "data" => null,
+            ];
+
         if (LayDate::expired($payload['exp']))
             return [
                 "valid" => false,
@@ -159,7 +164,7 @@ class LayCrypt
         return [
             "valid" => true,
             "message" => "Token valid!",
-            "data" => $payload
+            "data" => $payload['data']
         ];
     }
 }
