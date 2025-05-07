@@ -14,6 +14,7 @@ $lay.page = {
     site_name_full : $id("LAY-SITE-NAME").content,
     route : $id("LAY-ROUTE").content,
     routeArray : JSON.parse($id("LAY-ROUTE-AS-ARRAY").content),
+    env : $id("LAY-ENVIRONMENT").content,
 }
 $lay.src = {
     host : $id("LAY-HOST").content,

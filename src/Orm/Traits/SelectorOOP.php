@@ -278,7 +278,7 @@ trait SelectorOOP
         $this->using_bracket = false;
 
         $WHERE = trim(implode("", $this->cached_options[self::$current_index]['clause_string']));
-        return $this->clause_array(strtoupper($prepend ??= "") . " ($WHERE)");
+        return $this->clause_array(strtoupper($prepend ?? '') . " ($WHERE)");
     }
 
     final public function clause(string $clause): self

@@ -67,16 +67,6 @@ trait Brick
         $brick_table = strtolower(implode("_", $brick_words));
         $brick_plural = ucwords(implode("", $brick_words));
 
-        $import = "";
-        $body = "";
-        $brick_init = "new $brick()";
-
-        if($singleton) {
-            $import = "use BrickLayer\Lay\Core\Traits\IsSingleton;";
-            $body = "use IsSingleton;";
-            $brick_init = "$brick::new()";
-        }
-
         // default api hook
         file_put_contents(
             $brick_dir . $this->plug->s . "Api" . $this->plug->s . "Hook.php",
@@ -108,6 +98,7 @@ trait Brick
             FILE
         );
 
+
         /**
          * Default model file
          */
@@ -123,39 +114,29 @@ trait Brick
             
             namespace Bricks\\$brick\Model;
             
-            use JetBrains\PhpStorm\ArrayShape;
-            use BrickLayer\Lay\Orm\SQL;
-            $import
+            use BrickLayer\Lay\Libs\Primitives\Abstracts\BaseModelHelper;
             
-            class $brick
+            /**
+             * @property string \$id
+             * @property string \$created_at
+            */
+            class $brick extends BaseModelHelper
             {
-                $body
-                
                 public static string \$table = "$brick_table";
-                
-                public static function orm(?string \$table = null) : SQL 
-                {
-                    if(\$table)
-                        return SQL::instance()->open(\$table);
-            
-                    return SQL::instance();
-                }
-                
-                #[ArrayShape(["code" => "int", "msg" => "string", "data" => "bool"])]
-                public function add(array \$columns) : array 
-                {
-                    \$columns['id'] = \$columns['id'] ?? 'UUID()';
-            
-                    return [
-                        "code" => 200,
-                        "msg" => "Ok",
-                        "data" => self::orm(self::\$table)->insert(\$columns)
-                    ];
-                }
             }
             
             FILE
         );
+
+        $import = "";
+        $body = "";
+        $brick_init = "new $brick()";
+
+        if($singleton) {
+            $import = "use BrickLayer\Lay\Libs\Primitives\Traits\IsSingleton;";
+            $body = "use IsSingleton;";
+            $brick_init = "$brick::new()";
+        }
 
         /**
          * Default controller file
