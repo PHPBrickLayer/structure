@@ -684,12 +684,17 @@ final class ApiEngine {
         $cache->update([$key, "request_count"], $request_count + 1);
 
         if($request_count > $requests_allowed) {
+            $retry_after = LayDate::in_seconds($interval);
+
+            LayFn::header("Retry-After: $retry_after");
             self::set_response_header(ApiStatus::TOO_MANY_REQUESTS, ApiReturnType::JSON);
+
             self::set_return_value([
                 "code" => ApiStatus::TOO_MANY_REQUESTS->value,
                 "msg" => "TOO MANY REQUESTS",
                 "message" => "TOO MANY REQUESTS",
-                "expire" => $expire
+                "expire" => $expire,
+                "retry_after" => $retry_after,
             ]);
         }
 
@@ -925,17 +930,14 @@ final class ApiEngine {
 
     /**
      * @param Closure $callback_of_controller_method method name of the set controller.
-     * @param array|null $cache add caching features to your route
+     * @param null|array{
+     *     last_mod?: int,
+     *     max_age?: int|string,
+     *     public?: bool,
+     * } $cache add caching features to your route
      * If you wish to retrieve the value of the method, ensure to return it;
      */
-    public function bind(
-        Closure $callback_of_controller_method,
-        #[ArrayShape([
-            'last_mod' => '?int',
-            'max_age' => 'int|string|null',
-            'public' => 'bool|null',
-        ])] ?array $cache = null
-    ) : self {
+    public function bind( Closure $callback_of_controller_method, ?array $cache = null) : self {
         if(!self::$route_found || self::$request_complete)
             return $this;
 

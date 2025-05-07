@@ -264,4 +264,22 @@ abstract class LayArray
 
         return $all;
     }
+
+    /**
+     * Count an array or an object
+     * @param array|object $object
+     * @return int
+     */
+    public static function count(array|object $object) : int
+    {
+        if(is_array($object)) return count($object);
+
+        $count = 0;
+
+        foreach ($object as $o) {
+            $count++;
+        }
+
+        return $count;
+    }
 }
