@@ -793,7 +793,7 @@ final class ApiEngine {
 
         self::$using_route_middleware = !$__INTERNAL_;
 
-        if(self::$DEBUG_DUMP_MODE || self::$DEBUG_MODE)
+        if(self::$DEBUG_DUMP_MODE)
             return $this;
 
         $arguments = self::get_mapped_args();
@@ -875,7 +875,7 @@ final class ApiEngine {
         self::update_global_props("using_group_middleware", self::$using_group_middleware);
         self::update_global_props("current_middleware", self::$current_middleware);
 
-        if(self::$DEBUG_DUMP_MODE || self::$DEBUG_MODE)
+        if(self::$DEBUG_DUMP_MODE)
             return $this;
 
         return $this->middleware($middleware_callback, true);
@@ -1067,7 +1067,7 @@ final class ApiEngine {
      * depending on what was selected as `$return_type`
      */
     public function print_as(?ApiReturnType $return_type = null, bool $print = true) : string|bool|null {
-        if(!isset(self::$bind_return_value) || (self::$DEBUG_DUMP_MODE || self::$DEBUG_MODE))
+        if(!isset(self::$bind_return_value) || self::$DEBUG_DUMP_MODE)
             return null;
 
         // Clear the prefix, because this method marks the end of a set of api routes
@@ -1203,15 +1203,13 @@ final class ApiEngine {
         return self::$engine;
     }
 
-    /**
-     * @return null
-     */
-    public static function end(bool $print_existing_result = true)  {
+    public static function end(bool $print_existing_result = true) : void
+    {
         $uri = self::$route_uri_raw ?? "";
 
         if(self::$route_found) {
             self::$engine->print_as(self::$method_return_type ?? ApiReturnType::JSON, $print_existing_result);
-            return null;
+            return;
         }
 
         $version_active = isset(self::$version) ? "<div>Version: <span style='color: #fff'>" . self::$version . "</span></div>" : null;
@@ -1266,7 +1264,5 @@ final class ApiEngine {
                 "json_error" => $json_error
             ]
         );
-
-        return null;
     }
 }
