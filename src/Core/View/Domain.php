@@ -589,6 +589,7 @@ final class Domain {
      * domain_id: string,
      * domain_root: string,
      * domain_referrer: string,
+     * domain_is_api?: string,
      * domain_uri: string,
      * domain_base: string,
      * pattern: string,

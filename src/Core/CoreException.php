@@ -262,10 +262,12 @@ final class CoreException
         $cors_active = LayConfig::cors_active() ? "ACTIVE" : "INACTIVE";
 
         $route = null;
+        $api_route = "false";
         $error = "";
 
         if(Domain::is_in_use()) {
             $route = Domain::current_route_data("*");
+            $api_route = isset($route['domain_is_api']) ? 'true' : $api_route;
             $route = $route['domain_uri'] . $route['route'];
         }
 
@@ -365,6 +367,7 @@ final class CoreException
          CORS: $cors_active
          IP: $ip
          ROUTE: $request_route
+         IS API ROUTE: $api_route
          METHOD: $request_method
          OS: $os
          HEADERS: $headers_str
@@ -405,6 +408,7 @@ final class CoreException
                         "cors" => $cors_active,
                         "ip" => $ip,
                         "route" => $request_route,
+                        "is_api_route" => $api_route,
                         "method" => $request_method,
                         "os" => $os,
                         "trace" => [
@@ -451,6 +455,7 @@ final class CoreException
                     <b>CORS:</b> <span style='color:#00ff80'>$cors_active</span> <br> 
                     <b>IP:</b> <span style='color:#00ff80'>$ip</span> <br>  
                     <b>ROUTE:</b> <span style='color:#00ff80'>$request_route</span> <br>  
+                    <b>IS API ROUTE:</b> <span style='color:#00ff80'>$api_route</span> <br>  
                     <b>METHOD:</b> <span style='color:#00ff80'>$request_method</span> <br>  
                     <b>OS:</b> <span style='color:#00ff80'>$os</span> <br>
                     <b>HEADERS:</b> <div style='color:#00ff80; font-size: 16px; padding: 0 10px'>$headers_html</div>
