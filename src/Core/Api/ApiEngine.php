@@ -1063,16 +1063,21 @@ final class ApiEngine {
     /**
      * @param ApiReturnType|null $return_type
      * @param bool $print
+     * @param bool $force_return_type When true, this will force every request to be returned by the specified return type
      * @return string|bool|null Returns `null` when no api was hit; Returns `false` on error; Returns json encoded string or html on success,
      * depending on what was selected as `$return_type`
      */
-    public function print_as(?ApiReturnType $return_type = null, bool $print = true) : string|bool|null {
+    public function print_as(?ApiReturnType $return_type = null, bool $print = true, bool $force_return_type = false) : string|bool|null {
         if(!isset(self::$bind_return_value) || self::$DEBUG_DUMP_MODE)
             return null;
 
         // Clear the prefix, because this method marks the end of a set of api routes
         self::$prefix = null;
-        $return_type ??= self::$method_return_type;
+
+        if($force_return_type)
+            $return_type ??= self::$method_return_type;
+        else
+            $return_type = self::$method_return_type ?? $return_type;
 
         $x = self::$bind_return_value;
 
