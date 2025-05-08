@@ -19,9 +19,11 @@ use Exception;
 
 
 trait ValidateCleanMap {
+    protected static self $VCM_INSTANCE;
+
     private static array|object|null $_filled_request;
     private static array $_entries = [];
-    private static array $_errors = [];
+    private static ?array $_errors;
     private static ?bool $_break_validation = false;
 
     private static ?bool $_required;
@@ -38,21 +40,18 @@ trait ValidateCleanMap {
     private static ?closure $_return_struct;
     private static bool $_result_is_assoc = true;
 
-    /**
-     * @return false
-     */
-    private function __add_error(string $field, string $message): bool
+    private function __add_error(string $field, string $message): false
     {
-        self::$_errors[$field] = $message;
+        static::$_errors[$field] = $message;
         return false;
     }
 
     private function __get_field(string $key) : mixed
     {
-        if(is_array(self::$_filled_request))
-            return self::$_filled_request[$key] ?? null;
+        if(is_array(static::$_filled_request))
+            return static::$_filled_request[$key] ?? null;
 
-        return self::$_filled_request->{$key} ?? null;
+        return static::$_filled_request->{$key} ?? null;
     }
 
     /**
@@ -117,16 +116,17 @@ trait ValidateCleanMap {
         ?FileUploadStorage $storage = FileUploadStorage::BUCKET,
         ?string $bucket_url = null,
         ?FileUploadType $upload_type = null,
+        bool $dry_run = false,
     ) : array
     {
         // If dev wishes to use a custom upload handler, it must follow the params list chronologically,
         // and return an array.
-        if(isset(self::$_upload_handler)) {
-            return self::$_upload_handler->call(
+        if(isset(static::$_upload_handler)) {
+            return static::$_upload_handler->call(
                 $this,
                 $post_name, $new_name, $upload_sub_dir, $file_limit,
                 $extension_list, $dimension, $storage, $bucket_url,
-                $upload_type
+                $upload_type, $dry_run
             );
         }
 
@@ -147,7 +147,8 @@ trait ValidateCleanMap {
             "bucket_path" => str_replace("uploads/", "", rtrim($dir, DIRECTORY_SEPARATOR . "/") . "/"),
             "extension_list" => $extension_list,
             "dimension" => $dimension,
-            "upload_type" => $upload_type ?? false
+            "upload_type" => $upload_type ?? false,
+            "dry_run" => $dry_run
         ]))->response;
 
         if(!$file['uploaded'])
@@ -178,28 +179,29 @@ trait ValidateCleanMap {
          *
          * @psalm-return array{apply_clean: true, add_to_entry: true}
          */
-        function() use (&$apply_clean, &$add_to_entry): array {
-            return ["apply_clean" => $apply_clean, "add_to_entry" => $add_to_entry];
-        };
+            function() use (&$apply_clean, &$add_to_entry): array {
+                return ["apply_clean" => $apply_clean, "add_to_entry" => $add_to_entry];
+            };
 
         if(isset($options['is_file'])) {
-            if(isset($options['bucket_url']) || isset(self::$_bucket_url))
+            if(isset($options['bucket_url']) || isset(static::$_bucket_url))
                 $options['upload_storage'] ??= FileUploadStorage::BUCKET;
 
-            $max_size = $options['max_size'] ?? self::$_max_size ?? null;
+            $max_size = $options['max_size'] ?? static::$_max_size ?? null;
 
             if(isset($options['max_size_in_mb']))
                 $max_size = $options['max_size_in_mb'] * 1000000;
 
-            $file = self::__file_upload_handler(
+            $file = static::__file_upload_handler(
                 post_name: $field,
                 new_name: $options['new_file_name'] ?? $field,
-                upload_sub_dir: $options['sub_dir'] ?? self::$_sub_dir ?? null,
+                upload_sub_dir: $options['sub_dir'] ?? static::$_sub_dir ?? null,
                 file_limit: $max_size,
-                extension_list: $options['allowed_types'] ?? $options['allowed_extensions'] ?? self::$_allowed_types ?? null,
-                dimension: $options['dimension'] ?? self::$_dimension ?? [800, 800],
-                storage: $options['upload_storage'] ?? self::$_upload_storage ?? null,
-                bucket_url: $options['bucket_url'] ?? self::$_bucket_url ?? null,
+                extension_list: $options['allowed_types'] ?? $options['allowed_extensions'] ?? static::$_allowed_types ?? null,
+                dimension: $options['dimension'] ?? static::$_dimension ?? [800, 800],
+                storage: $options['upload_storage'] ?? static::$_upload_storage ?? null,
+                bucket_url: $options['bucket_url'] ?? static::$_bucket_url ?? null,
+                dry_run: !empty(static::$_errors),
             );
 
             if(
@@ -231,7 +233,7 @@ trait ValidateCleanMap {
 
             if(!$test['valid']) {
                 $add_to_entry = $this->__add_error($field, $options['required_message'] ?? "Field $field_name response: " . $test['message']);
-                self::$_break_validation = true;
+                static::$_break_validation = true;
             }
 
             $add_to_entry = false;
@@ -374,15 +376,15 @@ trait ValidateCleanMap {
      *    return_struct?: callable(mixed, string, array<string, mixed>) : mixed,
      * } $options
      */
-    public function vcm(array $options ) : self
+    public function vcm(array $options ) : static
     {
-        if(isset($options['request']) && empty(self::$_filled_request))
-            self::vcm_start($options['request']);
+        if(isset($options['request']) && empty(static::$_filled_request))
+            static::vcm_start($options['request']);
 
-        if(empty(self::$_filled_request) || self::$_break_validation)
+        if(empty(static::$_filled_request) || static::$_break_validation)
             return $this;
 
-        $is_required = $options['required'] ?? self::$_required ?? true;
+        $is_required = $options['required'] ?? static::$_required ?? true;
         $field = str_replace("[]", "", $options['field']);
         $value = $this->__get_field($field);
 
@@ -435,7 +437,7 @@ trait ValidateCleanMap {
 
         if($apply_clean) {
             // Clean and Map field
-            $clean = $options['clean'] ?? self::$_clean_by_default ?? true;
+            $clean = $options['clean'] ?? static::$_clean_by_default ?? true;
 
             if ($clean) {
                 $clean_type = is_array($clean) ? ($clean['escape'] ?? EscapeType::STRIP_TRIM_ESCAPE) : EscapeType::STRIP_TRIM_ESCAPE;
@@ -455,23 +457,23 @@ trait ValidateCleanMap {
 
         $alias = $options['alias'] ?? $options['db_col'] ?? null;
 
-        if(self::$_alias_required && !$alias)
+        if(static::$_alias_required && !$alias)
             LayException::throw_exception(
                 "An alias for field [$field] was not specified and is required by the validation rule. Please set one using the `alias` key",
                 "VCM::Error"
             );
 
-        $return_struct = $options['return_struct'] ?? self::$_return_struct ?? null;
+        $return_struct = $options['return_struct'] ?? static::$_return_struct ?? null;
 
         if($return_struct)
             $value = $return_struct($value, $alias ?? $field, $options);
 
-        $result_is_assoc = $options['result_is_assoc'] ?? self::$_result_is_assoc;
+        $result_is_assoc = $options['result_is_assoc'] ?? static::$_result_is_assoc;
 
         if($result_is_assoc)
-            self::$_entries[$alias ?? $field] = $value;
+            static::$_entries[$alias ?? $field] = $value;
         else
-            self::$_entries[] = $value;
+            static::$_entries[] = $value;
 
         return $this;
     }
@@ -500,26 +502,26 @@ trait ValidateCleanMap {
      *      return_struct?: callable<mixed, string>,
      *   } $options
      */
-    public function vcm_rules(array $options) : self
+    public function vcm_rules(array $options) : static
     {
-        self::$_required = $options['required'] ?? null;
-        self::$_clean_by_default = $options['clean'] ?? null;
-        self::$_alias_required = $options['alias_required'] ?? null;
-        self::$_sub_dir = $options['sub_dir'] ?? null;
-        self::$_allowed_types = $options['allowed_types'] ?? $options['allowed_extensions'] ?? null;
+        static::$_required = $options['required'] ?? null;
+        static::$_clean_by_default = $options['clean'] ?? null;
+        static::$_alias_required = $options['alias_required'] ?? null;
+        static::$_sub_dir = $options['sub_dir'] ?? null;
+        static::$_allowed_types = $options['allowed_types'] ?? $options['allowed_extensions'] ?? null;
 
-        self::$_max_size = $options['max_size'] ?? null;
+        static::$_max_size = $options['max_size'] ?? null;
 
         if(isset($options['max_size_in_mb']))
-            self::$_max_size = $options['max_size_in_mb'] * 1000000;
+            static::$_max_size = $options['max_size_in_mb'] * 1000000;
 
-        self::$_new_file_name = $options['new_file_name'] ?? null;
-        self::$_dimension = $options['dimension'] ?? null;
-        self::$_upload_storage = $options['upload_storage'] ?? null;
-        self::$_bucket_url = $options['bucket_url'] ?? null;
-        self::$_upload_handler = $options['upload_handler'] ?? null;
-        self::$_return_struct = $options['return_struct'] ?? null;
-        self::$_result_is_assoc = $options['result_is_assoc'] ?? true;
+        static::$_new_file_name = $options['new_file_name'] ?? null;
+        static::$_dimension = $options['dimension'] ?? null;
+        static::$_upload_storage = $options['upload_storage'] ?? null;
+        static::$_bucket_url = $options['bucket_url'] ?? null;
+        static::$_upload_handler = $options['upload_handler'] ?? null;
+        static::$_return_struct = $options['return_struct'] ?? null;
+        static::$_result_is_assoc = $options['result_is_assoc'] ?? true;
 
         return $this;
     }
@@ -547,36 +549,36 @@ trait ValidateCleanMap {
      *      upload_handler?: callable,
      *      return_struct?: callable<mixed, string>,
      *   } $vcm_rules vcm rules can also be set via this parameter
-     * @return self
+     * @return static
      */
-    public static function vcm_start(array|object $request, ?array $vcm_rules = null) : self
+    public static function vcm_start(array|object $request, ?array $vcm_rules = null) : static
     {
-        self::$_filled_request = $request;
+        static::$_filled_request = $request;
 
-        self::$_entries = [];
-        self::$_errors = [];
-        self::$_break_validation = false;
+        static::$_entries = [];
+        static::$_errors = null;
+        static::$_break_validation = false;
 
-        self::$_required = null;
-        self::$_alias_required = null;
-        self::$_clean_by_default = null;
-        self::$_sub_dir = null;
-        self::$_allowed_types = null;
-        self::$_max_size = null;
-        self::$_new_file_name = null;
-        self::$_dimension = null;
-        self::$_upload_storage = null;
-        self::$_bucket_url = null;
-        self::$_upload_handler = null;
-        self::$_return_struct = null;
-        self::$_result_is_assoc = true;
+        static::$_required = null;
+        static::$_alias_required = null;
+        static::$_clean_by_default = null;
+        static::$_sub_dir = null;
+        static::$_allowed_types = null;
+        static::$_max_size = null;
+        static::$_new_file_name = null;
+        static::$_dimension = null;
+        static::$_upload_storage = null;
+        static::$_bucket_url = null;
+        static::$_upload_handler = null;
+        static::$_return_struct = null;
+        static::$_result_is_assoc = true;
 
-        $me = new self();
+        static::$VCM_INSTANCE ??= new static();
 
         if(!empty($vcm_rules))
-            $me->vcm_rules($vcm_rules);
+            static::$VCM_INSTANCE->vcm_rules($vcm_rules);
 
-        return $me;
+        return static::$VCM_INSTANCE;
     }
 
     /**
@@ -587,7 +589,7 @@ trait ValidateCleanMap {
      */
     public static function vcm_end() : array
     {
-        return self::$_entries;
+        return static::$_entries;
     }
 
     /**
@@ -597,7 +599,7 @@ trait ValidateCleanMap {
      */
     public static function vcm_data() : array
     {
-        return self::vcm_end();
+        return static::vcm_end();
     }
 
     /**
@@ -609,9 +611,9 @@ trait ValidateCleanMap {
      */
     public static function vcm_errors(bool $as_string = true) : array|string|null
     {
-        $errors = self::$_errors ?? null;
+        $errors = static::$_errors ?? null;
 
-        if(empty(self::$_entries) and !$errors)
+        if(empty(static::$_entries) and !$errors)
             $errors = ["Form submission is invalid, please check if you submitted a file above the specified file limit"];
 
         if($as_string && $errors)

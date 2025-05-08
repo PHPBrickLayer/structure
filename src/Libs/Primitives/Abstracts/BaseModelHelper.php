@@ -29,10 +29,32 @@ abstract class BaseModelHelper
         return SQL::new()->open($table ?? static::$table);
     }
 
-    public function add(array $columns) : ?static
+    /**
+     * Should check the DB if a record exists already
+     * @param array|RequestHelper $columns
+     * @return mixed
+     * @abstract Must override if you want to use it
+     */
+    public function is_duplicate(array|RequestHelper $columns) : bool {
+        throw new \RuntimeException("Unimplemented Method");
+    }
+
+    /**
+     * @abstract Override this method to use your app's date pattern. Default is epoc-style date 1764222...
+     * @return int|string
+     */
+    public function timestamp() : int|string
     {
+        return LayDate::now();
+    }
+
+    public function add(array|RequestHelper $columns) : ?static
+    {
+        if($columns instanceof RequestHelper)
+            $columns = $columns->props();
+
         $columns[static::$primary_key_col] ??= 'UUID()';
-        $columns['created_at'] ??= LayDate::now();
+        $columns['created_at'] ??= $this->timestamp();
 
         $rtn = static::db()->insert($columns, true);
 
@@ -42,7 +64,7 @@ abstract class BaseModelHelper
         return $this->fill($rtn);
     }
 
-    public static function create(array $columns): ?static
+    public static function create(array|RequestHelper $columns): ?static
     {
         return (new static())->add($columns);
     }
@@ -59,6 +81,9 @@ abstract class BaseModelHelper
     public function all(int $page = 1, int $limit = 100) : array
     {
         $orm = static::db();
+
+        if(static::$use_delete)
+            $orm->where(static::$primary_delete_col, '0');
 
         return $orm->loop()->limit($limit, $page)->then_select();
     }
@@ -105,8 +130,17 @@ abstract class BaseModelHelper
         return $orm->loop()->then_select();
     }
 
-    public function edit(string $record_id, array $columns) : bool
+    /**
+     * Edit the db record of a specified record entry
+     * @param string $record_id
+     * @param array|RequestHelper $columns
+     * @return bool
+     */
+    public function edit(string $record_id, array|RequestHelper $columns) : bool
     {
+        if($columns instanceof RequestHelper)
+            $columns = $columns->props();
+
         $orm = static::db()->column($columns)->no_false();
 
         $orm->where(static::$primary_key_col, $record_id);
@@ -114,7 +148,12 @@ abstract class BaseModelHelper
         return $orm->edit();
     }
 
-    public function self_edit(array $columns) : bool
+    /**
+     * Edit the db record of the current model property
+     * @param array|RequestHelper $columns
+     * @return bool
+     */
+    public function edit_self(array|RequestHelper $columns) : bool
     {
         $record_id = $this->{static::$primary_key_col};
 
@@ -122,7 +161,7 @@ abstract class BaseModelHelper
     }
 
     /**
-     * Soft delete from the table
+     * Soft delete from the table of the specified record
      *
      * @param string $act_by
      * @param string|null $record_id
@@ -133,9 +172,21 @@ abstract class BaseModelHelper
         $orm = static::db()->column([
             static::$primary_delete_col => 1,
             static::$primary_delete_col . "_by" => $act_by,
-            static::$primary_delete_col . "_at" => LayDate::now(),
+            static::$primary_delete_col . "_at" => $this->timestamp(),
         ]);
 
         return $orm->where(static::$primary_key_col, $record_id)->edit();
+    }
+
+    /**
+     * Soft delete from the table of the current model record
+     *
+     * @param string $act_by
+     * @return bool
+     */
+    public function delete_self(string $act_by) : bool
+    {
+        $record_id = $this->{static::$primary_key_col};
+        return $this->delete($act_by, $record_id);
     }
 }

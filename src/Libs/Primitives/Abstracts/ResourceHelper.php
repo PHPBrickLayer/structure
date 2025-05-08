@@ -3,33 +3,57 @@ declare(strict_types=1);
 
 namespace BrickLayer\Lay\Libs\Primitives\Abstracts;
 
+use BrickLayer\Lay\Core\LayException;
 use BrickLayer\Lay\Libs\LayArray;
 
-abstract readonly class ResourceHelper
+abstract class ResourceHelper
 {
     /**
      * Define how you want the resource to be mapped
+     * @param array|object $data
      * @return array
      */
-    abstract public function props(): array;
+    abstract protected function schema(array|object $data): array;
 
     /**
-     * Maps a 2D array to the defined schema and returns the formatted array
-     * @param array $data
+     * Returns the mapped schema for external usage
+     * @return array
+     */
+    public final function props(): array
+    {
+        if(!isset($this->data))
+            LayException::throw_exception(
+                "Trying to get props without setting `data`. You need to reinit " . static::class . " and set your data."
+            );
+
+        return $this->data = $this->schema($this->data);
+    }
+
+    /**
+     * Maps a 2D array to the defined schema and returns the formatted array in 2D format
      * @return array<int|string, array>
      */
-    public final function collection(array $data): array
+    public final function collect(): array
     {
-        return LayArray::map($data, fn($d) => new static($d));
+        if(!isset($this->data))
+            LayException::throw_exception(
+                "Trying to get collection without setting `data`. You need to reinit " . static::class . " and set your data."
+            );
+
+        return LayArray::map($this->data, fn($d) => $this->schema($d));
     }
 
     /**
      * @param array|object $data Can accept an array, stdclass, or you model class, since classes are objects in php
+     * @param bool $fill Autofill the props value
      * Then you can access them directly like a property in your props method
      */
-    public function __construct(private array|object $data)
+    public function __construct(protected array|object $data, bool $fill = true)
     {
-        return $this->props();
+        if($fill)
+            $this->props();
+
+        return $this;
     }
 
     public function __get(string $name) : mixed

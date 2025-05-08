@@ -209,6 +209,16 @@ trait Image
                 ]
             );
 
+        if($this->dry_run)
+            $this->upload_response(
+                false,
+                [
+                    'dev_error' => "Function is running dry run",
+                    'error' => "Upload prevented by user action",
+                    'error_type' => FileUploadErrors::DRY_RUN,
+                ]
+            );
+
         $file = $_FILES[$post_name];
         $add_mod_time ??= true;
         $copy_tmp_file ??= false;

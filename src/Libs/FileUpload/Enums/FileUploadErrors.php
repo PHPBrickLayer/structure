@@ -16,4 +16,5 @@ enum FileUploadErrors
     case IMG_COPY_FAILED;
     case IMG_COMPLETION;
     case LIB_IMAGICK_NOT_FOUND;
+    case DRY_RUN;
 }
