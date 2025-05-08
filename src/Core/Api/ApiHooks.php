@@ -6,6 +6,7 @@ use BrickLayer\Lay\Core\Api\Enums\ApiReturnType;
 use BrickLayer\Lay\Core\Api\Enums\ApiStatus;
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Libs\LayFn;
 use JetBrains\PhpStorm\NoReturn;
 
 abstract class ApiHooks
@@ -137,19 +138,21 @@ abstract class ApiHooks
         }
     }
 
-    final public function get_all_endpoints() : array
+    final public function get_all_endpoints() : ?array
     {
+        if($this->engine::is_debug_dump_mode() || $this->engine::is_debug_override_active())
+            return null;
+
         $this->engine::set_debug_dump_mode();
         $this->engine::fetch();
         $this->load_brick_hooks();
+
         return $this->engine::all_api_endpoints();
     }
 
-    #[NoReturn]
     final public function dump_endpoints_as_json() : void
     {
-        $this->engine::set_response_header(ApiStatus::OK, ApiReturnType::JSON);
-        echo json_encode($this->get_all_endpoints());
-        die;
+        if($data = $this->get_all_endpoints())
+            LayFn::dump_json($data);
     }
 }

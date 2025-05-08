@@ -26,6 +26,7 @@ use JetBrains\PhpStorm\ArrayShape;
 // Cache could be a physical file created called api list or something of sorts, but something not so large though.
 final class ApiEngine {
     private static self $engine;
+    private static bool $ALL_DEBUG_OVERRIDE = false;
     private static bool $DEBUG_MODE = false;
     private static bool $DEBUG_DUMP_MODE = false;
     private static bool $ERRORS_AS_JSON = true;
@@ -755,9 +756,8 @@ final class ApiEngine {
     }
 
     /**
-     * @param (int|mixed|string)[]|null $return_array
+     * @param mixed $return_array
      *
-     * @psalm-param array{code: 429, msg: 'TOO MANY REQUESTS', message: 'TOO MANY REQUESTS', expire: mixed}|null $return_array
      */
     private static function set_return_value(mixed $return_array = null) : void
     {
@@ -793,9 +793,11 @@ final class ApiEngine {
 
         self::$using_route_middleware = !$__INTERNAL_;
 
+        if(self::$DEBUG_DUMP_MODE || self::$DEBUG_MODE)
+            return $this;
+
         $arguments = self::get_mapped_args();
         $return = $middleware_callback(...$arguments);
-
 
         if(!isset($return['code']))
             self::exception(
@@ -1065,7 +1067,7 @@ final class ApiEngine {
      * depending on what was selected as `$return_type`
      */
     public function print_as(?ApiReturnType $return_type = null, bool $print = true) : string|bool|null {
-        if(!isset(self::$bind_return_value))
+        if(!isset(self::$bind_return_value) || (self::$DEBUG_DUMP_MODE || self::$DEBUG_MODE))
             return null;
 
         // Clear the prefix, because this method marks the end of a set of api routes
@@ -1136,12 +1138,33 @@ final class ApiEngine {
 
     public static function set_debug_dump_mode() : void
     {
+        if(self::$ALL_DEBUG_OVERRIDE)
+            return;
+
         self::$DEBUG_DUMP_MODE = true;
         self::update_global_props("DEBUG_DUMP_MODE", self::$DEBUG_DUMP_MODE);
     }
 
+    public static function debug_mode_override() : void
+    {
+        self::$ALL_DEBUG_OVERRIDE = true;
+    }
+
+    public static function is_debug_override_active() : bool
+    {
+        return self::$ALL_DEBUG_OVERRIDE;
+    }
+
+    public static function is_debug_dump_mode() : bool
+    {
+        return self::$DEBUG_DUMP_MODE;
+    }
+
     public static function set_debug_mode() : void
     {
+        if(self::$ALL_DEBUG_OVERRIDE)
+            return;
+
         self::$DEBUG_MODE = true;
         self::update_global_props("DEBUG_MODE", self::$DEBUG_MODE);
     }
