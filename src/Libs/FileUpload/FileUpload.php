@@ -30,6 +30,8 @@ final class FileUpload {
      */
     public ?array $response = null;
 
+    protected bool $dry_run = false;
+
     protected ?FileUploadStorage $storage = null;
     protected ?FileUploadType $upload_type = null;
 
@@ -42,6 +44,9 @@ final class FileUpload {
      */
     public function __construct(
         #[ArrayShape([
+            // Name of file from the form
+            'dry_run' => 'bool',
+
             // Name of file from the form
             'post_name' => 'string',
 

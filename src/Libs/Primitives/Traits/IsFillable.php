@@ -84,7 +84,7 @@ trait IsFillable {
         return $this;
     }
 
-    public function __get(string $key) : ?array
+    public function __get(string $key) : mixed
     {
         return static::$columns[$key] ?? null;
     }

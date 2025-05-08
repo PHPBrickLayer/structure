@@ -10,7 +10,7 @@ abstract class RequestHelper
 {
     use ValidateCleanMap, ControllerHelper;
 
-    public readonly string $error;
+    public readonly ?string $error;
     private array $data;
 
     abstract protected function rules(): void;
@@ -18,6 +18,21 @@ abstract class RequestHelper
     public final function props() : array
     {
         return $this->data;
+    }
+
+    /**
+     * Properties to exclude from `props()` result
+     * @param string ...$keys
+     * @return $this
+     */
+    public final function except(string ...$keys) : static
+    {
+        foreach ($keys as $key) {
+            if(isset($this->data[$key]))
+                unset($this->data[$key]);
+        }
+
+        return $this;
     }
 
     /**
@@ -49,9 +64,14 @@ abstract class RequestHelper
         return $this;
     }
 
-    public function __construct()
+    public function __construct(bool $validate = true)
     {
-        return $this->validate();
+        static::$VCM_INSTANCE = $this;
+
+        if($validate)
+            return $this->validate();
+
+        return $this;
     }
 
     public final function __get(string $key) : mixed
