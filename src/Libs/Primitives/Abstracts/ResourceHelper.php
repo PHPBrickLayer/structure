@@ -8,6 +8,8 @@ use BrickLayer\Lay\Libs\LayArray;
 
 abstract class ResourceHelper
 {
+    private array $mapped;
+
     /**
      * Define how you want the resource to be mapped
      * @param array|object $data
@@ -26,7 +28,9 @@ abstract class ResourceHelper
                 "Trying to get props without setting `data`. You need to reinit " . static::class . " and set your data."
             );
 
-        return $this->data = $this->schema($this->data);
+        if(isset($this->mapped)) return $this->mapped;
+
+        return $this->mapped = $this->schema($this->data);
     }
 
     /**
@@ -36,9 +40,11 @@ abstract class ResourceHelper
      */
     public final function except(string ...$keys) : static
     {
+        $this->props();
+
         foreach ($keys as $key) {
-            if(isset($this->data[$key]))
-                unset($this->data[$key]);
+            if(isset($this->mapped[$key]))
+                unset($this->mapped[$key]);
         }
 
         return $this;
@@ -48,14 +54,16 @@ abstract class ResourceHelper
      * Maps a 2D array to the defined schema and returns the formatted array in 2D format
      * @return array<int|string, array>
      */
-    public final function collect(): array
+    public final function collect(string ...$except): array
     {
         if(!isset($this->data))
             LayException::throw_exception(
                 "Trying to get collection without setting `data`. You need to reinit " . static::class . " and set your data."
             );
 
-        return LayArray::map($this->data, fn($d) => $this->schema($d));
+        return LayArray::map($this->data, function($d) use ($except) {
+            return (new static($d, false))->except(...$except)->props();
+        });
     }
 
     /**
@@ -73,17 +81,11 @@ abstract class ResourceHelper
 
     public function __get(string $name) : mixed
     {
-        if(is_object($this->data))
-            return $this->data->$name ?? null;
-
-        return $this->data[$name] ?? null;
+        return $this->mapped[$name] ?? null;
     }
 
     public function __isset($name) : bool
     {
-        if(is_object($this->data))
-            return isset($this->data->$name);
-
-        return isset($this->data[$name]);
+        return isset($this->mapped[$name]);
     }
 }
