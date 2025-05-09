@@ -16,9 +16,24 @@ trait SelectorOOPCrud
 {
     private mixed $saved_result;
 
+    /**
+     * @var array{
+     *     page :  int,
+     *     per_page :  int,
+     *     page_count :  int,
+     *     total_count :  int,
+     * }
+     */
+    protected array $select_metadata;
+
     final public function get_result(): mixed
     {
         return $this->saved_result ?? null;
+    }
+
+    final public function get_select_metadata(): array
+    {
+        return $this->select_metadata;
     }
 
     final public function last_item(?string $column_to_check = null): array
@@ -147,10 +162,12 @@ trait SelectorOOPCrud
                     $c = Escape::clean($c, EscapeType::TRIM_ESCAPE);
 
                     if($c === null) {
+                        $k = self::escape_identifier($k);
+
                         if($is_mysql)
-                            $values .= "`$k`=NULL,";
+                            $values .= "$k=NULL,";
                         else {
-                            $columns .= "\"$k\",";
+                            $columns .= "$k,";
                             $values .= "NULL,";
                         }
 
@@ -170,10 +187,12 @@ trait SelectorOOPCrud
                     if (!preg_match("/^[a-zA-Z]+\([^)]*\)$/", $c))
                         $c = "'$c'";
 
+                    $k = self::escape_identifier($k);
+
                     if($is_mysql)
-                        $values .= "`$k`=$c,";
+                        $values .= "$k=$c,";
                     else {
-                        $columns .= "\"$k\",";
+                        $columns .= "$k,";
                         $values .= "$c,";
                     }
 
@@ -299,47 +318,6 @@ trait SelectorOOPCrud
         );
     }
 
-    /**
-     * @deprecated since version v0.6.18
-     * @see insert_multi() for multiple insert or
-     * @see insert() for single insert
-     * @see query() for custom insert
-     * @return bool
-     */
-    final public function insert_raw(): bool
-    {
-        LayException::log("This method is deprecated. Use `insert()` or `insert_multi()` instead", log_title: "DeprecatedMethod");
-
-        $d = $this->get_vars();
-        $columns = $d['columns'] ?? null;
-        $values = $d['values'] ?? null;
-        $clause = $this->parse_clause($d);
-        $table = $d['table'] ?? null;
-
-        if (empty($columns))
-            $this->oop_exception("You did not initialize the `columns`. Use the `->column(String)` method like this: `->column('id,name')`");
-
-        if (empty($values))
-            $this->oop_exception("You did not initialize the `values`. Use the `->value(String)` method. Example: `->value(\"(1, 'user name'), (2, 'another user name')\")`");
-
-        if (empty($table))
-            $this->oop_exception("You did not initialize the `table`. Use the `->table(String)` method like this: `->value('your_table_name')`");
-
-        $columns = rtrim($columns, ",");
-
-        if (str_starts_with($values, "("))
-            $values = "VALUES" . rtrim($values, ",");
-
-        $d['query_type'] = OrmQueryType::INSERT;
-
-        $table = self::escape_identifier($table);
-
-        return $this->capture_result(
-            [$this->query(/** @lang text */ "INSERT INTO $table ($columns) $values $clause", $d) ?? false, $d],
-            'bool'
-        );
-    }
-
     final public function edit(): bool
     {
         $d = $this->get_vars();
@@ -429,16 +407,17 @@ trait SelectorOOPCrud
             $between['start'] = $between['format'] ? date("Y-m-d 00:00:00", strtotime($between['start'])) : $between['format'];
             $between['end'] = $between['format'] ? date("Y-m-d 23:59:59", strtotime($between['end'])) : $between['format'];
             $between_allow_null = $between['allow_null'] ?? true;
-            $between = $between['col'] . " BETWEEN '" . $between['start'] . "' AND '" . $between['end'] . "'";
+            $between = self::escape_identifier($between['col']) . " BETWEEN '" . $between['start'] . "' AND '" . $between['end'] . "'";
 
             $clause = $clause ? $clause . " AND ($between) " : "WHERE " . $between;
         }
 
         if ($group) {
-            $str = "";
+            $group = rtrim($group, ",");
 
-            foreach ($group as $g) {
-                $str .= $g['condition'] . ", ";
+            $str = "";
+            foreach (explode(",", $group) as $g) {
+                $str .= self::escape_identifier($g) . ", ";
             }
 
             $clause .= " GROUP BY " . rtrim($str, ", ");
@@ -448,17 +427,17 @@ trait SelectorOOPCrud
             $str = "";
 
             foreach ($having as $h) {
-                $str .= $h['condition'] . ", ";
+                $str .= $h['condition'] . " ";
             }
 
-            $clause .= " HAVING " . rtrim($str, ", ");
+            $clause .= " HAVING $str";
         }
 
         if ($sort) {
             $str = "";
 
             foreach ($sort as $s) {
-                $str .= $s['sort'] . " " . $s['type'] . ", ";
+                $str .= self::escape_identifier($s['sort']) . " " . $s['type'] . ", ";
             }
 
             $clause .= " ORDER BY " . rtrim($str, ", ");
@@ -467,26 +446,41 @@ trait SelectorOOPCrud
         if ($limit && !isset($d['debug'])) {
             $current_queue = $limit['index'];
             $result_per_queue = $limit['max_result'];
+            $total_result = 0;
 
             $count = $this->_store_vars_temporarily(
                 $d,
-                fn() => ceil(($this->count_row("*") / $result_per_queue))
+                function() use (&$total_result, $result_per_queue) {
+                    $total_result = $this->count_row("*");
+                    return ceil($total_result / $result_per_queue);
+                }
             );
 
+            $current_result = (max($current_queue, 1) - 1) * $result_per_queue;
+
+            $this->select_metadata = [
+                "page" => $current_queue,
+                "per_page" => $result_per_queue,
+                "page_count" => $count,
+                "total_count" => $total_result,
+            ];
 
             // cut off request if we've gotten to the last record set
             if ($current_queue > $count)
                 return @$d['can_be_null'] ? null : [];
 
-            $current_result = (max($current_queue, 1) - 1) * $result_per_queue;
-
             $clause .= " LIMIT $current_result, $result_per_queue";
+
+            if(isset($d['debug_full']))
+                $d['debug'] = true;
         }
 
         if (isset($d['join']))
             $clause = $this->_join($d) . $clause;
 
         $clause = $this->bind_param($clause, $d);
+
+        $table = self::escape_identifier($table);
 
         $rtn = $this->capture_result(
             [$this->query(/** @lang text */ "SELECT $cols FROM $table $clause", $d), $d],
@@ -523,6 +517,11 @@ trait SelectorOOPCrud
             [$this->query(/** @lang text */ "SELECT COUNT($col) FROM $table $where", $d), $d],
             'int'
         );
+    }
+
+    final public function count(?string $column = null) : int
+    {
+        return $this->count_row($column);
     }
 
     final public function delete(?string $where = null, bool $delete_all_records = false): bool
@@ -650,14 +649,17 @@ trait SelectorOOPCrud
         $join_query = "";
 
         foreach ($d['join'] as $k => $joint) {
+            $table = str_replace([" as ", " AS ", "As"], " __AS__ ", $joint['table']);
+            $table = explode(" __AS__ ", $table);
+
             $on = $d['on'][$k];
             $join = [
-                "table" => $joint['table'],
+                "table" => self::escape_identifier($table[0]) . (isset($table[1]) ? " AS $table[1]" : ''),
                 "type" => match (strtolower($joint['type'] ?? "")) {
                     "left", "inner", "right" => strtoupper($joint['type']),
                     default => "",
                 },
-                "on" => [$on['child_table'], $on['parent_table']],
+                "on" => [self::escape_identifier($on['child_table']), self::escape_identifier($on['parent_table'])],
             ];
 
             $join_query .= "{$join['type']} JOIN {$join['table']} ON {$join['on'][0]} = {$join['on'][1]} ";

@@ -154,22 +154,63 @@ trait SelectorOOP
      * ## Note
      * If $date_1 is smaller than $date_2, your result will be negative.
      *
-     * @example DATEDIFF('2025-02-20', '2026-02-20') == -365
+     * ## In plain language
+     * By default this function is doing this: `$date_1 - $date_2`
+     *
+     * @example '2026-02-20', '2025-02-20' == 365
      * @param string $date_1
      * @param string $date_2
      * @param bool $invert_arg use this to invert the syntax to place $date_2 first and $date_1 next
      * @return string
-     * @todo Implement the various shades of date diff according to the supported database drivers
      */
     final public function days_diff(string $date_1, string $date_2, bool $invert_arg = false) : string
     {
-        $date_1 = LayDate::is_valid($date_1) ? "'$date_1'" : self::escape_identifier($date_1);
-        $date_2 = LayDate::is_valid($date_2) ? "'$date_2'" : self::escape_identifier($date_2);
+        if (LayDate::is_valid($date_1)) {
+            $date_1 = explode(" ", $date_1)[0]; // Strip the time part, we're only interested in the date
+            $date_1 = "'$date_1'";
+            $x1_is_col = false;
+        }
+        else {
+            self::escape_identifier($date_1);
+            $x1_is_col = true;
+        }
 
-        if($invert_arg)
-            return "DATEDIFF($date_2, $date_1)";
+        if (LayDate::is_valid($date_2)) {
+            $date_2 = explode(" ", $date_1)[0]; // Strip the time part, we're only interested in the date
+            $date_2 = "'$date_2'";
+            $x2_is_col = false;
+        }
+        else {
+            self::escape_identifier($date_1);
+            $x2_is_col = true;
+        }
 
-        return "DATEDIFF($date_1, $date_2)";
+        $x1 = $date_1;
+        $x2 = $date_2;
+
+        if($invert_arg) {
+            $x1 = $date_2;
+            $x2 = $date_1;
+
+            $c1 = $x1_is_col;
+            $x1_is_col = $x2_is_col;
+            $x2_is_col = $c1;
+        }
+
+        $driver = self::get_driver();
+
+        if($driver == OrmDriver::POSTGRES) {
+            $x1 = $x1_is_col ? $x1 : "$x1::date";
+            $x2 = $x2_is_col ? $x2 : "$x2::date";
+
+            return "CAST(($x1 - $x2) AS INTEGER)";
+        }
+
+        if(OrmDriver::is_sqlite($driver))
+            return "CAST(julianday(date($x1)) - julianday(date($x2)) AS INTEGER)";
+
+
+        return "DATEDIFF($x1, $x2)";
     }
 
     final public function open(string $table): self
@@ -221,7 +262,7 @@ trait SelectorOOP
         return $this->store_vars('except', $comma_separated_columns);
     }
 
-    private function process_where(string $column, ?string $operator_or_value = null, ?string $value = null) : string
+    private function process_condition_stmt(string $column, ?string $operator_or_value = null, ?string $value = null) : string
     {
         if($operator_or_value === null)
             return $column;
@@ -241,7 +282,7 @@ trait SelectorOOP
 
     final public function where(string $column, ?string $operator_or_value = null, ?string $value = null): self
     {
-        $WHERE = $this->process_where($column,$operator_or_value,$value);
+        $WHERE = $this->process_condition_stmt($column,$operator_or_value,$value);
 
         $prepend_where = @$this->cached_options[self::$current_index]['has_used_where'] ? "" : "WHERE";
 
@@ -252,21 +293,24 @@ trait SelectorOOP
 
     final public function or_where(string $column, string $operator_or_value, ?string $value = null): self
     {
-        $WHERE = $this->process_where($column,$operator_or_value,$value);
+        $WHERE = $this->process_condition_stmt($column,$operator_or_value,$value);
 
         return $this->clause_array(" OR $WHERE");
     }
 
     final public function and_where(string $column, string $operator_or_value, ?string $value = null): self
     {
-        $WHERE = $this->process_where($column,$operator_or_value,$value);
+        $WHERE = $this->process_condition_stmt($column,$operator_or_value,$value);
 
         return $this->clause_array(" AND $WHERE");
     }
 
     /**
+     * Wraps a condition around a parenthesis `()` popularly known as bracket
+     * Currently only supports WHERE statements.
+     * @param callable(self):void $where_callback
      * @param null|'and'|'or'|'AND'|'OR' $prepend
-     * @param callable(self):string $where_callback
+     * @return SQL
      */
     final public function bracket(
         callable $where_callback,
@@ -311,27 +355,63 @@ trait SelectorOOP
 
     private function set_where(): void
     {
-        if(@$this->cached_options[self::$current_index]['has_used_where'] == true)
+        if(@$this->cached_options[self::$current_index]['has_used_where'])
             return;
 
         $this->store_vars('has_used_where', true);
     }
 
-    final public function fun(Closure $function): self
+    /**
+     * Instruct the ORM to run this function on each entry of the record when pooling from the DB
+     * @param callable(mixed):mixed $function
+     * @return SelectorOOP|SQL
+     */
+    final public function fun(callable $function): self
     {
         return $this->store_vars('fun', $function);
     }
 
+    /**
+     * @see fun
+     */
+    final public function each(callable $function): self
+    {
+        return $this->fun($function);
+    }
+
+    /**
+     * Display the SQL query and kill execution
+     * @return SelectorOOP|SQL
+     */
     final public function debug(): self
     {
         return $this->store_vars('debug', true);
     }
 
+    /**
+     * Some functions which use the `->select()` method internally first send a `->count_row()` query;
+     * This method debugs that count query
+     * @return SQL|SelectorOOP
+     */
     final public function debug_deep(): self
     {
         return $this->store_vars('debug_deep', true);
     }
 
+    /**
+     * This debug  method is specifically for select query. When using regular `->debug()` method, you'll notice some part
+     * of the query is missing, like LIMIT. This method displays all hidden parts of the query.
+     * @return SelectorOOP|SQL
+     */
+    final public function debug_full(): self
+    {
+        return $this->store_vars('debug_full', true);
+    }
+
+    /**
+     * Instructs the ORM to catch any error it encounters, log but don't display
+     * @return SelectorOOP|SQL
+     */
     final public function catch(): self
     {
         return $this->store_vars('catch', true);
@@ -345,8 +425,8 @@ trait SelectorOOP
     /**
      * Handles conflict when inserting into a table with unique columns
      *
-     * @param array<string> $unique_columns
-     * @param array<string> $update_columns
+     * @param array<int,string> $unique_columns
+     * @param array<int,string> $update_columns
      * @param "UPDATE"|"IGNORE"|"REPLACE"|"NOTHING" $action
      * @param string|null $constraint a unique constraint name created by the database admin or developer
      */
@@ -399,11 +479,11 @@ trait SelectorOOP
      *
      * @link https://www.w3schools.com/sql/sql_groupby.asp
      *
-     * @param string $by
+     * @param string $columns Comma separated columns
      */
-    final public function group(string $by): SQL
+    final public function group(string $columns): SQL
     {
-        return $this->store_vars('group', ["condition" => $by,], true);
+        return $this->store_vars('group', ["columns" => $columns,]);
     }
 
     /**
@@ -411,10 +491,35 @@ trait SelectorOOP
      *
      * @link https://www.w3schools.com/sql/sql_having.asp
      *
-     * @param string $condition
+     * @param string $column
+     * @param string|null $operator_or_value
+     * @param string|null $value
+     * @return SQL
      */
-    final public function having(string $condition): SQL
+    final public function having(string $column, ?string $operator_or_value = null, ?string $value = null): SQL
     {
+        $condition = $this->process_condition_stmt($column,$operator_or_value,$value);
+
+        return $this->store_vars('having', ["condition" => $condition,], true);
+    }
+
+    /**
+     * @see having
+     */
+    final public function or_having(string $column, ?string $operator_or_value = null, ?string $value = null): SQL
+    {
+        $condition = "OR " . $this->process_condition_stmt($column,$operator_or_value,$value);
+
+        return $this->store_vars('having', ["condition" => $condition,], true);
+    }
+
+    /**
+     * @see having
+     */
+    final public function and_having(string $column, ?string $operator_or_value = null, ?string $value = null): SQL
+    {
+        $condition = "AND " . $this->process_condition_stmt($column,$operator_or_value,$value);
+
         return $this->store_vars('having', ["condition" => $condition,], true);
     }
 
@@ -450,13 +555,14 @@ trait SelectorOOP
      *
      * This is very useful for pagination.
      *
+     * ### You can get the select metadata by calling `->get_select_metadata()` which returns an array
+     *
      * @param int $max_result Specify query result limit
      * @param int $page_number Specifies the page batch based on the limit
-     * @param string|null $column_to_check
      */
-    final public function limit(int $max_result, int $page_number = 1, ?string $column_to_check = null): SQL
+    final public function limit(int $max_result, int $page_number = 1): SQL
     {
-        return $this->store_vars('limit', ["index" => $page_number, "max_result" => $max_result, "column" => $column_to_check,]);
+        return $this->store_vars('limit', ["index" => $page_number, "max_result" => $max_result]);
     }
 
     /**
@@ -554,7 +660,7 @@ trait SelectorOOP
     /**
      * Instruct the ORM to return a single row of results.
      *
-     * @param string|array $columns
+     * @param string|array<string, string|int|null|bool> $columns
      * @return bool|array
      */
     final public function then_insert(string|array $columns): bool|array
@@ -567,7 +673,7 @@ trait SelectorOOP
      * This is used to specify the columns to be selected, inserted or updated.
      * Accepts a column name or an array of column names with values.
      *
-     * @param string|array $cols
+     * @param string|array<string, string|int|null|bool> $cols
      */
     final public function column(string|array $cols): SQL
     {
@@ -594,7 +700,7 @@ trait SelectorOOP
      *
      * @return Generator|Result|SQLite3Result|mysqli_result|array|null
      */
-    final public function then_select(?string $clause = null): array|Result|SQLite3Result|mysqli_result|null|Generator
+    final public function then_select(?string $clause = null): mixed
     {
         if ($clause)
             $this->clause($clause);

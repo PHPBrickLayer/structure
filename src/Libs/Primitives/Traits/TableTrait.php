@@ -71,7 +71,7 @@ trait TableTrait
     {
         self::init(self::$table);
 
-        return self::orm(self::$table)->delete("deleted=1'");
+        return self::orm(self::$table)->where("deleted", "1")->delete();
     }
 
     public function delete_record(string $id, ?string $act_by = null) : bool
