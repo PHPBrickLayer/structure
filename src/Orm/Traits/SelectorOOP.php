@@ -77,25 +77,25 @@ trait SelectorOOP
          *
          * @psalm-return list<string>
          */
-        function ($query) use ($filter_list) : array {
-            $words = [];
+            function ($query) use ($filter_list) : array {
+                $words = [];
 
-            $c = 0;
+                $c = 0;
 
-            foreach(explode(" ", trim($query)) as $key){
-                if (in_array($key, $filter_list))
-                    continue;
+                foreach(explode(" ", trim($query)) as $key){
+                    if (in_array($key, $filter_list))
+                        continue;
 
-                $words[] = $key;
+                    $words[] = $key;
 
-                if ($c > 14)
-                    break;
+                    if ($c > 14)
+                        break;
 
-                $c++;
-            }
+                    $c++;
+                }
 
-            return $words;
-        };
+                return $words;
+            };
 
         $query = trim($query);
 
@@ -202,14 +202,14 @@ trait SelectorOOP
             $x1 = $x1_is_col ? $x1 : "$x1::date";
             $x2 = $x2_is_col ? $x2 : "$x2::date";
 
-            return "CAST(($x1 - $x2) AS INTEGER)";
+            return "(CAST(($x1 - $x2) AS INTEGER))";
         }
 
         if(OrmDriver::is_sqlite($driver))
-            return "CAST(julianday(date($x1)) - julianday(date($x2)) AS INTEGER)";
+            return "(CAST(julianday(date($x1)) - julianday(date($x2)) AS INTEGER))";
 
 
-        return "DATEDIFF($x1, $x2)";
+        return "(DATEDIFF($x1, $x2))";
     }
 
     final public function open(string $table): self
@@ -266,7 +266,8 @@ trait SelectorOOP
         if($operator_or_value === null)
             return $column;
 
-        $column = self::escape_identifier($column);
+        if(!str_starts_with($column, "("))
+            $column = self::escape_identifier($column);
 
         if(is_null($value)) {
             return str_starts_with($operator_or_value, "(") || strtolower($operator_or_value) == 'null' ?
