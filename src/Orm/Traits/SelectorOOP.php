@@ -524,6 +524,24 @@ trait SelectorOOP
     }
 
     /**
+     * Search a json column directly with the ORM
+     * @param string $column
+     * @param string $value
+     * @param 'OR'|'or'|'AND'|'AND'|null $prepend
+     * @return SelectorOOP|SQL
+     */
+    final public function json_contains(string $column, string $value, ?string $prepend = null): self
+    {
+        $contain = match (self::get_driver()) {
+            default => "EXISTS (SELECT 1 FROM json_each($column) WHERE value = '$value')",
+            OrmDriver::MYSQL => "JSON_CONTAINS($column, '\"$value\"', '$')",
+            OrmDriver::POSTGRES => "$column @> '[\"$value\"]'"
+        };
+
+        return $this->clause_array(" $prepend " . $this->process_condition_stmt($contain,null, null));
+    }
+
+    /**
      * Sorts the result of a select query by a column and by an ascending or descending order.
      *
      * @param string $column

@@ -24,7 +24,7 @@ trait IsFillable {
      * @var array
      * @readonly
      */
-    protected static array $columns;
+    protected array $columns;
 
     public static function db() : SQL
     {
@@ -55,28 +55,28 @@ trait IsFillable {
             return $this;
 
         $by_id = is_array($record_or_id) && !$invalidate ?
-            fn() => $record_or_id :
-            fn() => static::db()->where(static::$primary_key_col, $record_or_id)->then_select();
+            fn() => $this->props_schema($record_or_id) :
+            fn() => $this->props_schema(static::db()->where(static::$primary_key_col, $record_or_id)->then_select());
 
         if($invalidate) {
-            static::$columns = $by_id();
+            $this->columns = $by_id();
             return $this;
         }
 
-        if(!isset(static::$columns)) {
-            static::$columns = $by_id();
+        if(!isset($this->columns)) {
+            $this->columns = $by_id();
             return $this;
         }
 
-        if(static::$columns[static::$primary_key_col] != $record_or_id)
-            static::$columns = $by_id();
+        if($this->columns[static::$primary_key_col] != $record_or_id)
+            $this->columns = $by_id();
 
         return $this;
     }
 
     public function refresh(): self
     {
-        $id = static::$columns[static::$primary_key_col] ?? null;
+        $id = $this->columns[static::$primary_key_col] ?? null;
 
         if ($id)
             return $this->fill($id, true);
@@ -86,27 +86,32 @@ trait IsFillable {
 
     public function __get(string $key) : mixed
     {
-        return static::$columns[$key] ?? null;
+        return $this->columns[$key] ?? null;
     }
 
     public function __isset($key) : bool
     {
-        return isset(static::$columns[$key]);
+        return isset($this->columns[$key]);
     }
 
     public function props(): array
     {
-        return static::$columns;
+        return $this->props_schema($this->columns);
     }
 
     public function exists(): bool
     {
-        return !empty(static::$columns);
+        return !empty($this->columns);
     }
 
     public function is_empty(): bool
     {
-        return !isset(static::$columns[static::$primary_key_col]);
+        return !isset($this->columns[static::$primary_key_col]);
+    }
+
+    protected function props_schema(array $props) : array
+    {
+        return $props;
     }
 
 }

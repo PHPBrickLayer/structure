@@ -35,7 +35,8 @@ abstract class BaseModelHelper
      * @return mixed
      * @abstract Must override if you want to use it
      */
-    public function is_duplicate(array|RequestHelper $columns) : bool {
+    public function is_duplicate(array|RequestHelper $columns) : bool
+    {
         throw new \RuntimeException("Unimplemented Method");
     }
 
@@ -56,12 +57,10 @@ abstract class BaseModelHelper
         $columns[static::$primary_key_col] ??= 'UUID()';
         $columns['created_at'] ??= $this->timestamp();
 
-        $rtn = static::db()->insert($columns, true);
+        if($rtn = static::db()->insert($columns, true))
+            return $this->fill($rtn);
 
-        if(!$rtn)
-            return null;
-
-        return $this->fill($rtn);
+        return null;
     }
 
     public static function create(array|RequestHelper $columns): ?static
@@ -108,8 +107,8 @@ abstract class BaseModelHelper
     {
         if (
             $useCache &&
-            isset(static::$columns[static::$primary_key_col]) &&
-            static::$columns[static::$primary_key_col] === $id
+            isset($this->columns[static::$primary_key_col]) &&
+            $this->columns[static::$primary_key_col] === $id
         ) {
             return $this;
         }
