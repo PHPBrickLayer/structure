@@ -287,22 +287,19 @@ final class FileUpload {
             $mime = mime_content_type($file);
             $found = false;
             $joined_lists = "";
-            $picture_list = [];
 
             foreach ($extension_list as $i => $list) {
                 if($list == FileUploadExtension::PICTURE) {
                     unset($extension_list[$i]);
 
-                    $picture_list[] = [
+                    array_push($extension_list,
                         FileUploadExtension::PNG,
                         FileUploadExtension::JPEG,
                         FileUploadExtension::HEIC,
                         FileUploadExtension::WEBP,
-                    ];
+                    );
                 }
             }
-
-            $extension_list = [...$extension_list, ...$picture_list];
 
             foreach ($extension_list as $list) {
                 if(!($list instanceof FileUploadExtension)) {
