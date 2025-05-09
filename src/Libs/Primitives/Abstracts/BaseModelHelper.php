@@ -143,15 +143,15 @@ abstract class BaseModelHelper
         return $this->get_by(static::$primary_key_col, $id);
     }
 
-    public function all_by_id(string $field, string $value_or_operator, ?string $value = null) : array
+    public function all_by_id(string $column, string $value_or_operator, ?string $value = null) : array
     {
         $orm = static::db();
 
         if(static::$use_delete)
             $orm->where(static::$primary_delete_col, '0')
-                ->bracket(fn() => $orm->where($field, $value_or_operator, $value), 'and');
+                ->bracket(fn() => $orm->where($column, $value_or_operator, $value), 'and');
         else
-            $orm->where($field, $value_or_operator, $value);
+            $orm->where($column, $value_or_operator, $value);
 
         return $orm->loop()->then_select();
     }
