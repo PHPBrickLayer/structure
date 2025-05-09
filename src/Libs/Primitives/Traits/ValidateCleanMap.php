@@ -37,7 +37,7 @@ trait ValidateCleanMap {
     private static ?FileUploadStorage $_upload_storage;
     private static ?string $_bucket_url;
     private static ?closure $_upload_handler;
-    private static ?closure $_return_struct;
+    private static ?closure $_return_schema;
     private static bool $_result_is_assoc = true;
 
     private function __add_error(string $field, string $message): false
@@ -373,7 +373,7 @@ trait ValidateCleanMap {
      *      escape: EscapeType|array<int,EscapeType>,
      *      strict?: bool,
      *    },
-     *    return_struct?: callable(mixed, string, array<string, mixed>) : mixed,
+     *    return_schema?: callable(mixed, string, array<string, mixed>) : mixed,
      * } $options
      */
     public function vcm(array $options ) : static
@@ -463,10 +463,11 @@ trait ValidateCleanMap {
                 "VCM::Error"
             );
 
-        $return_struct = $options['return_struct'] ?? static::$_return_struct ?? null;
+        //TODO: Depreciate return_struct
+        $return_schema = ($options['return_struct'] ?? $options['return_schema']) ?? static::$_return_schema ?? null;
 
-        if($return_struct)
-            $value = $return_struct($value, $alias ?? $field, $options);
+        if($return_schema)
+            $value = $return_schema($value, $alias ?? $field, $options);
 
         $result_is_assoc = $options['result_is_assoc'] ?? static::$_result_is_assoc;
 
@@ -499,7 +500,7 @@ trait ValidateCleanMap {
      *      upload_storage?: FileUploadStorage,
      *      bucket_url?: string,
      *      upload_handler?: callable,
-     *      return_struct?: callable<mixed, string>,
+     *      return_schema?: callable<mixed, string>,
      *   } $options
      */
     public function vcm_rules(array $options) : static
@@ -520,7 +521,9 @@ trait ValidateCleanMap {
         static::$_upload_storage = $options['upload_storage'] ?? null;
         static::$_bucket_url = $options['bucket_url'] ?? null;
         static::$_upload_handler = $options['upload_handler'] ?? null;
-        static::$_return_struct = $options['return_struct'] ?? null;
+
+        //TODO Depreciate return_struct
+        static::$_return_schema = ($options['return_struct'] ?? $options['return_schema']) ?? null;
         static::$_result_is_assoc = $options['result_is_assoc'] ?? true;
 
         return $this;
@@ -547,7 +550,7 @@ trait ValidateCleanMap {
      *      upload_storage?: FileUploadStorage,
      *      bucket_url?: string,
      *      upload_handler?: callable,
-     *      return_struct?: callable<mixed, string>,
+     *      return_schema?: callable<mixed, string>,
      *   } $vcm_rules vcm rules can also be set via this parameter
      * @return static
      */
@@ -570,7 +573,7 @@ trait ValidateCleanMap {
         static::$_upload_storage = null;
         static::$_bucket_url = null;
         static::$_upload_handler = null;
-        static::$_return_struct = null;
+        static::$_return_schema = null;
         static::$_result_is_assoc = true;
 
         static::$VCM_INSTANCE ??= new static();

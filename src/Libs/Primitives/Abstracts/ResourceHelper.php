@@ -54,16 +54,9 @@ abstract class ResourceHelper
      * Maps a 2D array to the defined schema and returns the formatted array in 2D format
      * @return array<int|string, array>
      */
-    public final function collect(array $data, string ...$except): array
+    public static final function collect(array $data, string ...$except): array
     {
-        $this->data = $data;
-
-        if(!isset($this->data))
-            LayException::throw_exception(
-                "Trying to get collection without setting `data`. You need to reinit " . static::class . " and set your data."
-            );
-
-        return LayArray::map($this->data, function($d) use ($except) {
+        return LayArray::map($data, function($d) use ($except) {
             return (new static($d, false))->except(...$except)->props();
         });
     }
