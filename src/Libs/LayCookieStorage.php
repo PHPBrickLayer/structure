@@ -57,8 +57,9 @@ final class LayCookieStorage
 
     private static function delete_expired_tokens(): void
     {
-        $today = LayDate::date();
-        self::orm()->open(self::$table)->delete("DATEDIFF('$today',`expire`) > 30");
+        self::orm()->open(self::$table)
+            ->where(self::orm()->days_diff(LayDate::date(), 'expire'),">", "30")
+            ->delete();
     }
 
     private static function set_cookie(string $name, string $value, array $options = []): bool

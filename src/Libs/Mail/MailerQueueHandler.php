@@ -53,19 +53,19 @@ final class MailerQueueHandler {
     private function hard_delete_mails(bool $include_sent_mails = true, int $days_after = 15) : bool
     {
         $orm = self::orm(self::$table);
-        $clause = null;
+
+        $orm->where(
+            $orm->days_diff(LayDate::date(), "time_sent"),
+            ">",
+            (string) max($days_after, 0)
+        );
+
+        $orm->or_where("time_sent", "IS", "NULL");
 
         if(!$include_sent_mails)
-            $clause = "status != '" . MailerStatus::SENT->name . "'";
+            $orm->and_where("status", "!=", MailerStatus::SENT->name);
 
-        $days_after = max($days_after, 0);
-
-        $days_diff = $orm->days_diff(LayDate::date(), "time_sent") . " > $days_after";
-
-        $clause = $clause ? "$clause AND " : "";
-        $clause .= "($days_diff OR time_sent IS NULL)";
-
-        return $orm->where($clause)->delete();
+        return $orm->delete();
     }
 
     public function has_queued_items() : bool
