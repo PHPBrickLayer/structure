@@ -30,6 +30,21 @@ abstract class ResourceHelper
     }
 
     /**
+     * Properties to exclude from `props()` result
+     * @param string ...$keys
+     * @return $this
+     */
+    public final function except(string ...$keys) : static
+    {
+        foreach ($keys as $key) {
+            if(isset($this->data[$key]))
+                unset($this->data[$key]);
+        }
+
+        return $this;
+    }
+
+    /**
      * Maps a 2D array to the defined schema and returns the formatted array in 2D format
      * @return array<int|string, array>
      */
