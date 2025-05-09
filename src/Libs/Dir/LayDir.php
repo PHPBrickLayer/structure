@@ -254,19 +254,26 @@ final class LayDir {
     }
 
     /**
+     * Get a list of files in a directory and carryout an operation on each entry
      * @param string $directory
      * @param callable (string $file_name, string $directory, DirectoryIterator $dir_handler) : LayLoop $action
      * @param bool $throw_error
      * @param SortOrder|callable $sort
-     * @return LayLoop
+     * @return null|array<int, array{
+     *     file: string,
+     *     full_path: string,
+     *     dir: string,
+     *     mt: int,
+     *     size: int,
+     * }>
      * @throws \Exception
      */
     public static function read(
         string $directory,
-        callable $action,
+        ?callable $action = null,
         bool $throw_error = true,
         SortOrder|callable $sort = SortOrder::DEFAULT
-    ) : LayLoop
+    ) : ?array
     {
         if(!is_dir($directory)) {
             if($throw_error)
@@ -275,23 +282,37 @@ final class LayDir {
                     "DirDoesNotExist"
                 );
 
-            return LayLoop::CONTINUE;
+            return null;
         }
 
         $entries = [];
-        $dir_handler = new DirectoryIterator($directory);
+        $entry = new DirectoryIterator($directory);
         $empty = true;
 
-        while ($dir_handler->valid()) {
-            if(!$dir_handler->isDot()) {
-                $entries[] = clone $dir_handler->current();
+        while ($entry->valid()) {
+            if(!$entry->isDot()) {
                 $empty = false;
+                $current = $entry->current();
+
+                $entries[] = [
+                    "file" => $current->getFilename(),
+                    "full_path" => $current->getPath() . DIRECTORY_SEPARATOR . $current->getFilename(),
+                    "mt" => $current->getMTime(),
+                    "size" => $current->getSize(),
+                ];
+
+                if($action) {
+                    $result = $action($current->getFilename(), $directory, $entry);
+
+                    if ($result == LayLoop::BREAK)
+                        break;
+                }
             }
 
-            $dir_handler->next();
+            $entry->next();
         }
 
-        if($empty) return LayLoop::BREAK;
+        if($empty) return null;
 
         switch ($sort) {
             default: usort($entries, $sort); break;
@@ -299,51 +320,44 @@ final class LayDir {
             case SortOrder::DEFAULT: break;
 
             case SortOrder::NAME_ASC:
-                usort($entries, function (DirectoryIterator $a, DirectoryIterator $b){
-                    return strcmp($a->getFileName(), $b->getFilename());
+                usort($entries, function (array $a, array $b){
+                    return strcmp($a['file'], $b['file']);
                 });
-            break;
+                break;
 
             case SortOrder::NAME_DESC:
-                usort($entries, function (DirectoryIterator $a, DirectoryIterator $b){
-                    return strcmp($b->getFileName(), $a->getFilename());
+                usort($entries, function (array $a, array $b){
+                    return strcmp($b['file'], $a['file']);
                 });
-            break;
+                break;
 
             case SortOrder::TIME_ASC:
-                usort($entries, function (DirectoryIterator $a, DirectoryIterator $b){
-                    return $a->getMTime() - $b->getMTime();
+                usort($entries, function (array $a, array $b){
+                    return $a['mt'] - $b['mt'];
                 });
-            break;
+                break;
 
             case SortOrder::TIME_DESC:
-                usort($entries, function (DirectoryIterator $a, DirectoryIterator $b){
-                    return $b->getMTime() - $a->getMTime();
+                usort($entries, function (array $a, array $b){
+                    return $b['mt'] - $a['mt'];
                 });
-            break;
+                break;
 
             case SortOrder::SIZE_ASC:
-                usort($entries, function (DirectoryIterator $a, DirectoryIterator $b){
-                    return $a->getSize() - $b->getSize();
+                usort($entries, function (array $a, array $b){
+                    return $a['size'] - $b['size'];
                 });
-            break;
+                break;
 
             case SortOrder::SIZE_DESC:
-                usort($entries, function (DirectoryIterator $a, DirectoryIterator $b){
-                    return $b->getSize() - $a->getSize();
+                usort($entries, function (array $a, array $b){
+                    return $b['size'] - $a['size'];
                 });
-            break;
-
-        }
-
-        foreach ($entries as $entry) {
-            $result = $action($entry->current()->getFilename(), $directory, $entry);
-
-            if($result == LayLoop::BREAK)
                 break;
+
         }
 
-        return LayLoop::FLOW;
+        return $entries;
     }
 
     public static function is_empty(string $directory) : bool

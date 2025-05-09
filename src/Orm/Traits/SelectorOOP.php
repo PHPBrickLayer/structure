@@ -11,7 +11,6 @@ use BrickLayer\Lay\Libs\String\Escape;
 use BrickLayer\Lay\Orm\Enums\OrmDriver;
 use BrickLayer\Lay\Orm\Enums\OrmReturnType;
 use BrickLayer\Lay\Orm\SQL;
-use Closure;
 use Generator;
 use JetBrains\PhpStorm\ExpectedValues;
 use mysqli_result;
