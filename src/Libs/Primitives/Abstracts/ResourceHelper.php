@@ -54,8 +54,10 @@ abstract class ResourceHelper
      * Maps a 2D array to the defined schema and returns the formatted array in 2D format
      * @return array<int|string, array>
      */
-    public final function collect(string ...$except): array
+    public final function collect(array $data, string ...$except): array
     {
+        $this->data = $data;
+
         if(!isset($this->data))
             LayException::throw_exception(
                 "Trying to get collection without setting `data`. You need to reinit " . static::class . " and set your data."
@@ -67,13 +69,13 @@ abstract class ResourceHelper
     }
 
     /**
-     * @param array|object $data Can accept an array, stdclass, or you model class, since classes are objects in php
+     * @param array|object|null $data Can accept an array, stdclass, or you model class, since classes are objects in php
      * @param bool $fill Autofill the props value
      * Then you can access them directly like a property in your props method
      */
-    public function __construct(protected array|object $data, bool $fill = true)
+    public function __construct(protected array|object|null $data = null, bool $fill = true)
     {
-        if($fill)
+        if($this->data && $fill)
             $this->props();
 
         return $this;
