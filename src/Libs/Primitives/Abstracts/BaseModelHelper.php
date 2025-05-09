@@ -44,7 +44,7 @@ abstract class BaseModelHelper
      * @abstract Override this method to use your app's date pattern. Default is epoc-style date 1764222...
      * @return int|string
      */
-    public function timestamp() : int|string
+    protected function timestamp() : int|string
     {
         return LayDate::now();
     }
@@ -101,6 +101,33 @@ abstract class BaseModelHelper
             $this->fill($res);
 
         return $this;
+    }
+
+
+    /**
+     * Get entries of multiple values from the same column.
+     * This method can be important when you're trying to avoid n+1 queries.
+     * You can aggregate the values you want to query, send them once and get an array result
+     *
+     * @param array $aggregate
+     * @param string|null $column Default column is the primary column set in the child Model
+     * @return array
+     */
+    public function get_by_agr(array $aggregate, ?string $column = null) : array
+    {
+        $db = self::db();
+        $column ??= static::$primary_key_col;
+
+        foreach ($aggregate as $i => $tool) {
+            if($i == 0) {
+                $db->where($column, $tool);
+                continue;
+            }
+
+            $db->or_where($column, $tool);
+        }
+
+        return $db->loop()->then_select();
     }
 
     public function by_id(string $id, bool $useCache = true): ?static
