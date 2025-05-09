@@ -33,7 +33,7 @@ trait IsFillable {
 
     /**
      * @param string|array|null $record_id The primary key column value or an array columns related to the given model
-     * @param bool $invalidate Records are cached by default, so this makes the model refetch data from the db
+     * @param bool $invalidate Records are cached by default, so this makes the model re-fetch data from the db
      */
     public function __construct(string|array|null $record_id = null, bool $invalidate = false)
     {
@@ -55,8 +55,8 @@ trait IsFillable {
             return $this;
 
         $by_id = is_array($record_or_id) && !$invalidate ?
-            fn() => $record_or_id :
-            fn() => static::db()->where(static::$primary_key_col, $record_or_id)->then_select();
+            fn() => $this->props_schema($record_or_id) :
+            fn() => $this->props_schema(static::db()->where(static::$primary_key_col, $record_or_id)->then_select());
 
         if($invalidate) {
             static::$columns = $by_id();
@@ -96,7 +96,7 @@ trait IsFillable {
 
     public function props(): array
     {
-        return static::$columns;
+        return $this->props_schema(static::$columns);
     }
 
     public function exists(): bool
@@ -107,6 +107,11 @@ trait IsFillable {
     public function is_empty(): bool
     {
         return !isset(static::$columns[static::$primary_key_col]);
+    }
+
+    protected function props_schema(array $props) : array
+    {
+        return $props;
     }
 
 }
