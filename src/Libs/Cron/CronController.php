@@ -4,6 +4,7 @@ namespace BrickLayer\Lay\Libs\Cron;
 
 use BrickLayer\Lay\Libs\LayDate;
 use BrickLayer\Lay\Libs\LayFn;
+use BrickLayer\Lay\Libs\Primitives\Abstracts\RequestHelper;
 use BrickLayer\Lay\Libs\Primitives\Traits\IsSingleton;
 use BrickLayer\Lay\Libs\Primitives\Traits\TableTrait;
 
@@ -63,7 +64,7 @@ final class CronController
      */
     public function delete(): array
     {
-        $job_id = self::request()->id;
+        $job_id = RequestHelper::request()->id;
 
         self::cleanse($job_id);
 
@@ -98,7 +99,7 @@ final class CronController
      */
     public function add(): array
     {
-        $post = self::request();
+        $post = RequestHelper::request();
 
         $raw_schedule = $post->schedule;
         $raw_script = $post->script;
@@ -158,7 +159,7 @@ final class CronController
      */
     public function run_script() : array
     {
-        $job_id = self::request()->id;
+        $job_id = RequestHelper::request()->id;
 
         self::cleanse($job_id);
 
@@ -195,7 +196,7 @@ final class CronController
      */
     public function pause_script() : array
     {
-        $job_id = self::request()->id;
+        $job_id = RequestHelper::request()->id;
 
         if (!LayCron::new()->unset($job_id))
             return self::res_warning( "Could not pause job, maybe job has been paused already");
@@ -216,7 +217,7 @@ final class CronController
      */
     public function play_script(?string $job_id = null) : array
     {
-        $job_id ??= self::request()->id;
+        $job_id ??= RequestHelper::request()->id;
         $job = $this->get_job($job_id);
 
         $raw_script = $job['script'] . " " . self::JOB_CLI_KEY . " " . $job_id;
