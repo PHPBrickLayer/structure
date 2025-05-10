@@ -75,6 +75,13 @@ abstract class Exception {
         self::throw_exception(var_export($message, true), "ManualLog:$log_title", kill: false, exception: $exception, throw_500: false, error_as_json: false, echo_error: false, opts: ['type' => 'log']);
     }
 
+    public static function trigger_depreciation(string $depreciating, string $replacement, ?string $since = null) : void
+    {
+        self::log(
+            "[$depreciating] has been depreciated; use [$replacement]; Depreciated since [$since]",
+            log_title: "LayDepreciationWarning"
+        );
+    }
     /**
      * Get the error message the Lay way
      * @param Throwable $exception

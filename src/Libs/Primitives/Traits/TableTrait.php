@@ -82,35 +82,38 @@ trait TableTrait
             "deleted" => 1,
             "deleted_by" => $act_by,
             "deleted_at" => LayDate::date(),
-        ])->where("id='$id'")->edit();
+        ])->where("id","$id")->edit();
     }
 
-    public function record_list(int $page = 1, int $limit = 100) : array|\Generator
+    public function record_list(int $page = 1, int $limit = 100) : array
     {
         self::init(self::$table);
 
         return self::orm(self::$table)->loop()
-            ->where("deleted=0")
+            ->where("deleted","0")
             ->sort("created_at", "desc")
             ->limit($limit, $page)
             ->then_select();
     }
 
-    public function record_by_id(string $id, bool $even_deleted = false) : array|\Generator
+    public function record_by_id(string $id, bool $even_deleted = false) : array
     {
         self::init(self::$table);
 
-        $even_deleted = $even_deleted ? "" : "AND deleted=0";
+        $orm = self::orm(self::$table)
+            ->where("id","$id");
 
-        return self::orm(self::$table)
-            ->where("(id='$id') $even_deleted")
-            ->then_select();
+        if($even_deleted)
+            $orm->and_where("deleted", "0");
+
+        return $orm->then_select();
     }
 
-    public function new_record(array $columns) : bool {
+    public function new_record(array $columns) : bool
+    {
         self::init(self::$table);
 
-        return (bool) self::orm(self::$table)->insert($columns);
+        return self::orm(self::$table)->insert($columns, false);
     }
 
     public function edit_record(string $job_id, array $columns, ?string $updated_by = null) : bool
@@ -120,7 +123,7 @@ trait TableTrait
         $columns['updated_by'] ??= $updated_by ?? null;
 
         return self::orm(self::$table)->column($columns)
-            ->where("id='$job_id'")
+            ->where("id", "$job_id")
             ->edit();
     }
 
