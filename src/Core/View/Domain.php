@@ -19,6 +19,24 @@ use JetBrains\PhpStorm\ExpectedValues;
 use ReflectionClass;
 use ReflectionException;
 
+/**
+ * @phpstan-type DomainRouteData DomainType|string|array<int>|array{
+ *    route: string,
+ *    route_as_array: array<int>,
+ *    route_has_end_slash: bool,
+ *    domain_name: string,
+ *    domain_type: DomainType,
+ *    domain_id: string,
+ *    domain_root: string,
+ *    domain_referrer: string,
+ *    domain_is_api?: string,
+ *    domain_uri: string,
+ *    domain_base: string,
+ *    pattern: string,
+ *    plaster: string,
+ *    layout: string,
+ *  }
+ */
 final class Domain {
     use IsSingleton;
 
@@ -580,22 +598,7 @@ final class Domain {
 
     /**
      * @param string $key
-     * @return  DomainType|string|array<int>|array{
-     * route: string,
-     * route_as_array: array<int>,
-     * route_has_end_slash: bool,
-     * domain_name: string,
-     * domain_type: DomainType,
-     * domain_id: string,
-     * domain_root: string,
-     * domain_referrer: string,
-     * domain_is_api?: string,
-     * domain_uri: string,
-     * domain_base: string,
-     * pattern: string,
-     * plaster: string,
-     * layout: string,
-     * }
+     * @return DomainRouteData
      */
     public static function current_route_data(#[ExpectedValues(CurrentRouteData::ANNOTATE)] string $key) : string|DomainType|array
     {

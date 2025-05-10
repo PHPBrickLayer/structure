@@ -48,14 +48,14 @@ final class Captcha
         $image->setImageFormat('png');
 
         $draw = new ImagickDraw();
-        $draw->setFont(__DIR__ . "/font.ttf");
-        $draw->setFontSize(30);
+        $draw->setFont(__DIR__ . "/font.otf");
+        $draw->setFontSize(23);
         $draw->setFillColor(new ImagickPixel('white'));
         $draw->setTextAntialias(true);
 
         $metrics = $image->queryFontMetrics($draw, $code);
-        $textX = ($width - $metrics['textWidth']) / 2 - 5;
-        $textY = ($height + $metrics['textHeight']) / 2 - 15;
+        $textX = ($width - $metrics['textWidth']) / 2;
+        $textY = ($height + $metrics['textHeight']) / 2 - 7;
 
         // Shadow
         $shadow = clone $draw;

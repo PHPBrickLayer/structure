@@ -11,17 +11,36 @@ abstract class BaseModelHelper
 {
     use IsFillable;
 
+    protected bool $debug_mode = false;
+
     /**
+     * This is basically the column you use for soft delete in your app
      * @var string
      * @abstract Overwrite when necessary
      */
     protected static string $primary_delete_col = "deleted";
 
+    /**
+     * Use this to let your model know when running a select query,
+     * if it should fetch only rows that have not been "deleted" [true] or every row [false]
+     *
+     * @var bool
+     */
     protected static bool $use_delete = true;
 
     public function uuid() : string
     {
         return static::db()->uuid();
+    }
+
+    /**
+     * This instructs the model to echo whatever base model query so you can inspect it.
+     * @return $this
+     */
+    public function debug() : static
+    {
+        $this->debug_mode = true;
+        return $this;
     }
 
     public static function orm(?string $table = null) : SQL
@@ -61,7 +80,27 @@ abstract class BaseModelHelper
         return LayDate::now();
     }
 
-    public function add(array|RequestHelper $columns) : ?static
+    /**
+     * Define how insertion (add) will handle conflict when a duplicate unique column is encountered
+     * @param SQL $db
+     * @return void
+     * @abstract Must override if you want conflict resolution
+     */
+    protected function resolve_conflict(SQL $db) : void
+    {
+        throw new \RuntimeException("Unimplemented Method: Must override resolve conflict");
+
+        /**
+         * This is a sample code for implementation ideas
+         */
+        $db->on_conflict(
+            unique_columns: ['id'],
+            update_columns: ['id'],
+            action: 'UPDATE'
+        );
+    }
+
+    public function add(array|RequestHelper $columns, bool $resolve_conflict = false) : ?static
     {
         if($columns instanceof RequestHelper)
             $columns = $columns->props();
@@ -69,12 +108,25 @@ abstract class BaseModelHelper
         $columns[static::$primary_key_col] ??= 'UUID()';
         $columns['created_at'] ??= $this->timestamp();
 
-        if($rtn = static::db()->insert($columns, true))
+        $db = static::db();
+
+        if($resolve_conflict)
+            $this->resolve_conflict($db);
+
+        if($this->debug_mode)
+            $db->debug();
+
+        if($rtn = $db->insert($columns, true))
             return $this->fill($rtn);
 
         return null;
     }
 
+    /**
+     * A static way to add
+     * @param array|RequestHelper $columns
+     * @return static|null
+     */
     public static function create(array|RequestHelper $columns): ?static
     {
         return (new static())->add($columns);
@@ -96,6 +148,9 @@ abstract class BaseModelHelper
         if(static::$use_delete)
             $orm->where(static::$primary_delete_col, '0');
 
+        if($this->debug_mode)
+            $orm->debug_deep();
+
         return $orm->loop()->limit($limit, $page)->then_select();
     }
 
@@ -108,6 +163,9 @@ abstract class BaseModelHelper
                 ->bracket(fn() => $orm->where($field, $value_or_operator, $value), 'and');
         else
             $orm->where($field, $value_or_operator, $value);
+
+        if($this->debug_mode)
+            $orm->debug_deep();
 
         if($res = $orm->assoc()->select())
             $this->fill($res);
@@ -139,6 +197,9 @@ abstract class BaseModelHelper
             $db->or_where($column, $tool);
         }
 
+        if($this->debug_mode)
+            $db->debug_deep();
+
         return $db->loop()->then_select();
     }
 
@@ -165,6 +226,9 @@ abstract class BaseModelHelper
         else
             $orm->where($column, $value_or_operator, $value);
 
+        if($this->debug_mode)
+            $orm->debug_deep();
+
         return $orm->loop()->then_select();
     }
 
@@ -182,6 +246,9 @@ abstract class BaseModelHelper
         $orm = static::db()->column($columns)->no_false();
 
         $orm->where(static::$primary_key_col, $record_id);
+
+        if($this->debug_mode)
+            $orm->debug();
 
         return $orm->edit();
     }
@@ -212,6 +279,9 @@ abstract class BaseModelHelper
             static::$primary_delete_col . "_by" => $act_by,
             static::$primary_delete_col . "_at" => $this->timestamp(),
         ]);
+
+        if($this->debug_mode)
+            $orm->debug();
 
         return $orm->where(static::$primary_key_col, $record_id)->edit();
     }
