@@ -15,6 +15,9 @@ use Closure;
 use JetBrains\PhpStorm\ExpectedValues;
 use JetBrains\PhpStorm\NoReturn;
 
+/**
+ * @phpstan-import-type DomainRouteData from Domain
+ */
 final class ViewBuilder
 {
     use IsSingleton;
@@ -260,21 +263,7 @@ final class ViewBuilder
      * Get the metadata of a request received in a ViewBuilder class
      *
      * @param string $key
-     * @return  DomainType|string|array<int>|array{
-     *      route: string,
-     *      route_as_array: array<int>,
-     *      route_has_end_slash: bool,
-     *      domain_name: string,
-     *      domain_type: DomainType,
-     *      domain_id: string,
-     *      domain_root: string,
-     *      domain_referrer: string,
-     *      domain_uri: string,
-     *      domain_base: string,
-     *      pattern: string,
-     *      plaster: string,
-     *      layout: string,
-     *  }
+     * @return DomainRouteData
      */
     public function request(#[ExpectedValues(CurrentRouteData::ANNOTATE)] string $key): DomainType|string|array
     {

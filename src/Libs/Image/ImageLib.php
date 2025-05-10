@@ -52,11 +52,9 @@ final class ImageLib {
      *
      * @param $image_file string file to be checked for size
      *
-     * @return int[]
      *
-     * @psalm-return array{width: int, height: int}
+     * @return array{width: int, height: int}
      */
-    #[ArrayShape(['width' => 'int', 'height' => 'int'])]
     public function get_ratio(string $image_file) : array
     {
         list($w_orig,$h_orig) = getimagesize($image_file);

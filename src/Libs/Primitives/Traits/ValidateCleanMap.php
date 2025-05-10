@@ -18,6 +18,29 @@ use Closure;
 use Exception;
 
 
+/**
+ * @phpstan-type VcmRules array{
+ *    required?: bool,
+ *    result_is_assoc?: bool,
+ *    alias_required?: bool,
+ *    clean?: bool|array{
+ *        escape: EscapeType|array<int,EscapeType>,
+ *      strict: bool,
+ *    },
+ *    sub_dir?: string,
+ *    allowed_types?: array<int, FileUploadExtension>,
+ *    allowed_extensions?: array<int, FileUploadExtension>,
+ *    max_size?: int,
+ *    max_size_in_mb?: float,
+ *    new_file_name?: string,
+ *    dimension?: array,
+ *    upload_storage?: FileUploadStorage,
+ *    bucket_url?: string,
+ *    upload_handler?: callable,
+ *    return_struct?: callable<mixed, string>,
+ *    return_schema?: callable<mixed, string>,
+ *  }
+ */
 trait ValidateCleanMap {
     protected static self $VCM_INSTANCE;
 
@@ -464,7 +487,7 @@ trait ValidateCleanMap {
             );
 
         //TODO: Depreciate return_struct
-        $return_schema = ($options['return_struct'] ?? $options['return_schema']) ?? static::$_return_schema ?? null;
+        $return_schema = $options['return_struct'] ?? $options['return_schema'] ?? static::$_return_schema ?? null;
 
         if($return_schema)
             $value = $return_schema($value, $alias ?? $field, $options);
@@ -482,26 +505,7 @@ trait ValidateCleanMap {
     /**
      * Set a general rule that applies to every object of a particular request
      *
-     * @param array{
-     *      required?: bool,
-     *      result_is_assoc?: bool,
-     *      alias_required?: bool,
-     *      clean?: bool|array{
-     *        escape: EscapeType|array<int,EscapeType>,
-     *        strict: bool,
-     *      },
-     *      sub_dir?: string,
-     *      allowed_types?: Array<int,FileUploadExtension>,
-     *      allowed_extensions?: Array<int,FileUploadExtension>,
-     *      max_size?: int,
-     *      max_size_in_mb?: float,
-     *      new_file_name?: string,
-     *      dimension?: array,
-     *      upload_storage?: FileUploadStorage,
-     *      bucket_url?: string,
-     *      upload_handler?: callable,
-     *      return_schema?: callable<mixed, string>,
-     *   } $options
+     * @param VcmRules $options
      */
     public function vcm_rules(array $options) : static
     {
@@ -522,8 +526,7 @@ trait ValidateCleanMap {
         static::$_bucket_url = $options['bucket_url'] ?? null;
         static::$_upload_handler = $options['upload_handler'] ?? null;
 
-        //TODO Depreciate return_struct
-        static::$_return_schema = ($options['return_struct'] ?? $options['return_schema']) ?? null;
+        static::$_return_schema = $options['return_struct'] ?? $options['return_schema'] ?? null;
         static::$_result_is_assoc = $options['result_is_assoc'] ?? true;
 
         return $this;
@@ -532,26 +535,7 @@ trait ValidateCleanMap {
     /**
      * Initialize the request from the server for validation
      * @param array|object $request Post Request
-     * @param null|array{
-     *      required?: bool,
-     *      result_is_assoc?: bool,
-     *      alias_required?: bool,
-     *      clean?: bool|array{
-     *          escape: EscapeType|array<int,EscapeType>,
-     *        strict: bool,
-     *      },
-     *      sub_dir?: string,
-     *      allowed_types?: array<int, FileUploadExtension>,
-     *      allowed_extensions?: array<int, FileUploadExtension>,
-     *      max_size?: int,
-     *      max_size_in_mb?: float,
-     *      new_file_name?: string,
-     *      dimension?: array,
-     *      upload_storage?: FileUploadStorage,
-     *      bucket_url?: string,
-     *      upload_handler?: callable,
-     *      return_schema?: callable<mixed, string>,
-     *   } $vcm_rules vcm rules can also be set via this parameter
+     * @param null|VcmRules $vcm_rules vcm rules can also be set via this parameter
      * @return static
      */
     public static function vcm_start(array|object $request, ?array $vcm_rules = null) : static
