@@ -38,6 +38,18 @@ abstract class BaseModelHelper
     public function is_duplicate(array|RequestHelper $columns) : bool
     {
         throw new \RuntimeException("Unimplemented Method");
+
+        /**
+         * This portion is just here to serve as an example of how to implement this method
+         */
+
+        if($columns instanceof RequestHelper)
+            $columns = $columns->props();
+
+        return self::db()
+                ->where("title", $columns['title'])
+                ->and_where("deleted", '0')
+                ->count() > 0;
     }
 
     /**
