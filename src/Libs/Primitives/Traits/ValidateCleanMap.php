@@ -44,35 +44,78 @@ use Exception;
  *  }
  *
  * @phpstan-type VcmOptions array{
+ *     // This is the $_POST request
  *     request?: array|object,
+ *
+ *     // By default, VCM returns an assoc array with the key being (`alias` ?? `db_col` ?? `field`),
+ *     // and the value is the validated result of the current field. With this option, vcm can append the value to the
+ *     // array, then it won't be an assoc array again. default: true [assoc]
  *     result_is_assoc?: bool,
+ *
+ *     // This is the name of the $_POST value currently being validated
  *     field: string,
+ *
+ *     // Field name is a human-friendly name for the current field being validated.
+ *     // Example: instead of "first_name is required"; specify a `field_name` of "First Name"
+ *     // then the error message becomes "First Name is required"
  *     field_name?: string,
- *     required_message?: string,
+ *
+ *     // `alias` and `db_col` are the same thing. They are used to create an alias for the current field, so that when
+ *     // the `vcm_data()` or `vcm_end()` method is called, this alias replaces the `field`.
+ *     // If not specified, the `field` is used in the returned dataset
  *     alias?: string,
  *     db_col?: string,
+ *
+ *     // This modifies the default error message when a required field is not filled
+ *     required_message?: string,
+ *
  *     before_validate?: callable(mixed) : string,
  *     before_clean?: callable(mixed) : string,
  *     after_clean?: callable(mixed) : string,
+ *
+ *     // This validates if the value of the current field is anything in the array
  *     must_contain?: array<int, string>,
+ *
+ *     // Use callbacks to ensure the current field matches the criteria specified in the callback function
  *     must_validate?: array{
+ *       // You can either use this or `fun_str`. If the callback return true, then vcm assumes the criteria was met,
+ *       // else the criteria was not met, and the value of message is returned as the error message
  *       fun: callable(mixed) : bool,
- *       fun_str: callable(mixed) : string|null,
  *       message: string,
+ *
+ *       // When using this one, if it returns a string, vcm assumes the criteria was not met, and uses the string as
+ *       // the error message. But if it returns a null, then the criteria specified was met
+ *       fun_str: callable(mixed) : string|null,
  *     },
+ *
+ *     // instructs vcm to json_encode any the current field if it's an array type. [default: true]
  *     json_encode?: bool,
+ *
  *     required?: bool,
  *     is_email?: bool,
  *     is_name?: bool,
  *     is_num?: bool,
  *     is_bool?: bool,
  *     is_date?: bool,
- *     is_uuid?: bool,
  *     is_datetime?: bool,
- *     is_file?: bool,
- *     is_captcha?: bool,
- *     captcha_jwt_field?: string|null,
+ *     is_uuid?: bool,
+ *
+ *     // Instructs vcm to has the current field using php's password_hash method. This is particularly useful for passwords
  *     hash?: bool,
+ *
+ *     //<<START CAPTCHA
+ *     // Let's vcm know that the current field is a captcha field, so it uses LayCaptcha class to validate it.
+ *     // If your form contains captcha, then the captcha should be the first vcm field you define,
+ *     // because if captcha does not pass validation, then the whole vcm process is aborted
+ *     is_captcha?: bool,
+ *     // If you are using captcha as a jwt, then you need to submit the jwt with the form, and this option accepts the
+ *     // name you assigned to the captcha jwt value while submitting the form.
+ *     captcha_jwt_field?: string|null,
+ *     //<<END CAPTCHA
+ *
+ *     //<<START FILE UPLOAD
+ *     // @see FileUpload
+ *     is_file?: bool,
  *     allowed_types?: array<int,FileUploadExtension>,
  *     allowed_extensions?: array<int,FileUploadExtension>,
  *     max_size?: int,
@@ -84,20 +127,32 @@ use Exception;
  *     upload_type?: FileUploadType,
  *     bucket_url?: string,
  *     file_size_field?: string,
- *     min_length?: int,
- *     max_length?: int,
- *     min_value?: double,
- *     max_value?: double,
+ *     file_type_field?: string,
+ *     //<<END FILE UPLOAD
+ *
+ *     min_length?: int, // Minimum strings the current field should contain
+ *     max_length?: int, // Maximum strings the current field should contain
+ *     min_value?: double, // Minimum figure the current field can be
+ *     max_value?: double, // Maximum figure the current field can be
+ *
+ *     // Instruct vcm that the current field value must match the value of an already validated field.
+ *     // `message` is the error message that will display if they don't match.
+ *     // This option can be used for password confirmation where you want `password` to match `retype_password`
  *     match?: array{
  *       field?: string,
  *       value?: mixed,
  *       message?: string,
  *     },
+ *
  *     clean?: bool|array{
  *       escape: EscapeType|array<int,EscapeType>,
  *       strict?: bool,
  *     },
- *     return_schema?: callable(mixed, string, array<string, mixed>) : mixed,
+ *
+ *     // If you have a specific array structure you want each validated vcm to return as, then use any of them
+ *     // callable($validated_value, $alias ?? $field, $options)
+ *     return_schema?: callable(mixed, string, VcmOptions) : mixed,
+ *     return_struct?: callable(mixed, string, VcmOptions) : mixed,
  *  }
  */
 trait ValidateCleanMap {
@@ -200,9 +255,6 @@ trait ValidateCleanMap {
             );
         }
 
-        // Example of $bucket_url: LayConfig::site_data()->others->bucket_domain
-        // "https://wp-content.folsortinvestmentservices.com/"
-
         $server = LayConfig::server_data();
         $dir = $server->uploads_no_root . $upload_sub_dir;
         $root = $server->root . "web" . DIRECTORY_SEPARATOR;
@@ -298,6 +350,10 @@ trait ValidateCleanMap {
             // Add the file storage to the data entry if specified by the dev
             if(isset($options['file_size_field']))
                 $this->add_to_entry($options['file_size_field'], $file['size'], $value);
+
+            if(isset($options['file_type_field']))
+                $this->add_to_entry($options['file_type_field'], $file['file_type'], $value);
+
         }
 
         $is_empty = empty($value);
