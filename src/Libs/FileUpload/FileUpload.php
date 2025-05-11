@@ -12,21 +12,24 @@ use BrickLayer\Lay\Libs\FileUpload\Traits\ImageOld;
 use BrickLayer\Lay\Libs\FileUpload\Traits\Image;
 use JetBrains\PhpStorm\ArrayShape;
 
+/**
+ * @phpstan-type FileUploadReturn array{
+ *     uploaded: bool,
+ *     dev_error?: string,
+ *     error?: string,
+ *     error_type?: FileUploadErrors,
+ *     upload_type: FileUploadType,
+ *     storage: FileUploadStorage,
+ *     url?: string,
+ *     size?: int,
+ *     width?: int,
+ *     height?: int,
+ *  }
+ */
 final class FileUpload {
 
     /**
-     * @var null|array{
-     *   uploaded: bool,
-     *   dev_error: string,
-     *   error: string,
-     *   error_type: FileUploadErrors,
-     *   upload_type: FileUploadType,
-     *   storage: FileUploadStorage,
-     *   url: string,
-     *   size: int,
-     *   width: int,
-     *   height: int,
-     * }
+     * @var null|FileUploadReturn
      */
     public ?array $response = null;
 
@@ -44,7 +47,7 @@ final class FileUpload {
      */
     public function __construct(
         #[ArrayShape([
-            // Name of file from the form
+            // Instruct the class to not upload or move php's temp files, but process every other thing before that step
             'dry_run' => 'bool',
 
             // Name of file from the form
@@ -173,35 +176,22 @@ final class FileUpload {
     }
 
     /**
-     * @return (FileUploadStorage|FileUploadType|bool|mixed|null)[]
-     *
-     * @psalm-return array{uploaded: bool, url?: mixed, size?: mixed, storage: FileUploadStorage|null, upload_type: FileUploadType|null, width?: mixed|null, height?: mixed|null, dev_error?: mixed, error?: mixed, error_type?: mixed}
+     * @param bool $uploaded
+     * @param array{
+     *      uploaded?: bool,
+     *      dev_error?: string,
+     *      error?: string,
+     *      error_type?: FileUploadErrors,
+     *      upload_type?: FileUploadType,
+     *      storage?: FileUploadStorage,
+     *      url?: string,
+     *      size?: int,
+     *      width?: int,
+     *      height?: int,
+     *   } $opt
+     * @return FileUploadReturn
      */
-    #[ArrayShape([
-        'uploaded' => 'bool',
-        'dev_error' => 'string',
-        'error' => 'string',
-        'error_type' => "BrickLayer\\Lay\\Libs\\FileUpload\\Enums\\FileUploadErrors",
-        'upload_type' => "BrickLayer\\Lay\\Libs\\FileUpload\\Enums\\FileUploadType",
-        'storage' => "BrickLayer\\Lay\\Libs\\FileUpload\\Enums\\FileUploadStorage",
-        'width' => "int?",
-        'height' => "int?",
-        'url' => 'string',
-        'size' => 'int',
-    ])]
-    private function upload_response(
-        bool $uploaded,
-        #[ArrayShape([
-            'uploaded' => 'bool',
-            'dev_error' => 'string',
-            'error' => 'string',
-            'error_type' => "BrickLayer\\Lay\\Libs\\FileUpload\\Enums\\FileUploadErrors",
-            'url' => 'string',
-            'size' => 'int',
-            'width' => 'int',
-            'height' => 'int',
-        ])] array $opt
-    ) : array
+    private function upload_response( bool $uploaded, array $opt ) : array
     {
         if(!$uploaded)
             return [

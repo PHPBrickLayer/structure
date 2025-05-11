@@ -19,6 +19,8 @@ use Exception;
 
 
 /**
+ * @phpstan-import-type FileUploadReturn from FileUpload
+ *
  * @phpstan-type VcmRules array{
  *    required?: bool,
  *    result_is_assoc?: bool,
@@ -39,6 +41,63 @@ use Exception;
  *    upload_handler?: callable,
  *    return_struct?: callable<mixed, string>,
  *    return_schema?: callable<mixed, string>,
+ *  }
+ *
+ * @phpstan-type VcmOptions array{
+ *     request?: array|object,
+ *     result_is_assoc?: bool,
+ *     field: string,
+ *     field_name?: string,
+ *     required_message?: string,
+ *     alias?: string,
+ *     db_col?: string,
+ *     before_validate?: callable(mixed) : string,
+ *     before_clean?: callable(mixed) : string,
+ *     after_clean?: callable(mixed) : string,
+ *     must_contain?: array<int, string>,
+ *     must_validate?: array{
+ *       fun: callable(mixed) : bool,
+ *       fun_str: callable(mixed) : string|null,
+ *       message: string,
+ *     },
+ *     json_encode?: bool,
+ *     required?: bool,
+ *     is_email?: bool,
+ *     is_name?: bool,
+ *     is_num?: bool,
+ *     is_bool?: bool,
+ *     is_date?: bool,
+ *     is_uuid?: bool,
+ *     is_datetime?: bool,
+ *     is_file?: bool,
+ *     is_captcha?: bool,
+ *     captcha_jwt_field?: string|null,
+ *     hash?: bool,
+ *     allowed_types?: array<int,FileUploadExtension>,
+ *     allowed_extensions?: array<int,FileUploadExtension>,
+ *     max_size?: int,
+ *     max_size_in_mb?: float,
+ *     new_file_name?: string,
+ *     sub_dir?: string,
+ *     dimension?: array,
+ *     upload_storage?: FileUploadStorage,
+ *     upload_type?: FileUploadType,
+ *     bucket_url?: string,
+ *     file_size_field?: string,
+ *     min_length?: int,
+ *     max_length?: int,
+ *     min_value?: double,
+ *     max_value?: double,
+ *     match?: array{
+ *       field?: string,
+ *       value?: mixed,
+ *       message?: string,
+ *     },
+ *     clean?: bool|array{
+ *       escape: EscapeType|array<int,EscapeType>,
+ *       strict?: bool,
+ *     },
+ *     return_schema?: callable(mixed, string, array<string, mixed>) : mixed,
  *  }
  */
 trait ValidateCleanMap {
@@ -78,7 +137,6 @@ trait ValidateCleanMap {
     }
 
     /**
-     * @return (bool|string)[]
      *
      * @psalm-return array{valid: bool, message: string}
      */
@@ -115,18 +173,7 @@ trait ValidateCleanMap {
      * @param FileUploadStorage|null $storage
      * @param string|null $bucket_url
      * @param FileUploadType|null $upload_type
-     * @return array{
-     *    uploaded: bool,
-     *    dev_error: ?string,
-     *    error: ?string,
-     *    error_type: ?FileUploadErrors,
-     *    upload_type: FileUploadType,
-     *    storage: FileUploadStorage,
-     *    url: ?string,
-     *    size: ?int,
-     *    width: ?int,
-     *    height: ?int,
-     * }
+     * @return FileUploadReturn
      * @throws Exception
      */
     private function __file_upload_handler(
@@ -186,9 +233,12 @@ trait ValidateCleanMap {
     }
 
     /**
-     * @return true[]
+     * @param string $field
+     * @param mixed $value
+     * @param bool $is_required
+     * @param VcmOptions $options
      *
-     * @psalm-return array{apply_clean: true, add_to_entry: true}
+     * @return array{apply_clean: true, add_to_entry: true}
      */
     private function __validate(string $field, mixed &$value, bool $is_required, array $options) : array
     {
@@ -244,6 +294,10 @@ trait ValidateCleanMap {
 
             $apply_clean = false;
             $value = $file['url'];
+
+            // Add the file storage to the data entry if specified by the dev
+            if(isset($options['file_size_field']))
+                $this->add_to_entry($options['file_size_field'], $file['size'], $value);
         }
 
         $is_empty = empty($value);
@@ -341,63 +395,25 @@ trait ValidateCleanMap {
     }
 
     /**
+     * @param string $key
+     * @param mixed $value
+     * @param VcmOptions $options
+     * @return void
+     */
+    private function add_to_entry(string $key, mixed $value, array $options) : void
+    {
+        $result_is_assoc = $options['result_is_assoc'] ?? static::$_result_is_assoc;
+
+        if($result_is_assoc)
+            static::$_entries[$key] = $value;
+        else
+            static::$_entries[] = $value;
+    }
+
+    /**
      * Request entry that needs to be validated, cleaned and mapped
      *
-     * @param array{
-     *    request?: array|object,
-     *    result_is_assoc?: bool,
-     *    field: string,
-     *    field_name?: string,
-     *    required_message?: string,
-     *    alias?: string,
-     *    db_col?: string,
-     *    before_validate?: callable(mixed) : string,
-     *    before_clean?: callable(mixed) : string,
-     *    after_clean?: callable(mixed) : string,
-     *    must_contain?: array<int, string>,
-     *    must_validate?: array{
-     *      fun: callable(mixed) : bool,
-     *      fun_str: callable(mixed) : string|null,
-     *      message: string,
-     *    },
-     *    json_encode?: bool,
-     *    required?: bool,
-     *    is_email?: bool,
-     *    is_name?: bool,
-     *    is_num?: bool,
-     *    is_bool?: bool,
-     *    is_date?: bool,
-     *    is_uuid?: bool,
-     *    is_datetime?: bool,
-     *    is_file?: bool,
-     *    is_captcha?: bool,
-     *    captcha_jwt_field?: string|null,
-     *    hash?: bool,
-     *    allowed_types?: array<int,FileUploadExtension>,
-     *    allowed_extensions?: array<int,FileUploadExtension>,
-     *    max_size?: int,
-     *    max_size_in_mb?: float,
-     *    new_file_name?: string,
-     *    sub_dir?: string,
-     *    dimension?: array,
-     *    upload_storage?: FileUploadStorage,
-     *    upload_type?: FileUploadType,
-     *    bucket_url?: string,
-     *    min_length?: int,
-     *    max_length?: int,
-     *    min_value?: double,
-     *    max_value?: double,
-     *    match?: array{
-     *      field?: string,
-     *      value?: mixed,
-     *      message?: string,
-     *    },
-     *    clean?: bool|array{
-     *      escape: EscapeType|array<int,EscapeType>,
-     *      strict?: bool,
-     *    },
-     *    return_schema?: callable(mixed, string, array<string, mixed>) : mixed,
-     * } $options
+     * @param VcmOptions $options
      */
     public function vcm(array $options ) : static
     {
@@ -486,18 +502,12 @@ trait ValidateCleanMap {
                 "VCM::Error"
             );
 
-        //TODO: Depreciate return_struct
         $return_schema = $options['return_struct'] ?? $options['return_schema'] ?? static::$_return_schema ?? null;
 
         if($return_schema)
             $value = $return_schema($value, $alias ?? $field, $options);
 
-        $result_is_assoc = $options['result_is_assoc'] ?? static::$_result_is_assoc;
-
-        if($result_is_assoc)
-            static::$_entries[$alias ?? $field] = $value;
-        else
-            static::$_entries[] = $value;
+        $this->add_to_entry($alias ?? $field, $value, $options);
 
         return $this;
     }
