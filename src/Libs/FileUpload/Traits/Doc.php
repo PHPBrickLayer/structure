@@ -99,7 +99,7 @@ trait Doc {
         ) return $check;
 
         if($this->dry_run)
-            $this->upload_response(
+            return $this->upload_response(
                 false,
                 [
                     'dev_error' => "Function is running dry run",

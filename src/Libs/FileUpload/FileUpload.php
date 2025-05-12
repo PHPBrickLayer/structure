@@ -12,21 +12,81 @@ use BrickLayer\Lay\Libs\FileUpload\Traits\ImageOld;
 use BrickLayer\Lay\Libs\FileUpload\Traits\Image;
 use JetBrains\PhpStorm\ArrayShape;
 
+/**
+ * @phpstan-type FileUploadReturn array{
+ *     uploaded: bool,
+ *     dev_error?: string,
+ *     error?: string,
+ *     error_type?: FileUploadErrors,
+ *     upload_type: FileUploadType,
+ *     storage: FileUploadStorage,
+ *     url?: string,
+ *     size?: int,
+ *     width?: int,
+ *     height?: int,
+ *     file_type?: FileUploadExtension,
+ *  }
+ *
+ * @phpstan-type FileUploadOptions array{
+ *  // Instruct the class to not upload or move php's temp files, but process every other thing before that step
+ * dry_run?: bool,
+ *
+ * // Name of file from the form
+ * post_name: string,
+ *
+ * // New name and file extension of file after upload
+ * new_name?: string,
+ *
+ * upload_type?: FileUploadType,
+ *
+ * //<<START DISK KEY
+ * directory?: string,
+ * permission?: int,
+ * //<<END DISK KEY
+ *
+ * // The path the bucket should use in storing your file. Example: files/user/1/report/
+ * bucket_path?: string,
+ *
+ * // Use this to force bucket upload in development environment
+ * upload_on_dev?: bool,
+ *
+ * // File limit in bytes
+ * file_limit?: int,
+ *
+ * // Instructs the class to validate this specific file extension. If this is specified, `extension_list` is ignored
+ * // If nothing is provided the system will not validate for the extension type
+ * extension?: FileUploadExtension,
+ *
+ * // An array of BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadExtension
+ * extension_list?: array<int,FileUploadExtension>,
+ *
+ * // Use this to add a custom MIME that does not exist in the FileUploadExtension trait
+ * // ['application/zip', 'application/x-zip-compressed']
+ * custom_mime?: array<int,string>,
+ *
+ * // The type of storage the file should be uploaded to
+ * storage?: FileUploadStorage,
+ *
+ * // Add last modified time to the returned url key, so that your browser can cache it.
+ * // This is necessary if you are using the same 'new_name' for multiple versions of a file
+ * // The new file will overwrite the old file, and the last_mod_time will force the browser to update its copy
+ * add_mod_time?: bool,
+ *
+ * // The compression quality to produce after uploading an image: [10 - 100]
+ * quality?: int,
+ *
+ * // The dimension an image should maintain: [max_width, max_height]
+ * dimension?: array<int, int>,
+ *
+ * // If the php temporary file should be moved or copied. This is necessary if you want to generate a thumbnail
+ * // and other versions of the image from one upload file
+ * copy_tmp_file?: bool,
+ * }
+ */
 final class FileUpload {
 
     /**
-     * @var null|array{
-     *   uploaded: bool,
-     *   dev_error: string,
-     *   error: string,
-     *   error_type: FileUploadErrors,
-     *   upload_type: FileUploadType,
-     *   storage: FileUploadStorage,
-     *   url: string,
-     *   size: int,
-     *   width: int,
-     *   height: int,
-     * }
+     * @var null|FileUploadReturn
      */
     public ?array $response = null;
 
@@ -34,85 +94,35 @@ final class FileUpload {
 
     protected ?FileUploadStorage $storage = null;
     protected ?FileUploadType $upload_type = null;
+    protected ?FileUploadExtension $file_type = null;
 
     use Image;
     use Doc;
 
     /**
-     * @param $opts
+     * @param FileUploadOptions|null $opts
      * @throws \Exception
+     * @return void
      */
-    public function __construct(
-        #[ArrayShape([
-            // Name of file from the form
-            'dry_run' => 'bool',
-
-            // Name of file from the form
-            'post_name' => 'string',
-
-            // New name and file extension of file after upload
-            'new_name' => 'string',
-
-            'upload_type' => 'BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadType',
-
-            //<<START DISK KEY
-            'directory' => 'string',
-            'permission' => 'int',
-            //<<END DISK KEY
-
-            // The path the bucket should use in storing your file. Example: files/user/1/report/
-            'bucket_path' => 'string',
-
-            // Use this to force bucket upload in development environment
-            'upload_on_dev' => 'bool',
-
-            // File limit in bytes
-            'file_limit' => 'int',
-
-            // If nothing is provided the system will not validate for the extension type
-            'extension' => 'BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadExtension',
-
-            // An array of BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadExtension
-            'extension_list' => 'array<BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadExtension]>',
-
-            // Use this to add a custom MIME that does not exist in the extension key above
-            'custom_mime' => 'array', // ['application/zip', 'application/x-zip-compressed']
-
-            // The type of storage the file should be uploaded to
-            'storage' => 'BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadStorage',
-
-            // Add last modified time to the returned url key, so that your browser can cache it.
-            // This is necessary if you are using the same 'new_name' for multiple versions of a file
-            // The new file will overwrite the old file, and the last_mod_time will force the browser to update its copy
-            'add_mod_time' => 'bool',
-
-            // The compression quality to produce after uploading an image: [10 - 100]
-            'quality' => 'int',
-
-            // The dimension an image should maintain: [max_width, max_height]
-            'dimension' => 'array',
-
-            // If the php temporary file should be moved or copied. This is necessary if you want to generate a thumbnail
-            // and other versions of the image from one upload file
-            'copy_tmp_file' => 'bool',
-        ])]
-        array $opts = []
-    )
+    public function __construct( ?array $opts = null )
     {
         if(empty($opts))
-            return $this;
+            return;
 
         $req = $this->check_all_requirements(
-            post_name: $opts['post_name'] ?? null,
+            post_name: $opts['post_name'],
             custom_mime:  $opts['custom_mime'] ?? null,
             extension_list:  $opts['extension_list'] ?? null,
         );
 
         if($req) {
-            if($req['error_type'] == FileUploadErrors::NO_POST_NAME)
-                return $this->response = null;
+            if($req['error_type'] == FileUploadErrors::NO_POST_NAME) {
+                $this->response = null;
+                return;
+            }
 
-            return $this->response = $req;
+            $this->response = $req;
+            return;
         }
 
         if($opts['upload_type'] ?? false) {
@@ -138,23 +148,21 @@ final class FileUpload {
 
         if($this->upload_type == FileUploadType::DOC)
             $this->response = $this->doc_upload($opts);
-
-        return $this->response;
     }
 
     /**
      * @param string $file_name_or_post_name The path to the file or the name of the file from a post request
      *
-     * @return false|int|null
+     * @return false|int
      *
      * @throws \Exception
      */
-    public function file_size(string $file_name_or_post_name) : int|false|null
+    public function file_size(string $file_name_or_post_name) : int|false
     {
         $files = $_FILES[$file_name_or_post_name] ?? null;
 
         if(empty($files['tmp_name'])) {
-            $size = filesize($file_name_or_post_name) ?? null;
+            $size = filesize($file_name_or_post_name);
 
             if(!$size)
                 Exception::new()->use_exception(
@@ -173,35 +181,22 @@ final class FileUpload {
     }
 
     /**
-     * @return (FileUploadStorage|FileUploadType|bool|mixed|null)[]
-     *
-     * @psalm-return array{uploaded: bool, url?: mixed, size?: mixed, storage: FileUploadStorage|null, upload_type: FileUploadType|null, width?: mixed|null, height?: mixed|null, dev_error?: mixed, error?: mixed, error_type?: mixed}
+     * @param bool $uploaded
+     * @param array{
+     *      uploaded?: bool,
+     *      dev_error?: string,
+     *      error?: string,
+     *      error_type?: FileUploadErrors,
+     *      upload_type?: FileUploadType,
+     *      storage?: FileUploadStorage,
+     *      url?: string,
+     *      size?: int,
+     *      width?: int,
+     *      height?: int,
+     *   } $opt
+     * @return FileUploadReturn
      */
-    #[ArrayShape([
-        'uploaded' => 'bool',
-        'dev_error' => 'string',
-        'error' => 'string',
-        'error_type' => "BrickLayer\\Lay\\Libs\\FileUpload\\Enums\\FileUploadErrors",
-        'upload_type' => "BrickLayer\\Lay\\Libs\\FileUpload\\Enums\\FileUploadType",
-        'storage' => "BrickLayer\\Lay\\Libs\\FileUpload\\Enums\\FileUploadStorage",
-        'width' => "int?",
-        'height' => "int?",
-        'url' => 'string',
-        'size' => 'int',
-    ])]
-    private function upload_response(
-        bool $uploaded,
-        #[ArrayShape([
-            'uploaded' => 'bool',
-            'dev_error' => 'string',
-            'error' => 'string',
-            'error_type' => "BrickLayer\\Lay\\Libs\\FileUpload\\Enums\\FileUploadErrors",
-            'url' => 'string',
-            'size' => 'int',
-            'width' => 'int',
-            'height' => 'int',
-        ])] array $opt
-    ) : array
+    private function upload_response( bool $uploaded, array $opt ) : array
     {
         if(!$uploaded)
             return [
@@ -221,6 +216,7 @@ final class FileUpload {
             "upload_type" => $this->upload_type,
             'width' => $opt['width'] ?? null,
             'height' => $opt['height'] ?? null,
+            'file_type' => $this->file_type,
         ];
     }
 
@@ -288,6 +284,8 @@ final class FileUpload {
             $found = false;
             $joined_lists = "";
 
+            // This first loop is to check if the extension list contains ::PICTURE
+            // then the extension list should be populated with all pictures format.
             foreach ($extension_list as $i => $list) {
                 if($list == FileUploadExtension::PICTURE) {
                     unset($extension_list[$i]);
@@ -301,12 +299,14 @@ final class FileUpload {
                 }
             }
 
+            // This second loop matches the mime type with the newly populated extension list
             foreach ($extension_list as $list) {
                 if(!($list instanceof FileUploadExtension)) {
                     $this->exception("extension_list must be of type " . FileUploadExtension::class . "; File Mime: [$mime]");
                 }
 
                 if($list->value == $mime) {
+                    $this->file_type = $list;
                     $found = true;
                     break;
                 }
@@ -340,10 +340,12 @@ final class FileUpload {
                     $pass = false;
 
                     foreach ($ext as $e) {
-                        if($pass)
-                            break;
-
                         $pass = $mime == $e->value;
+
+                        if($pass) {
+                            $this->file_type = $e;
+                            break;
+                        }
                     }
 
                     return $pass;

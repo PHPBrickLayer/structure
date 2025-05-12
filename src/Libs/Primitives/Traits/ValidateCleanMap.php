@@ -19,6 +19,8 @@ use Exception;
 
 
 /**
+ * @phpstan-import-type FileUploadReturn from FileUpload
+ *
  * @phpstan-type VcmRules array{
  *    required?: bool,
  *    result_is_assoc?: bool,
@@ -39,6 +41,118 @@ use Exception;
  *    upload_handler?: callable,
  *    return_struct?: callable<mixed, string>,
  *    return_schema?: callable<mixed, string>,
+ *  }
+ *
+ * @phpstan-type VcmOptions array{
+ *     // This is the $_POST request
+ *     request?: array|object,
+ *
+ *     // By default, VCM returns an assoc array with the key being (`alias` ?? `db_col` ?? `field`),
+ *     // and the value is the validated result of the current field. With this option, vcm can append the value to the
+ *     // array, then it won't be an assoc array again. default: true [assoc]
+ *     result_is_assoc?: bool,
+ *
+ *     // This is the name of the $_POST value currently being validated
+ *     field: string,
+ *
+ *     // Field name is a human-friendly name for the current field being validated.
+ *     // Example: instead of "first_name is required"; specify a `field_name` of "First Name"
+ *     // then the error message becomes "First Name is required"
+ *     field_name?: string,
+ *
+ *     // `alias` and `db_col` are the same thing. They are used to create an alias for the current field, so that when
+ *     // the `vcm_data()` or `vcm_end()` method is called, this alias replaces the `field`.
+ *     // If not specified, the `field` is used in the returned dataset
+ *     alias?: string,
+ *     db_col?: string,
+ *
+ *     // This modifies the default error message when a required field is not filled
+ *     required_message?: string,
+ *
+ *     before_validate?: callable(mixed) : string,
+ *     before_clean?: callable(mixed) : string,
+ *     after_clean?: callable(mixed) : string,
+ *
+ *     // This validates if the value of the current field is anything in the array
+ *     must_contain?: array<int, string>,
+ *
+ *     // Use callbacks to ensure the current field matches the criteria specified in the callback function
+ *     must_validate?: array{
+ *       // You can either use this or `fun_str`. If the callback return true, then vcm assumes the criteria was met,
+ *       // else the criteria was not met, and the value of message is returned as the error message
+ *       fun: callable(mixed) : bool,
+ *       message: string,
+ *
+ *       // When using this one, if it returns a string, vcm assumes the criteria was not met, and uses the string as
+ *       // the error message. But if it returns a null, then the criteria specified was met
+ *       fun_str: callable(mixed) : string|null,
+ *     },
+ *
+ *     // instructs vcm to json_encode any the current field if it's an array type. [default: true]
+ *     json_encode?: bool,
+ *
+ *     required?: bool,
+ *     is_email?: bool,
+ *     is_name?: bool,
+ *     is_num?: bool,
+ *     is_bool?: bool,
+ *     is_date?: bool,
+ *     is_datetime?: bool,
+ *     is_uuid?: bool,
+ *
+ *     // Instructs vcm to has the current field using php's password_hash method. This is particularly useful for passwords
+ *     hash?: bool,
+ *
+ *     //<<START CAPTCHA
+ *     // Let's vcm know that the current field is a captcha field, so it uses LayCaptcha class to validate it.
+ *     // If your form contains captcha, then the captcha should be the first vcm field you define,
+ *     // because if captcha does not pass validation, then the whole vcm process is aborted
+ *     is_captcha?: bool,
+ *     // If you are using captcha as a jwt, then you need to submit the jwt with the form, and this option accepts the
+ *     // name you assigned to the captcha jwt value while submitting the form.
+ *     captcha_jwt_field?: string|null,
+ *     //<<END CAPTCHA
+ *
+ *     //<<START FILE UPLOAD
+ *     // @see FileUpload
+ *     is_file?: bool,
+ *     allowed_types?: array<int,FileUploadExtension>,
+ *     allowed_extensions?: array<int,FileUploadExtension>,
+ *     max_size?: int,
+ *     max_size_in_mb?: float,
+ *     new_file_name?: string,
+ *     sub_dir?: string,
+ *     dimension?: array,
+ *     upload_storage?: FileUploadStorage,
+ *     upload_type?: FileUploadType,
+ *     bucket_url?: string,
+ *     file_size_field?: string,
+ *     file_type_field?: string,
+ *     //<<END FILE UPLOAD
+ *
+ *     min_length?: int, // Minimum strings the current field should contain
+ *     max_length?: int, // Maximum strings the current field should contain
+ *     min_value?: double, // Minimum figure the current field can be
+ *     max_value?: double, // Maximum figure the current field can be
+ *
+ *     // Instruct vcm that the current field value must match the value of an already validated field.
+ *     // `message` is the error message that will display if they don't match.
+ *     // This option can be used for password confirmation where you want `password` to match `retype_password`
+ *     match?: array{
+ *       field?: string,
+ *       value?: mixed,
+ *       message?: string,
+ *     },
+ *
+ *     clean?: bool|array{
+ *       escape: EscapeType|array<int,EscapeType>,
+ *       strict?: bool,
+ *     },
+ *
+ *     // If you have a specific array structure you want each validated vcm to return as, then use any of them
+ *     // callable($validated_value, $alias ?? $field, $options)
+ *     return_schema?: callable(mixed, string, VcmOptions) : mixed,
+ *     return_struct?: callable(mixed, string, VcmOptions) : mixed,
  *  }
  */
 trait ValidateCleanMap {
@@ -78,7 +192,6 @@ trait ValidateCleanMap {
     }
 
     /**
-     * @return (bool|string)[]
      *
      * @psalm-return array{valid: bool, message: string}
      */
@@ -115,18 +228,7 @@ trait ValidateCleanMap {
      * @param FileUploadStorage|null $storage
      * @param string|null $bucket_url
      * @param FileUploadType|null $upload_type
-     * @return array{
-     *    uploaded: bool,
-     *    dev_error: ?string,
-     *    error: ?string,
-     *    error_type: ?FileUploadErrors,
-     *    upload_type: FileUploadType,
-     *    storage: FileUploadStorage,
-     *    url: ?string,
-     *    size: ?int,
-     *    width: ?int,
-     *    height: ?int,
-     * }
+     * @return FileUploadReturn
      * @throws Exception
      */
     private function __file_upload_handler(
@@ -152,9 +254,6 @@ trait ValidateCleanMap {
                 $upload_type, $dry_run
             );
         }
-
-        // Example of $bucket_url: LayConfig::site_data()->others->bucket_domain
-        // "https://wp-content.folsortinvestmentservices.com/"
 
         $server = LayConfig::server_data();
         $dir = $server->uploads_no_root . $upload_sub_dir;
@@ -186,9 +285,12 @@ trait ValidateCleanMap {
     }
 
     /**
-     * @return true[]
+     * @param string $field
+     * @param mixed $value
+     * @param bool $is_required
+     * @param VcmOptions $options
      *
-     * @psalm-return array{apply_clean: true, add_to_entry: true}
+     * @return array{apply_clean: true, add_to_entry: true}
      */
     private function __validate(string $field, mixed &$value, bool $is_required, array $options) : array
     {
@@ -244,6 +346,14 @@ trait ValidateCleanMap {
 
             $apply_clean = false;
             $value = $file['url'];
+
+            // Add the file storage to the data entry if specified by the dev
+            if(isset($options['file_size_field']))
+                $this->add_to_entry($options['file_size_field'], $file['size'], $value);
+
+            if(isset($options['file_type_field']))
+                $this->add_to_entry($options['file_type_field'], $file['file_type'], $value);
+
         }
 
         $is_empty = empty($value);
@@ -341,63 +451,25 @@ trait ValidateCleanMap {
     }
 
     /**
+     * @param string $key
+     * @param mixed $value
+     * @param VcmOptions $options
+     * @return void
+     */
+    private function add_to_entry(string $key, mixed $value, array $options) : void
+    {
+        $result_is_assoc = $options['result_is_assoc'] ?? static::$_result_is_assoc;
+
+        if($result_is_assoc)
+            static::$_entries[$key] = $value;
+        else
+            static::$_entries[] = $value;
+    }
+
+    /**
      * Request entry that needs to be validated, cleaned and mapped
      *
-     * @param array{
-     *    request?: array|object,
-     *    result_is_assoc?: bool,
-     *    field: string,
-     *    field_name?: string,
-     *    required_message?: string,
-     *    alias?: string,
-     *    db_col?: string,
-     *    before_validate?: callable(mixed) : string,
-     *    before_clean?: callable(mixed) : string,
-     *    after_clean?: callable(mixed) : string,
-     *    must_contain?: array<int, string>,
-     *    must_validate?: array{
-     *      fun: callable(mixed) : bool,
-     *      fun_str: callable(mixed) : string|null,
-     *      message: string,
-     *    },
-     *    json_encode?: bool,
-     *    required?: bool,
-     *    is_email?: bool,
-     *    is_name?: bool,
-     *    is_num?: bool,
-     *    is_bool?: bool,
-     *    is_date?: bool,
-     *    is_uuid?: bool,
-     *    is_datetime?: bool,
-     *    is_file?: bool,
-     *    is_captcha?: bool,
-     *    captcha_jwt_field?: string|null,
-     *    hash?: bool,
-     *    allowed_types?: array<int,FileUploadExtension>,
-     *    allowed_extensions?: array<int,FileUploadExtension>,
-     *    max_size?: int,
-     *    max_size_in_mb?: float,
-     *    new_file_name?: string,
-     *    sub_dir?: string,
-     *    dimension?: array,
-     *    upload_storage?: FileUploadStorage,
-     *    upload_type?: FileUploadType,
-     *    bucket_url?: string,
-     *    min_length?: int,
-     *    max_length?: int,
-     *    min_value?: double,
-     *    max_value?: double,
-     *    match?: array{
-     *      field?: string,
-     *      value?: mixed,
-     *      message?: string,
-     *    },
-     *    clean?: bool|array{
-     *      escape: EscapeType|array<int,EscapeType>,
-     *      strict?: bool,
-     *    },
-     *    return_schema?: callable(mixed, string, array<string, mixed>) : mixed,
-     * } $options
+     * @param VcmOptions $options
      */
     public function vcm(array $options ) : static
     {
@@ -486,18 +558,12 @@ trait ValidateCleanMap {
                 "VCM::Error"
             );
 
-        //TODO: Depreciate return_struct
         $return_schema = $options['return_struct'] ?? $options['return_schema'] ?? static::$_return_schema ?? null;
 
         if($return_schema)
             $value = $return_schema($value, $alias ?? $field, $options);
 
-        $result_is_assoc = $options['result_is_assoc'] ?? static::$_result_is_assoc;
-
-        if($result_is_assoc)
-            static::$_entries[$alias ?? $field] = $value;
-        else
-            static::$_entries[] = $value;
+        $this->add_to_entry($alias ?? $field, $value, $options);
 
         return $this;
     }
