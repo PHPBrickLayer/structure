@@ -6,12 +6,14 @@ namespace BrickLayer\Lay\Libs\Primitives\Abstracts;
 use BrickLayer\Lay\Libs\LayDate;
 use BrickLayer\Lay\Libs\Primitives\Traits\IsFillable;
 use BrickLayer\Lay\Orm\SQL;
+use Closure;
 
 abstract class BaseModelHelper
 {
     use IsFillable;
 
-    protected bool $debug_mode = false;
+    private Closure $foreach;
+    private bool $debug_mode = false;
 
     /**
      * This is basically the column you use for soft delete in your app
@@ -139,25 +141,25 @@ abstract class BaseModelHelper
     }
 
     /**
-     * @param int $page
-     * @param int $limit
-     * @param null|callable(self):array $each
      * @return array<int, array<string, mixed>>
      */
-    public function all(int $page = 1, int $limit = 100, ?callable $each = null) : array
+    public function all(int $page = 1, int $limit = 100) : array
     {
-        $orm = static::db();
+        $db = static::db();
 
         if(static::$use_delete)
-            $orm->where(static::$primary_delete_col, '0');
+            $db->where(static::$primary_delete_col, '0');
 
         if($this->debug_mode)
-            $orm->debug_deep();
+            $db->debug_deep();
 
-        if($each)
-            $orm->each(fn($data) : array => $each($this->fill($data)));
+        if(isset($this->foreach))
+            $db->each(fn($data): array => ($this->foreach)($this->fill($data)));
 
-        return $orm->loop()->limit($limit, $page)->then_select();
+        $data = $db->loop()->limit($limit, $page)->then_select();
+
+        $this->unset_each();
+        return $data;
     }
 
     public function get_by(string $field, string $value_or_operator, ?string $value = null) : self
@@ -179,7 +181,21 @@ abstract class BaseModelHelper
         return $this;
     }
 
+    /**
+     * @param callable(self):array $each
+     * @return self
+     */
+    public function each(callable $each) : self
+    {
+        $this->foreach = $each;
+        return $this;
+    }
 
+    private function unset_each() : void
+    {
+        if(isset($this->foreach))
+            unset($this->foreach);
+    }
     /**
      * Get entries of multiple values from the same column.
      * This method can be important when you're trying to avoid n+1 queries.
@@ -187,7 +203,7 @@ abstract class BaseModelHelper
      *
      * @param array $aggregate
      * @param string|null $column Default column is the primary column set in the child Model
-     * @return array
+     * @return array<int, array<string, mixed>>
      */
     public function get_by_agr(array $aggregate, ?string $column = null) : array
     {
@@ -206,7 +222,13 @@ abstract class BaseModelHelper
         if($this->debug_mode)
             $db->debug_deep();
 
-        return $db->loop()->then_select();
+        if(isset($this->foreach))
+            $db->each(fn($data): array => ($this->foreach)($this->fill($data)));
+
+        $data = $db->loop()->then_select();
+
+        $this->unset_each();
+        return $data;
     }
 
     public function by_id(string $id, bool $useCache = true): ?static
@@ -222,6 +244,9 @@ abstract class BaseModelHelper
         return $this->get_by(static::$primary_key_col, $id);
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     public function all_by_id(string $column, string $value_or_operator, ?string $value = null) : array
     {
         $orm = static::db();
@@ -235,7 +260,13 @@ abstract class BaseModelHelper
         if($this->debug_mode)
             $orm->debug_deep();
 
-        return $orm->loop()->then_select();
+        if(isset($this->foreach))
+            $orm->each(fn($data): array => ($this->foreach)($this->fill($data)));
+
+        $data = $orm->loop()->then_select();
+
+        $this->unset_each();
+        return $data;
     }
 
     /**
