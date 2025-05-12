@@ -349,10 +349,11 @@ trait ValidateCleanMap {
 
             // Add the file storage to the data entry if specified by the dev
             if(isset($options['file_size_field']))
-                $this->add_to_entry($options['file_size_field'], $file['size'], $value);
+                $this->add_to_entry($options['file_size_field'], $file['size'], $options);
 
+            // Add the file type
             if(isset($options['file_type_field']))
-                $this->add_to_entry($options['file_type_field'], $file['file_type'], $value);
+                $this->add_to_entry($options['file_type_field'], $file['file_type']->name, $options);
 
         }
 
