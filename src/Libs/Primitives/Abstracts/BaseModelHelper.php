@@ -139,9 +139,12 @@ abstract class BaseModelHelper
     }
 
     /**
-     * @return array<int, array>
+     * @param int $page
+     * @param int $limit
+     * @param null|callable(self):array $each
+     * @return array<int, array<string, mixed>>
      */
-    public function all(int $page = 1, int $limit = 100) : array
+    public function all(int $page = 1, int $limit = 100, ?callable $each = null) : array
     {
         $orm = static::db();
 
@@ -150,6 +153,9 @@ abstract class BaseModelHelper
 
         if($this->debug_mode)
             $orm->debug_deep();
+
+        if($each)
+            $orm->each(fn($data) : array => $each($this->fill($data)));
 
         return $orm->loop()->limit($limit, $page)->then_select();
     }
