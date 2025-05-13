@@ -113,6 +113,7 @@ abstract class BaseModelHelper
             $columns = $columns->props();
 
         $columns[static::$primary_key_col] ??= 'UUID()';
+        $columns[static::$primary_delete_col] ??= "0";
         $columns['created_at'] ??= $this->timestamp();
 
         $db = static::db();
