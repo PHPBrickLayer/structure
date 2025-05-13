@@ -97,7 +97,7 @@ abstract class BaseModelHelper
          */
         $db->on_conflict(
             unique_columns: ['id'],
-            update_columns: ['id'],
+            update_columns: ['deleted'],
             action: 'UPDATE'
         );
     }
