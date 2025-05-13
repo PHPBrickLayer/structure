@@ -215,25 +215,18 @@ trait SelectorOOPCrud
         if($is_mysql)
             $column_and_values = "SET $column_and_values";
 
+        if($return_record) {
+            $clause = "$clause RETURNING *";
+            $d['result_on_insert'] = true;
+        }
+
         $table = self::escape_identifier($table);
         $query = $this->handle_insert_conflict($d, $table, $column_and_values, $clause) ?? /** @lang text */ "INSERT INTO $table $column_and_values $clause";
 
-        $op = $this->capture_result(
+        return $this->capture_result(
             [$this->query($query, $d) ?? false, $d],
-            'bool',
+            'array|bool',
         );
-
-        if($return_record && isset($insert_id)) {
-            $id = self::escape_identifier("id");
-
-            return $this->query(/** @lang text */ "SELECT * FROM $table WHERE $id='$insert_id'", [
-                'query_type' => OrmQueryType::SELECT,
-                'loop' => false,
-                'can_be_null' => false,
-            ]);
-        }
-
-        return $op;
     }
 
     /**

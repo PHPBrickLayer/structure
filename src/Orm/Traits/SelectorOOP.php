@@ -308,12 +308,12 @@ trait SelectorOOP
     /**
      * Wraps a condition around a parenthesis `()` popularly known as bracket
      * Currently only supports WHERE statements.
-     * @param callable(self):void|self $where_callback
+     * @param callable(SQL):(void|SQL) $where_callback
      * @param null|'and'|'or'|'AND'|'OR' $prepend
      * @return SQL
      */
     final public function bracket(
-        callable|self $where_callback,
+        callable $where_callback,
         #[ExpectedValues(["and", "or", "AND", "OR"])] ?string $prepend = null,
     ): SQL
     {
