@@ -52,8 +52,8 @@ abstract class BaseModelHelper
 
     /**
      * Should check the DB if a record exists already
-     * @param array|RequestHelper $columns
-     * @return mixed
+     * @param array<string,string|null>|RequestHelper $columns
+     * @return bool
      * @abstract Must override if you want to use it
      */
     public function is_duplicate(array|RequestHelper $columns) : bool
@@ -102,7 +102,12 @@ abstract class BaseModelHelper
         );
     }
 
-    public function add(array|RequestHelper $columns, bool $resolve_conflict = false) : ?static
+    /**
+     * @param array<string, string|null>|RequestHelper $columns
+     * @param bool $resolve_conflict
+     * @return static
+     */
+    public function add(array|RequestHelper $columns, bool $resolve_conflict = false) : static
     {
         if($columns instanceof RequestHelper)
             $columns = $columns->props();
@@ -118,20 +123,11 @@ abstract class BaseModelHelper
         if($this->debug_mode)
             $db->debug();
 
-        if($rtn = $db->insert($columns, true))
+        if($rtn = $db->insert($columns, true)) {
             return $this->fill($rtn);
+        }
 
-        return null;
-    }
-
-    /**
-     * A static way to add
-     * @param array|RequestHelper $columns
-     * @return static|null
-     */
-    public static function create(array|RequestHelper $columns): ?static
-    {
-        return (new static())->add($columns);
+        return $this->unfill();
     }
 
     // TODO: Ensure batch uploads uses transaction; also add an insert_conflict resolution strategy
@@ -162,13 +158,13 @@ abstract class BaseModelHelper
         return $data;
     }
 
-    public function get_by(string $field, string $value_or_operator, ?string $value = null) : self
+    public function get_by(string $field, string $value_or_operator, ?string $value = null) : static
     {
         $orm = static::db();
 
         if(static::$use_delete)
             $orm->where(static::$primary_delete_col, '0')
-                ->bracket(fn() => $orm->where($field, $value_or_operator, $value), 'and');
+                ->bracket(fn(SQL $sql) => $orm->where($field, $value_or_operator, $value), 'and');
         else
             $orm->where($field, $value_or_operator, $value);
 
@@ -176,13 +172,13 @@ abstract class BaseModelHelper
             $orm->debug_deep();
 
         if($res = $orm->assoc()->select())
-            $this->fill($res);
+            return $this->fill($res);
 
-        return $this;
+        return $this->unfill();
     }
 
     /**
-     * @param callable(self):array $each
+     * @param callable(self):array<int|string, mixed> $each
      * @return self
      */
     public function each(callable $each) : self
@@ -201,7 +197,7 @@ abstract class BaseModelHelper
      * This method can be important when you're trying to avoid n+1 queries.
      * You can aggregate the values you want to query, send them once and get an array result
      *
-     * @param array $aggregate
+     * @param array<int, string|null|bool> $aggregate
      * @param string|null $column Default column is the primary column set in the child Model
      * @return array<int, array<string, mixed>>
      */
@@ -231,17 +227,13 @@ abstract class BaseModelHelper
         return $data;
     }
 
-    public function by_id(string $id, bool $useCache = true): ?static
+    public function by_id(string $id, bool $invalidate = false): static
     {
-        if (
-            $useCache &&
-            isset($this->columns[static::$primary_key_col]) &&
-            $this->columns[static::$primary_key_col] === $id
-        ) {
-            return $this;
+        if ($invalidate || !isset($this->columns[static::$primary_key_col]) || $this->columns[static::$primary_key_col] !== $id) {
+            return $this->get_by(static::$primary_key_col, $id);
         }
 
-        return $this->get_by(static::$primary_key_col, $id);
+        return $this;
     }
 
     /**
@@ -272,7 +264,7 @@ abstract class BaseModelHelper
     /**
      * Edit the db record of a specified record entry
      * @param string $record_id
-     * @param array|RequestHelper $columns
+     * @param array<string, string|null|bool>|RequestHelper $columns
      * @return bool
      */
     public function edit(string $record_id, array|RequestHelper $columns) : bool
@@ -292,7 +284,7 @@ abstract class BaseModelHelper
 
     /**
      * Edit the db record of the current model property
-     * @param array|RequestHelper $columns
+     * @param array<string, string|null|bool>|RequestHelper $columns
      * @return bool
      */
     public function edit_self(array|RequestHelper $columns) : bool

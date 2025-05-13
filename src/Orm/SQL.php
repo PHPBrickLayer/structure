@@ -35,7 +35,7 @@ final class SQL
     use Functions;
 
     /**
-     * @var array $query_info
+     * @var array<string, mixed> $query_info
      * @return array{
      *     status: OrmExecStatus,
      *     has_data: bool,
@@ -48,12 +48,12 @@ final class SQL
 
 
     /**
-     * @param \Throwable|array $opts
+     * @throws \Exception
      */
-    public static function exception(string $title, string $message, array|\Throwable $opts = [], $exception = null) : void
+    protected static function exception(string $title, string $message, array $opts = [], $exception = null) : void
     {
         CoreException::new()->use_exception(
-            "OrmExp_" . $title,
+            "OrmExp::" . $title,
             $message,
             opts: $opts,
             exception: $exception
@@ -65,18 +65,22 @@ final class SQL
      * @param string $query
      * @param array{
      *  debug: bool,
-     *  catch: bool,
-     *  can_be_null: bool,
-     *  can_be_false: bool,
-     *  loop: bool,
-     *  except: string,
-     *  return_as: OrmReturnType,
-     *  query_type: OrmQueryType,
-     *  fetch_as: OrmReturnType,
+     *
+     *  // instructs SQL to catch any error and not display it
+     *  catch: bool, // default = false
+     *
+     *  can_be_null: bool, // default = true
+     *  can_be_false?: bool, // default = true
+     *  loop?: bool, // default = false
+     *  except?: string,
+     *  return_as?: OrmReturnType, // RESULT
+     *  query_type?: OrmQueryType, // default = auto discovered
+     *  fetch_as?: OrmReturnType, // default = BOTH
+     *  result_on_insert?: bool, // default = false
      * } $option Adjust the function to fit your use case;
-     * @return int|bool|array|mysqli_result|SQLite3Result|Result|Generator|null
+     * @return mixed
      */
-    final public function query(string $query, array $option = []): int|bool|array|null|mysqli_result|SQLite3Result|Result|Generator
+    final public function query(string $query, array $option = []) : mixed
     {
         if (!isset(self::$link))
             self::exception(
@@ -90,7 +94,13 @@ final class SQL
         $return_as = $option['return_as'] ?? OrmReturnType::RESULT; // exec|result
         $can_be_null = $option['can_be_null'] ?? true;
         $can_be_false = $option['can_be_false'] ?? true;
+        $result_on_insert = $option['result_on_insert'] ?? false;
         $query_type = $option['query_type'] ?? "";
+
+        if($result_on_insert){
+            $query_type = OrmQueryType::SELECT;
+            $option['fetch_as'] = OrmReturnType::ASSOC;
+        }
 
         if (empty($query_type)) {
             $qr = explode(" ", trim($query), 2);

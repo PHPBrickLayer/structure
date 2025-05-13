@@ -49,7 +49,7 @@ trait IsFillable {
      * @param bool $invalidate
      * @return self
      */
-    public function fill(string|array|null $record_or_id = null, bool $invalidate = false) : self
+    public function fill(string|array|null $record_or_id = null, bool $invalidate = false) : static
     {
         if(empty($record_or_id))
             return $this;
@@ -68,13 +68,19 @@ trait IsFillable {
             return $this;
         }
 
-        if($this->columns[static::$primary_key_col] != $record_or_id)
+        if(@$this->columns[static::$primary_key_col] != $record_or_id)
             $this->columns = $by_id();
 
         return $this;
     }
 
-    public function refresh(): self
+    protected function unfill() : static
+    {
+        $this->columns = [];
+        return  $this;
+    }
+
+    public function refresh(): static
     {
         $id = $this->columns[static::$primary_key_col] ?? null;
 
