@@ -26,7 +26,7 @@ use Exception;
  *    result_is_assoc?: bool,
  *    alias_required?: bool,
  *    clean?: bool|array{
- *        escape: EscapeType|array<int,EscapeType>,
+ *      escape: EscapeType|array<int,EscapeType>,
  *      strict: bool,
  *    },
  *    sub_dir?: string,
@@ -35,17 +35,17 @@ use Exception;
  *    max_size?: int,
  *    max_size_in_mb?: float,
  *    new_file_name?: string,
- *    dimension?: array,
+ *    dimension?: array<int>,
  *    upload_storage?: FileUploadStorage,
  *    bucket_url?: string,
  *    upload_handler?: callable,
- *    return_struct?: callable<mixed, string>,
- *    return_schema?: callable<mixed, string>,
+ *    return_schema?: callable(mixed, string, array<string, mixed>) : mixed,
+ *    return_struct?: callable(mixed, string, array<string, mixed>) : mixed,
  *  }
  *
  * @phpstan-type VcmOptions array{
  *     // This is the $_POST request
- *     request?: array|object,
+ *     request?: array<string|int, mixed>|object,
  *
  *     // By default, VCM returns an assoc array with the key being (`alias` ?? `db_col` ?? `field`),
  *     // and the value is the validated result of the current field. With this option, vcm can append the value to the
@@ -122,7 +122,7 @@ use Exception;
  *     max_size_in_mb?: float,
  *     new_file_name?: string,
  *     sub_dir?: string,
- *     dimension?: array,
+ *     dimension?: array<int>,
  *     upload_storage?: FileUploadStorage,
  *     upload_type?: FileUploadType,
  *     bucket_url?: string,
@@ -151,8 +151,8 @@ use Exception;
  *
  *     // If you have a specific array structure you want each validated vcm to return as, then use any of them
  *     // callable($validated_value, $alias ?? $field, $options)
- *     return_schema?: callable(mixed, string, VcmOptions) : mixed,
- *     return_struct?: callable(mixed, string, VcmOptions) : mixed,
+ *     return_schema?: callable(mixed, string, array<string, mixed>) : mixed,
+ *     return_struct?: callable(mixed, string, array<string, mixed>) : mixed,
  *  }
  */
 trait ValidateCleanMap {
@@ -393,7 +393,11 @@ trait ValidateCleanMap {
             $add_to_entry = $this->__add_error($field, "Received an invalid email format for: $field_name");
 
         if(isset($options['is_bool'])) {
-            if(!in_array(strtolower($value . ''), ['true', 'false', '1', '0']))
+            if(in_array(strtolower($value . ''), ['true', 'false', '1', '0'])) {
+                $value = filter_var($value, FILTER_VALIDATE_BOOL);
+                $apply_clean = false;
+            }
+            else
                 $add_to_entry = $this->__add_error($field, "$field_name is not a valid boolean");
         }
 
