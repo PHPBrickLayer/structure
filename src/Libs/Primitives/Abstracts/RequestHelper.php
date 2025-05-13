@@ -47,7 +47,7 @@ abstract class RequestHelper
     protected function pre_validate() : void
     {
         self::vcm_start(self::request(), [
-            'required' => false,
+            'required' => true,
         ]);
     }
 
