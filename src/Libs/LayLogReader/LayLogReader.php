@@ -140,17 +140,17 @@ abstract class LayLogReader
                         
                         <details class='p-2 ms-4 bg-gray-200'>
                             <summary class='fs-3 fw-bold p-1'>[X-INFO]</summary>
-                            <div><pre style='line-height: 1rem; margin: 0; font-size: .9rem'>{$e['x_info']}</pre></div>
+                            <div><pre style='line-height: 1.5rem; margin: 0; font-size: 1.05rem'>{$e['x_info']}</pre></div>
                         </details>
                         
                         <details class='p-2 ms-4 bg-gray-200'>
                             <summary class='fs-3 fw-bold p-1'>[APP TRACE]</summary>
-                            <div><pre style='line-height: 1rem; margin: 0; font-size: .9rem'>{$e['app_trace']}</pre></div>
+                            <div><pre style='line-height: 1.5rem; margin: 0; font-size: 1.05rem'>{$e['app_trace']}</pre></div>
                         </details>
                         
                         <details class='p-2 ms-4 bg-gray-200'>
                             <summary class='fs-3 fw-bold p-1'>[INTERNAL TRACE]</summary>
-                            <div><pre style='line-height: 1rem; margin: 0; font-size: .9rem'>{$e['internal_trace']}</pre></div>
+                            <div><pre style='line-height: 1.5rem; margin: 0; font-size: 1.05rem'>{$e['internal_trace']}</pre></div>
                         </details>
                     </details>"
                 );
