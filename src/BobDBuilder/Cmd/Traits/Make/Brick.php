@@ -154,20 +154,41 @@ trait Brick
             
             namespace Bricks\\$brick\Controller;
             
+            use BrickLayer\\Lay\\Libs\\Primitives\\Traits\\ControllerHelper;
             $import
             
             use Bricks\\$brick\Model\\$brick;
             use Bricks\\$brick\Resource\\{$brick}Resource;
+            use Bricks\\$brick\Request\\Create{$brick}Request;
             
+                       
             class $brick_plural
             {
                 $body
+                use ControllerHelper;
                 
                 public function list(): array
                 {
                     return {$brick}Resource::collect(
                         (new $brick())->all()
                     );
+                }
+                
+                public function add(): array
+                {
+                    \$request = new Create{$brick}Request();
+                    
+                    if(\$request->error)
+                        return self::res_warning(\$request->error);
+                        
+                    \$model = new $brick();
+                    
+                    \$model->add(\$request);
+                    
+                    if(\$model->is_empty())
+                        return self::res_warning("Could not add new request");
+                        
+                    return self::res_success("Added new request successfully");
                 }
                 
             }
