@@ -8,10 +8,19 @@ abstract class Exception {
     /**
      * @throws \Exception
      */
+    public static function throw(string $message, string $title = "Exception", ?Throwable $exception = null) : void
+    {
+        self::throw_exception($message, $title, exception: $exception);
+    }
+
+    /**
+     * @throws \Exception
+     */
     public static function throw_exception(string $message, string $title = "Exception", bool $kill = true, bool $use_lay_error = true, array $stack_track = [], ?Throwable $exception = null, bool $throw_500 = true, bool $error_as_json = true, ?array $json = null, bool $as_string = false, bool $ascii = true, bool $echo_error = true, array $opts = []) : ?array
     {
         return self::new()->use_exception($title, $message, $kill, trace: $stack_track, use_lay_error: $use_lay_error, opts: $opts, exception: $exception, throw_500: $throw_500, error_as_json: $error_as_json, json_packet: $json, return_as_string: $as_string, ascii: $ascii, echo_error: $echo_error);
     }
+
 
     public static function new() : CoreException
     {

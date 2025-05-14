@@ -114,6 +114,10 @@ use Exception;
  *     //<<END CAPTCHA
  *
  *     //<<START FILE UPLOAD
+ *     // This one can come in handy when your field can either be a file or a link to a file.
+ *     // Vcm will process the file if it detects the current field is a file, else it will process it like a normal text.
+ *     maybe_file?: bool,
+ *
  *     // @see FileUpload
  *     is_file?: bool,
  *     allowed_types?: array<int,FileUploadExtension>,
@@ -128,6 +132,7 @@ use Exception;
  *     bucket_url?: string,
  *     file_size_field?: string,
  *     file_type_field?: string,
+ *     file_ratio_field?: string,
  *     //<<END FILE UPLOAD
  *
  *     min_length?: int, // Minimum strings the current field should contain
@@ -308,7 +313,7 @@ trait ValidateCleanMap {
                 return ["apply_clean" => $apply_clean, "add_to_entry" => $add_to_entry];
             };
 
-        if(isset($options['is_file'])) {
+        if(isset($options['is_file']) || isset($options['maybe_file'], $_FILES[$field])) {
             if(isset($options['bucket_url']) || isset(static::$_bucket_url))
                 $options['upload_storage'] ??= FileUploadStorage::BUCKET;
 
@@ -355,6 +360,9 @@ trait ValidateCleanMap {
             if(isset($options['file_type_field']))
                 $this->add_to_entry($options['file_type_field'], $file['file_type']->name, $options);
 
+            // Add the file type
+            if(isset($options['file_ratio_field']) && $file['upload_type'] == FileUploadType::IMG)
+                $this->add_to_entry($options['file_ratio_field'], ["width" => $file['width'], "height" => $file['height']], $options);
         }
 
         $is_empty = empty($value);

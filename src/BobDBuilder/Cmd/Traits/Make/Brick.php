@@ -118,11 +118,13 @@ trait Brick
             
             /**
              * @property string \$id
-             * @property string \$created_at
+             * @property int \$created_at
+             * @property int \$updated_at
             */
             class $brick extends BaseModelHelper
             {
                 public static string \$table = "$brick_table";
+                
             }
             
             FILE
@@ -130,12 +132,10 @@ trait Brick
 
         $import = "";
         $body = "";
-        $brick_init = "new $brick()";
 
         if($singleton) {
             $import = "use BrickLayer\Lay\Libs\Primitives\Traits\IsSingleton;";
             $body = "use IsSingleton;";
-            $brick_init = "$brick::new()";
         }
 
         /**
@@ -157,14 +157,90 @@ trait Brick
             $import
             
             use Bricks\\$brick\Model\\$brick;
+            use Bricks\\$brick\Resource\\{$brick}Resource;
             
             class $brick_plural
             {
                 $body
                 
-                private static function model(): $brick
+                public function list(): array
                 {
-                    return $brick_init;
+                    return {$brick}Resource::collect(
+                        (new $brick())->all()
+                    );
+                }
+                
+            }
+            
+            FILE
+        );
+
+
+        /**
+         * Default resource file
+         */
+
+        // delete placeholder file
+        unlink($brick_dir . $this->plug->s . "Resource" . $this->plug->s . "resource.php");
+
+        // make brick default resource
+        file_put_contents(
+            $brick_dir . $this->plug->s . "Resource" . $this->plug->s . "{$brick}Resource.php",
+            <<<FILE
+            <?php
+            declare(strict_types=1);
+            
+            namespace Bricks\\$brick\Resource;
+            
+            use BrickLayer\Lay\Libs\Primitives\Abstracts\ResourceHelper;
+            use Bricks\\$brick\Model\\$brick;
+            
+            class {$brick}Resource extends ResourceHelper
+            {
+                
+                protected function schema(object|array \$data): array
+                {
+                    \$data = new $brick(\$data);
+
+                    return [
+                        "id" => \$data->id,
+                        "dateCreated" => \$data->created_at,
+                        "dateUpdated" => \$data->updated_at ?? null,
+                    ];
+                }
+                
+            }
+            
+            FILE
+        );
+
+        /**
+         * Default request file
+         */
+
+        // delete placeholder file
+        unlink($brick_dir . $this->plug->s . "Request" . $this->plug->s . "request.php");
+
+        // make brick default request
+        file_put_contents(
+            $brick_dir . $this->plug->s . "Request" . $this->plug->s . "Create{$brick}Request.php",
+            <<<FILE
+            <?php
+            declare(strict_types=1);
+            
+            namespace Bricks\\$brick\Request;
+            
+            use BrickLayer\Lay\Libs\Primitives\Abstracts\RequestHelper;
+            
+            class Create{$brick}Request extends RequestHelper
+            {
+                
+                protected function rules(): void
+                {
+                
+                    \$this->vcm([ 'field' => 'field_name_1' ]);
+                    \$this->vcm([ 'field' => 'field_name_2', 'required' => false ]);
+                
                 }
                 
             }

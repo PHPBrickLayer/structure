@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace BrickLayer\Lay\Orm;
 
+use BrickLayer\Lay\Libs\Primitives\Enums\LayLoop;
 use BrickLayer\Lay\Orm\Enums\OrmDriver;
 use BrickLayer\Lay\Orm\Enums\OrmReturnType;
 use Closure;
@@ -40,7 +41,7 @@ final class StoreResult
                     OrmReturnType::ASSOC => SQLITE3_ASSOC,
                     OrmReturnType::NUM => SQLITE3_NUM,
                 };
-            break;
+                break;
 
             case OrmDriver::MYSQL:
                 $mode = match ($fetch_as) {
@@ -48,7 +49,7 @@ final class StoreResult
                     OrmReturnType::ASSOC => MYSQLI_ASSOC,
                     OrmReturnType::NUM => MYSQLI_NUM,
                 };
-            break;
+                break;
 
             case OrmDriver::POSTGRES:
                 $mode = match ($fetch_as) {
@@ -56,7 +57,7 @@ final class StoreResult
                     OrmReturnType::ASSOC => PGSQL_ASSOC,
                     OrmReturnType::NUM => PGSQL_NUM,
                 };
-            break;
+                break;
         }
 
         if(!$return_loop) {
@@ -81,8 +82,17 @@ final class StoreResult
         };
 
         foreach ($link->fetch_result($exec_result, $mode) as $k => $result) {
+            $break = false;
             $loop_handler($k, $result);
+
+            if(isset($result['_LAY_LOOP_']) && $result['_LAY_LOOP_'] == LayLoop::BREAK) {
+                unset($result['_LAY_LOOP_']);
+                $break = true;
+            }
+
             yield $result;
+
+            if($break) break;
         }
 
     }

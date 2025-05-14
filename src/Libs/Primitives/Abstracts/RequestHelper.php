@@ -10,17 +10,24 @@ abstract class RequestHelper
 {
     use ValidateCleanMap;
 
+    /**
+     * @var array<string, mixed>
+     */
     private array $data;
+
     public readonly ?string $error;
 
     /**
      * Cached request form data of an already parsed $_POST data
-     * @var array|object
+     * @var array<string, mixed>|object
      */
     private static array|object $cached_request_fd;
 
     abstract protected function rules(): void;
 
+    /**
+     * @return array<string, mixed>
+     */
     public final function props() : array
     {
         return $this->data;
@@ -47,10 +54,14 @@ abstract class RequestHelper
     protected function pre_validate() : void
     {
         self::vcm_start(self::request(), [
-            'required' => false,
+            'required' => true,
         ]);
     }
 
+    /**
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
     protected function post_validate(array $data): array
     {
         return $data;
@@ -75,9 +86,7 @@ abstract class RequestHelper
         static::$VCM_INSTANCE = $this;
 
         if($validate)
-            return $this->validate();
-
-        return $this;
+            $this->validate();
     }
 
     public final function __get(string $key) : mixed
@@ -85,7 +94,7 @@ abstract class RequestHelper
         return $this->data[$key] ?? null;
     }
 
-    public final function __isset($key) : bool
+    public final function __isset(string $key) : bool
     {
         return isset($this->data[$key]);
     }
@@ -99,7 +108,7 @@ abstract class RequestHelper
      * @param bool $throw_error
      * @param bool $as_array
      * @param bool $invalidate_cache
-     * @return array|object
+     * @return array<string, mixed>|object
      * @throws \Exception
      */
     public static function request(bool $throw_error = true, bool $as_array = false, bool $invalidate_cache = false): array|object

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace BrickLayer\Lay\Libs\Primitives\Abstracts;
 
+use BrickLayer\Lay\Core\LayException;
 use BrickLayer\Lay\Libs\LayDate;
 use BrickLayer\Lay\Libs\Primitives\Traits\IsFillable;
 use BrickLayer\Lay\Orm\SQL;
@@ -12,7 +13,10 @@ abstract class BaseModelHelper
 {
     use IsFillable;
 
-    private Closure $foreach;
+    /**
+     * @var array<int, callable(SQL):self>
+     */
+    private array $pre_run = [];
     private bool $debug_mode = false;
 
     /**
@@ -42,6 +46,27 @@ abstract class BaseModelHelper
     public function debug() : static
     {
         $this->debug_mode = true;
+        return $this;
+    }
+
+    /**
+     * @param callable(self):array<int|string, mixed> $each
+     * @return self
+     */
+    public function each(callable $each) : self
+    {
+        return $this->pre_run(
+            function(SQL $db) use ($each) {
+                $db->each(
+                    fn($data): array => $each($this->fill($data))
+                );
+            }
+        );
+    }
+
+    public function pre_run(callable $db_callback) : self
+    {
+        $this->pre_run[] = $db_callback;
         return $this;
     }
 
@@ -97,9 +122,25 @@ abstract class BaseModelHelper
          */
         $db->on_conflict(
             unique_columns: ['id'],
-            update_columns: ['id'],
+            update_columns: ['deleted'],
             action: 'UPDATE'
         );
+    }
+
+    private function exec_pre_run(SQL $db) : void
+    {
+        foreach($this->pre_run as $query) {
+            if(!($query instanceof Closure))
+                LayException::throw(
+                    "One of the pre query functions is not a callable: " . gettype($query),
+                    "ModelPreQueryError"
+                );
+
+            $query($db);
+        }
+
+        if(!empty($this->pre_run))
+            $this->pre_run = [];
     }
 
     /**
@@ -113,6 +154,7 @@ abstract class BaseModelHelper
             $columns = $columns->props();
 
         $columns[static::$primary_key_col] ??= 'UUID()';
+        $columns[static::$primary_delete_col] ??= "0";
         $columns['created_at'] ??= $this->timestamp();
 
         $db = static::db();
@@ -123,9 +165,10 @@ abstract class BaseModelHelper
         if($this->debug_mode)
             $db->debug();
 
-        if($rtn = $db->insert($columns, true)) {
+        $this->exec_pre_run($db);
+
+        if($rtn = $db->insert($columns, true))
             return $this->fill($rtn);
-        }
 
         return $this->unfill();
     }
@@ -149,49 +192,32 @@ abstract class BaseModelHelper
         if($this->debug_mode)
             $db->debug_deep();
 
-        if(isset($this->foreach))
-            $db->each(fn($data): array => ($this->foreach)($this->fill($data)));
+        $this->exec_pre_run($db);
 
-        $data = $db->loop()->limit($limit, $page)->then_select();
-
-        $this->unset_each();
-        return $data;
+        return $db->loop()->limit($limit, $page)->then_select();
     }
 
     public function get_by(string $field, string $value_or_operator, ?string $value = null) : static
     {
-        $orm = static::db();
+        $db = static::db();
 
         if(static::$use_delete)
-            $orm->where(static::$primary_delete_col, '0')
-                ->bracket(fn(SQL $sql) => $orm->where($field, $value_or_operator, $value), 'and');
+            $db->where(static::$primary_delete_col, '0')
+                ->bracket(fn(SQL $sql) => $db->where($field, $value_or_operator, $value), 'and');
         else
-            $orm->where($field, $value_or_operator, $value);
+            $db->where($field, $value_or_operator, $value);
 
         if($this->debug_mode)
-            $orm->debug_deep();
+            $db->debug_deep();
 
-        if($res = $orm->assoc()->select())
+        $this->exec_pre_run($db);
+
+        if($res = $db->assoc()->select())
             return $this->fill($res);
 
-        return $this->unfill();
-    }
-
-    /**
-     * @param callable(self):array<int|string, mixed> $each
-     * @return self
-     */
-    public function each(callable $each) : self
-    {
-        $this->foreach = $each;
         return $this;
     }
 
-    private function unset_each() : void
-    {
-        if(isset($this->foreach))
-            unset($this->foreach);
-    }
     /**
      * Get entries of multiple values from the same column.
      * This method can be important when you're trying to avoid n+1 queries.
@@ -218,13 +244,9 @@ abstract class BaseModelHelper
         if($this->debug_mode)
             $db->debug_deep();
 
-        if(isset($this->foreach))
-            $db->each(fn($data): array => ($this->foreach)($this->fill($data)));
+        $this->exec_pre_run($db);
 
-        $data = $db->loop()->then_select();
-
-        $this->unset_each();
-        return $data;
+        return $db->loop()->then_select();
     }
 
     public function by_id(string $id, bool $invalidate = false): static
@@ -241,24 +263,20 @@ abstract class BaseModelHelper
      */
     public function all_by_id(string $column, string $value_or_operator, ?string $value = null) : array
     {
-        $orm = static::db();
+        $db = static::db();
 
         if(static::$use_delete)
-            $orm->where(static::$primary_delete_col, '0')
-                ->bracket(fn() => $orm->where($column, $value_or_operator, $value), 'and');
+            $db->where(static::$primary_delete_col, '0')
+                ->bracket(fn() => $db->where($column, $value_or_operator, $value), 'and');
         else
-            $orm->where($column, $value_or_operator, $value);
+            $db->where($column, $value_or_operator, $value);
 
         if($this->debug_mode)
-            $orm->debug_deep();
+            $db->debug_deep();
 
-        if(isset($this->foreach))
-            $orm->each(fn($data): array => ($this->foreach)($this->fill($data)));
+        $this->exec_pre_run($db);
 
-        $data = $orm->loop()->then_select();
-
-        $this->unset_each();
-        return $data;
+        return $db->loop()->then_select();
     }
 
     /**
@@ -272,14 +290,16 @@ abstract class BaseModelHelper
         if($columns instanceof RequestHelper)
             $columns = $columns->props();
 
-        $orm = static::db()->column($columns)->no_false();
+        $db = static::db()->column($columns)->no_false();
 
-        $orm->where(static::$primary_key_col, $record_id);
+        $db->where(static::$primary_key_col, $record_id);
 
         if($this->debug_mode)
-            $orm->debug();
+            $db->debug();
 
-        return $orm->edit();
+        $this->exec_pre_run($db);
+
+        return $db->edit();
     }
 
     /**
@@ -303,16 +323,18 @@ abstract class BaseModelHelper
      */
     public function delete(string $act_by, ?string $record_id = null) : bool
     {
-        $orm = static::db()->column([
+        $db = static::db()->column([
             static::$primary_delete_col => 1,
             static::$primary_delete_col . "_by" => $act_by,
             static::$primary_delete_col . "_at" => $this->timestamp(),
         ]);
 
         if($this->debug_mode)
-            $orm->debug();
+            $db->debug();
 
-        return $orm->where(static::$primary_key_col, $record_id)->edit();
+        $this->exec_pre_run($db);
+
+        return $db->where(static::$primary_key_col, $record_id)->edit();
     }
 
     /**
