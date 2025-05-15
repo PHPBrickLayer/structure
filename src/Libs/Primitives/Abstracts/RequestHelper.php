@@ -34,6 +34,21 @@ abstract class RequestHelper
     }
 
     /**
+     * Update the value of the Request property, or attach a new key to it.
+     *
+     * @param string $key If you want to append a value to an array property, attach [] to the key
+     * @param mixed $value
+     * @return void
+     */
+    public final function update(string $key, mixed $value) : void
+    {
+        if(str_contains($key, "[]"))
+            $this->data[str_replace("[]", "", $key)][] = $value;
+        else
+            $this->data[$key] = $value;
+    }
+
+    /**
      * Properties to exclude from `props()` result
      * @param string ...$keys
      * @return $this
