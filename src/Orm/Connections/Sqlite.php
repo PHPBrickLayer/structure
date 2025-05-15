@@ -3,7 +3,7 @@
 namespace BrickLayer\Lay\Orm\Connections;
 
 use BrickLayer\Lay\Orm\Interfaces\OrmConnections;
-use Override;
+
 use SQLite3;
 use SQLite3Result;
 
@@ -14,25 +14,25 @@ final class Sqlite implements OrmConnections
     /**
      * @return SQLite3Result|false
      */
-    #[Override]
+    
     public function query(string $query): SQLite3Result|bool
     {
         return $this->link->query($query);
     }
 
-    #[Override]
+    
     public function close(): void
     {
         $this->link->close();
     }
 
-    #[Override]
+    
     public function exec(string $query, array $params = []): bool
     {
         return $this->link->exec($query);
     }
 
-    #[Override]
+    
     public function escape_string(string $value) : string
     {
         return $this->link::escapeString($value);
@@ -42,13 +42,13 @@ final class Sqlite implements OrmConnections
     /**
      * @return true
      */
-    #[Override]
+    
     public function is_connected() : bool
     {
         return true;
     }
 
-    #[Override]
+    
     /**
      * @param SQLite3Result|null $result
      */
@@ -58,7 +58,7 @@ final class Sqlite implements OrmConnections
     }
 
 
-    #[Override]
+    
     /**
      * @param SQLite3Result|null $result
      */

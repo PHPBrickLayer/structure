@@ -7,21 +7,21 @@ use BrickLayer\Lay\BobDBuilder\EnginePlug;
 use BrickLayer\Lay\BobDBuilder\Interface\CmdLayout;
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Libs\Dir\LayDir;
-use Override;
+
 
 final class Project implements CmdLayout
 {
     private EnginePlug $plug;
     private array $tags;
 
-    #[Override]
+    
     public function _init(EnginePlug $plug): void
     {
         $this->plug = $plug;
         $plug->add_arg($this, ["project:create"], 'project_create', 0);
     }
 
-    #[Override]
+    
     public function _spin(): void
     {
         if (!$this->plug->project_mode)
