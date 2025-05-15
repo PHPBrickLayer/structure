@@ -6,13 +6,13 @@ use BrickLayer\Lay\BobDBuilder\EnginePlug;
 use BrickLayer\Lay\BobDBuilder\Interface\CmdLayout;
 use BrickLayer\Lay\Libs\Cron\LayCron;
 use BrickLayer\Lay\Libs\LayDate;
-use Override;
+
 
 final class Cron implements CmdLayout
 {
     private EnginePlug $plug;
 
-    #[Override]
+    
     public function _init(EnginePlug $plug): void
     {
         $this->plug = $plug;
@@ -20,7 +20,7 @@ final class Cron implements CmdLayout
         $plug->add_arg($this, ["cron:once"], 'cron_once', 0, 2, 3);
     }
 
-    #[Override]
+    
     public function _spin(): void
     {
         if (!isset($this->plug->tags['cron_once']))

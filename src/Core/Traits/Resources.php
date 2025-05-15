@@ -162,7 +162,17 @@ trait Resources {
         if(self::$env_loaded)
             return;
 
-        Dotenv::createImmutable(self::server_data()->root)->load();
+        // copy env file if it doesn't exist
+        $root = self::server_data()->root;
+
+        if (!file_exists($root . ".env")) {
+            if(file_exists($root . ".env.example"))
+                copy($root . ".env.example", $root . ".env");
+            else
+                file_put_contents($root . ".env", "");
+        }
+
+        Dotenv::createImmutable($root)->load();
     }
 
     /**

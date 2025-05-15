@@ -451,7 +451,7 @@ trait Config
      * Please don't add dot (.), simply use the file extension directly.
      *
      * @param string ...$extensions
-     * @return LayConfig
+     * @return self
      * @example ignore_file_extensions("xml", "json")
      */
     public function ignore_file_extensions(string ...$extensions): self
@@ -521,12 +521,12 @@ trait Config
      * Prevents the data sent through the ViewHandler of a specific domain from being cached.
      * This only takes effect in development environment, if Lay detects the server is in production, it'll cache by default
      */
-    public function dont_cache_domains(): \BrickLayer\Lay\Core\LayConfig
+    public function dont_cache_domains(): self
     {
         return $this->switch("cache_domains", false);
     }
 
-    public function set_global_api(string $uri): \BrickLayer\Lay\Core\LayConfig
+    public function set_global_api(string $uri): self
     {
         self::$GLOBAL_API = $uri;
         return $this;
@@ -589,8 +589,11 @@ trait Config
         return !empty($_SERVER['HTTP_USER_AGENT']) && preg_match('~(Mobile)~i', $_SERVER['HTTP_USER_AGENT'], flags: PREG_UNMATCHED_AS_NULL);
     }
 
-    public function init_orm(bool $connect_by_default = true): \BrickLayer\Lay\Core\LayConfig
+    public function init_orm(bool $connect_by_default = true): self
     {
+        if(self::get_mode() == LayMode::CLI)
+            return $this;
+
         if ($connect_by_default)
             self::connect();
 

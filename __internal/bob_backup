@@ -1,8 +1,19 @@
 #!/usr/bin/env php
 <?php
+const USING_BOB = true;
 
 if(!defined("SAFE_TO_INIT_LAY"))
     define("SAFE_TO_INIT_LAY", true);
+
+// copy env file if it doesn't exist
+$root = __DIR__ . DIRECTORY_SEPARATOR;
+
+if (!file_exists($root . ".env")) {
+    if(file_exists($root . ".env.example"))
+        copy($root . ".env.example", $root . ".env");
+    else
+        file_put_contents($root . ".env", "");
+}
 
 include_once __DIR__ . DIRECTORY_SEPARATOR . "foundation.php";
 

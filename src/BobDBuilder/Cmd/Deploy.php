@@ -12,7 +12,7 @@ use BrickLayer\Lay\Libs\Primitives\Enums\LayLoop;
 use BrickLayer\Lay\Libs\Symlink\LaySymlink;
 use DirectoryIterator;
 use Exception;
-use Override;
+
 
 final class Deploy implements CmdLayout
 {
@@ -29,7 +29,7 @@ final class Deploy implements CmdLayout
         $this->plug->write_talk($message, ['silent' => true]);
     }
 
-    #[Override]
+    
     public function _init(EnginePlug $plug): void
     {
         $this->plug = $plug;
@@ -38,7 +38,7 @@ final class Deploy implements CmdLayout
         $plug->add_arg($this, ["deploy"], 'deploy', true);
     }
 
-    #[Override]
+    
     public function _spin(): void
     {
         $tags = $this->plug->tags;
