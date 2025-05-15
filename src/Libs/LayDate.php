@@ -94,7 +94,8 @@ abstract class LayDate {
      * @param bool $figure to return the integer equivalent of the give datetime
      * @return string|int
      */
-    public static function date(string|int|null $datetime = null, string $format = "Y-m-d H:i:s", int $format_index = -1, bool $figure = false) : string|int {
+    public static function date(string|int|null $datetime = null, string $format = "Y-m-d H:i:s", int $format_index = -1, bool $figure = false) : string|int
+    {
 
         $format = match ($format_index) {
             0 => "Y-m-d",
@@ -140,7 +141,7 @@ abstract class LayDate {
         return self::diff($date_word, "now", true);
     }
 
-    public static function week_of_month($date) : int
+    public static function week_of_month(int $date) : int
     {
         $first_day_of_month = strtotime(date("Y-m-01", $date));
 
