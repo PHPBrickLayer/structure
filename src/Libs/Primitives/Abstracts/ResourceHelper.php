@@ -51,8 +51,26 @@ abstract class ResourceHelper
     }
 
     /**
+     * Update the value of the Resource property, or attach a new key to it.
+     *
+     * @param string $key If you want to append a value to an array property, attach [] to the key
+     * @param mixed $value
+     * @return void
+     */
+    public final function update(string $key, mixed $value) : void
+    {
+        $this->props();
+
+        if(str_contains($key, "[]"))
+            $this->mapped[str_replace("[]", "", $key)][] = $value;
+        else
+            $this->mapped[$key] = $value;
+    }
+
+    /**
      * Maps a 2D array to the defined schema and returns the formatted array in 2D format
-     * @return array<int|string, array>
+     * @param array<int, array<string, mixed>> $data
+     * @return array<int|string, array<string, mixed>>
      */
     public static final function collect(array $data, string ...$except): array
     {
