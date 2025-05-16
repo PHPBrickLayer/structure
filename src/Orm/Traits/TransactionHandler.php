@@ -159,8 +159,7 @@ trait TransactionHandler
      * This function wraps all your operations in a callback function, inside a transaction, and also wrapped in a try catch block
      *
      * @param callable(static): array{
-     *     status: 'success' | 'warning' | 'error',
-     *     message: 'COMMIT' | 'ROLLBACK' | 'EXCEPTION',
+     *     status: 'success' | 'error',
      *     data: mixed,
      * } $scoped_operations The operation that should be run in the transaction block.
      * It must return an array with the key `status` included. and to commit your transaction,
@@ -197,7 +196,12 @@ trait TransactionHandler
             self::new()->begin_transaction($flags, $name);
 
             $output = $scoped_operations(self::new()) ?? null;
-            $commit = $output['status'] == "success";
+            $commit = @$output['status'] == "success";
+
+            $data = $output['data'] ?? null;
+
+            if(isset($output['message']))
+                $data = $output;
 
             if($commit)
                 self::new()->commit($flags, $name);
@@ -207,7 +211,7 @@ trait TransactionHandler
             return [
                 "status" => true,
                 "message" => $commit ? "COMMIT" : "ROLLBACK",
-                "data" => $output
+                "data" => $data
             ];
         } catch (\Throwable $exception) {
             self::new()->rollback();
@@ -223,7 +227,7 @@ trait TransactionHandler
             }
 
             if($throw_exception)
-                LayException::throw_exception("", "ScopedTransactionException", exception: $exception);
+                LayException::throw("", "ScopedTransactionException", $exception);
 
             LayException::log("", exception: $exception, log_title: "ScopedTransactionLog");
 
