@@ -23,10 +23,12 @@ final class Engine
         $force = $this->extract_global_tag("--force", "-f");
         $show_help = $this->extract_global_tag("--help", "-h");
         $silent = $this->extract_global_tag("--silent", "-s");
+        $catch_error = $this->extract_global_tag("--catch", "-ce");
 
         $this->plug = new EnginePlug($this->args, $die_on_error);
         $this->plug->is_internal = $this->is_internal;
 
+        $this->plug->catch_error = $catch_error;
         $this->plug->force = $force;
         $this->plug->show_help = $show_help;
         $this->plug->silent = $silent;
