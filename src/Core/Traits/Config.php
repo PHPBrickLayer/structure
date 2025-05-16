@@ -537,9 +537,17 @@ trait Config
         return self::$GLOBAL_API ?? null;
     }
 
-    public function get_server_type(): LayServerType
+    public static function get_server_type(): LayServerType
     {
-        return self::$SERVER_TYPE;
+        $server_type = $_SERVER['SERVER_SOFTWARE'] ?? "CLI";
+
+        return match (substr(strtolower($server_type), 0, 3)) {
+            default => LayServerType::OTHER,
+            "apa" => LayServerType::APACHE,
+            "php" => LayServerType::PHP,
+            "ngi" => LayServerType::NGINX,
+            "cad" => LayServerType::CADDY,
+        };
     }
 
     private function metadata(string $key, mixed $value): self

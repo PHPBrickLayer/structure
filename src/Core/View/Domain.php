@@ -368,7 +368,7 @@ final class Domain {
         $get_name = "brick";
         $request_uri = $_SERVER['REQUEST_URI'];
 
-        if(LayConfig::new()->get_server_type() == LayServerType::APACHE)
+        if(LayConfig::get_server_type() == LayServerType::APACHE)
             $request_uri = $_GET[$get_name] ?? '';
 
         // Strip all search query, it's not needed

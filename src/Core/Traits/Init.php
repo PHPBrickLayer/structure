@@ -21,7 +21,6 @@ trait Init {
     private static bool $FIRST_CLASS_CITI_ACTIVE = false;
 
     protected static string $dir;
-    protected static LayServerType $SERVER_TYPE;
 
     public static bool $ENV_IS_PROD = true;
     public static bool $ENV_IS_DEV = false;
@@ -116,19 +115,6 @@ trait Init {
         self::$base = $proto . $http_host . $base_no_proto . "/";
         self::$base_no_proto  = $http_host . $base_no_proto;
         self::$base_no_proto_no_www  = str_replace("www.","", self::$base_no_proto);
-        $server_type = $_SERVER['SERVER_SOFTWARE'] ?? null;
-
-        if($server_type) {
-            $server_type = match (substr(strtolower($server_type), 0, 3)) {
-                default => LayServerType::OTHER,
-                "apa" => LayServerType::APACHE,
-                "php" => LayServerType::PHP,
-                "ngi" => LayServerType::NGINX,
-                "cad" => LayServerType::CADDY,
-            };
-        }
-
-        self::$SERVER_TYPE = $server_type ?? LayServerType::OTHER;
 
         $localhost = ["127.0.","192.168.","::1"];
 
