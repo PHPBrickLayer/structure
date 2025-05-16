@@ -141,7 +141,7 @@ final class LaySymlink {
             }
 
             if($has_dead_links) {
-                (new EnginePlug([], false, false))->write_warn("Found dead links, attempting to prune!", [
+                (new EnginePlug([], false, false))->write_warn("!! Found dead links, attempting to prune !!", [
                     "close_talk" => false,
                     "kill" => false,
                 ]);
