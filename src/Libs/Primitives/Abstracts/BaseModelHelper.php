@@ -13,26 +13,12 @@ abstract class BaseModelHelper
 {
     use IsFillable;
 
+    private bool $debug_mode = false;
+
     /**
      * @var array<int, callable(SQL):self>
      */
     private array $pre_run = [];
-    private bool $debug_mode = false;
-
-    /**
-     * This is basically the column you use for soft delete in your app
-     * @var string
-     * @abstract Overwrite when necessary
-     */
-    protected static string $primary_delete_col = "deleted";
-
-    /**
-     * Use this to let your model know when running a select query,
-     * if it should fetch only rows that have not been "deleted" [true] or every row [false]
-     *
-     * @var bool
-     */
-    protected static bool $use_delete = true;
 
     public function uuid() : string
     {

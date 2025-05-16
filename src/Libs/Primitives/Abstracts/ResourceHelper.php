@@ -51,7 +51,7 @@ abstract class ResourceHelper
     }
 
     /**
-     * Update the value of the Resource property, or attach a new key to it.
+     * Update the value of the Resource property only. You can't attach a new key.
      *
      * @param string $key If you want to append a value to an array property, attach [] to the key
      * @param mixed $value
@@ -61,8 +61,18 @@ abstract class ResourceHelper
     {
         $this->props();
 
-        if(str_contains($key, "[]"))
-            $this->mapped[str_replace("[]", "", $key)][] = $value;
+        $append = str_contains($key, "[]");
+
+        if ($append)
+            $key = str_replace("[]", "", $key);
+
+        if(!isset($this->mapped[$key]))
+            LayException::throw_exception(
+                "Trying to dynamically add a new property to your Resource. You can only do that in the `schema` function"
+            );
+
+        if($append)
+            $this->mapped[$key][] = $value;
         else
             $this->mapped[$key] = $value;
     }
