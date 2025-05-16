@@ -140,7 +140,7 @@ abstract class BaseModelHelper
             $columns = $columns->props();
 
         $columns[static::$primary_key_col] ??= 'UUID()';
-        $columns[static::$primary_delete_col] ??= "0";
+        $columns[static::$table . "." . static::$primary_delete_col] ??= "0";
         $columns['created_at'] ??= $this->timestamp();
 
         $db = static::db();
@@ -173,7 +173,7 @@ abstract class BaseModelHelper
         $db = static::db();
 
         if(static::$use_delete)
-            $db->where(static::$primary_delete_col, '0');
+            $db->where(static::$table . "." . static::$primary_delete_col, '0');
 
         if($this->debug_mode)
             $db->debug_deep();
@@ -188,7 +188,7 @@ abstract class BaseModelHelper
         $db = static::db();
 
         if(static::$use_delete)
-            $db->where(static::$primary_delete_col, '0')
+            $db->where(static::$table . "." . static::$primary_delete_col, '0')
                 ->bracket(fn(SQL $sql) => $db->where($field, $value_or_operator, $value), 'and');
         else
             $db->where($field, $value_or_operator, $value);
@@ -238,7 +238,7 @@ abstract class BaseModelHelper
     public function by_id(string $id, bool $invalidate = false): static
     {
         if ($invalidate || !isset($this->columns[static::$primary_key_col]) || $this->columns[static::$primary_key_col] !== $id) {
-            return $this->get_by(static::$primary_key_col, $id);
+            return $this->get_by(static::$table . "." . static::$primary_key_col, $id);
         }
 
         return $this;
@@ -252,7 +252,7 @@ abstract class BaseModelHelper
         $db = static::db();
 
         if(static::$use_delete)
-            $db->where(static::$primary_delete_col, '0')
+            $db->where(static::$table . "." . static::$primary_delete_col, '0')
                 ->bracket(fn() => $db->where($column, $value_or_operator, $value), 'and');
         else
             $db->where($column, $value_or_operator, $value);
@@ -310,9 +310,9 @@ abstract class BaseModelHelper
     public function delete(string $act_by, ?string $record_id = null) : bool
     {
         $db = static::db()->column([
-            static::$primary_delete_col => 1,
-            static::$primary_delete_col . "_by" => $act_by,
-            static::$primary_delete_col . "_at" => $this->timestamp(),
+            static::$table . "." . static::$primary_delete_col => 1,
+            static::$table . "." . static::$primary_delete_col . "_by" => $act_by,
+            static::$table . "." . static::$primary_delete_col . "_at" => $this->timestamp(),
         ]);
 
         if($this->debug_mode)
