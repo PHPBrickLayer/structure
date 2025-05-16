@@ -21,6 +21,21 @@ trait IsFillable {
     protected static string $primary_key_col = "id";
 
     /**
+     * This is basically the column you use for soft delete in your app
+     * @var string
+     * @abstract Overwrite when necessary
+     */
+    protected static string $primary_delete_col = "deleted";
+
+    /**
+     * Use this to let your model know when running a select query,
+     * if it should fetch only rows that have not been "deleted" [true] or every row [false]
+     *
+     * @var bool
+     */
+    protected static bool $use_delete = true;
+
+    /**
      * @var array
      * @readonly
      */
@@ -102,6 +117,9 @@ trait IsFillable {
 
     public function props(): array
     {
+        if(self::$use_delete)
+            $this->columns[self::$primary_delete_col] = filter_var($this->columns[self::$primary_delete_col], FILTER_VALIDATE_BOOL);
+
         return $this->props_schema($this->columns);
     }
 

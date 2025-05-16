@@ -23,6 +23,7 @@ final class EnginePlug
     public bool $operation_successful = true;
     public bool $show_intro = true;
     public bool $show_help = false;
+    public bool $catch_error = false;
     public bool $force = false;
     public bool $silent = false;
     public bool $cmd_found = false;
@@ -44,13 +45,15 @@ final class EnginePlug
     public function __construct(
         private readonly array $args,
         private readonly bool $die_on_error,
+        bool $load_cmd = true
     )
     {
         $this->server = LayConfig::server_data();
         $this->s = DIRECTORY_SEPARATOR;
         $this->project_mode = file_exists($this->server->root . "foundation.php");
 
-        $this->load_cmd_classes();
+        if($load_cmd)
+            $this->load_cmd_classes();
     }
 
     public function fire(): void
@@ -242,7 +245,7 @@ final class EnginePlug
     public function write_fail(string $message, array $opts = []) : void {
         $opts['hide_current_cmd'] = $opts['hide_current_cmd'] ?? true;
         $opts['close_talk'] = true;
-        $opts['kill'] = true;
+        $opts['kill'] = !$this->catch_error;
         $this->failed();
 
         $this->write($message, CmdOutType::FAIL, $opts);
@@ -255,7 +258,7 @@ final class EnginePlug
     public function write_warn(string $message, array $opts = []) : void {
         $opts['hide_current_cmd'] = $opts['hide_current_cmd'] ?? true;
         $opts['close_talk'] = $opts['close_talk'] ?? true;
-        $opts['kill'] = true;
+        $opts['kill'] = !$this->catch_error;
         $this->failed();
 
         $this->write($message, CmdOutType::WARN, $opts);

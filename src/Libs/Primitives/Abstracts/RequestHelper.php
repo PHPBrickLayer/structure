@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace BrickLayer\Lay\Libs\Primitives\Abstracts;
 
 use BrickLayer\Lay\Core\Exception;
+use BrickLayer\Lay\Core\LayException;
 use BrickLayer\Lay\Libs\Primitives\Traits\ValidateCleanMap;
 
 abstract class RequestHelper
@@ -34,7 +35,7 @@ abstract class RequestHelper
     }
 
     /**
-     * Update the value of the Request property, or attach a new key to it.
+     * Update the value of the Request property. You can't add a new key.
      *
      * @param string $key If you want to append a value to an array property, attach [] to the key
      * @param mixed $value
@@ -42,8 +43,18 @@ abstract class RequestHelper
      */
     public final function update(string $key, mixed $value) : void
     {
-        if(str_contains($key, "[]"))
-            $this->data[str_replace("[]", "", $key)][] = $value;
+        $append = str_contains($key, "[]");
+
+        if ($append)
+            $key = str_replace("[]", "", $key);
+
+        if(!isset($this->data[$key]))
+            LayException::throw_exception(
+                "Trying to dynamically add a new property to your Resource. You can only do that in the `post_validate` function"
+            );
+
+        if($append)
+            $this->data[$key][] = $value;
         else
             $this->data[$key] = $value;
     }

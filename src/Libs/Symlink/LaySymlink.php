@@ -3,15 +3,17 @@ declare(strict_types=1);
 namespace BrickLayer\Lay\Libs\Symlink;
 
 use BrickLayer\Lay\BobDBuilder\BobExec;
+use BrickLayer\Lay\BobDBuilder\EnginePlug;
 use BrickLayer\Lay\BobDBuilder\Helper\Console\Console;
 use BrickLayer\Lay\BobDBuilder\Helper\Console\Format\Foreground;
-use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Core\LayException;
 use BrickLayer\Lay\Libs\Dir\LayDir;
 use BrickLayer\Lay\Libs\LayFn;
 
 final class LaySymlink {
     private string $json_filename;
+    public static bool $has_error = false;
 
     /**
      * Where Lay should track all the symlinks created by this method
@@ -22,7 +24,7 @@ final class LaySymlink {
         $this->json_filename = self::symlink_dir() . LayFn::rtrim_word($json_filename, ".json") . ".json";
     }
 
-    public static function make(string $src, string $dest, ?SymlinkWindowsType $type = null) : void
+    public static function make(string $src, string $dest, ?SymlinkWindowsType $type = null, bool $catch_error = false) : void
     {
         $src = str_replace(['/', DIRECTORY_SEPARATOR], DIRECTORY_SEPARATOR, $src);
         $dest = str_replace(['/', DIRECTORY_SEPARATOR], DIRECTORY_SEPARATOR, $dest);
@@ -53,15 +55,17 @@ final class LaySymlink {
 
         $src = $d_slash . $src;
 
-        if(!@symlink($src, $dest))
-            Exception::new()->use_exception(
-                "SymlinkFailed",
+        self::$has_error = !@symlink($src, $dest);
+
+        if(self::$has_error && !$catch_error)
+            LayException::throw(
                 "Could not successfully create a symbolic link. \n"
                 . "SRC: $src \n"
                 . "DEST: $dest \n"
                 . "DEST may exist already.\n"
                 . "If DEST is a file, confirm if the attached directory exists in the destination"
                 ,
+                "SymlinkFailed",
             );
     }
 
@@ -120,21 +124,33 @@ final class LaySymlink {
             $links = json_decode(file_get_contents($db_file), true);
 
             if($links === null)
-                Exception::throw_exception("There was an error reading file: $db_file. Please open it and confirm if it's a valid JSON");
+                LayException::throw("There was an error reading file: $db_file. Please open it and confirm if it's a valid JSON");
+
+            $has_dead_links = false;
 
             foreach ($links as $link) {
+                if(self::$has_error)
+                    $has_dead_links = true;
+
                 if(empty($link['src'])) {
-                    new BobExec("link:{$link['type']} {$link['dest']} --force --silent");
+                    new BobExec("link:{$link['type']} {$link['dest']} --force --silent --catch");
                     continue;
                 }
 
-                new BobExec("link:{$link['type']} {$link['src']} {$link['dest']} --force --silent");
+                new BobExec("link:{$link['type']} {$link['src']} {$link['dest']} --force --silent --catch");
             }
 
+            if($has_dead_links) {
+                (new EnginePlug([], false, false))->write_warn("!! Found dead links, attempting to prune !!", [
+                    "close_talk" => false,
+                    "kill" => false,
+                ]);
+                $this->prune_link();
+            }
         };
 
         if(!$recursive && empty($this->json_filename))
-            Exception::throw_exception("Trying to refresh symlink for a single file but `json_filename` is empty");
+            LayException::throw("Trying to refresh symlink for a single file but `json_filename` is empty");
 
         if(!$recursive) {
             $refresh($this->json_filename);
@@ -199,7 +215,7 @@ final class LaySymlink {
         };
 
         if(!$recursive && empty($this->json_filename))
-            Exception::throw_exception("Trying to prune symlinks for a single file but `json_filename` was not specified");
+            LayException::throw("Trying to prune symlinks for a single file but `json_filename` was not specified");
 
         if(!$recursive) {
             $prune($this->json_filename);
