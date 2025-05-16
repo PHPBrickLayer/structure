@@ -45,13 +45,15 @@ final class EnginePlug
     public function __construct(
         private readonly array $args,
         private readonly bool $die_on_error,
+        bool $load_cmd = true
     )
     {
         $this->server = LayConfig::server_data();
         $this->s = DIRECTORY_SEPARATOR;
         $this->project_mode = file_exists($this->server->root . "foundation.php");
 
-        $this->load_cmd_classes();
+        if($load_cmd)
+            $this->load_cmd_classes();
     }
 
     public function fire(): void

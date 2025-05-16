@@ -3,9 +3,9 @@ declare(strict_types=1);
 namespace BrickLayer\Lay\Libs\Symlink;
 
 use BrickLayer\Lay\BobDBuilder\BobExec;
+use BrickLayer\Lay\BobDBuilder\EnginePlug;
 use BrickLayer\Lay\BobDBuilder\Helper\Console\Console;
 use BrickLayer\Lay\BobDBuilder\Helper\Console\Format\Foreground;
-use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\LayException;
 use BrickLayer\Lay\Libs\Dir\LayDir;
@@ -124,7 +124,7 @@ final class LaySymlink {
             $links = json_decode(file_get_contents($db_file), true);
 
             if($links === null)
-                Exception::throw_exception("There was an error reading file: $db_file. Please open it and confirm if it's a valid JSON");
+                LayException::throw("There was an error reading file: $db_file. Please open it and confirm if it's a valid JSON");
 
             $has_dead_links = false;
 
@@ -140,12 +140,17 @@ final class LaySymlink {
                 new BobExec("link:{$link['type']} {$link['src']} {$link['dest']} --force --silent --catch");
             }
 
-            if($has_dead_links)
+            if($has_dead_links) {
+                (new EnginePlug([], false, false))->write_warn("Found dead links, attempting to prune!", [
+                    "close_talk" => false,
+                    "kill" => false,
+                ]);
                 $this->prune_link();
+            }
         };
 
         if(!$recursive && empty($this->json_filename))
-            Exception::throw_exception("Trying to refresh symlink for a single file but `json_filename` is empty");
+            LayException::throw("Trying to refresh symlink for a single file but `json_filename` is empty");
 
         if(!$recursive) {
             $refresh($this->json_filename);
@@ -210,7 +215,7 @@ final class LaySymlink {
         };
 
         if(!$recursive && empty($this->json_filename))
-            Exception::throw_exception("Trying to prune symlinks for a single file but `json_filename` was not specified");
+            LayException::throw("Trying to prune symlinks for a single file but `json_filename` was not specified");
 
         if(!$recursive) {
             $prune($this->json_filename);
