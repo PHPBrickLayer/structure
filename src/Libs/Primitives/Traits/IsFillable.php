@@ -2,6 +2,7 @@
 namespace BrickLayer\Lay\Libs\Primitives\Traits;
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Orm\SQL;
+use JetBrains\PhpStorm\ExpectedValues;
 
 /**
  * Used in models to mark them as fillable.
@@ -118,9 +119,11 @@ trait IsFillable {
     public function props(): array
     {
         if(self::$use_delete)
-            $this->columns[self::$primary_delete_col] = filter_var($this->columns[self::$primary_delete_col], FILTER_VALIDATE_BOOL);
+            $this->parse_prop(self::$primary_delete_col, "bool", false);
 
-        return $this->props_schema($this->columns);
+        $this->props_schema($this->columns);
+
+        return $this->columns;
     }
 
     public function exists(): bool
@@ -133,9 +136,43 @@ trait IsFillable {
         return !isset($this->columns[static::$primary_key_col]);
     }
 
-    protected function props_schema(array $props) : array
+    /**
+     * Use this to format the final props. It is good practice to ensure your props name and data type match
+     * what you defined at the beginning of your class in the `property` attribution.
+     *
+     * @param array $props
+     * @return void
+     * @abstract
+     */
+    protected function props_schema(array &$props) : void
     {
-        return $props;
+        // You can use `parse_prop` here
+    }
+
+    /**
+     * A helper class used inside the props_schema to parse props to a specific data type
+     * @param string $key
+     * @param string $type
+     * @param mixed $default
+     * @return void
+     */
+    protected final function parse_prop(
+        string $key,
+        #[ExpectedValues(["bool", "boolean", "int", "integer", "float", "double", "string", "array", "object", "null"])] string $type,
+        mixed $default
+    ) : void
+    {
+        if(!isset($this->columns[$key])) {
+            $this->columns[$key] = $default;
+            return;
+        }
+
+        $old_type = gettype($this->columns[$key]);
+
+        if($old_type == $type)
+            return;
+
+        settype($this->columns[$key], $type);
     }
 
 }

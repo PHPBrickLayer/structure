@@ -8,6 +8,7 @@ use BrickLayer\Lay\Libs\LayDate;
 use BrickLayer\Lay\Libs\Primitives\Traits\IsFillable;
 use BrickLayer\Lay\Orm\SQL;
 use Closure;
+use JetBrains\PhpStorm\ExpectedValues;
 
 abstract class BaseModelHelper
 {
@@ -78,10 +79,7 @@ abstract class BaseModelHelper
         if($columns instanceof RequestHelper)
             $columns = $columns->props();
 
-        return self::db()
-                ->where("title", $columns['title'])
-                ->and_where("deleted", '0')
-                ->count() > 0;
+        return $this->count("title", $columns['title']) > 0;
     }
 
     /**
@@ -159,6 +157,14 @@ abstract class BaseModelHelper
         return $this->unfill();
     }
 
+    /**
+     * @see add
+     */
+    public function create(array|RequestHelper $columns, bool $resolve_conflict = false) : static
+    {
+        return $this->add($columns, $resolve_conflict);
+    }
+
     // TODO: Ensure batch uploads uses transaction; also add an insert_conflict resolution strategy
     public function batch(array $columns) : bool
     {
@@ -181,6 +187,24 @@ abstract class BaseModelHelper
         $this->exec_pre_run($db);
 
         return $db->loop()->limit($limit, $page)->then_select();
+    }
+
+    public function count(string $field, string $value_or_operator, ?string $value = null) : int
+    {
+        $db = static::db();
+
+        if(static::$use_delete)
+            $db->where(static::$table . "." . static::$primary_delete_col, '0')
+                ->bracket(fn(SQL $sql) => $db->where($field, $value_or_operator, $value), 'and');
+        else
+            $db->where($field, $value_or_operator, $value);
+
+        if($this->debug_mode)
+            $db->debug_deep();
+
+        $this->exec_pre_run($db);
+
+        return $db->count();
     }
 
     public function get_by(string $field, string $value_or_operator, ?string $value = null) : static

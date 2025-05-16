@@ -74,6 +74,11 @@ abstract class RequestHelper
         return $this;
     }
 
+    public final function unset(string ...$keys) : static
+    {
+        return $this->except(...$keys);
+    }
+
     /**
      * By default, it's responsible for digesting the request and setting the default rules
      */
