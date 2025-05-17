@@ -1,6 +1,7 @@
 <?php
 namespace BrickLayer\Lay\Libs\Primitives\Traits;
 use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Core\LayException;
 use BrickLayer\Lay\Orm\SQL;
 use JetBrains\PhpStorm\ExpectedValues;
 
@@ -156,13 +157,16 @@ trait IsFillable {
      * @param mixed $default
      * @return void
      */
-    protected final function parse_prop(
+    protected function parse_prop(
         string $key,
         #[ExpectedValues(["bool", "boolean", "int", "integer", "float", "double", "string", "array", "object", "null"])] string $type,
-        mixed $default
+        mixed $default = "@same@"
     ) : void
     {
         if(!isset($this->columns[$key])) {
+            if($default === "@same@")
+                LayException::throw("Key [$key] is not set, and a default value was not presented. '@same@' cannot be used as a default value");
+
             $this->columns[$key] = $default;
             return;
         }
@@ -171,6 +175,16 @@ trait IsFillable {
 
         if($old_type == $type)
             return;
+
+        if($type == "array") {
+            $this->columns[$key] = json_decode($this->columns[$key], true);
+            return;
+        }
+
+        if($type == "object") {
+            $this->columns[$key] = json_decode($this->columns[$key]);
+            return;
+        }
 
         settype($this->columns[$key], $type);
     }
