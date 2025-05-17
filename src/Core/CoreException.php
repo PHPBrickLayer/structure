@@ -122,17 +122,21 @@ final class CoreException
     ): array|null
     {
         if($exception) {
+            $show_message = $opts['show_e_msg'] ?? true;
             $file_all = $exception->getFile();
             $file = explode(DIRECTORY_SEPARATOR, $file_all);
             $file = end($file);
             $line = $exception->getLine();
-            $body = $body  . " \n<br> " . $exception->getMessage();
+            $body = $body  . " \n<br> ";
 
-            $body = <<<BDY
-            $body
-            <div style="font-weight: bold; color: cyan">$file ($line)</div>
-            <div style="color: lightcyan">$file_all:<b>$line</b></div>
-            BDY;
+            if($show_message) {
+                $body .= $exception->getMessage();
+                $body = <<<BDY
+                $body
+                <div style="font-weight: bold; color: cyan">$file ($line)</div>
+                <div style="color: lightcyan">$file_all:<b>$line</b></div>
+                BDY;
+            }
 
             $trace = $exception->getTrace();
             $title = $title . " [" . $exception::class . "]";

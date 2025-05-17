@@ -128,9 +128,13 @@ final class SQL
             $has_error = true;
 
             $query_type = is_string($query_type) ? $query_type : $query_type->name;
+            $error = self::$link->error ?? null;
+
+            if (method_exists(self::$link, "lastErrorMsg"))
+                $error = self::$link->lastErrorMsg() ?? null;
 
             $title = "QueryExec";
-            $message = " 
+            $message = "<b style='color: #008dc5'>" . ($error ?? $e->getMessage()) . "</b> 
             <div style='color: #fff0b3; margin-top: 5px'>$query</div> 
             <div style='margin: 10px 0'>Statement: $query_type</div>
             <div style='margin: 10px 0'>DB: <span style='color: #00A261'>" . self::$db_name . "</span></div>
@@ -138,7 +142,9 @@ final class SQL
             ";
 
             if ($catch_error === false)
-                self::exception($title, $message, exception: $e);
+                self::exception($title, $message, [
+                    "show_e_msg" => false
+                ] , $e);
             else
                 LayException::log($message, $e, $title);
         }
