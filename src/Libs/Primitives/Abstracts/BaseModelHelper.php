@@ -8,11 +8,12 @@ use BrickLayer\Lay\Libs\LayDate;
 use BrickLayer\Lay\Libs\Primitives\Traits\IsFillable;
 use BrickLayer\Lay\Orm\SQL;
 use Closure;
-use JetBrains\PhpStorm\ExpectedValues;
 
 abstract class BaseModelHelper
 {
     use IsFillable;
+
+    protected static string $primary_created_at_col = "created_at";
 
     private bool $debug_mode = false;
 
@@ -138,8 +139,8 @@ abstract class BaseModelHelper
             $columns = $columns->props();
 
         $columns[static::$primary_key_col] ??= 'UUID()';
-        $columns[static::$table . "." . static::$primary_delete_col] ??= "0";
-        $columns['created_at'] ??= $this->timestamp();
+        $columns[static::$primary_delete_col] ??= "0";
+        $columns[static::$primary_created_at_col] ??= $this->timestamp();
 
         $db = static::db();
 
@@ -155,14 +156,6 @@ abstract class BaseModelHelper
             return $this->fill($rtn);
 
         return $this->unfill();
-    }
-
-    /**
-     * @see add
-     */
-    public function create(array|RequestHelper $columns, bool $resolve_conflict = false) : static
-    {
-        return $this->add($columns, $resolve_conflict);
     }
 
     // TODO: Ensure batch uploads uses transaction; also add an insert_conflict resolution strategy

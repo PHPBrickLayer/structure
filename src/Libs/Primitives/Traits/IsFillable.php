@@ -72,21 +72,29 @@ trait IsFillable {
             return $this;
 
         $by_id = is_array($record_or_id) && !$invalidate ?
-            fn() => $this->props_schema($record_or_id) :
-            fn() => $this->props_schema(static::db()->where(static::$primary_key_col, $record_or_id)->then_select());
+            fn() => $this->set_columns($record_or_id) :
+            fn() => $this->set_columns(static::db()->where(static::$primary_key_col, $record_or_id)->then_select());
 
-        if($invalidate) {
-            $this->columns = $by_id();
-            return $this;
-        }
+        if($invalidate)
+            return $by_id();
 
-        if(!isset($this->columns)) {
-            $this->columns = $by_id();
-            return $this;
-        }
+        if(!isset($this->columns))
+            return $by_id();
 
         if(@$this->columns[static::$primary_key_col] != $record_or_id)
-            $this->columns = $by_id();
+            return $by_id();
+
+        return $this;
+    }
+
+    protected function set_columns(array $data) : static
+    {
+        $this->columns = $data;
+
+        if(self::$use_delete)
+            $this->parse_prop(self::$primary_delete_col, "bool", false);
+
+        $this->props_schema($this->columns);
 
         return $this;
     }
@@ -119,11 +127,6 @@ trait IsFillable {
 
     public function props(): array
     {
-        if(self::$use_delete)
-            $this->parse_prop(self::$primary_delete_col, "bool", false);
-
-        $this->props_schema($this->columns);
-
         return $this->columns;
     }
 
@@ -145,8 +148,7 @@ trait IsFillable {
      * @return void
      * @abstract
      */
-    protected function props_schema(array &$props) : void
-    {
+    protected function props_schema(array &$props) : void {
         // You can use `parse_prop` here
     }
 
