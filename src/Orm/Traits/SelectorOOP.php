@@ -580,6 +580,9 @@ trait SelectorOOP
      */
     final public function limit(int $max_result, int $page_number = 1): SQL
     {
+        if($page_number < 1) $page_number = 1;
+        if($max_result < 1) $max_result = 1;
+
         return $this->store_vars('limit', ["index" => $page_number, "max_result" => $max_result]);
     }
 
