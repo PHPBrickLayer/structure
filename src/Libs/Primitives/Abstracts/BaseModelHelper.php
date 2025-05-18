@@ -175,7 +175,7 @@ abstract class BaseModelHelper
             $db->where(static::$table . "." . static::$primary_delete_col, '0');
 
         if($this->debug_mode)
-            $db->debug_deep();
+            $db->debug_full();
 
         $this->exec_pre_run($db);
 
@@ -193,7 +193,7 @@ abstract class BaseModelHelper
             $db->where($field, $value_or_operator, $value);
 
         if($this->debug_mode)
-            $db->debug_deep();
+            $db->debug_full();
 
         $this->exec_pre_run($db);
 
@@ -211,7 +211,7 @@ abstract class BaseModelHelper
             $db->where($field, $value_or_operator, $value);
 
         if($this->debug_mode)
-            $db->debug_deep();
+            $db->debug_full();
 
         $this->exec_pre_run($db);
 
@@ -245,7 +245,7 @@ abstract class BaseModelHelper
         }
 
         if($this->debug_mode)
-            $db->debug_deep();
+            $db->debug_full();
 
         $this->exec_pre_run($db);
 
@@ -286,7 +286,7 @@ abstract class BaseModelHelper
             $db->where($column, $value_or_operator, $value);
 
         if($this->debug_mode)
-            $db->debug_deep();
+            $db->debug_full();
 
         $this->exec_pre_run($db);
 
