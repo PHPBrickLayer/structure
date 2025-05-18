@@ -262,9 +262,20 @@ abstract class BaseModelHelper
     }
 
     /**
+     * An alias for all_by_col.
+     * @deprecated use all_by_col
+     * @see all_by_col
      * @return array<int, array<string, mixed>>
      */
     public function all_by_id(string $column, string $value_or_operator, ?string $value = null) : array
+    {
+        return $this->all_by_col($column, $value_or_operator, $value);
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function all_by_col(string $column, string $value_or_operator, ?string $value = null) : array
     {
         $db = static::db();
 

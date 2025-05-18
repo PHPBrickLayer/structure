@@ -32,8 +32,6 @@ final class ViewBuilder
     private static bool $redirecting = false;
     private static bool $invoking = false;
     private static bool $href_set = false;
-    private static string $redirect_url;
-    private static bool $alias_checked = false;
     private static array $current_route_data;
     private static string $route;
     private static array $route_aliases;
@@ -84,7 +82,6 @@ final class ViewBuilder
      * @param string|null $key
      * @param mixed $value
      * @return ViewBuilder
-     * @throws \Exception
      */
     private function store_page_data(string $section, ?string $key = null, mixed $value = null): self
     {
@@ -457,7 +454,11 @@ final class ViewBuilder
     }
 
     /**
-     * @param string|array ...$assets
+     * @param string|array{
+     *    src: string,
+     *    lazy: bool,
+     *    type: string, // module | text/javascript | [any valid script type value]
+     * } ...$assets
      * Assets to be used on the specified route.
 
      * Each entry can either be a string or an associative array.

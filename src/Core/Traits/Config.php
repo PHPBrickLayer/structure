@@ -543,6 +543,7 @@ trait Config
 
         return match (substr(strtolower($server_type), 0, 3)) {
             default => LayServerType::OTHER,
+            "cli" => LayServerType::CLI,
             "apa" => LayServerType::APACHE,
             "php" => LayServerType::PHP,
             "ngi" => LayServerType::NGINX,
