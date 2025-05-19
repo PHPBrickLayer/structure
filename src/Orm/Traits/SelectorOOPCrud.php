@@ -462,7 +462,7 @@ trait SelectorOOPCrud
             if ($current_queue > $count)
                 return @$d['can_be_null'] ? null : [];
 
-            $clause .= " LIMIT $current_result, $result_per_queue";
+            $clause .= " LIMIT $result_per_queue OFFSET $current_result";
 
             if(isset($d['debug_full']))
                 $d['debug'] = true;
