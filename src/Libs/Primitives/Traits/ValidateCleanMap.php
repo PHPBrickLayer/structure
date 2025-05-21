@@ -226,10 +226,10 @@ trait ValidateCleanMap {
      *
      * @param string $post_name
      * @param string $new_name
-     * @param string $upload_sub_dir
-     * @param int $file_limit
-     * @param array $extension_list
-     * @param array $dimension
+     * @param string|null $upload_sub_dir
+     * @param int|null $file_limit
+     * @param array|null $extension_list
+     * @param array|null $dimension
      * @param FileUploadStorage|null $storage
      * @param string|null $bucket_url
      * @param FileUploadType|null $upload_type
@@ -239,10 +239,10 @@ trait ValidateCleanMap {
     private function __file_upload_handler(
         string $post_name,
         string $new_name,
-        string $upload_sub_dir,
-        int $file_limit,
-        array $extension_list,
-        array $dimension,
+        ?string $upload_sub_dir,
+        ?int $file_limit,
+        ?array $extension_list,
+        ?array $dimension,
         ?FileUploadStorage $storage = FileUploadStorage::BUCKET,
         ?string $bucket_url = null,
         ?FileUploadType $upload_type = null,
@@ -314,7 +314,9 @@ trait ValidateCleanMap {
             };
 
         if(isset($options['is_file']) || isset($options['maybe_file'], $_FILES[$field])) {
-            if(isset($options['bucket_url']) || isset(static::$_bucket_url))
+            $storage_type = $options['bucket_url'] ?? static::$_bucket_url ?? null;
+
+            if($storage_type)
                 $options['upload_storage'] ??= FileUploadStorage::BUCKET;
 
             $max_size = $options['max_size'] ?? static::$_max_size ?? null;
@@ -645,6 +647,39 @@ trait ValidateCleanMap {
             static::$VCM_INSTANCE->vcm_rules($vcm_rules);
 
         return static::$VCM_INSTANCE;
+    }
+
+    /**
+     * Add a new entry dynamically. You cannot update the entries with this method,
+     * use `vcm_update_entry` for that
+     *
+     */
+    public static function vcm_new_entry(string $key, mixed $value) : void
+    {
+        if(isset(self::$_entries[$key]))
+            LayException::throw_exception(
+                "Trying to update an existing property to your vcm entry. You can only do that in the `vcm_update_entry` function"
+            );
+
+        self::$_entries[$key] = $value;
+    }
+
+    public static function vcm_update_entry(string $key, mixed $value) : void
+    {
+        $append = str_contains($key, "[]");
+
+        if($append)
+            $key = str_replace("[]", "", $key);
+
+        if(!isset(self::$_entries[$key]))
+            LayException::throw_exception(
+                "Trying to dynamically add a new property to your VCM entries. You can only do that using the `vcm_new_entry`"
+            );
+
+        if($append)
+            self::$_entries[$key][] = $value;
+        else
+            self::$_entries[$key] = $value;
     }
 
     /**

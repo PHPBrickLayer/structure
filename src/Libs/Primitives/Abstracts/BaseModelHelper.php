@@ -13,7 +13,11 @@ abstract class BaseModelHelper
 {
     use IsFillable;
 
+    protected static string $primary_created_by_col = "created_by";
     protected static string $primary_created_at_col = "created_at";
+
+    protected static string $primary_updated_by_col = "updated_by";
+    protected static string $primary_updated_at_col = "updated_at";
 
     private bool $debug_mode = false;
 
@@ -93,6 +97,12 @@ abstract class BaseModelHelper
     }
 
     /**
+     * This should return the id of the user making a database change
+     * @return null|string
+     */
+    abstract public function created_by() : string|null;
+
+    /**
      * Define how insertion (add) will handle conflict when a duplicate unique column is encountered
      * @param SQL $db
      * @return void
@@ -140,6 +150,7 @@ abstract class BaseModelHelper
 
         $columns[static::$primary_key_col] ??= 'UUID()';
         $columns[static::$primary_delete_col] ??= "0";
+        $columns[static::$primary_created_by_col] ??= $this->created_by();
         $columns[static::$primary_created_at_col] ??= $this->timestamp();
 
         $db = static::db();
@@ -304,6 +315,9 @@ abstract class BaseModelHelper
         if($columns instanceof RequestHelper)
             $columns = $columns->props();
 
+        $columns[static::$primary_updated_by_col] ??= $this->created_by();
+        $columns[static::$primary_updated_at_col] ??= $this->timestamp();
+
         $db = static::db()->column($columns)->no_false();
 
         $db->where(static::$primary_key_col, $record_id);
@@ -331,16 +345,16 @@ abstract class BaseModelHelper
     /**
      * Soft delete from the table of the specified record
      *
-     * @param string $act_by
-     * @param string|null $record_id
+     * @param string $record_id
+     * @param string|null $act_by
      * @return bool
      */
-    public function delete(string $act_by, ?string $record_id = null) : bool
+    public function delete(string $record_id, ?string $act_by = null) : bool
     {
         $db = static::db()->column([
-            static::$table . "." . static::$primary_delete_col => 1,
-            static::$table . "." . static::$primary_delete_col . "_by" => $act_by,
-            static::$table . "." . static::$primary_delete_col . "_at" => $this->timestamp(),
+            static::$primary_delete_col => 1,
+            static::$primary_delete_col . "_by" => $act_by ?? $this->created_by(),
+            static::$primary_delete_col . "_at" => $this->timestamp(),
         ]);
 
         if($this->debug_mode)
@@ -354,12 +368,12 @@ abstract class BaseModelHelper
     /**
      * Soft delete from the table of the current model record
      *
-     * @param string $act_by
+     * @param string|null $act_by
      * @return bool
      */
-    public function delete_self(string $act_by) : bool
+    public function delete_self(?string $act_by = null) : bool
     {
         $record_id = $this->{static::$primary_key_col};
-        return $this->delete($act_by, $record_id);
+        return $this->delete($record_id, $act_by);
     }
 }

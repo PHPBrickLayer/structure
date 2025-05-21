@@ -408,7 +408,30 @@ trait Config
             return $public_ip['ip'];
 
         if (self::$ENV_IS_DEV && self::new()->has_internet()) {
-            $_SESSION[self::$SESSION_KEY][$IP_KEY] = ["ip" => $_SESSION[self::$SESSION_KEY][$IP_KEY] = file_get_contents("https://api.ipify.io") ?: "127.0.0.1", "exp" => strtotime('3 hours')];
+            $fetch_data = function($url): bool|string|null
+            {
+                $ch = curl_init();
+
+                curl_setopt_array($ch, [
+                    CURLOPT_URL => $url,
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_FOLLOWLOCATION => false,
+                    CURLOPT_TIMEOUT => 5,
+                    CURLOPT_USERAGENT => 'Mozilla/5.0 Lay-Framework',
+                ]);
+
+                $response = curl_exec($ch);
+                $err = curl_error($ch);
+
+                curl_close($ch);
+
+                if ($err)
+                    return null;
+
+                return $response;
+            };
+
+            $_SESSION[self::$SESSION_KEY][$IP_KEY] = ["ip" => $_SESSION[self::$SESSION_KEY][$IP_KEY] = $fetch_data("https://api.ipify.io") ?: "127.0.0.1", "exp" => strtotime('3 hours')];
 
             return $_SESSION[self::$SESSION_KEY][$IP_KEY]['ip'];
         }

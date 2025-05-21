@@ -26,7 +26,8 @@
         "vlucas/phpdotenv": "^5.5.0",
         "phpmailer/phpmailer": "^6.8.0",
         "aws/aws-sdk-php": "^3.339.13",
-        "web-token/jwt-framework": "^4.0"
+        "web-token/jwt-framework": "^4.0",
+        "ext-curl": "*"
     },
     "suggest" : {
         "ext-sqlite3": "If you need to use SQLite",
