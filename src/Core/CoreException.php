@@ -122,17 +122,21 @@ final class CoreException
     ): array|null
     {
         if($exception) {
+            $show_message = $opts['show_e_msg'] ?? true;
             $file_all = $exception->getFile();
             $file = explode(DIRECTORY_SEPARATOR, $file_all);
             $file = end($file);
             $line = $exception->getLine();
-            $body = $body  . " \n<br> " . $exception->getMessage();
+            $body = $body  . " \n<br> ";
 
-            $body = <<<BDY
-            $body
-            <div style="font-weight: bold; color: cyan">$file ($line)</div>
-            <div style="color: lightcyan">$file_all:<b>$line</b></div>
-            BDY;
+            if($show_message) {
+                $body .= $exception->getMessage();
+                $body = <<<BDY
+                $body
+                <div style="font-weight: bold; color: cyan">$file ($line)</div>
+                <div style="color: lightcyan">$file_all:<b>$line</b></div>
+                BDY;
+            }
 
             $trace = $exception->getTrace();
             $title = $title . " [" . $exception::class . "]";
@@ -256,6 +260,8 @@ final class CoreException
 
         $ip = LayConfig::get_ip();
         $os = LayConfig::get_os();
+        $php_ver = phpversion();
+        $server = LayConfig::get_server_type()->name;
 
         $referer = $_SERVER['HTTP_REFERER'] ?? ($cli_mode ? "CLI MODE" : 'unknown');
         $origin = $_SERVER['HTTP_ORIGIN'] ?? $_SERVER['HTTP_HOST'] ?? $referer;
@@ -370,6 +376,8 @@ final class CoreException
          IS API ROUTE: $api_route
          METHOD: $request_method
          OS: $os
+         PHP VER: $php_ver
+         SERVER: $server
          HEADERS: $headers_str
          ___APP___
         $stack_raw

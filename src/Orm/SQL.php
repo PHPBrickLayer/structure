@@ -142,7 +142,9 @@ final class SQL
             ";
 
             if ($catch_error === false)
-                self::exception($title, $message, exception: $e);
+                self::exception($title, $message, [
+                    "show_e_msg" => false
+                ] , $e);
             else
                 LayException::log($message, $e, $title);
         }
@@ -161,37 +163,14 @@ final class SQL
             return $exec;
 
         if ($query_type == OrmQueryType::COUNT) {
-            if(OrmDriver::is_sqlite(self::$active_driver))
-                return $this->query_info['data'] = (int)$exec->fetchArray(SQLITE3_NUM);
-
-            return $this->query_info['data'] = (int)$exec->fetch_row()[0];
+            return $this->query_info['data'] = (int) (self::$link->fetch_one($exec,OrmReturnType::NUM)[0] ?? null);
         }
 
         // prevent select queries from returning bool
         if (in_array($query_type, [OrmQueryType::SELECT, OrmQueryType::LAST_INSERTED]))
             $can_be_false = false;
 
-        // Get affected rows count
-        if(OrmDriver::is_sqlite(self::$active_driver) && ($query_type == OrmQueryType::SELECT || $query_type == OrmQueryType::SELECT->name)) {
-            $x = explode("FROM", $query,2)[1] ?? null;
-            $affected_rows = $x ? self::$link->link->querySingle("SELECT COUNT (*) FROM" . rtrim($x, ";") . ";") : null;
-
-            // The whole point of this block is to return the value of uuid()
-            // while using the sqlite driver, since uuid is not a valid function in sqlite
-            // This block will attempt to get the uuid7 view which was created while initializing sqlite
-            // I got this code from this gist
-            // https://gist.github.com/fabiolimace/e3c3d354d1afe0b3175f65be2d962523
-            // I created this while watching Cobra Kai S6E14 "Strike Last"
-            if($affected_rows === null) {
-                $exec = $exec->fetchArray(SQLITE3_NUM);
-                $affected_rows = count($exec);
-
-                if($affected_rows > 0)
-                    return $exec;
-            }
-        }
-
-        $affected_rows ??= self::$link->affected_rows($exec);
+        $affected_rows = self::$link->affected_rows($exec);
 
         $this->query_info['rows'] = $affected_rows;
 

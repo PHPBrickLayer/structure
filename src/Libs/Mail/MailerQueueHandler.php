@@ -5,6 +5,7 @@ namespace BrickLayer\Lay\Libs\Mail;
 use BrickLayer\Lay\Libs\Cron\LayCron;
 use BrickLayer\Lay\Libs\LayDate;
 use BrickLayer\Lay\Libs\Primitives\Traits\TableTrait;
+use BrickLayer\Lay\Orm\SQL;
 
 final class MailerQueueHandler {
 
@@ -16,29 +17,29 @@ final class MailerQueueHandler {
 
     protected static function table_creation_query() : void
     {
-        self::orm()->query("CREATE TABLE IF NOT EXISTS `" . self::$table . "` (
-              `id` char(36) NOT NULL,
-              `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-              `updated_at` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
-              `created_by` char(36) DEFAULT NULL,
-              `updated_by` char(36) DEFAULT NULL,
-              `deleted` int(1) DEFAULT 0,
-              `deleted_at` datetime DEFAULT NULL,
-              `deleted_by` char(36) DEFAULT NULL,
-              `cc` json DEFAULT NULL,
-              `bcc` json DEFAULT NULL,
-              `attachment` json DEFAULT NULL,
-              `subject` varchar(100) NOT NULL,
-              `body` text NOT NULL,
-              `actors` json NOT NULL,
-              `status` varchar(20) DEFAULT 'QUEUED',
-              `priority` int(1) DEFAULT 0,
-              `retries` int(1) DEFAULT 0,
-              `time_sent` datetime DEFAULT NULL,
-              PRIMARY KEY (`id`),
-              KEY `idx_status` (`status`) USING BTREE
-            )
-        ");
+
+        self::orm()->query(
+            "CREATE TABLE IF NOT EXISTS " . self::$table . " (
+                id char(36) NOT NULL PRIMARY KEY,
+                created_at timestamp NOT NULL DEFAULT current_timestamp,
+                updated_at timestamp NULL,
+                created_by char(36) DEFAULT NULL,
+                updated_by char(36) DEFAULT NULL,
+                deleted integer DEFAULT 0,
+                deleted_at timestamp DEFAULT NULL,
+                deleted_by char(36) DEFAULT NULL,
+                cc json DEFAULT NULL,
+                bcc json DEFAULT NULL,
+                attachment json DEFAULT NULL,
+                subject varchar(100) NOT NULL,
+                body text NOT NULL,
+                actors json NOT NULL,
+                status varchar(20) DEFAULT '" . MailerStatus::QUEUED->name . "',
+                priority integer DEFAULT 0,
+                retries integer DEFAULT 0,
+                time_sent timestamp DEFAULT NULL
+            )"
+        );
     }
 
     /**
@@ -70,12 +71,23 @@ final class MailerQueueHandler {
 
     public function has_queued_items() : bool
     {
-        return (bool) self::orm(self::$table)->where("(`status`='" . MailerStatus::QUEUED->name . "' OR `status`='" . MailerStatus::RETRY->name . "') AND deleted=0")->count_row();
+        return (bool) self::orm(self::$table)
+            ->where("deleted", "0")
+            ->bracket(
+                function (SQL $db){
+                    return $db->where("status",  MailerStatus::QUEUED->name)
+                        ->or_where("status", MailerStatus::RETRY->name);
+                }
+            )
+            ->count();
     }
 
     public function is_still_sending() : bool
     {
-        return (bool) self::orm(self::$table)->where("`status`='" . MailerStatus::SENDING->name . "' AND deleted=0")->count_row();
+        return (bool) self::orm(self::$table)
+            ->where("status", MailerStatus::SENDING->name)
+            ->and_where("deleted", "0")
+            ->count();
     }
 
     private function change_status(string $id, MailerStatus $status) : bool
@@ -124,10 +136,16 @@ final class MailerQueueHandler {
         return $this->change_status($id, MailerStatus::SENT);
     }
 
-    public function next_items() : array|\Generator
+    public function next_items() : array
     {
         return self::orm(self::$table)->loop()
-            ->where("(`status`='" . MailerStatus::QUEUED->name . "' OR `status`='" . MailerStatus::RETRY->name . "') AND deleted=0")
+            ->where("deleted", "0")
+            ->bracket(
+                function (SQL $db){
+                    return $db->where("status",  MailerStatus::QUEUED->name)
+                        ->or_where("status", MailerStatus::RETRY->name);
+                }
+            )
             ->sort("priority","desc")
             ->sort("created_at","asc")
             ->limit($_ENV['SMTP_MAX_QUEUE_ITEMS'] ?? 5)

@@ -46,7 +46,8 @@ class LayCrypt
      *
      * @return null|string
      */
-    public static function basic(?string $string, bool $encrypt = true): string|null {
+    public static function basic(?string $string, bool $encrypt = true): string|null
+    {
         if($string == null) return null;
 
         $salt = LayFn::env('LAY_CRYPT_SALT', LayConfig::app_id() ?? 'weak-salted-key');
@@ -67,8 +68,11 @@ class LayCrypt
         return $output;
     }
 
-    public static function csrf_gen(string $user_data, ?string $key = null) : string {
-        $key = $key === null ? LayConfig::get_project_identity() . '_csrf_gen' : $key;
+    public static function csrf_gen(string $user_data, ?string $key = null) : string
+    {
+        if(!$key)
+            $key = LayFn::env('LAY_CSRF_KEY', LayConfig::get_project_identity() . '_csrf_gen');
+
         return hash_hmac('sha256', $user_data, $key);
     }
 

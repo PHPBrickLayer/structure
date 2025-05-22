@@ -190,7 +190,7 @@ final class ViewEngine {
         FRAME;
 
         if(isset($cache['public']))
-            $canonical .= $cache['public'] ? '<meta http-equiv="Cache-control" content="public">' : '<meta http-equiv="Cache-control" content="private">';
+            $canonical .= $cache['public'] ? '<meta http-equiv="cache-control" content="public">' : '<meta http-equiv="cache-control" content="private">';
 
         if($iframe_embed)
             $iframe_embed_blocker = "";

@@ -2,8 +2,11 @@
 
 namespace BrickLayer\Lay\Orm\Connections;
 
+use BrickLayer\Lay\Orm\Enums\OrmReturnType;
+use BrickLayer\Lay\Orm\Enums\OrmTransactionMode;
 use BrickLayer\Lay\Orm\Interfaces\OrmConnections;
 
+use JetBrains\PhpStorm\ExpectedValues;
 use SQLite3;
 use SQLite3Result;
 
@@ -55,16 +58,53 @@ final class Sqlite implements OrmConnections
     public function affected_rows(mixed $result = null) : int
     {
         return $this->link->changes();
-    }
 
+        //TODO: Test this pattern in the real world first
+        $num = $this->link->changes();
+
+        if($num)
+            return $num;
+
+        $num = $this->fetch_result($result,OrmReturnType::NUM);
+        return count($num);
+    }
 
     
     /**
      * @param SQLite3Result|null $result
      */
-    public function fetch_result(mixed $result = null, ?int $mode = null) : array|bool
+    public function fetch_result(mixed $result = null, ?OrmReturnType $mode = null) : array|bool
     {
-        return $result->fetchArray($mode ?? SQLITE3_BOTH);
+        return $result->fetchArray(
+            match ($mode) {
+                default => SQLITE3_BOTH,
+                OrmReturnType::ASSOC => SQLITE3_ASSOC,
+                OrmReturnType::NUM => SQLITE3_NUM,
+            }
+        );
+    }
+
+    /**
+     * @param SQLite3Result|null $result
+     */
+    public function fetch_one(mixed $result = null, ?OrmReturnType $mode = null) : array|bool
+    {
+        return $this->fetch_result($result, $mode)[0];
+    }
+
+    public function begin_transaction( ?OrmTransactionMode $flags = null, $name = null, bool $in_transaction = false ): bool
+    {
+        return $this->exec("BEGIN");
+    }
+
+    public function commit( ?OrmTransactionMode $flags = null, ?string $name = null ): bool
+    {
+        return $this->exec("COMMIT");
+    }
+
+    public function rollback( ?OrmTransactionMode $flags = null, ?string $name = null ): bool
+    {
+        return $this->exec("ROLLBACK");
     }
 
 }

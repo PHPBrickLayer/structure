@@ -96,7 +96,6 @@ abstract class LayDate {
      */
     public static function date(string|int|null $datetime = null, string $format = "Y-m-d H:i:s", int $format_index = -1, bool $figure = false) : string|int
     {
-
         $format = match ($format_index) {
             0 => "Y-m-d",
             1 => "H:i:s",
@@ -105,7 +104,9 @@ abstract class LayDate {
             default => $format,
         };
 
-        if(is_int($datetime)) {
+        if(is_numeric($datetime)) {
+            $datetime = (int) $datetime;
+
             if($figure) return $datetime;
 
             return date($format, $datetime);
@@ -124,9 +125,14 @@ abstract class LayDate {
         return date($format, $strtotime);
     }
 
-    public static function now() : string|int
+    public static function now() : int
     {
         return self::date("", figure: true);
+    }
+
+    public static function unix(string|int|null $datetime) : int
+    {
+        return self::date($datetime, figure: true);
     }
 
     /**

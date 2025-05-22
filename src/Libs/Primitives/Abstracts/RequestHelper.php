@@ -35,6 +35,31 @@ abstract class RequestHelper
     }
 
     /**
+     * Add a new property dynamically to the props of this resource.
+     *
+     * @param string $key
+     * @param mixed $value
+     * @return void
+     */
+    public final function new_key(string $key, mixed $value) : void
+    {
+        $append = str_contains($key, "[]");
+
+        if($append)
+            $key = str_replace("[]", "", $key);
+
+        if(isset($this->data[$key]))
+            LayException::throw_exception(
+                "Trying to update an existing property to your Request. You can only do that in the `update` function"
+            );
+
+        if($append)
+            $this->data[$key][] = $value;
+        else
+            $this->data[$key] = $value;
+    }
+
+    /**
      * Update the value of the Request property. You can't add a new key.
      *
      * @param string $key If you want to append a value to an array property, attach [] to the key
@@ -50,7 +75,7 @@ abstract class RequestHelper
 
         if(!isset($this->data[$key]))
             LayException::throw_exception(
-                "Trying to dynamically add a new property to your Resource. You can only do that in the `post_validate` function"
+                "Trying to dynamically add a new property to your Resource. You can only do that in the `post_validate` or `new_key` function"
             );
 
         if($append)
@@ -72,6 +97,11 @@ abstract class RequestHelper
         }
 
         return $this;
+    }
+
+    public final function unset(string ...$keys) : static
+    {
+        return $this->except(...$keys);
     }
 
     /**

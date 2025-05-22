@@ -8,22 +8,18 @@ use BrickLayer\Lay\Orm\Enums\OrmDriver;
 use BrickLayer\Lay\Orm\Enums\OrmReturnType;
 use Closure;
 use Generator;
-use mysqli_result;
-use PgSql\Result;
-use SQLite3Result;
 
 final class StoreResult
 {
     /**
-     * @param mysqli_result|SQLite3Result|Result $exec_result mysqli_result
+     * @param mixed $exec_result DB Result Object
      * @param bool $return_loop int|bool to activate loop or not
      * @param OrmReturnType $fetch_as string how result should be returned [assoc|row] default = both
      * @param string $except
      * @param Closure|null $fun a function that should execute at the end of a given row storage
      *
-     * @return Generator returns of result that can be accessed as assoc or row or a generator
+     * @return Generator|array returns of result that can be accessed as assoc or row or a generator
      *
-     * @psalm-return Generator<int, mixed, mixed, array|mixed|true>
      */
     public static function store(mixed $exec_result, bool $return_loop, OrmReturnType $fetch_as = OrmReturnType::BOTH, string $except = "", ?Closure $fun = null) : Generator|array
     {
@@ -31,37 +27,8 @@ final class StoreResult
         $current_driver = SQL::get_driver();
         $is_sqlite = OrmDriver::is_sqlite($current_driver);
 
-        switch ($current_driver) {
-            default: $mode = null; break;
-
-            case OrmDriver::SQLITE:
-            case OrmDriver::SQLITE3:
-                $mode = match ($fetch_as) {
-                    default => SQLITE3_BOTH,
-                    OrmReturnType::ASSOC => SQLITE3_ASSOC,
-                    OrmReturnType::NUM => SQLITE3_NUM,
-                };
-                break;
-
-            case OrmDriver::MYSQL:
-                $mode = match ($fetch_as) {
-                    default => MYSQLI_BOTH,
-                    OrmReturnType::ASSOC => MYSQLI_ASSOC,
-                    OrmReturnType::NUM => MYSQLI_NUM,
-                };
-                break;
-
-            case OrmDriver::POSTGRES:
-                $mode = match ($fetch_as) {
-                    default => PGSQL_BOTH,
-                    OrmReturnType::ASSOC => PGSQL_ASSOC,
-                    OrmReturnType::NUM => PGSQL_NUM,
-                };
-                break;
-        }
-
         if(!$return_loop) {
-            $result = $link->fetch_result($exec_result, $mode);
+            $result = $link->fetch_result($exec_result, $fetch_as);
             $result = !$is_sqlite ? $result[0] : ($result ?: []);
 
             if (!empty($except))
@@ -81,7 +48,7 @@ final class StoreResult
                 $result = $fun($result, $k, $exec_result);
         };
 
-        foreach ($link->fetch_result($exec_result, $mode) as $k => $result) {
+        foreach ($link->fetch_result($exec_result, $fetch_as) as $k => $result) {
             $break = false;
             $loop_handler($k, $result);
 

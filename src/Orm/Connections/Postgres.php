@@ -2,6 +2,8 @@
 
 namespace BrickLayer\Lay\Orm\Connections;
 
+use BrickLayer\Lay\Orm\Enums\OrmReturnType;
+use BrickLayer\Lay\Orm\Enums\OrmTransactionMode;
 use BrickLayer\Lay\Orm\Interfaces\OrmConnections;
 
 use PgSql\Connection;
@@ -14,7 +16,13 @@ final class Postgres implements OrmConnections
     
     public function query(string $query) : Result|false
     {
-        return pg_query($this->link, $query);
+        $x = @pg_query($this->link, $query);
+
+        if($x === false) {
+            Throw new \Exception(pg_last_error($this->link));
+        }
+
+        return $x;
     }
 
     
@@ -29,7 +37,13 @@ final class Postgres implements OrmConnections
     
     public function exec(string $query, array $params = []) : Result|false
     {
-        return pg_query_params($this->link, $query, $params);
+        $x = @pg_query_params($this->link, $query, $params);
+
+        if($x === false) {
+            Throw new \Exception(pg_last_error($this->link));
+        }
+
+        return $x;
     }
 
     
@@ -54,17 +68,66 @@ final class Postgres implements OrmConnections
     }
 
     /**
-     * @return array[]
-     *
-     * @psalm-return array<array>
+     * @param Result|null $result
+     * @param OrmReturnType|null $mode
      */
-    
+    public function fetch_result(mixed $result = null, ?OrmReturnType $mode = null) : array
+    {
+        return pg_fetch_all($result, match ($mode) {
+            default => PGSQL_BOTH,
+            OrmReturnType::ASSOC => PGSQL_ASSOC,
+            OrmReturnType::NUM => PGSQL_NUM,
+        });
+    }
+
     /**
      * @param Result|null $result
+     * @param OrmReturnType|null $mode
      */
-    public function fetch_result(mixed $result = null, ?int $mode = null) : array
+    public function fetch_one(mixed $result = null, ?OrmReturnType $mode = null) : array
     {
-        return pg_fetch_all($result, $mode ?? PGSQL_ASSOC);
+        return $this->fetch_result($result, $mode)[0];
+    }
+
+    public function begin_transaction(?OrmTransactionMode $flags = null, ?string $name = null, bool $in_transaction = false): bool
+    {
+        if($in_transaction) {
+            if($name)
+                $this->query("SAVEPOINT $name");
+
+            return true;
+        }
+
+        if (!$flags)
+            $this->query("BEGIN");
+
+        if ($flags == OrmTransactionMode::READ_ONLY || $flags == OrmTransactionMode::READ_WRITE)
+            $this->query("BEGIN ISOLATION LEVEL REPEATABLE READ");
+
+        if ($flags == OrmTransactionMode::CONSISTENT_SNAPSHOT)
+            $this->query("BEGIN ISOLATION LEVEL SERIALIZABLE");
+
+        if($name)
+            $this->query("SAVEPOINT $name");
+
+        return true;
+    }
+
+    public function commit(?OrmTransactionMode $flags = null, ?string $name = null): bool
+    {
+        $this->query("COMMIT");
+        return true;
+    }
+
+    public function rollback(?OrmTransactionMode $flags = null, ?string $name = null): bool
+    {
+        if($name) {
+            $this->query("ROLLBACK TO SAVEPOINT $name");
+            return true;
+        }
+
+        $this->query("ROLLBACK");
+        return true;
     }
 
 }

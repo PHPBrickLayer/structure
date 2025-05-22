@@ -9,4 +9,5 @@ enum LayServerType
     case CADDY;
     case PHP;
     case OTHER;
+    case CLI;
 }

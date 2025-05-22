@@ -397,8 +397,8 @@ trait SelectorOOPCrud
             $this->oop_exception("You did not initialize the `table`. Use the `->table(String)` method like this: `->value('your_table_name')`");
 
         if($between) {
-            $between['start'] = $between['format'] ? date("Y-m-d 00:00:00", strtotime($between['start'])) : $between['format'];
-            $between['end'] = $between['format'] ? date("Y-m-d 23:59:59", strtotime($between['end'])) : $between['format'];
+            $between['start'] = $between['format'] ? date("Y-m-d 00:00:00", strtotime($between['start'])) : $between['start'];
+            $between['end'] = $between['format'] ? date("Y-m-d 23:59:59", strtotime($between['end'])) : $between['end'];
             $between_allow_null = $between['allow_null'] ?? true;
             $between = self::escape_identifier($between['col']) . " BETWEEN '" . $between['start'] . "' AND '" . $between['end'] . "'";
 
@@ -462,7 +462,7 @@ trait SelectorOOPCrud
             if ($current_queue > $count)
                 return @$d['can_be_null'] ? null : [];
 
-            $clause .= " LIMIT $current_result, $result_per_queue";
+            $clause .= " LIMIT $result_per_queue OFFSET $current_result";
 
             if(isset($d['debug_full']))
                 $d['debug'] = true;
