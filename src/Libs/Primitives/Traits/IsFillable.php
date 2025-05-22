@@ -49,13 +49,16 @@ trait IsFillable {
     }
 
     /**
-     * @param string|array|null $record_id The primary key column value or an array columns related to the given model
+     * @param string|array|null|self $record_id The primary key column value or an array columns related to the given model
      * @param bool $invalidate Records are cached by default, so this makes the model refetch data from the db
      */
-    public function __construct(string|array|null $record_id = null, bool $invalidate = false)
+    public function __construct(string|array|null|self $record_id = null, bool $invalidate = false)
     {
         if(empty($record_id))
             return $this;
+
+        if($record_id instanceof self)
+            $record_id = $record_id->props();
 
         return $this->fill($record_id, $invalidate);
     }
@@ -189,6 +192,22 @@ trait IsFillable {
         }
 
         settype($this->columns[$key], $type);
+    }
+
+    /**
+     * Use this to update the values of your model props
+     * @param string $key
+     * @param mixed $value
+     * @return void
+     */
+    protected function update_prop(string $key, mixed $value): void
+    {
+        if(!isset($this->columns[$key]))
+            LayException::throw_exception(
+                "Trying to dynamically add a new property to your Model. This is an illegal operation"
+            );
+
+        $this->columns[$key] = $value;
     }
 
 }

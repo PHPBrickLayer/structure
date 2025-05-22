@@ -312,6 +312,9 @@ abstract class BaseModelHelper
      */
     public function edit(string $record_id, array|RequestHelper $columns) : bool
     {
+        if(empty($record_id))
+            LayException::throw("Trying to edit a record but no record id specified", "NoIdEdit");
+
         if($columns instanceof RequestHelper)
             $columns = $columns->props();
 
