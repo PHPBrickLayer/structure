@@ -161,7 +161,7 @@ trait Functions
      * @param bool $invert_arg use this to invert the syntax to place $date_2 first and $date_1 next
      * @return string
      */
-    final public function days_diff(string $date_1, string $date_2, bool $invert_arg = false) : string
+    final public function days_diff(string $date_1, string $date_2, bool $invert_arg = false, bool $cast = true) : string
     {
         if (LayDate::is_valid($date_1)) {
             $date_1 = explode(" ", $date_1)[0]; // Strip the time part, we're only interested in the date
@@ -201,11 +201,11 @@ trait Functions
             $x1 = $x1_is_col ? $x1 : "$x1::date";
             $x2 = $x2_is_col ? $x2 : "$x2::date";
 
-            return "(CAST(($x1 - $x2) AS INTEGER))";
+            return $cast ? "(CAST(($x1 - $x2) AS INTEGER))" : "(($x1 - $x2) AS INTEGER)";
         }
 
         if(OrmDriver::is_sqlite($driver))
-            return "(CAST(julianday(date($x1)) - julianday(date($x2)) AS INTEGER))";
+            return $cast ? "(CAST(julianday(date($x1)) - julianday(date($x2)) AS INTEGER))" : "(julianday(date($x1)) - julianday(date($x2)) AS INTEGER)";
 
 
         return "(DATEDIFF($x1, $x2))";

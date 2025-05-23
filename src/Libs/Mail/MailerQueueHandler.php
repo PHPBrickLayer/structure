@@ -4,6 +4,7 @@ namespace BrickLayer\Lay\Libs\Mail;
 
 use BrickLayer\Lay\Libs\Cron\LayCron;
 use BrickLayer\Lay\Libs\LayDate;
+use BrickLayer\Lay\Libs\LayFn;
 use BrickLayer\Lay\Libs\Primitives\Traits\TableTrait;
 use BrickLayer\Lay\Orm\SQL;
 
@@ -56,8 +57,8 @@ final class MailerQueueHandler {
         $orm = self::orm(self::$table);
 
         $orm->where(
-            $orm->days_diff(LayDate::date(), "time_sent"),
-            ">",
+            $orm->days_diff(LayDate::date(), "time_sent", cast: false),
+            "> INTERVAL",
             (string) max($days_after, 0)
         );
 
@@ -66,7 +67,7 @@ final class MailerQueueHandler {
         if(!$include_sent_mails)
             $orm->and_where("status", "!=", MailerStatus::SENT->name);
 
-        return $orm->delete();
+        return $orm->debug()->delete();
     }
 
     public function has_queued_items() : bool
@@ -148,8 +149,8 @@ final class MailerQueueHandler {
             )
             ->sort("priority","desc")
             ->sort("created_at","asc")
-            ->limit($_ENV['SMTP_MAX_QUEUE_ITEMS'] ?? 5)
-        ->then_select();
+            ->limit(LayFn::env('SMTP_MAX_QUEUE_ITEMS', 5))
+            ->then_select();
     }
 
     public function add_to_queue(array $columns) : bool
