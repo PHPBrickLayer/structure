@@ -364,6 +364,11 @@ trait Config
         ];
     }
 
+    /**
+     * Get OS of the application.
+     * If you want the OS of the client, use the user_agent function
+     * @return string
+     */
     public static function get_os(): string
     {
         $OS = PHP_OS;
