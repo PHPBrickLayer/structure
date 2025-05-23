@@ -67,7 +67,7 @@ final class MailerQueueHandler {
         if(!$include_sent_mails)
             $orm->and_where("status", "!=", MailerStatus::SENT->name);
 
-        return $orm->debug()->delete();
+        return $orm->delete();
     }
 
     public function has_queued_items() : bool
