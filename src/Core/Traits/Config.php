@@ -366,8 +366,8 @@ trait Config
 
     public static function get_os(): string
     {
-        $OS = self::user_agent()['platform'] ?? null;
-        $OS ??= PHP_OS;
+        $OS = PHP_OS;
+        $OS ??= explode(" ", php_uname(), 2)[0];
         $OS = strtoupper($OS);
 
         if (str_starts_with($OS, "DAR") || str_starts_with($OS, "MAC")) return "MAC";

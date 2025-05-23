@@ -148,7 +148,6 @@ final class ViewBuilder
     public function route(string $route, string ...$aliases): self
     {
         self::$route_aliases = [];
-        self::$alias_checked = false;
 
         if (self::$view_found)
             return $this;
