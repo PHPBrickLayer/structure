@@ -19,6 +19,9 @@ const SAFE_TO_INIT_LAY = true;
 
 include_once __DIR__ . DIRECTORY_SEPARATOR . ".." . DIRECTORY_SEPARATOR . ".." . DIRECTORY_SEPARATOR . "foundation.php";
 
+// Connect to the DB
+LayConfig::connect();
+
 $mailer = new MailerQueueHandler();
 $max_retries = $_ENV['SMTP_MAX_QUEUE_RETRIES'] ?? 3;
 $send_on_dev = false;
