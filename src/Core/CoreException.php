@@ -259,7 +259,7 @@ final class CoreException
         }
 
         $ip = LayConfig::get_ip();
-        $os = LayConfig::user_agent()['platform'];
+        $os = LayConfig::user_agent()['platform'] ?? "NOT SPECIFIED";
         $php_ver = phpversion();
         $server = LayConfig::get_server_type()->name;
 
