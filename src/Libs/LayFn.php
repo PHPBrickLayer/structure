@@ -46,12 +46,12 @@ final class LayFn
         $len = /**
          * @psalm-return int<0, max>
          */
-        function ($str): int {
-            if (function_exists("mb_strlen"))
-                return mb_strlen($str);
+            function ($str): int {
+                if (function_exists("mb_strlen"))
+                    return mb_strlen($str);
 
-            return strlen($str);
-        };
+                return strlen($str);
+            };
 
         if($len($word) < 2)
             return trim($string, $word);
@@ -209,6 +209,9 @@ final class LayFn
 
         if(gettype($default) == "boolean")
             $_ENV[$key] = filter_var($_ENV[$key], FILTER_VALIDATE_BOOL);
+
+        if(is_numeric($default))
+            $_ENV[$key] = filter_var($_ENV[$key], FILTER_VALIDATE_INT);
 
         return $_ENV[$key];
     }
