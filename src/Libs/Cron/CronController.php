@@ -25,20 +25,20 @@ final class CronController
 
     protected static function table_creation_query() : void
     {
-        self::orm()->query("CREATE TABLE IF NOT EXISTS `" . self::$table . "` (
-              `id` char(36) UNIQUE PRIMARY KEY,
-              `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-              `updated_at` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
-              `created_by` char(36) DEFAULT NULL,
-              `updated_by` char(36) DEFAULT NULL,
-              `deleted` int(1) DEFAULT 0,
-              `deleted_at` datetime DEFAULT NULL,
-              `deleted_by` char(36) DEFAULT NULL,
-              `schedule` varchar(100) DEFAULT NULL,
-              `script` varchar(200) DEFAULT NULL,
-              `use_php` int(1) DEFAULT 1,
-              `active` int(11) DEFAULT 1,
-              `last_run` datetime DEFAULT NULL
+        self::orm()->query("CREATE TABLE IF NOT EXISTS " . self::$table . " (
+              id char(36) UNIQUE PRIMARY KEY,
+              created_at timestamp NOT NULL,
+              updated_at timestamp NULL DEFAULT NULL,
+              created_by char(36) DEFAULT NULL,
+              updated_by char(36) DEFAULT NULL,
+              deleted int DEFAULT 0,
+              deleted_at timestamp DEFAULT NULL,
+              deleted_by char(36) DEFAULT NULL,
+              schedule varchar(100) DEFAULT NULL,
+              script varchar(200) DEFAULT NULL,
+              use_php int DEFAULT 1,
+              active int DEFAULT 1,
+              last_run timestamp DEFAULT NULL
             )
         ");
     }
