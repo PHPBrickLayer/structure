@@ -144,7 +144,7 @@ final class MailerQueueHandler {
                 function (SQL $db){
                     return $db->where("status",  MailerStatus::QUEUED->name)
                         ->or_where("status", MailerStatus::RETRY->name);
-                }
+                }, "and"
             )
             ->sort("priority","desc")
             ->sort("created_at","asc")
