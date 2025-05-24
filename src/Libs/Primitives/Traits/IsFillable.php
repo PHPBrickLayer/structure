@@ -1,9 +1,9 @@
 <?php
 namespace BrickLayer\Lay\Libs\Primitives\Traits;
+
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\LayException;
 use BrickLayer\Lay\Orm\SQL;
-use JetBrains\PhpStorm\ExpectedValues;
 
 /**
  * Used in models to mark them as fillable.
@@ -151,43 +151,52 @@ trait IsFillable {
      * @return void
      * @abstract
      */
-    protected function props_schema(array &$props) : void {
+    protected function props_schema(array &$props) : void
+    {
         // You can use `parse_prop` here
     }
 
     /**
-     * A helper class used inside the props_schema to parse props to a specific data type
-     * @param string $key
-     * @param string $type
-     * @param mixed $default
+     * A helper method used inside the `props_schema` method to parse props to a specific data type
+     *
+     * @param string $key Prop key
+     * @param string $type Primitive datatypes like bool, objective, etc. Class string like an Enum can be used too.
+     * @param mixed $default_value If prop key is not set or value is empty.
+     * @param string|callable(mixed $value):mixed $parser When using a custom type, you must this and return the parsed value
      * @return void
      */
     protected function parse_prop(
-        string $key,
-        #[ExpectedValues(["bool", "boolean", "int", "integer", "float", "double", "string", "array", "object", "null"])] string $type,
-        mixed $default = "@same@"
+        string          $key, string $type,
+        mixed           $default_value = "@same@",
+        string|callable $parser = "@nothing@"
     ) : void
     {
         if(!isset($this->columns[$key])) {
-            if($default === "@same@")
+            if($default_value === "@same@")
                 LayException::throw("Key [$key] is not set, and a default value was not presented. '@same@' cannot be used as a default value");
 
-            $this->columns[$key] = $default;
+            $this->columns[$key] = $default_value;
             return;
         }
 
         $old_type = gettype($this->columns[$key]);
+        $is_same_type = $this->columns[$key] instanceof $type;
 
-        if($old_type == $type)
+        if($old_type == $type || $is_same_type)
             return;
 
-        if($type == "array") {
-            $this->columns[$key] = json_decode($this->columns[$key], true);
+        if($type == "array" || $type == "object") {
+            $this->columns[$key] = json_decode($this->columns[$key], $type == "array");
             return;
         }
 
-        if($type == "object") {
-            $this->columns[$key] = json_decode($this->columns[$key]);
+        $primitives = ["bool", "boolean", "int", "integer", "float", "double", "string", "array", "object"];
+
+        if(!in_array($type, $primitives)) {
+            if($parser === "@nothing@")
+                LayException::throw("Using a custom type [$type], but no parser implemented for your model: [" . static::class . "]");
+
+            $this->columns[$key] = $parser($this->columns[$key]);
             return;
         }
 
@@ -199,8 +208,9 @@ trait IsFillable {
      * @param string $key
      * @param mixed $value
      * @return void
+     * @throws \Exception if you try to assign a new prop to the model
      */
-    protected function update_prop(string $key, mixed $value): void
+    public function update_prop(string $key, mixed $value): void
     {
         if(!isset($this->columns[$key]))
             LayException::throw_exception(

@@ -91,6 +91,20 @@ abstract class Exception {
             log_title: "LayDepreciationWarning"
         );
     }
+
+    /**
+     * @param string $message
+     * @return void
+     * @throws \Exception
+     */
+    public static function unimplemented(string $method) : void
+    {
+        self::throw(
+            "[$method] has not been implemented",
+            "LayUnimplemented"
+        );
+    }
+
     /**
      * Get the error message the Lay way
      * @param Throwable $exception
