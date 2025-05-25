@@ -550,7 +550,7 @@ trait ValidateCleanMap {
             $clean = $options['clean'] ?? static::$_clean_by_default ?? true;
 
             if ($clean) {
-                $clean_type = is_array($clean) ? ($clean['escape'] ?? EscapeType::STRIP_TRIM_ESCAPE) : EscapeType::STRIP_TRIM_ESCAPE;
+                $clean_type = is_array($clean) ? ($clean['escape'] ?? EscapeType::STRIP_TRIM) : EscapeType::STRIP_TRIM;
                 $strict = $is_required ? ($clean['strict'] ?? false) : false;
 
                 if (is_numeric($value) || is_bool($value))

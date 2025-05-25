@@ -8,18 +8,21 @@ use BrickLayer\Lay\Libs\LayArray;
 
 abstract class ResourceHelper
 {
+    /**
+     * @var array<string, mixed>
+     */
     private array $mapped;
 
     /**
      * Define how you want the resource to be mapped
-     * @param array|object $data
-     * @return array
+     * @param array<string, mixed>|object $data
+     * @return array<string, mixed>
      */
     abstract protected function schema(array|object $data): array;
 
     /**
      * Returns the mapped schema for external usage
-     * @return array
+     * @return array<string, mixed>
      */
     public final function props(): array
     {
@@ -80,17 +83,21 @@ abstract class ResourceHelper
     /**
      * Maps a 2D array to the defined schema and returns the formatted array in 2D format
      * @param array<int, array<string, mixed>> $data
+     * @param array<string> $except
      * @return array<int|string, array<string, mixed>>
      */
-    public static final function collect(array $data, string ...$except): array
+    public static final function collect(array $data, array $except = [], ?callable $callback = null): array
     {
-        return LayArray::map($data, function($d) use ($except) {
+        return LayArray::map($data, function($d) use ($except, $callback) {
+            if($callback)
+                return $callback($d);
+
             return (new static($d, false))->except(...$except)->props();
         });
     }
 
     /**
-     * @param array|object|null $data Can accept an array, stdclass, or you model class, since classes are objects in php
+     * @param array<string, mixed>|object|null $data Can accept an array, stdclass, or you model class, since classes are objects in php
      * @param bool $fill Autofill the props value
      * Then you can access them directly like a property in your props method
      */
@@ -98,8 +105,6 @@ abstract class ResourceHelper
     {
         if($this->data && $fill)
             $this->props();
-
-        return $this;
     }
 
     public function __get(string $name) : mixed
@@ -107,7 +112,7 @@ abstract class ResourceHelper
         return $this->mapped[$name] ?? null;
     }
 
-    public function __isset($name) : bool
+    public function __isset(string $name) : bool
     {
         return isset($this->mapped[$name]);
     }
