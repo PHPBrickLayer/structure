@@ -84,15 +84,18 @@ abstract class ResourceHelper
      * Maps a 2D array to the defined schema and returns the formatted array in 2D format
      * @param array<int, array<string, mixed>> $data
      * @param array<string> $except
+     * @param null|callable $callback The result of this callback is returned rather than the props of the collection when used
      * @return array<int|string, array<string, mixed>>
      */
     public static final function collect(array $data, array $except = [], ?callable $callback = null): array
     {
         return LayArray::map($data, function($d) use ($except, $callback) {
-            if($callback)
-                return $callback($d);
+            $data = (new static($d, false))->except(...$except)->props();
 
-            return (new static($d, false))->except(...$except)->props();
+            if($callback)
+                return $callback($data);
+
+            return $data;
         });
     }
 
