@@ -3,6 +3,7 @@
 namespace BrickLayer\Lay\Libs;
 
 use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Core\LayException;
 use BrickLayer\Lay\Core\View\Domain;
 use JetBrains\PhpStorm\NoReturn;
 
@@ -10,6 +11,32 @@ final class LayFn
 {
     private function __construct(){}
     private function __clone(){}
+
+    public static function var_cache(string $key, callable $action, bool $invalidate = false) : mixed
+    {
+        if(LayConfig::$ENV_IS_DEV)
+            $invalidate = true;
+
+        if(isset($_SESSION['LAY_VAR_CACHE'][$key]) && !$invalidate) {
+            return $_SESSION['LAY_VAR_CACHE'][$key];
+        }
+
+        $data = $action();
+
+        if(empty($data)) return $data;
+
+        return $_SESSION['LAY_VAR_CACHE'][$key] = $data;
+    }
+
+    public static function get_var_cache(string $key, bool $throw_error = false) : mixed
+    {
+        if(isset($_SESSION['LAY_VAR_CACHE'][$key])) return $_SESSION['LAY_VAR_CACHE'][$key];
+
+        if($throw_error)
+            LayException::throw("Trying to access a key [$key] that doesn't exits in VAR_CACHE", "OutOfBoundVarCache");
+
+        return null;
+    }
 
     public static function num_format(?int $num, int $digits = 0, string $decimal_separator = ".", string $thousands_separator = ",") : string
     {
