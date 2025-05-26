@@ -112,6 +112,8 @@ abstract class ViewCast
                         align-items: center;
                         height: 100vh;
                         padding: 0;
+                        max-width: 80%;
+                        margin: auto
                     }
                     .return{
                         color: #000;
@@ -126,14 +128,15 @@ abstract class ViewCast
                     .return:hover{
                         background: #fff;
                         border-color: #fff;
-                        color: #000;
+                        color: #000; 
                     }
                 </style>
                 ST)
                 ->body(function () { ?>
-                    <h1><?= DomainResource::plaster()->page->title ?></h1>
-                    <p>This is the default error page of Lay Framework</p>
+                    <h1 style="text-align: center"><?= DomainResource::plaster()->page->title_raw ?></h1>
+                    <p style="font-size: 1rem">Error 404: This page may have been deleted or moved</p>
                     <a class="return" href="<?= DomainResource::get()->domain->domain_uri ?>">Return Home</a>
+
                 <?php });
         });
     }
