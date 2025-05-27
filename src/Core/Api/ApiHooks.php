@@ -2,14 +2,11 @@
 
 namespace BrickLayer\Lay\Core\Api;
 
-use BrickLayer\Lay\Core\Api\Enums\ApiReturnType;
-use BrickLayer\Lay\Core\Api\Enums\ApiStatus;
-use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Core\LayException;
 use BrickLayer\Lay\Libs\LayFn;
-use JetBrains\PhpStorm\NoReturn;
 
-abstract class ApiHooks
+abstract class ApiHooks extends ApiEngine
 {
     /**
      * Alias for $engine
@@ -26,11 +23,11 @@ abstract class ApiHooks
         private bool $pre_connect = true,
     ) {
         if(!isset($this->engine)) {
-            $this->engine = ApiEngine::start($this::class);
+            $this->engine = $this->start($this::class);
             $this->request = $this->engine;
 
             if(LayConfig::$ENV_IS_DEV)
-                $this->engine::set_debug_mode();
+                self::set_debug_mode();
         }
     }
 
@@ -49,31 +46,6 @@ abstract class ApiHooks
         $this->pre_connect = $option;
     }
 
-    final public function get(string $request_uri, ApiReturnType $return_type = ApiReturnType::JSON) : ApiEngine
-    {
-        return $this->engine->get($request_uri, $return_type);
-    }
-
-    final public function post(string $request_uri, ApiReturnType $return_type = ApiReturnType::JSON) : ApiEngine
-    {
-        return $this->engine->post($request_uri, $return_type);
-    }
-
-    final public function put(string $request_uri, ApiReturnType $return_type = ApiReturnType::JSON) : ApiEngine
-    {
-        return $this->engine->put($request_uri, $return_type);
-    }
-
-    final public function head(string $request_uri, ApiReturnType $return_type = ApiReturnType::JSON) : ApiEngine
-    {
-        return $this->engine->head($request_uri, $return_type);
-    }
-
-    final public function delete(string $request_uri, ApiReturnType $return_type = ApiReturnType::JSON) : ApiEngine
-    {
-        return $this->engine->delete($request_uri, $return_type);
-    }
-
     public function pre_init() : void {}
 
     public function post_init() : void {}
@@ -86,12 +58,12 @@ abstract class ApiHooks
             LayConfig::connect();
 
         if($this->prefetch)
-            $this->engine::fetch();
+            self::fetch();
 
         $this->hooks();
 
         $this->post_init();
-        $this->engine::end($this->print_end_result);
+        self::end($this->print_end_result);
     }
 
     public function hooks() : void
@@ -99,55 +71,143 @@ abstract class ApiHooks
         $this->load_brick_hooks();
     }
 
+    /**
+     * @param string $route_uri
+     * @param array{
+     *    var: array{ hook: string },
+     *    const: array{ hook: string },
+     * } $endpoints
+     * @return null|array{
+     *     hook: string, // ApiHook Namespace\\ClassName
+     * }
+     */
+    private function interpolate_endpoints(string $route_uri, array $endpoints) : ?array
+    {
+        $route_uri = trim($route_uri, "/");
+
+        $class = $endpoints['const'][$route_uri] ?? null;
+
+        if($class)
+            return $class;
+
+        $route_uri_arr = explode("/", $route_uri);
+        $last_item_current_request = end($route_uri_arr);
+        $last_index_route_uri = count($route_uri_arr) - 1;
+
+        $key = null;
+
+        foreach ($endpoints['var'] as $var_route => $class_hook) {
+            $vr = explode("/", $var_route);
+
+            if(count($vr) != count($route_uri_arr))
+                continue;
+
+            foreach ($vr as $i => $v) {
+                if($v === $route_uri_arr[$i]) {
+                    if($v == $last_item_current_request && $last_index_route_uri == $i) {
+                        $key = $var_route;
+                        break;
+                    }
+
+                    continue;
+                }
+
+                /**
+                 * If request has a {placeholder}, then process it and store for future use
+                 */
+                if(str_starts_with($v, "{")) {
+                    // If placeholder is the last item on the list, mark the route as found
+                    if(!isset($route_uri_arr[$i + 1])) {
+
+                        $key = $var_route;
+                    }
+                }
+            }
+
+        }
+
+        if(!$key)
+            return null;
+
+        return $endpoints['var'][$key];
+    }
+
     final public function load_brick_hooks(string ...$class_to_ignore) : void
     {
-        $bricks_root = LayConfig::server_data()->bricks;
+        $endpoints = LayFn::var_cache("_LAY_BRICKS_", function () use ($class_to_ignore) {
+            $bricks_root = LayConfig::server_data()->bricks;
+            $hooks = [
+                "var" => [],
+                "const" => [],
+            ];
 
-        foreach (scandir($bricks_root) as $brick) {
-            if (
-                $brick == "." ||
-                $brick == ".." ||
-                !file_exists($bricks_root . $brick . DIRECTORY_SEPARATOR . "Api" . DIRECTORY_SEPARATOR . "Hook.php")
-            )
-                continue;
+            foreach (scandir($bricks_root) as $brick) {
+                if (
+                    $brick == "." || $brick == ".." ||
+                    !file_exists($bricks_root . $brick . DIRECTORY_SEPARATOR . "Api" . DIRECTORY_SEPARATOR . "Hook.php")
+                ) continue;
 
-            $cmd_class = "Bricks\\$brick\\Api\\Hook";
+                $cmd_class = "Bricks\\$brick\\Api\\Hook";
 
-            if(in_array($cmd_class, $class_to_ignore, true))
-                continue;
+                if (in_array($cmd_class, $class_to_ignore, true))
+                    continue;
 
-            try{
-                $brick = new \ReflectionClass($cmd_class);
-            } catch (\ReflectionException $e){
-                Exception::throw_exception("", "ReflectionException", exception: $e);
+                try{
+                    $brick = new \ReflectionClass($cmd_class);
+                } catch (\ReflectionException $e) {
+                    LayException::throw("", "ReflectionException", $e);
+                }
+
+                try {
+                    $brick = $brick->newInstance();
+                } catch (\Throwable $e) {
+                    $brick = $brick::class ?? "ApiHooks";
+                    LayException::throw("", "$brick::ApiError", $e);
+                }
+
+                try {
+                    self::indexing_routes();
+
+                    $brick->hooks();
+                    $d = $brick->indexed_routes();
+
+                    if(empty($d)) continue;
+
+                    $hooks['var'] = array_merge($hooks['var'], $d['var']);
+                    $hooks['const'] = array_merge($hooks['const'], $d['const']);
+                } catch (\Throwable $e) {
+                    LayException::throw("", $brick::class . "::RouteIndexingError", $e);
+                }
             }
 
-            try {
-                $brick = $brick->newInstance();
-            } catch (\ReflectionException $e) {
-                $brick = $brick::class ?? "ApiHooks";
-                Exception::throw_exception("", "$brick::ApiError", exception: $e);
-            }
+            self::indexing_routes_done();
+            return $hooks;
+        });
 
-            try {
-                $brick->hooks();
-            } catch (\Throwable $e) {
-                $brick = $brick::class;
-                Exception::throw_exception("", "$brick::HookError", exception: $e);
-            }
+        $hook_class = $this->interpolate_endpoints($this->get_uri_as_str(), $endpoints);
+
+        if(!$hook_class) {
+            self::end();
+            return;
+        }
+
+        try {
+            (new $hook_class['hook']())->hooks();
+        } catch (\Throwable $e) {
+            LayException::throw("", $hook_class['hook'] . "::HookError", $e);
         }
     }
 
     final public function get_all_endpoints() : ?array
     {
-        if($this->engine::is_debug_dump_mode() || $this->engine::is_debug_override_active())
+        if(self::is_debug_dump_mode() || self::is_debug_override_active())
             return null;
 
-        $this->engine::set_debug_dump_mode();
-        $this->engine::fetch();
+        self::set_debug_dump_mode();
+        self::fetch();
         $this->load_brick_hooks();
 
-        return $this->engine::all_api_endpoints();
+        return self::all_api_endpoints();
     }
 
     final public function dump_endpoints_as_json() : void

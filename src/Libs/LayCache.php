@@ -4,6 +4,7 @@ namespace BrickLayer\Lay\Libs;
 
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Libs\Dir\LayDir;
 use BrickLayer\Lay\Libs\Primitives\Traits\IsSingleton;
 
 final class LayCache
@@ -23,12 +24,7 @@ final class LayCache
         return isset($this->cache_store) && file_exists($this->cache_store);
     }
 
-    /**
-     * @param (int|string)[] $value
-     *
-     * @psalm-param array{request_count: 1, expire: int|string, interval: string, requests_allowed: int} $value
-     */
-    public function store(string $key, array $value): bool
+    public function store(string $key, mixed $value): bool
     {
         $cache = $this->read("*") ?? [];
         $cache[$key] = $value;
@@ -37,7 +33,7 @@ final class LayCache
         if (!$cache)
             Exception::throw_exception("Could not store data in cache, please check your data", "MalformedCacheData");
 
-        $cache = file_put_contents($this->cache_store, $cache);
+        $cache = file_put_contents($this->cache_store, $cache, LOCK_EX);
 
         return !($cache === false);
     }
@@ -89,6 +85,7 @@ final class LayCache
         $server = LayConfig::server_data();
 
         $this->cache_store = $use_lay_temp_dir ? LayConfig::mk_tmp_dir() : $server->root;
+        $this->cache_store = $this->cache_store . "cache/";
         $this->cache_store = $this->cache_store . $path_to_cache;
 
         if(str_contains($path_to_cache, "/")) {
