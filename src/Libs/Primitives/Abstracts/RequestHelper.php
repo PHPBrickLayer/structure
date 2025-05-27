@@ -172,12 +172,14 @@ abstract class RequestHelper
         if(isset(self::$cached_request_fd) and !$invalidate_cache)
             return self::$cached_request_fd;
 
-        if($_SERVER['REQUEST_METHOD'] != "POST") {
+        $req_method = $_SERVER['REQUEST_METHOD'] ?? 'NON-SPECIFIED';
+
+        if($req_method != "POST") {
             parse_str(file_get_contents("php://input"), $data);
 
             if(!$data && $throw_error)
                 Exception::throw_exception(
-                    "Trying to access post data for a [" . $_SERVER['REQUEST_METHOD'] . "] method request",
+                    "Trying to access post data for a [$req_method] method request",
                     "LayObject::ERR",
                 );
 

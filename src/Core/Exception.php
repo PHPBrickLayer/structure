@@ -97,10 +97,10 @@ abstract class Exception {
      * @return void
      * @throws \Exception
      */
-    public static function unimplemented(string $method) : void
+    public static function unimplemented(string $method, ?string $message = null) : void
     {
         self::throw(
-            "[$method] has not been implemented",
+            "[$method] has not been implemented. " . $message,
             "LayUnimplemented"
         );
     }

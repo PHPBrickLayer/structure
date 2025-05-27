@@ -153,6 +153,8 @@ trait SelectorOOPCrud
         if (empty($table))
             $this->oop_exception("You did not initialize the `table`. Use the `->table(String)` method like this: `->value('your_table_name')`");
 
+        $primary_key = "id";
+
         if (is_array($column_and_values)) {
             $columns = "";
             $values = "";
@@ -161,10 +163,10 @@ trait SelectorOOPCrud
                 foreach ($column_and_values as $k => $c) {
                     $c = Escape::clean($c, EscapeType::TRIM_ESCAPE);
 
-                    if($c === null) {
+                    if ($c === null) {
                         $k = self::escape_identifier($k);
 
-                        if($is_mysql)
+                        if ($is_mysql)
                             $values .= "$k=NULL,";
                         else {
                             $columns .= "$k,";
@@ -174,8 +176,9 @@ trait SelectorOOPCrud
                         continue;
                     }
 
-                    if($k == 'id') {
+                    if($k == 'id' || $k == 'entity_guid') {
                         $insert_id = $c;
+                        $primary_key = $k;
 
                         if(trim(strtolower($c)) == 'uuid()')
                             $insert_id = $this->uuid();
@@ -189,7 +192,7 @@ trait SelectorOOPCrud
 
                     $k = self::escape_identifier($k);
 
-                    if($is_mysql)
+                    if ($is_mysql)
                         $values .= "$k=$c,";
                     else {
                         $columns .= "$k,";
@@ -201,7 +204,7 @@ trait SelectorOOPCrud
                 $this->oop_exception("Error occurred when trying to insert into a DB: " . $e->getMessage(), $e);
             }
 
-            if($is_mysql)
+            if ($is_mysql)
                 $column_and_values = rtrim($values, ",");
             else {
                 $columns = "(" . rtrim($columns, ",") . ")";
@@ -212,21 +215,35 @@ trait SelectorOOPCrud
 
         $d['query_type'] = OrmQueryType::INSERT;
 
-        if($is_mysql)
+        if ($is_mysql)
             $column_and_values = "SET $column_and_values";
 
-        if($return_record) {
+        if($return_record && !$is_mysql) {
             $clause = "$clause RETURNING *";
             $d['result_on_insert'] = true;
         }
 
         $table = self::escape_identifier($table);
-        $query = $this->handle_insert_conflict($d, $table, $column_and_values, $clause) ?? /** @lang text */ "INSERT INTO $table $column_and_values $clause";
+        $query = $this->handle_insert_conflict($d, $table, $column_and_values, $clause) ?? /** @lang text */
+            "INSERT INTO $table $column_and_values $clause";
 
-        return $this->capture_result(
+        $op = $this->capture_result(
             [$this->query($query, $d) ?? false, $d],
             'array|bool',
         );
+
+        if ($return_record && isset($insert_id)) {
+            $id = self::escape_identifier($primary_key);
+
+            return $this->query(/** @lang text */ "SELECT * FROM $table WHERE $id='$insert_id'", [
+                'query_type' => OrmQueryType::SELECT,
+                'loop' => false,
+                'can_be_null' => false,
+            ]);
+
+        }
+
+        return $op;
     }
 
     /**
