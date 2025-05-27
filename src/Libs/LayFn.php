@@ -17,20 +17,27 @@ final class LayFn
         if(LayConfig::$ENV_IS_DEV)
             $invalidate = true;
 
-        if(isset($_SESSION['LAY_VAR_CACHE'][$key]) && !$invalidate) {
-            return $_SESSION['LAY_VAR_CACHE'][$key];
-        }
+        $cache = LayCache::new()->cache_file("LAY_VAR_CACHE/$key.json");
+
+        $old = $cache->read("store");
+
+        if($old && !$invalidate)
+            return $old;
 
         $data = $action();
 
         if(empty($data)) return $data;
 
-        return $_SESSION['LAY_VAR_CACHE'][$key] = $data;
+        $cache->store("store", $data);
+
+        return $data;
     }
 
     public static function get_var_cache(string $key, bool $throw_error = false) : mixed
     {
-        if(isset($_SESSION['LAY_VAR_CACHE'][$key])) return $_SESSION['LAY_VAR_CACHE'][$key];
+        $cache = LayCache::new()->cache_file("LAY_VAR_CACHE/$key.json");
+
+        if($old = $cache->read("store")) return $old;
 
         if($throw_error)
             LayException::throw("Trying to access a key [$key] that doesn't exits in VAR_CACHE", "OutOfBoundVarCache");

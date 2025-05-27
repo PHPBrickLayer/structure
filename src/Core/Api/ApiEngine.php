@@ -6,6 +6,7 @@ use BrickLayer\Lay\Core\Api\Enums\ApiReturnType;
 use BrickLayer\Lay\Core\Api\Enums\ApiStatus;
 use BrickLayer\Lay\Core\CoreException;
 use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Core\View\Domain;
 use BrickLayer\Lay\Core\View\DomainResource;
 use BrickLayer\Lay\Core\View\ViewBuilder;
 use BrickLayer\Lay\Libs\ID\Gen;
@@ -24,7 +25,7 @@ use JetBrains\PhpStorm\ArrayShape;
 // Developer should be able to create a cache for a particular domain, so the framework
 // doesn't have to loop through the entire api list to get maybe two apis for a particular domain
 // Cache could be a physical file created called api list or something of sorts, but something not so large though.
-final class ApiEngine {
+abstract class ApiEngine {
     private static self $engine;
     private static bool $ALL_DEBUG_OVERRIDE = false;
     private static bool $DEBUG_MODE = false;
@@ -120,6 +121,9 @@ final class ApiEngine {
      */
     private static bool $use_lay_exception = true;
     private static bool $allow_index_access = true;
+
+    private static bool $indexing_routes = false;
+    private array $indexed_routes = [];
 
     /**
      * Becomes true if a route is found
@@ -328,15 +332,16 @@ final class ApiEngine {
      * @example `get/user/list`; is interpreted as => `'get/user/list'`
      * @example `post/user/index/15`; is interpreted as => `'post/user/index/{id}'`
      */
-    private function map_request(string $route_uri, ApiReturnType $return_type) : self {
+    private function map_request(string $route_uri, ApiReturnType $return_type) : self
+    {
         // reset route specific items
         self::$route_uri_name = null;
         self::$limiter_route = [];
 
-        if(self::$route_found || self::$request_complete || !$this->correct_request_method(false))
+        if(!self::$indexing_routes && (self::$route_found || self::$request_complete || !$this->correct_request_method(false)))
             return $this;
 
-        if(!self::$allow_index_access && self::$route_uri[0] == "")
+        if(!self::$indexing_routes && (!self::$allow_index_access && self::$route_uri[0] == ""))
             return $this;
 
         self::$uri_variables = [];
@@ -368,18 +373,23 @@ final class ApiEngine {
                 self::$current_request_uri = self::$route_uri;
         }
 
-        if(!self::$DEBUG_DUMP_MODE && (count(self::$route_uri) !== count(self::$current_request_uri)))
+        if(!self::$indexing_routes && (!self::$DEBUG_DUMP_MODE && (count(self::$route_uri) !== count(self::$current_request_uri))))
             return $this;
 
         $last_index_route_uri = count(self::$current_request_uri) - 1;
+
 
         foreach (self::$current_request_uri as $i => $curren_req_entry) {
             if (self::$route_uri[$i] !== $curren_req_entry && !str_starts_with($curren_req_entry, "{"))
                 break;
 
             if(self::$route_uri[$i] === $curren_req_entry) {
-                if($curren_req_entry == $last_item_current_request && $last_index_route_uri == $i)
+                if($curren_req_entry == $last_item_current_request && $last_index_route_uri == $i) {
+                    if(self::$indexing_routes)
+                        continue;
+
                     self::$route_found = true;
+                }
 
                 continue;
             }
@@ -391,11 +401,42 @@ final class ApiEngine {
                 self::$uri_variables['args'][] = self::$route_uri[$i];
 
                 // If placeholder is the last item on the list, mark the route as found
-                if(!isset(self::$current_request_uri[$i + 1])) self::$route_found = true;
+                if(!isset(self::$current_request_uri[$i + 1])) {
+                    if(self::$indexing_routes)
+                        continue;
+
+                    self::$route_found = true;
+                }
             }
         }
 
         self::save_request_for_debug();
+
+        if(self::$indexing_routes) {
+            $uri = self::stringify_request(false);
+
+            $is_var  = str_contains($uri, "{");
+
+            if(empty($this->indexed_routes)) {
+                $this->indexed_routes = [
+                    "var" => [],
+                    "const" => [],
+                ];
+            }
+
+            $d = [
+                $uri => [
+                    "hook" => static::class,
+                ]
+            ];
+
+            $this->indexed_routes = [
+                "var" => $is_var ? array_merge($this->indexed_routes['var'], $d) : $this->indexed_routes['var'],
+                "const" => !$is_var ? array_merge($this->indexed_routes['const'], $d) : $this->indexed_routes['const'],
+            ];
+
+            return $this;
+        }
 
         if(self::$route_found) {
             self::$active_route = self::stringify_request(false);
@@ -437,15 +478,15 @@ final class ApiEngine {
      * @param string $class_scope
      * @return self
      */
-    public static function start(string $class_scope) : self
+    public function start(string $class_scope) : self
     {
-        self::$engine = new self();
+        self::$engine = $this;
 
         self::$current_api_class = $class_scope;
 
         self::restore_global_props();
 
-        return self::$engine;
+        return $this;
     }
 
     public static function set_response_header(int|ApiStatus $code, ?ApiReturnType $return_type = null, ?string $message = null, bool $end_request = true, bool $kill_process = false) : void
@@ -1141,6 +1182,20 @@ final class ApiEngine {
         self::update_global_props("use_lay_exception", self::$use_lay_exception);
     }
 
+    public function indexed_routes() : array
+    {
+        return $this->indexed_routes;
+    }
+
+    protected static function indexing_routes() : void
+    {
+        self::$indexing_routes = true;
+    }
+    protected static function indexing_routes_done() : void
+    {
+        self::$indexing_routes = false;
+    }
+
     public static function set_debug_dump_mode() : void
     {
         if(self::$ALL_DEBUG_OVERRIDE)
@@ -1185,7 +1240,7 @@ final class ApiEngine {
      * @return self
      */
     public static function fetch(string $local_endpoint = "api") : self {
-        $req = ViewBuilder::new()->request("*");
+        $req = Domain::current_route_data("*");
         $endpoint = $req['route'];
 
         if(empty($endpoint))

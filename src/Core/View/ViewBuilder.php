@@ -5,8 +5,8 @@ namespace BrickLayer\Lay\Core\View;
 
 use BrickLayer\Lay\Core\Annotate\CurrentRouteData;
 use BrickLayer\Lay\Core\Api\Enums\ApiStatus;
-use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Core\LayException;
 use BrickLayer\Lay\Core\View\Enums\DomainType;
 use BrickLayer\Lay\Core\View\Tags\Anchor;
 use BrickLayer\Lay\Libs\LayArray;
@@ -18,7 +18,7 @@ use JetBrains\PhpStorm\NoReturn;
 /**
  * @phpstan-import-type DomainRouteData from Domain
  */
-final class ViewBuilder
+class ViewBuilder
 {
     use IsSingleton;
 
@@ -99,7 +99,7 @@ final class ViewBuilder
         }
 
         if (!isset(self::$route))
-            Exception::throw_exception("No valid route found", "NoRouteFound");
+            LayException::throw_exception("No valid route found", "NoRouteFound");
 
         if (empty($key)) {
             self::$route_container[self::route_storage_key][self::$route][$section] = $value;
@@ -160,7 +160,7 @@ final class ViewBuilder
 
     /**
      * Bind a page to a route
-     * @param Closure $handler
+     * @param Closure(self, DomainRouteData, array<string>):void $handler
      * @return $this
      */
     public function bind(Closure $handler): self
@@ -185,7 +185,7 @@ final class ViewBuilder
             if ($route == self::DEFAULT_ROUTE)
                 return $this;
 
-            $handler($this, self::$route, self::$route_aliases);
+            $handler($this, $this->request("*"), self::$route_aliases);
             $current_page = $this->get_route_details($route) ?? [];
 
             self::$view_found = true;
@@ -283,7 +283,7 @@ final class ViewBuilder
     public function redirect(string $route, ViewCast $viewCast): void
     {
         if (self::$view_found)
-            Exception::throw_exception(
+            LayException::throw_exception(
                 "You cannot redirect an already rendered page, this may cause resources to load twice thereby causing catastrophic errors!",
                 "ViewSentAlready"
             );
