@@ -13,6 +13,8 @@ abstract class BaseModelHelper
 {
     use IsFillable;
 
+    protected bool $enable_created_by = true;
+
     protected static string $primary_created_by_col = "created_by";
     protected static string $primary_created_at_col = "created_at";
 
@@ -100,7 +102,16 @@ abstract class BaseModelHelper
      * This should return the id of the user making a database change
      * @return null|string
      */
-    abstract public function created_by() : string|null;
+    public function created_by() : string|null
+    {
+        if($this->enable_created_by)
+            LayException::unimplemented(
+                "created_by",
+                "If you have no need for this method, specify: `protected bool \$enable_created_by = false;`"
+            );
+
+        return null;
+    }
 
     /**
      * Define how insertion (add) will handle conflict when a duplicate unique column is encountered
@@ -150,7 +161,10 @@ abstract class BaseModelHelper
 
         $columns[static::$primary_key_col] ??= 'UUID()';
         $columns[static::$primary_delete_col] ??= "0";
-        $columns[static::$primary_created_by_col] ??= $this->created_by();
+
+        if($this->enable_created_by)
+            $columns[static::$primary_created_by_col] ??= $this->created_by();
+
         $columns[static::$primary_created_at_col] ??= $this->timestamp();
 
         $db = static::db();
@@ -318,7 +332,9 @@ abstract class BaseModelHelper
         if($columns instanceof RequestHelper)
             $columns = $columns->props();
 
-        $columns[static::$primary_updated_by_col] ??= $this->created_by();
+        if($this->enable_created_by)
+            $columns[static::$primary_updated_by_col] ??= $this->created_by();
+
         $columns[static::$primary_updated_at_col] ??= $this->timestamp();
 
         $db = static::db()->column($columns)->no_false();
@@ -354,11 +370,16 @@ abstract class BaseModelHelper
      */
     public function delete(string $record_id, ?string $act_by = null) : bool
     {
-        $db = static::db()->column([
+
+        $cols = [
             static::$primary_delete_col => 1,
-            static::$primary_delete_col . "_by" => $act_by ?? $this->created_by(),
             static::$primary_delete_col . "_at" => $this->timestamp(),
-        ]);
+        ];
+
+        if($this->enable_created_by)
+            $cols[static::$primary_delete_col . "_by"] = $act_by ?? $this->created_by();
+
+        $db = static::db()->column($cols);
 
         if($this->debug_mode)
             $db->debug();
