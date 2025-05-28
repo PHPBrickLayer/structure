@@ -70,22 +70,33 @@ abstract class BaseModelHelper
     }
 
     /**
+     * Convert a Request class to an array
+     * @param array<string, mixed>|RequestHelper $columns
+     * @return array<string, mixed>
+     */
+    protected function req_2_array(array|RequestHelper $columns) : array
+    {
+        if($columns instanceof RequestHelper)
+            return $columns->props();
+
+        return $columns;
+    }
+
+    /**
      * Should check the DB if a record exists already
-     * @param array<string,string|null>|RequestHelper $columns
+     * @param array<string,mixed>|RequestHelper $columns
      * @return bool
      * @abstract Must override if you want to use it
      */
     public function is_duplicate(array|RequestHelper $columns) : bool
     {
-        throw new \RuntimeException("Unimplemented Method");
+        LayException::unimplemented("is_duplicate");
 
         /**
          * This portion is just here to serve as an example of how to implement this method
          */
 
-        if($columns instanceof RequestHelper)
-            $columns = $columns->props();
-
+        $columns = $this->req_2_array($columns);
         return $this->count("title", $columns['title']) > 0;
     }
 
