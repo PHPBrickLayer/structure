@@ -6,6 +6,7 @@ use BrickLayer\Lay\Libs\Cron\LayCron;
 use BrickLayer\Lay\Libs\LayDate;
 use BrickLayer\Lay\Libs\LayFn;
 use BrickLayer\Lay\Libs\Primitives\Traits\TableTrait;
+use BrickLayer\Lay\Orm\Enums\OrmDriver;
 use BrickLayer\Lay\Orm\SQL;
 
 final class MailerQueueHandler {
@@ -58,7 +59,7 @@ final class MailerQueueHandler {
 
         $orm->where(
             $orm->days_diff(LayDate::date(), "time_sent", cast: false),
-            "> INTERVAL",
+            "> " . (SQL::get_driver() != OrmDriver::MYSQL ? 'INTERVAL' : ''),
             (string) max($days_after, 0)
         );
 
