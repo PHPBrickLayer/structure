@@ -73,7 +73,9 @@ final class MySql implements OrmConnections
      */
     public function fetch_one(mixed $result = null, ?OrmReturnType $mode = null) : array
     {
-        return $this->fetch_result($result, $mode);
+        if($mode == OrmReturnType::ASSOC) return mysqli_fetch_assoc($result);
+
+        return mysqli_fetch_row($result);
     }
 
     public function begin_transaction( ?OrmTransactionMode $flags = null, ?string $name = null, bool $in_transaction = false ): bool
