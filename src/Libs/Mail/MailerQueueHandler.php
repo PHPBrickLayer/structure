@@ -68,7 +68,12 @@ final class MailerQueueHandler {
         if(!$include_sent_mails)
             $orm->and_where("status", "!=", MailerStatus::SENT->name);
 
-        return $orm->delete();
+        $del = $orm->delete();
+
+        if($del)
+            Mailer::write_to_log("[x] -- Deleted stale emails");
+
+        return $del;
     }
 
     public function has_queued_items() : bool
@@ -84,9 +89,9 @@ final class MailerQueueHandler {
             ->count();
     }
 
-    public function is_still_sending() : bool
+    public function is_still_sending() : int
     {
-        return (bool) self::orm(self::$table)
+        return self::orm(self::$table)
             ->where("status", MailerStatus::SENDING->name)
             ->and_where("deleted", "0")
             ->count();
@@ -169,8 +174,10 @@ final class MailerQueueHandler {
 
     public function stop_on_finish() : void
     {
-        if(!$this->has_queued_items())
+        if(!$this->has_queued_items()) {
+            Mailer::write_to_log("[x] -- No more mails in queue, removing cron job: " . self::JOB_UID);
             LayCron::new()->unset(self::JOB_UID);
+        }
     }
 
     /**
