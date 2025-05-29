@@ -256,7 +256,16 @@ final class LayDir {
     /**
      * Get a list of files in a directory and carryout an operation on each entry
      * @param string $directory
-     * @param callable (string $file_name, string $directory, DirectoryIterator $dir_handler) : LayLoop $action
+     * @param null|Closure (string $file_name, string $directory, DirectoryIterator $dir_handler, array{
+     *      file: string,
+     *      full_path: string,
+     *      dir: string,
+     *      current: DirectoryIterator|mixed,
+     *      index: int,
+     *      mt: int,
+     *      size: int,
+     *  } $entry_obj) : LayLoop $action
+     *
      * @param bool $throw_error
      * @param SortOrder|callable $sort
      * @return null|array<int, array{
@@ -265,12 +274,13 @@ final class LayDir {
      *     dir: string,
      *     mt: int,
      *     size: int,
+     *     index: int,
      * }>
      * @throws \Exception
      */
     public static function read(
         string $directory,
-        ?callable $action = null,
+        ?Closure $action = null,
         bool $throw_error = true,
         SortOrder|callable $sort = SortOrder::DEFAULT
     ) : ?array
@@ -289,20 +299,26 @@ final class LayDir {
         $entry = new DirectoryIterator($directory);
         $empty = true;
 
+        $i = 0;
         while ($entry->valid()) {
             if(!$entry->isDot()) {
                 $empty = false;
                 $current = $entry->current();
 
-                $entries[] = [
+                $entry_obj = [
                     "file" => $current->getFilename(),
+                    "dir" => $directory,
                     "full_path" => $current->getPath() . DIRECTORY_SEPARATOR . $current->getFilename(),
                     "mt" => $current->getMTime(),
                     "size" => $current->getSize(),
+                    "index" => $i++,
+                    "current" => $current,
                 ];
 
-                if($action) {
-                    $result = $action($current->getFilename(), $directory, $entry);
+                $entries[] = $entry_obj;
+
+                if($sort == SortOrder::DEFAULT && $action) {
+                    $result = $action($current->getFilename(), $directory, $entry, $entry_obj);
 
                     if ($result == LayLoop::BREAK)
                         break;
@@ -355,6 +371,19 @@ final class LayDir {
                 });
                 break;
 
+        }
+
+        if($sort != SortOrder::DEFAULT) {
+            foreach ($entries as $i => $entry) {
+                if (!$action)  break;
+
+                $entry['index'] = $i;
+
+                $result = $action($entry['file'], $entry['dir'], $entry['current'], $entry);
+
+                if ($result == LayLoop::BREAK)
+                    break;
+            }
         }
 
         return $entries;

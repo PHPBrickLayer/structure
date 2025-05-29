@@ -5,11 +5,13 @@ namespace BrickLayer\Lay\Libs\LayLogReader;
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Libs\Dir\Enums\SortOrder;
 use BrickLayer\Lay\Libs\Dir\LayDir;
+use BrickLayer\Lay\Libs\LayDate;
+use BrickLayer\Lay\Libs\Primitives\Enums\LayLoop;
+use DirectoryIterator;
 use Generator;
 
 abstract class LayLogReader
 {
-    private static array $file_entry_cache = [];
 
     /**
      * Reads the
@@ -23,99 +25,99 @@ abstract class LayLogReader
      * }>
      * @throws \Exception
      */
-    public static function exceptions(bool $as_html = true, int $max_files = 10) : Generator
+    public static function exceptions(bool $as_html = true, int $max_files = 10) : array
     {
-        $log_files = LayDir::read(LayConfig::server_data()->exceptions, sort: SortOrder::TIME_DESC);
-        self::$file_entry_cache = [];
+        $file_entry_cache = [];
 
-        if(!$log_files) return;
+        $log_files = LayDir::read(
+            LayConfig::server_data()->exceptions,
+            function (string $name, string $dir, $handler, $file) use ($as_html, $max_files, &$file_entry_cache) {
+                if($file['index'] == $max_files) LayLoop::BREAK;
 
-        foreach ($log_files as $i => $file) {
-            if($i == $max_files - 1) break;
+                $fh = fopen($file['full_path'], 'r');
 
-            $fh = fopen($file['full_path'], 'r');
+                if (!$fh) LayLoop::CONTINUE;
 
-            if (!$fh) continue;
+                $current_entry = null;
 
-            $current_entry = null;
+                while (($line = fgets($fh)) !== false) {
+                    $line = rtrim($line, "\r\n");
 
-            while (($line = fgets($fh)) !== false) {
-                $line = rtrim($line, "\r\n");
+                    $is_new_entry = preg_match('/^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [^\]]+)\]/', $line, $matches);
+                    if ($is_new_entry) {
+                        // Yield the last entry before starting a new one
+                        if ($current_entry !== null) {
+                            $file_entry_cache[$file['file']][] = $current_entry;
+                        }
 
-                $is_new_entry = preg_match('/^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [^\]]+)\]/', $line, $matches);
-                if ($is_new_entry) {
-                    // Yield the last entry before starting a new one
-                    if ($current_entry !== null) {
-                        self::$file_entry_cache[$file['file']][] = $current_entry;
-                        yield $current_entry;
+                        $still_x_info = false;
+                        $still_app_trace = false;
+                        $still_internal_trace = false;
+
+                        // Start a new entry
+                        $current_entry = [
+                            'time' => $matches[1],
+                            'message' => "",
+                            'x_info' => '',
+                            'app_trace' => '',
+                            'internal_trace' => '',
+                        ];
                     }
 
-                    $still_x_info = false;
-                    $still_app_trace = false;
-                    $still_internal_trace = false;
+                    $is_internal_trace = preg_match('/__INTERNAL__/', $line, $matches);
+                    if($is_internal_trace || $still_internal_trace) {
+                        $still_internal_trace = true;
 
-                    // Start a new entry
-                    $current_entry = [
-                        'time' => $matches[1],
-                        'message' => "",
-                        'x_info' => '',
-                        'app_trace' => '',
-                        'internal_trace' => '',
-                    ];
+                        if($is_internal_trace) continue;
+
+                        if ($as_html) $line = "<div class='log-entry-trace internal-trace'>$line</div>";
+
+                        $current_entry['internal_trace'] .= $line . "\n";
+                        continue;
+                    }
+
+                    $is_app_trace = preg_match('/__APP__/', $line, $matches);
+                    if($is_app_trace || $still_app_trace) {
+                        $still_app_trace = true;
+
+                        if($is_app_trace) continue;
+
+                        if ($as_html) $line = "<div class='log-entry-trace app-trace'>$line</div>";
+
+                        $current_entry['app_trace'] .= $line . "\n";
+                        continue;
+                    }
+
+                    $is_x_info = preg_match('/HOST:/', $line, $matches);
+                    if($is_x_info || $still_x_info) {
+                        $still_x_info = true;
+
+                        if($is_x_info) continue;
+
+                        if ($as_html) $line = "<div class='log-entry-x-info'>$line</div>";
+
+                        $current_entry['x_info'] .= $line . "\n";
+                        continue;
+                    }
+
+                    $line = str_replace("[{$current_entry['time']}]", "", $line);
+
+                    if ($as_html)
+                        $line = "<div class='log-entry-message'>$line</div>";
+
+                    $current_entry['message'] .= $line . "\n";
                 }
 
-                $is_internal_trace = preg_match('/__INTERNAL__/', $line, $matches);
-                if($is_internal_trace || $still_internal_trace) {
-                    $still_internal_trace = true;
+                fclose($fh);
 
-                    if($is_internal_trace) continue;
-
-                    if ($as_html) $line = "<div class='log-entry-trace internal-trace'>$line</div>";
-
-                    $current_entry['internal_trace'] .= $line . "\n";
-                    continue;
+                if ($current_entry !== null) {
+                    $file_entry_cache[$file['file']][] = $current_entry;
                 }
+            },
+            sort: SortOrder::TIME_DESC
+        );
 
-                $is_app_trace = preg_match('/__APP__/', $line, $matches);
-                if($is_app_trace || $still_app_trace) {
-                    $still_app_trace = true;
-
-                    if($is_app_trace) continue;
-
-                    if ($as_html) $line = "<div class='log-entry-trace app-trace'>$line</div>";
-
-                    $current_entry['app_trace'] .= $line . "\n";
-                    continue;
-                }
-
-                $is_x_info = preg_match('/HOST:/', $line, $matches);
-                if($is_x_info || $still_x_info) {
-                    $still_x_info = true;
-
-                    if($is_x_info) continue;
-
-                    if ($as_html) $line = "<div class='log-entry-x-info'>$line</div>";
-
-                    $current_entry['x_info'] .= $line . "\n";
-                    continue;
-                }
-
-                $line = str_replace("[{$current_entry['time']}]", "", $line);
-
-                if ($as_html)
-                    $line = "<div class='log-entry-message'>$line</div>";
-
-                $current_entry['message'] .= $line . "\n";
-            }
-
-            fclose($fh);
-
-            // Yield the last log entry
-            if ($current_entry !== null) {
-                self::$file_entry_cache[$file['file']][] = $current_entry;
-                yield $current_entry;
-            }
-        }
+        return $file_entry_cache;
     }
 
     /**
@@ -126,36 +128,60 @@ abstract class LayLogReader
     public static function render_exceptions() : ?string
     {
         $all_log = "";
-
-        // Init generator so we can reorder the per-file entry
-        foreach(LayLogReader::exceptions(true, 15) as $e) : endforeach;
-
-        foreach(self::$file_entry_cache as $entry) {
+        foreach(LayLogReader::exceptions(true, 15) as $entry) {
             rsort($entry);
             foreach ($entry as $e) {
                 $all_log .= (
                 "<details class='mb-5' open>
-                        <summary class='fs-3 fw-bold ps-0 p-4'>[{$e['time']}]</summary>
-                        <div class='p-4 fw-semibold bg-gray-200 fs-5'>{$e['message']}</div>
-                        
-                        <details class='p-2 ms-4 bg-gray-200'>
-                            <summary class='fs-3 fw-bold p-1'>[X-INFO]</summary>
-                            <div><pre style='line-height: 1.5rem; margin: 0; font-size: 1.05rem'>{$e['x_info']}</pre></div>
-                        </details>
-                        
-                        <details class='p-2 ms-4 bg-gray-200'>
-                            <summary class='fs-3 fw-bold p-1'>[APP TRACE]</summary>
-                            <div><pre style='line-height: 1.5rem; margin: 0; font-size: 1.05rem'>{$e['app_trace']}</pre></div>
-                        </details>
-                        
-                        <details class='p-2 ms-4 bg-gray-200'>
-                            <summary class='fs-3 fw-bold p-1'>[INTERNAL TRACE]</summary>
-                            <div><pre style='line-height: 1.5rem; margin: 0; font-size: 1.05rem'>{$e['internal_trace']}</pre></div>
-                        </details>
-                    </details>"
+                    <summary class='fs-3 fw-bold ps-0 p-4'>[{$e['time']}]</summary>
+                    <div class='p-4 fw-semibold bg-gray-200 fs-5'>{$e['message']}</div>
+                    
+                    <details class='p-2 ms-4 bg-gray-200'>
+                        <summary class='fs-3 fw-bold p-1'>[X-INFO]</summary>
+                        <div><pre style='line-height: 1.5rem; margin: 0; font-size: 1.05rem'>{$e['x_info']}</pre></div>
+                    </details>
+                    
+                    <details class='p-2 ms-4 bg-gray-200'>
+                        <summary class='fs-3 fw-bold p-1'>[APP TRACE]</summary>
+                        <div><pre style='line-height: 1.5rem; margin: 0; font-size: 1.05rem'>{$e['app_trace']}</pre></div>
+                    </details>
+                    
+                    <details class='p-2 ms-4 bg-gray-200'>
+                        <summary class='fs-3 fw-bold p-1'>[INTERNAL TRACE]</summary>
+                        <div><pre style='line-height: 1.5rem; margin: 0; font-size: 1.05rem'>{$e['internal_trace']}</pre></div>
+                    </details>
+                </details>"
                 );
             }
         }
+
+        return empty($all_log) ? null : $all_log;
+    }
+
+    /**
+     * Render exception for your HTML view
+     * @return string|null
+     * @throws \Exception
+     */
+    public static function render_mails() : ?string
+    {
+        $all_log = "";
+
+        LayDir::read(
+            LayConfig::server_data()->temp . "emails",
+            function (string $file, string $dir, DirectoryIterator $handler, array $entry) use (&$all_log) {
+                $message = file_get_contents($entry['full_path']);
+                $time = LayDate::date(str_replace(["[","]",".log"], "", $file));
+
+                $all_log .= (
+                "<details class='mb-5' open>
+                    <summary class='fs-3 fw-bold ps-0 p-4'>[$time]</summary>
+                    <div class='p-4 fw-semibold bg-gray-200 fs-5'><pre>$message</pre></div>
+                </details>"
+                );
+            },
+            sort: SortOrder::TIME_DESC,
+        );
 
         return empty($all_log) ? null : $all_log;
     }

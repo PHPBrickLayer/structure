@@ -49,10 +49,14 @@ class Mailer {
         $this->log_data .= "[X] $level >> $string\n";
     }
 
-    private function dump_log() : void
+    private function dump_log(bool $sent) : void
     {
-        if(!isset($this->log_data))
+        if(!isset($this->log_data)) {
+            self::write_to_log("[x] -- Mailer completed process: " . (
+                $sent ? 'SENT' : 'FAILED TO SEND; If exception, check exception logs for details'
+            ));
             return;
+        }
 
         self::write_to_log($this->log_data);
     }
@@ -202,7 +206,7 @@ class Mailer {
 
     final public static function write_to_log(string $message) : void
     {
-        if(isset(self::$log_file))
+        if(!isset(self::$log_file))
             self::set_log_file();
 
         file_put_contents(self::$log_file, $message . "\n", FILE_APPEND);
@@ -420,8 +424,11 @@ class Mailer {
      * Force the mail server to send an email on localserver
      * @return $this
      */
-    final public function send_on_dev_env() : self {
-        $this->send_on_dev_env = true;
+    final public function send_on_dev_env() : self
+    {
+        if(LayConfig::$ENV_IS_DEV)
+            $this->send_on_dev_env = true;
+
         return $this;
     }
 
@@ -449,7 +456,7 @@ class Mailer {
 
             if(LayConfig::$ENV_IS_PROD || $this->send_on_dev_env) {
                 $send = self::$mail_link->send();
-                $this->dump_log();
+                $this->dump_log($send);
                 return $send;
             }
 
@@ -457,7 +464,7 @@ class Mailer {
 
         } catch (\Exception $e) {
             LayException::throw_exception(
-                htmlspecialchars($recipient['to']) . ' LayMail.php' . self::$mail_link->ErrorInfo,
+                "Recipient: " . $recipient['to'],
                 "MailerError",
                 false,
                 exception: $e
@@ -506,6 +513,8 @@ class Mailer {
                 "server" => $this->server,
                 "server_from" => $this->server_from,
                 "send_to" => $this->to_client ? "TO_CLIENT" : "TO_SERVER",
+                "send_on_dev" => $this->send_on_dev_env ? 'TRUE' : 'FALSE',
+                "preview_text" => $this->preview_text ?? null,
             ]),
 
             "status" => MailerStatus::QUEUED->name,
