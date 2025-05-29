@@ -102,17 +102,25 @@ abstract class ApiHooks extends ApiEngine
 
         $route_uri_arr = explode("/", $route_uri);
         $last_item_current_request = end($route_uri_arr);
-        $last_index_route_uri = count($route_uri_arr) - 1;
+
+        $uri_len = count($route_uri_arr);
+        $last_index_route_uri = $uri_len - 1;
 
         $key = null;
 
         foreach ($endpoints['var'] as $var_route => $class_hook) {
+            if(!empty($key)) break;
+
             $vr = explode("/", $var_route);
 
-            if(count($vr) != count($route_uri_arr))
+            if(count($vr) != $uri_len)
                 continue;
 
             foreach ($vr as $i => $v) {
+                if($key) break;
+
+                if($v !== $route_uri_arr[$i] && !str_starts_with($v, "{")) break;
+
                 if($v === $route_uri_arr[$i]) {
                     if($v == $last_item_current_request && $last_index_route_uri == $i) {
                         $key = $var_route;
@@ -128,7 +136,6 @@ abstract class ApiHooks extends ApiEngine
                 if(str_starts_with($v, "{")) {
                     // If placeholder is the last item on the list, mark the route as found
                     if(!isset($route_uri_arr[$i + 1])) {
-
                         $key = $var_route;
                     }
                 }
