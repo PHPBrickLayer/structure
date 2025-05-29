@@ -8,6 +8,7 @@ use BrickLayer\Lay\Libs\LayFn;
 
 abstract class ApiHooks extends ApiEngine
 {
+
     /**
      * Alias for $engine
      * @see $engine
@@ -44,6 +45,15 @@ abstract class ApiHooks extends ApiEngine
     final public function preconnect(bool $option) : void
     {
         $this->pre_connect = $option;
+    }
+
+    /**
+     * Instruct the ApiEngine to safely skip the hook it is called on if the result of the true
+     * @return bool
+     */
+    public function ignore_hook() : bool
+    {
+        return false;
     }
 
     public function pre_init() : void {}
@@ -192,7 +202,12 @@ abstract class ApiHooks extends ApiEngine
         }
 
         try {
-            (new $hook_class['hook']())->hooks();
+            $hook_class = new $hook_class['hook']();
+
+            if($hook_class->ignore_hook())
+                return;
+
+            $hook_class->hooks();
         } catch (\Throwable $e) {
             LayException::throw("", $hook_class['hook'] . "::HookError", $e);
         }

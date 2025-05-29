@@ -380,10 +380,10 @@ abstract class ApiEngine {
 
 
         foreach (self::$current_request_uri as $i => $curren_req_entry) {
-            if (self::$route_uri[$i] !== $curren_req_entry && !str_starts_with($curren_req_entry, "{"))
+            if (@self::$route_uri[$i] !== $curren_req_entry && !str_starts_with($curren_req_entry, "{"))
                 break;
 
-            if(self::$route_uri[$i] === $curren_req_entry) {
+            if(@self::$route_uri[$i] === $curren_req_entry) {
                 if($curren_req_entry == $last_item_current_request && $last_index_route_uri == $i) {
                     if(self::$indexing_routes)
                         continue;
