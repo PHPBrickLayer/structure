@@ -51,6 +51,15 @@ final class Sqlite implements OrmConnections
         return true;
     }
 
+    public function server_info() : array
+    {
+        $x = $this->link::version();
+        return [
+            "service" => 'Sqlite ' . $x['versionString'],
+            "version" => $x['versionNumber'],
+        ];
+    }
+
     
     /**
      * @param SQLite3Result|null $result

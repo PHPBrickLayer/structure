@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace BrickLayer\Lay\Libs\Mail;
 
+use BrickLayer\Lay\Core\LayException;
 use BrickLayer\Lay\Libs\Cron\LayCron;
 use BrickLayer\Lay\Libs\LayDate;
 use BrickLayer\Lay\Libs\LayFn;
@@ -56,37 +57,57 @@ final class MailerQueueHandler {
     private function hard_delete_mails(bool $include_sent_mails = true, int $days_after = 15) : bool
     {
         $orm = self::orm(self::$table);
+        $interval = SQL::get_driver() != OrmDriver::MYSQL ? 'INTERVAL' : '';
 
         $orm->where(
             $orm->days_diff(LayDate::date(), "time_sent", cast: false),
-            "> " . (SQL::get_driver() != OrmDriver::MYSQL ? 'INTERVAL' : ''),
+            "> $interval",
             (string) max($days_after, 0)
         );
 
-        $orm->or_where("time_sent", "IS", "NULL");
+        $orm->wrap(
+            "OR",
+            function (SQL $orm) use($interval, $days_after) {
+                $orm->where("time_sent", "IS", "NULL");
+
+                $orm->wrap("AND", function (SQL $orm) use($interval, $days_after) {
+                    $orm->where("status", MailerStatus::FAILED->name);
+                    $orm->or_where(
+                        $orm->days_diff(LayDate::date(), "created_at", cast: false),
+                        "> $interval",
+                        (string) max($days_after, 0)
+                    );
+                });
+            },
+        );
 
         if(!$include_sent_mails)
             $orm->and_where("status", "!=", MailerStatus::SENT->name);
 
-        return $orm->delete();
+        $del = $orm->delete();
+
+        if($del)
+            Mailer::write_to_log("[x] -- Deleted stale emails");
+
+        return $del;
     }
 
     public function has_queued_items() : bool
     {
         return (bool) self::orm(self::$table)
             ->where("deleted", "0")
-            ->bracket(
+            ->wrap("AND",
                 function (SQL $db){
                     return $db->where("status",  MailerStatus::QUEUED->name)
                         ->or_where("status", MailerStatus::RETRY->name);
-                }, "AND"
+                },
             )
             ->count();
     }
 
-    public function is_still_sending() : bool
+    public function is_still_sending() : int
     {
-        return (bool) self::orm(self::$table)
+        return self::orm(self::$table)
             ->where("status", MailerStatus::SENDING->name)
             ->and_where("deleted", "0")
             ->count();
@@ -142,11 +163,11 @@ final class MailerQueueHandler {
     {
         return self::orm(self::$table)->loop()
             ->where("deleted", "0")
-            ->bracket(
+            ->wrap("AND",
                 function (SQL $db){
                     return $db->where("status",  MailerStatus::QUEUED->name)
                         ->or_where("status", MailerStatus::RETRY->name);
-                }, "and"
+                }
             )
             ->sort("priority","desc")
             ->sort("created_at","asc")
@@ -159,18 +180,26 @@ final class MailerQueueHandler {
         $columns['id'] ??= "UUID()";
         $res = $this->new_record($columns);
 
-        LayCron::new()
+        if(!$res)
+            return false;
+
+        $out = LayCron::new()
             ->job_id(self::JOB_UID)
             ->every_minute()
             ->new_job(".lay/workers/mail-processor.php");
+
+        if(!$out)
+            LayException::log($out['msg'], log_title: "MailerQueuingFailed");
 
         return $res;
     }
 
     public function stop_on_finish() : void
     {
-        if(!$this->has_queued_items())
+        if(!$this->has_queued_items()) {
+            Mailer::write_to_log("[x] -- No more mails in queue, removing cron job: " . self::JOB_UID);
             LayCron::new()->unset(self::JOB_UID);
+        }
     }
 
     /**

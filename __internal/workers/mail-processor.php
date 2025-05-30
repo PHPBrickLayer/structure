@@ -9,8 +9,10 @@
 /// #####################################################
 
 use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Core\LayException;
 use BrickLayer\Lay\Libs\Cron\LayCron;
 use BrickLayer\Lay\Libs\LayDate;
+use BrickLayer\Lay\Libs\LayFn;
 use BrickLayer\Lay\Libs\Mail\Mailer;
 use BrickLayer\Lay\Libs\Mail\MailerQueueHandler;
 use BrickLayer\Lay\Libs\Mail\MailerStatus;
@@ -19,39 +21,56 @@ const SAFE_TO_INIT_LAY = true;
 
 include_once __DIR__ . DIRECTORY_SEPARATOR . ".." . DIRECTORY_SEPARATOR . ".." . DIRECTORY_SEPARATOR . "foundation.php";
 
+Mailer::write_to_log("[x] -- Starting a New Mailer Queue Session");
+
+Mailer::write_to_log("[x] -- Attempting to connect to DB");
+
 // Connect to the DB
 LayConfig::connect();
 
+Mailer::write_to_log("[x] -- Connected successfully to DB");
+
 $mailer = new MailerQueueHandler();
 $max_retries = $_ENV['SMTP_MAX_QUEUE_RETRIES'] ?? 3;
-$send_on_dev = false;
+$send_on_dev = LayFn::extract_cli_tag("--send-on-dev", false) ?? false;
 
-// Check if sending, and return if found
-if($mailer->is_still_sending())
-    return;
+// There should always be an Email class inside the utils/ directory.
+// This class is where the email handler will get the template of the mails
+// and any other required thing needed to send emails
+$SENDER_CLASS_CHILD = LayFn::env("LAY_MAILER_CHILD", "\Utils\Email\Email");
 
-$send_on_dev = \BrickLayer\Lay\Libs\LayFn::extract_cli_tag("--send-on-dev", false);
+Mailer::write_to_log("[x] -- Trying to determine location of Sender's Child, tried: $SENDER_CLASS_CHILD");
 
-if(class_exists("\Utils\Email\Email")) {
-    try{
-        $sender = new \Utils\Email\Email();
+if(class_exists($SENDER_CLASS_CHILD)){
+    Mailer::write_to_log("[x] -- Sender located at: $SENDER_CLASS_CHILD; Initializing via ReflectionClass");
 
-        if(method_exists($sender, "new"))
-            $sender = $sender::new();
+    $sender = new \ReflectionClass($SENDER_CLASS_CHILD);
+
+    try {
+        $sender = $sender->newInstance();
     } catch (\Throwable $e) {
-        $sender = \Utils\Email\Email::new();
+        LayException::throw("", "$SENDER_CLASS_CHILD::MailerError", $e);
     }
 
 } else
     $sender = new Mailer();
 
-if($send_on_dev)
+Mailer::write_to_log("[x] -- Sender initialized using: " . $sender::class . "; Checking if mails are currently being sent");
+
+
+if($total = $mailer->is_still_sending()) {
+    Mailer::write_to_log("[x] -- [$total] mails are currently being sent, so exiting;");
+    return;
+}
+
+if($send_on_dev) {
+    Mailer::write_to_log("[x] -- Send on Dev is active, so sending even in development environment;");
     $sender->send_on_dev_env();
+}
+
+Mailer::write_to_log("[x] -- Attempting to send mails on Queue");
 
 foreach ($mailer->next_items() as $mail) {
-    // There should always be an Email class inside the utils/ directory.
-    // This class is where the email handler will get the template of the mails
-    // and any other required thing needed to send emails
     $skip_to_send = false;
 
     // If it is retrying, update status to SENDING and update total retries
@@ -82,6 +101,9 @@ foreach ($mailer->next_items() as $mail) {
     $actors = json_decode($mail['actors'], true);
     $attachment = json_decode($mail['attachment'], true);
 
+    if(@$actors['send_on_dev'] == "TRUE")
+        $sender->send_on_dev_env();
+
     $sender = $sender
         ->subject($mail['subject'])
         ->body($mail['body'], true)
@@ -102,9 +124,7 @@ foreach ($mailer->next_items() as $mail) {
     $action = false;
 
     try {
-        $action = $actors['send_to'] == "TO_CLIENT" ?
-            $sender->to_client(false) :
-            $sender->to_server(false);
+        $action = $actors['send_to'] == "TO_CLIENT" ? $sender->to_client(false) : $sender->to_server(false);
 
         if ($action)
             $mailer->email_sent($mail['id']);
@@ -113,12 +133,12 @@ foreach ($mailer->next_items() as $mail) {
 
     } catch (\Throwable $e) {
         $mailer->failed_to_send($mail['id']);
-        LayCron::new()->log_output(
-            "[" . LayDate::date() . "]\n" .
-            \BrickLayer\Lay\Core\Exception::text($e, false)
-        );
+        Mailer::write_to_log("[x] -- Failed to send mail [{$mail['id']}] due to an exception. Check exception log for details");
+        LayException::log("", $e, "Mailer::Error");
     }
 }
+
+Mailer::write_to_log("[x] -- Finished going through queue");
 
 $mailer->stop_on_finish();
 

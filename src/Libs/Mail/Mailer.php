@@ -34,6 +34,7 @@ class Mailer {
     private array $server;
     private array $server_from;
     private string $body;
+    private string $preview_text;
     private string $subject;
     private bool $bypass_template = true;
     private bool $to_client = true;
@@ -41,23 +42,23 @@ class Mailer {
     private bool $debug = false;
     private bool $send_on_dev_env = false;
     private string $log_data;
+    private static string $log_file;
 
     private function collect_log(string $string, int $level) : void
     {
         $this->log_data .= "[X] $level >> $string\n";
     }
 
-    private function dump_log() : void
+    private function dump_log(bool $sent) : void
     {
-        if(!isset($this->log_data))
+        if(!isset($this->log_data)) {
+            self::write_to_log("[x] -- Mailer completed process: " . (
+                $sent ? 'SENT' : 'FAILED TO SEND; If exception, check exception logs for details'
+            ));
             return;
+        }
 
-        $log = LayConfig::server_data()->temp . "emails" . DIRECTORY_SEPARATOR;
-        LayDir::make($log, 0777, true);
-
-        $log .= LayDate::now() . ".log";
-
-        file_put_contents($log, "[" . LayDate::date(format_index: 3) . "]\n" . $this->log_data);
+        self::write_to_log($this->log_data);
     }
 
     private function connect_smtp() : void {
@@ -190,7 +191,29 @@ class Mailer {
         return $recipient;
     }
 
-    final public static function get_credentials() : array {
+    final public static function set_log_file() : void
+    {
+        $log = LayConfig::server_data()->temp . "emails" . DIRECTORY_SEPARATOR;
+
+        LayDir::make($log, 0777, true);
+
+        $log .= "[" . LayDate::now() . "].log";
+
+        self::$log_file = $log;
+
+        file_put_contents(self::$log_file, "[" . LayDate::date(format_index: 3) . "]\n");
+    }
+
+    final public static function write_to_log(string $message) : void
+    {
+        if(!isset(self::$log_file))
+            self::set_log_file();
+
+        file_put_contents(self::$log_file, $message . "\n", FILE_APPEND);
+    }
+
+    final public static function get_credentials() : array
+    {
         return self::$credentials;
     }
 
@@ -308,14 +331,26 @@ class Mailer {
         return $this;
     }
 
+    final public function preview_text(string $text, string $lang = "en") : self
+    {
+        $this->preview_text = '<div id="lay-preview-text" style="display:none;font-size:1px;color:transparent;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden" lang="' . $lang . '">' . $text .'</div>';
+        return $this;
+    }
+
     final public function body(string $email_body, bool $bypass_template = false) : self {
         $this->body = $email_body;
         $this->bypass_template = $bypass_template;
         return $this;
     }
 
-    final public function get_body() : string {
-        return $this->bypass_template ? $this->body : $this->email_template($this->body);
+    final public function get_body() : string
+    {
+        $body = $this->bypass_template ? $this->body : $this->email_template($this->body);
+
+        if(isset($this->preview_text))
+            $body = str_replace("<body>", "<body>\n $this->preview_text \n", $body);
+
+        return $body;
     }
 
     final public function attachment (
@@ -389,8 +424,11 @@ class Mailer {
      * Force the mail server to send an email on localserver
      * @return $this
      */
-    final public function send_on_dev_env() : self {
-        $this->send_on_dev_env = true;
+    final public function send_on_dev_env() : self
+    {
+        if(LayConfig::$ENV_IS_DEV)
+            $this->send_on_dev_env = true;
+
         return $this;
     }
 
@@ -404,7 +442,7 @@ class Mailer {
         $recipient = $this->start_process();
 
         if($this->debug) {
-            LayException::throw_exception(
+            LayException::throw(
                 "[TO] " . $recipient['email'] . "<" . $recipient['name'] . ">\n<br>"
                 . "[FROM] " . $this->server_from['email'] . "<" . $this->server_from['name'] . ">\n<br>"
                 . "[SUBJECT] " . $this->subject . "\n<br>"
@@ -418,7 +456,7 @@ class Mailer {
 
             if(LayConfig::$ENV_IS_PROD || $this->send_on_dev_env) {
                 $send = self::$mail_link->send();
-                $this->dump_log();
+                $this->dump_log($send);
                 return $send;
             }
 
@@ -426,7 +464,7 @@ class Mailer {
 
         } catch (\Exception $e) {
             LayException::throw_exception(
-                htmlspecialchars($recipient['to']) . ' LayMail.php' . self::$mail_link->ErrorInfo,
+                "Recipient: " . $recipient['to'],
                 "MailerError",
                 false,
                 exception: $e
@@ -475,6 +513,7 @@ class Mailer {
                 "server" => $this->server,
                 "server_from" => $this->server_from,
                 "send_to" => $this->to_client ? "TO_CLIENT" : "TO_SERVER",
+                "send_on_dev" => $this->send_on_dev_env ? 'TRUE' : 'FALSE',
             ]),
 
             "status" => MailerStatus::QUEUED->name,

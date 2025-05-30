@@ -224,7 +224,7 @@ abstract class BaseModelHelper
 
         if(static::$use_delete)
             $db->where(static::$table . "." . static::$primary_delete_col, '0')
-                ->bracket(fn(SQL $sql) => $db->where($field, $value_or_operator, $value), 'and');
+                ->wrap("and", fn(SQL $sql) => $db->where($field, $value_or_operator, $value));
         else
             $db->where($field, $value_or_operator, $value);
 
@@ -242,7 +242,7 @@ abstract class BaseModelHelper
 
         if(static::$use_delete)
             $db->where(static::$table . "." . static::$primary_delete_col, '0')
-                ->bracket(fn(SQL $sql) => $db->where($field, $value_or_operator, $value), 'and');
+                ->wrap("and", fn(SQL $sql) => $db->where($field, $value_or_operator, $value));
         else
             $db->where($field, $value_or_operator, $value);
 
@@ -317,7 +317,7 @@ abstract class BaseModelHelper
 
         if(static::$use_delete)
             $db->where(static::$table . "." . static::$primary_delete_col, '0')
-                ->bracket(fn() => $db->where($column, $value_or_operator, $value), 'and');
+                ->wrap("and", fn() => $db->where($column, $value_or_operator, $value));
         else
             $db->where($column, $value_or_operator, $value);
 

@@ -15,7 +15,8 @@ trait SelectorOOP
 {
     private static int $current_index = 0;
     private array $cached_options = [];
-    private bool $using_bracket = false;
+    private bool $using_wrap = false;
+    private int $wrap_index = 0;
 
     final public function open(string $table): self
     {
@@ -111,23 +112,46 @@ trait SelectorOOP
     }
 
     /**
+     * @deprecated use warp
+     * @see wrap
+     */
+    final public function bracket(callable $where_callback, ?string $prepend = null): SQL
+    {
+        return $this->wrap($prepend, $where_callback);
+    }
+
+    /**
      * Wraps a condition around a parenthesis `()` popularly known as bracket
      * Currently only supports WHERE statements.
-     * @param callable(SQL):(void|SQL) $where_callback
-     * @param null|'and'|'or'|'AND'|'OR' $prepend
+     * @param 'and'|'or'|'AND'|'OR'|'' $prepend
+     * @param callable(SQL):(void|SQL) $fn All orm instructions to execute inside the bracket
      * @return SQL
      */
-    final public function bracket(
-        callable $where_callback,
-        #[ExpectedValues(["and", "or", "AND", "OR"])] ?string $prepend = null,
-    ): SQL
+    final public function wrap(
+        #[ExpectedValues(["and", "or", "AND", "OR", ""])] string $prepend,
+        callable $fn
+    ) : SQL
     {
-        $this->using_bracket = true;
-        $where_callback($this);
-        $this->using_bracket = false;
+        $this->clause_string_for_bracket(" " . strtoupper($prepend) . " (");
 
-        $WHERE = trim(implode("", $this->cached_options[self::$current_index]['clause_string']));
-        return $this->clause_array(strtoupper($prepend ?? '') . " ($WHERE)");
+        if($this->using_wrap)
+            $this->wrap_index++;
+
+        $this->using_wrap = true;
+        $fn($this);
+
+        if($this->wrap_index == 0)
+            $this->using_wrap = false;
+
+        if($this->wrap_index > 0)
+            $this->wrap_index--;
+
+        $this->clause_string_for_bracket(")");
+
+        if(!$this->using_wrap)
+            return $this->clause_array(trim(implode("", $this->cached_options[self::$current_index]['clause_string'])));
+
+        return $this;
     }
 
     final public function clause(string $clause): self
@@ -137,7 +161,7 @@ trait SelectorOOP
 
     private function clause_array(string $clause): self
     {
-        if($this->using_bracket) {
+        if($this->using_wrap) {
             $this->clause_string_for_bracket($clause);
             return $this;
         }
