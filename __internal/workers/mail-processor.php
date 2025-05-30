@@ -104,9 +104,6 @@ foreach ($mailer->next_items() as $mail) {
     if(@$actors['send_on_dev'] == "TRUE")
         $sender->send_on_dev_env();
 
-    if(@$actors['preview_text'])
-        $sender->preview_text($actors['preview_text']);
-
     $sender = $sender
         ->subject($mail['subject'])
         ->body($mail['body'], true)

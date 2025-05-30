@@ -333,7 +333,7 @@ class Mailer {
 
     final public function preview_text(string $text, string $lang = "en") : self
     {
-        $this->preview_text = '<div id="preview_text" style="display:none;font-size:1px;color:transparent;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden" lang="' . $lang . '">' . $text .'</div>';
+        $this->preview_text = '<div id="lay-preview-text" style="display:none;font-size:1px;color:transparent;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden" lang="' . $lang . '">' . $text .'</div>';
         return $this;
     }
 
@@ -514,7 +514,6 @@ class Mailer {
                 "server_from" => $this->server_from,
                 "send_to" => $this->to_client ? "TO_CLIENT" : "TO_SERVER",
                 "send_on_dev" => $this->send_on_dev_env ? 'TRUE' : 'FALSE',
-                "preview_text" => $this->preview_text ?? null,
             ]),
 
             "status" => MailerStatus::QUEUED->name,
