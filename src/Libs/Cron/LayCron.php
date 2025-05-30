@@ -151,7 +151,8 @@ final class LayCron
         return $this->report_email;
     }
 
-    private function db_data_save() : bool {
+    private function db_data_save() : bool
+    {
         $data = self::DB_SCHEMA;
         $data['jobs'] = $this->jobs_list;
         $data['mailto'] = $this->report_email;
@@ -218,7 +219,8 @@ final class LayCron
         return $exec;
     }
 
-    private function commit() : bool {
+    private function commit() : bool
+    {
         return $this->crontab_save() && $this->db_data_save();
     }
 
@@ -233,7 +235,7 @@ final class LayCron
         $job = $server->root . $job_plain;
         $job = self::php_bin() . " $job";
 
-        $out = $schedule . " " . $job . PHP_EOL;
+        $out = $schedule . " " . $job . (isset($this->job_id) ? " --id $this->job_id" : '') . PHP_EOL;
 
         if($this->just_once_set) {
             if(!isset($this->job_id))
@@ -250,6 +252,7 @@ final class LayCron
         $job = rtrim($job, PHP_EOL) . " " . self::APP_ID_KEY . " " . LayConfig::app_id() . PHP_EOL;
 
         $job_exists = $this->db_job_exists($job)['found'];
+
 
         if(!$job_exists) {
             if(isset($this->job_id))
@@ -273,10 +276,10 @@ final class LayCron
         return $this->commit();
     }
 
-    private function delete_job_by_job(string $job) : bool {
+    private function delete_job_by_job(string $job, bool $make_job = true) : bool {
         $this->db_data_init();
 
-        $job = $this->make_job($job);
+        $job = $make_job ? $this->make_job($job) : $job;
         $job = $this->db_job_exists($job);
 
         if(!$job['found'])
@@ -333,13 +336,13 @@ final class LayCron
      *
      * @example bob composer_up
      * @param string $job
-     * @return array
      * @return array{
-     *      exec: bool,
-     *      msg: string
+     *     exec: bool,
+     *     msg: string
      *  }
      */
-    public function new_job(string $job) : array {
+    public function new_job(string $job) : array
+    {
         $this->add_job($this->make_job($job));
         return $this->exec_output;
     }
@@ -452,6 +455,16 @@ final class LayCron
 
     public function clear_all() : void
     {
+        $jobs = $this->get_crontab(true);
+
+        if($jobs) {
+            unset($jobs[0]); // Ignore the MAILTO entry, it is used by all projects
+
+            foreach ($jobs as $job) {
+                $this->delete_job_by_job($job . PHP_EOL, false);
+            }
+        }
+
         $this->db_data_clear_all();
     }
 

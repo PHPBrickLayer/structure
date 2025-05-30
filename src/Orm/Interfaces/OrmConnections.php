@@ -14,6 +14,14 @@ interface OrmConnections {
     public function close() : void;
     public function is_connected() : bool;
 
+    /**
+     * @return array{
+     *     service: string,
+     *     version: string,
+     * }
+     */
+    public function server_info() : array;
+
     public function escape_string(string $value) : string;
     public function affected_rows(Result|mysqli_result|SQLite3Result|null $result = null) : int;
 

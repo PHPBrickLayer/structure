@@ -149,6 +149,7 @@ trait SelectorOOPCrud
         $table = $d['table'] ?? null;
         $clause = $this->parse_clause($d);
         $is_mysql = self::get_driver() == OrmDriver::MYSQL;
+        $is_maria_db = $this->get_link()->server_info()['service'] == 'MariaDB';
 
         if (empty($table))
             $this->oop_exception("You did not initialize the `table`. Use the `->table(String)` method like this: `->value('your_table_name')`");
@@ -218,7 +219,10 @@ trait SelectorOOPCrud
         if ($is_mysql)
             $column_and_values = "SET $column_and_values";
 
-        if($return_record && !$is_mysql) {
+        if($is_mysql)
+            $is_mysql = !$is_maria_db;
+
+        if($return_record && !$is_mysql ) {
             $clause = "$clause RETURNING *";
             $d['result_on_insert'] = true;
         }
@@ -232,7 +236,7 @@ trait SelectorOOPCrud
             'array|bool',
         );
 
-        if ($return_record && isset($insert_id)) {
+        if ($is_mysql && $return_record && isset($insert_id)) {
             $id = self::escape_identifier($primary_key);
 
             return $this->query(/** @lang text */ "SELECT * FROM $table WHERE $id='$insert_id'", [

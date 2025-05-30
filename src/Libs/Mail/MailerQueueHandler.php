@@ -2,12 +2,14 @@
 declare(strict_types=1);
 namespace BrickLayer\Lay\Libs\Mail;
 
+use BrickLayer\Lay\Core\LayException;
 use BrickLayer\Lay\Libs\Cron\LayCron;
 use BrickLayer\Lay\Libs\LayDate;
 use BrickLayer\Lay\Libs\LayFn;
 use BrickLayer\Lay\Libs\Primitives\Traits\TableTrait;
 use BrickLayer\Lay\Orm\Enums\OrmDriver;
 use BrickLayer\Lay\Orm\SQL;
+use Exception;
 
 final class MailerQueueHandler {
 
@@ -51,7 +53,7 @@ final class MailerQueueHandler {
      * @param bool $include_sent_mails
      * @param int $days_after
      * @return bool
-     * @throws \Exception
+     * @throws Exception
      */
     private function hard_delete_mails(bool $include_sent_mails = true, int $days_after = 15) : bool
     {
@@ -164,10 +166,13 @@ final class MailerQueueHandler {
         $columns['id'] ??= "UUID()";
         $res = $this->new_record($columns);
 
-        LayCron::new()
+        $out = LayCron::new()
             ->job_id(self::JOB_UID)
             ->every_minute()
             ->new_job(".lay/workers/mail-processor.php");
+
+        if(!$out['exec'])
+            LayException::log($out['msg'], log_title: "MailerQueuingFailed");
 
         return $res;
     }
@@ -184,7 +189,7 @@ final class MailerQueueHandler {
      * @see hard_delete_mails()
      * @param bool $include_sent_mails
      * @return void
-     * @throws \Exception
+     * @throws Exception
      */
     public function delete_stale_mails(bool $include_sent_mails = true) : void
     {

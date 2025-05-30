@@ -46,18 +46,24 @@ final class Postgres implements OrmConnections
         return $x;
     }
 
-    
     public function escape_string(string $value) : string
     {
         return pg_escape_string($this->link, $value);
     }
 
-    
     public function is_connected() : bool
     {
         return pg_connection_status($this->link) === PGSQL_CONNECTION_OK;
     }
 
+    public function server_info() : array
+    {
+        $x = pg_version($this->link);
+        return [
+            "service" => "Postgres",
+            "version" => $x['client'],
+        ];
+    }
     
     /**
      * @param Result|null $result

@@ -7,7 +7,6 @@ use BrickLayer\Lay\Core\CoreException;
 use BrickLayer\Lay\Core\LayException;
 use BrickLayer\Lay\Libs\LayArray;
 use BrickLayer\Lay\Libs\Primitives\Traits\IsSingleton;
-use BrickLayer\Lay\Orm\Enums\OrmDriver;
 use BrickLayer\Lay\Orm\Enums\OrmExecStatus;
 use BrickLayer\Lay\Orm\Enums\OrmQueryType;
 use BrickLayer\Lay\Orm\Enums\OrmReturnType;
@@ -16,11 +15,6 @@ use BrickLayer\Lay\Orm\Traits\Functions;
 use BrickLayer\Lay\Orm\Traits\SelectorOOP;
 use BrickLayer\Lay\Orm\Traits\SelectorOOPCrud;
 use BrickLayer\Lay\Orm\Traits\TransactionHandler;
-use Generator;
-use JetBrains\PhpStorm\ArrayShape;
-use mysqli_result;
-use PgSql\Result;
-use SQLite3Result;
 
 /**
  * Simple Query Language

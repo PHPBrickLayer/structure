@@ -43,7 +43,15 @@ final class MySql implements OrmConnections
         return isset($this->link->host_info);
     }
 
-    
+    public function server_info() : array
+    {
+        $x = explode("-", mysqli_get_server_info($this->link));
+        return [
+            "service" => str_contains("Mar", $x[1]) ? "MariaDB" : "MySQL",
+            "version" => $x[0],
+        ];
+    }
+
     /**
      * @param mysqli_result|null $result
      * @return int
