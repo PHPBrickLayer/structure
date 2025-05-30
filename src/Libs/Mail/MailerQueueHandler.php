@@ -9,7 +9,6 @@ use BrickLayer\Lay\Libs\LayFn;
 use BrickLayer\Lay\Libs\Primitives\Traits\TableTrait;
 use BrickLayer\Lay\Orm\Enums\OrmDriver;
 use BrickLayer\Lay\Orm\SQL;
-use Exception;
 
 final class MailerQueueHandler {
 
@@ -53,19 +52,34 @@ final class MailerQueueHandler {
      * @param bool $include_sent_mails
      * @param int $days_after
      * @return bool
-     * @throws Exception
+     * @throws \Exception
      */
     private function hard_delete_mails(bool $include_sent_mails = true, int $days_after = 15) : bool
     {
         $orm = self::orm(self::$table);
+        $interval = SQL::get_driver() != OrmDriver::MYSQL ? 'INTERVAL' : '';
 
         $orm->where(
             $orm->days_diff(LayDate::date(), "time_sent", cast: false),
-            "> " . (SQL::get_driver() != OrmDriver::MYSQL ? 'INTERVAL' : ''),
+            "> $interval",
             (string) max($days_after, 0)
         );
 
-        $orm->or_where("time_sent", "IS", "NULL");
+        $orm->wrap(
+            "OR",
+            function (SQL $orm) use($interval, $days_after) {
+                $orm->where("time_sent", "IS", "NULL");
+
+                $orm->wrap("AND", function (SQL $orm) use($interval, $days_after) {
+                    $orm->where("status", MailerStatus::FAILED->name);
+                    $orm->or_where(
+                        $orm->days_diff(LayDate::date(), "created_at", cast: false),
+                        "> $interval",
+                        (string) max($days_after, 0)
+                    );
+                });
+            },
+        );
 
         if(!$include_sent_mails)
             $orm->and_where("status", "!=", MailerStatus::SENT->name);
@@ -82,11 +96,11 @@ final class MailerQueueHandler {
     {
         return (bool) self::orm(self::$table)
             ->where("deleted", "0")
-            ->bracket(
+            ->wrap("AND",
                 function (SQL $db){
                     return $db->where("status",  MailerStatus::QUEUED->name)
                         ->or_where("status", MailerStatus::RETRY->name);
-                }, "AND"
+                },
             )
             ->count();
     }
@@ -149,11 +163,11 @@ final class MailerQueueHandler {
     {
         return self::orm(self::$table)->loop()
             ->where("deleted", "0")
-            ->bracket(
+            ->wrap("AND",
                 function (SQL $db){
                     return $db->where("status",  MailerStatus::QUEUED->name)
                         ->or_where("status", MailerStatus::RETRY->name);
-                }, "and"
+                }
             )
             ->sort("priority","desc")
             ->sort("created_at","asc")
@@ -166,12 +180,15 @@ final class MailerQueueHandler {
         $columns['id'] ??= "UUID()";
         $res = $this->new_record($columns);
 
+        if(!$res)
+            return false;
+
         $out = LayCron::new()
             ->job_id(self::JOB_UID)
             ->every_minute()
             ->new_job(".lay/workers/mail-processor.php");
 
-        if(!$out['exec'])
+        if(!$out)
             LayException::log($out['msg'], log_title: "MailerQueuingFailed");
 
         return $res;
@@ -189,7 +206,7 @@ final class MailerQueueHandler {
      * @see hard_delete_mails()
      * @param bool $include_sent_mails
      * @return void
-     * @throws Exception
+     * @throws \Exception
      */
     public function delete_stale_mails(bool $include_sent_mails = true) : void
     {
