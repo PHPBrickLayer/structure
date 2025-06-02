@@ -84,6 +84,7 @@ trait AutoDeploy
             <<<FILE
             <?php
             use BrickLayer\Lay\Libs\Cron\LayCron;
+            use BrickLayer\Lay\Core\Api\ApiHooks;
             use BrickLayer\Lay\Core\Exception;
             use BrickLayer\Lay\Core\LayConfig;
             
@@ -99,6 +100,9 @@ trait AutoDeploy
             // Create a subdomain entry on your dns. 
             // Finally, paste the link below to github or your CI/CD platform
             // https://$pattern.[PRIMARY_DOMAIN]/$uuid 
+            // You can decide to create an environment variable since leaving the uuid like this in the project is risky.
+            // Generate a new UUID from your DB or echo this function Gen::uuid(); and user the value in your .env
+            // Then you can use LayFn::env("MY_ENV")
             
             // Verify webhook from GitHub
             if(!isset(\$_SERVER['REQUEST_METHOD']))
@@ -126,6 +130,10 @@ trait AutoDeploy
             \$log .= "-- Submodule Pull: " . shell_exec('git pull --recurse-submodules 2>&1 &') . "\\n";
             \$log .= "-- Git Fetch: " . shell_exec('git fetch --all 2>&1 &') . "\\n";
             \$log .= "-- Git Reset: " . shell_exec("git reset --hard origin/\$main_branch 2>&1 &") . "\\n";
+            
+            \$log .= "\\n";
+            \$log .= "-- Invalidating Hooks\\n";
+            ApiHooks::invalidate_hooks();
             
             \$log .= "\\n";
             \$log .= "-- Symlinks are being refreshed\\n";
