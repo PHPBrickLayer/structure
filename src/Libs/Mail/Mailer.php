@@ -36,6 +36,7 @@ class Mailer {
     private string $body;
     private string $preview_text;
     private string $subject;
+    private bool $body_is_html = true;
     private bool $bypass_template = true;
     private bool $to_client = true;
     private bool $use_smtp = true;
@@ -148,7 +149,10 @@ class Mailer {
 
         $this->body = $this->get_body();
 
-        self::$mail_link->msgHTML($this->body);
+        if($this->body_is_html)
+            self::$mail_link->msgHTML($this->body);
+        else
+            self::$mail_link->html2text($this->body);
 
         self::$mail_link->addAddress($recipient['to'], $recipient['name']);
         self::$mail_link->setFrom($this->server_from['email'], $this->server_from['name']);
@@ -321,6 +325,12 @@ class Mailer {
         return $this;
     }
 
+    final public function msg_as_text() : self
+    {
+        $this->body_is_html = false;
+        return $this;
+    }
+
     final public function server(string $email, string $name) : self {
         $this->server = ["email" => $email, "name" => $name];
         return $this;
@@ -331,9 +341,16 @@ class Mailer {
         return $this;
     }
 
+    /**
+     * @param string $text Not more than 80 characters
+     * @param string $lang
+     * @return $this
+     */
     final public function preview_text(string $text, string $lang = "en") : self
     {
-        $this->preview_text = '<div id="lay-preview-text" style="display:none;font-size:1px;color:transparent;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden" lang="' . $lang . '">' . $text .'</div>';
+        $this->preview_text = '<span id="lay-preview-text" style="display:none;font-size:1px;color:#ffffff;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden" lang="' . $lang . '">'
+            . htmlspecialchars($text) .
+            '</span>';
         return $this;
     }
 
@@ -347,8 +364,18 @@ class Mailer {
     {
         $body = $this->bypass_template ? $this->body : $this->email_template($this->body);
 
-        if(isset($this->preview_text))
-            $body = str_replace("<body>", "<body>\n $this->preview_text \n", $body);
+        if(isset($this->preview_text)) {
+            if($this->body_is_html) {
+                $body = preg_replace(
+                    '/<body([^>]*)>/i',
+                    "<body$1>\n{$this->preview_text}\n",
+                    $body
+                );
+            }
+            else {
+                $body = $this->preview_text . "\n\n" . $body;
+            }
+        }
 
         return $body;
     }

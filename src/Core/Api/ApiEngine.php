@@ -1182,16 +1182,16 @@ abstract class ApiEngine {
         self::update_global_props("use_lay_exception", self::$use_lay_exception);
     }
 
-    public function indexed_routes() : array
+    public function __indexed_routes() : array
     {
         return $this->indexed_routes;
     }
 
-    protected static function indexing_routes() : void
+    protected static function __indexing_routes() : void
     {
         self::$indexing_routes = true;
     }
-    protected static function indexing_routes_done() : void
+    protected static function __indexing_routes_done() : void
     {
         self::$indexing_routes = false;
     }

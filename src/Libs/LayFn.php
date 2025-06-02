@@ -108,21 +108,21 @@ final class LayFn
         return self::trim_word($string, $word, '~(' . preg_quote($word,'~') . ')$~');
     }
 
-    #[NoReturn]
-    public static function dump_json(array $data, bool $show_trace = true) : void
+    public static function dump_json(array $data, bool $show_trace = true, bool $kill = true) : void
     {
         if($show_trace)
             $data['dump_trace'] = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2);
 
         header("Content-Type: application/json");
         echo json_encode($data);
-        die;
+
+        if($kill) die;
     }
 
     #[NoReturn]
     /**
      * var_dump and die. But with CORS and all the important headers in place for better debugging across domains
-     *
+     * @retrun void
      */
     public static function vd(mixed $value, mixed ...$values) : void
     {

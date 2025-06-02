@@ -3,7 +3,7 @@
     "description": "The core framework for Lay. The builder's builder",
     "keywords": ["framework", "lay", "lite framework", "lite php framework", "metaframework", "fast php framework"],
     "type": "library",
-    "license": "GPL-3.0",
+    "license": "MIT",
     "autoload": {
         "psr-4": {
             "BrickLayer\\Lay\\": "src/"

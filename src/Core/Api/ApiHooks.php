@@ -47,18 +47,9 @@ abstract class ApiHooks extends ApiEngine
         $this->pre_connect = $option;
     }
 
-    /**
-     * Instruct the ApiEngine to safely skip the hook it is called on if the result of the true
-     * @return bool
-     */
-    public function ignore_hook() : bool
-    {
-        return false;
-    }
+    protected function pre_init() : void {}
 
-    public function pre_init() : void {}
-
-    public function post_init() : void {}
+    protected function post_init() : void {}
 
     final public function init() : void
     {
@@ -183,10 +174,10 @@ abstract class ApiHooks extends ApiEngine
                 }
 
                 try {
-                    self::indexing_routes();
+                    self::__indexing_routes();
 
                     $brick->hooks();
-                    $d = $brick->indexed_routes();
+                    $d = $brick->__indexed_routes();
 
                     if(empty($d)) continue;
 
@@ -197,7 +188,7 @@ abstract class ApiHooks extends ApiEngine
                 }
             }
 
-            self::indexing_routes_done();
+            self::__indexing_routes_done();
             return $hooks;
         });
 
@@ -210,9 +201,6 @@ abstract class ApiHooks extends ApiEngine
 
         try {
             $hook_class = new $hook_class['hook']();
-
-            if($hook_class->ignore_hook())
-                return;
 
             $hook_class->hooks();
         } catch (\Throwable $e) {
