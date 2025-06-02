@@ -140,9 +140,9 @@ abstract class ApiHooks extends ApiEngine
         return $endpoints['var'][$key];
     }
 
-    final public function load_brick_hooks(string ...$class_to_ignore) : void
+    private static function cache_hooks(bool $invalidate = false, string ...$class_to_ignore) : array
     {
-        $endpoints = LayFn::var_cache("_LAY_BRICKS_", function () use ($class_to_ignore) {
+        return LayFn::var_cache("_LAY_BRICKS_", function () use ($class_to_ignore) {
             $bricks_root = LayConfig::server_data()->bricks;
             $hooks = [
                 "var" => [],
@@ -190,9 +190,15 @@ abstract class ApiHooks extends ApiEngine
 
             self::__indexing_routes_done();
             return $hooks;
-        });
+        }, $invalidate);
+    }
 
-        $hook_class = $this->interpolate_endpoints($this->get_uri_as_str(), $endpoints);
+    final public function load_brick_hooks(string ...$class_to_ignore) : void
+    {
+        $hook_class = $this->interpolate_endpoints(
+            $this->get_uri_as_str(),
+            $this->cache_hooks(false, ...$class_to_ignore)
+        );
 
         if(!$hook_class) {
             self::end();
@@ -206,6 +212,11 @@ abstract class ApiHooks extends ApiEngine
         } catch (\Throwable $e) {
             LayException::throw("", $hook_class['hook'] . "::HookError", $e);
         }
+    }
+
+    final static public function invalidate_hooks() : void
+    {
+        self::cache_hooks(true);
     }
 
     final public function get_all_endpoints() : ?array
