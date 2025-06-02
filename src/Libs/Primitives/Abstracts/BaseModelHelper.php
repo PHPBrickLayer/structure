@@ -167,8 +167,7 @@ abstract class BaseModelHelper
      */
     public function add(array|RequestHelper $columns, bool $resolve_conflict = false) : static
     {
-        if($columns instanceof RequestHelper)
-            $columns = $columns->props();
+        $columns = $this->req_2_array($columns);
 
         $columns[static::$primary_key_col] ??= 'UUID()';
         $columns[static::$primary_delete_col] ??= "0";
@@ -340,8 +339,7 @@ abstract class BaseModelHelper
         if(empty($record_id))
             LayException::throw("Trying to edit a record but no record id specified", "NoIdEdit");
 
-        if($columns instanceof RequestHelper)
-            $columns = $columns->props();
+        $columns = $this->req_2_array($columns);
 
         if($this->enable_created_by)
             $columns[static::$primary_updated_by_col] ??= $this->created_by();
