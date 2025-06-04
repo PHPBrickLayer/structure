@@ -84,7 +84,6 @@ trait AutoDeploy
             <<<FILE
             <?php
             use BrickLayer\Lay\Libs\Cron\LayCron;
-            use BrickLayer\Lay\Core\Api\ApiHooks;
             use BrickLayer\Lay\Core\Exception;
             use BrickLayer\Lay\Core\LayConfig;
             
@@ -133,7 +132,7 @@ trait AutoDeploy
             
             \$log .= "\\n";
             \$log .= "-- Invalidating Hooks\\n";
-            ApiHooks::invalidate_hooks();
+            (new \Web\Api\Plaster())->invalidate_hooks();
             
             \$log .= "\\n";
             \$log .= "-- Symlinks are being refreshed\\n";
