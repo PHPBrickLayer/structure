@@ -329,6 +329,31 @@ abstract class BaseModelHelper
     }
 
     /**
+     * Checks if all the value received are exists in the database, hence valid or not
+     * @param array<string|int> $values
+     * @param string $column
+     * @return bool
+     */
+    public function all_valid(array $values, string $column) : bool
+    {
+        $db = self::db();
+
+        $vals = implode(",", $values);
+
+        $db->where($column, "IN", "($vals)");
+
+        if($this->debug_mode)
+            $db->debug_full();
+
+        $this->exec_pre_run($db);
+
+        return empty(array_diff(
+            $db->column($column)->loop_row(),
+            $values
+        ));
+    }
+
+    /**
      * Edit the db record of a specified record entry
      * @param string $record_id
      * @param array<string, string|null|bool>|RequestHelper $columns

@@ -53,7 +53,8 @@ use Exception;
  *     result_is_assoc?: bool,
  *
  *     // This is the name of the $_POST value currently being validated
- *     field: string,
+ *     field?: string, // Either of them
+ *     name?: string, // should be used
  *
  *     // Field name is a human-friendly name for the current field being validated.
  *     // Example: instead of "first_name is required"; specify a `field_name` of "First Name"
@@ -76,7 +77,9 @@ use Exception;
  *     // This validates if the value of the current field is anything in the array
  *     must_contain?: array<int, string>,
  *
- *     // Use callbacks to ensure the current field matches the criteria specified in the callback function
+ *     // Use callbacks to ensure the current field matches the criteria specified in the callback function.
+ *     // If you pass a callback instead of an array, it will be same behaviour as using the `fun` key, and a default
+ *     // message will be used: Invalid `field_name`!
  *     must_validate?: array{
  *       // You can either use this or `fun_str`. If the callback return true, then vcm assumes the criteria was met,
  *       // else the criteria was not met, and the value of message is returned as the error message
@@ -86,7 +89,7 @@ use Exception;
  *       // When using this one, if it returns a string, vcm assumes the criteria was not met, and uses the string as
  *       // the error message. But if it returns a null, then the criteria specified was met
  *       fun_str: callable(mixed) : string|null,
- *     },
+ *     }|callable(mixed) : bool,
  *
  *     // instructs vcm to json_encode any the current field if it's an array type. [default: true]
  *     json_encode?: bool,
@@ -233,6 +236,7 @@ trait ValidateCleanMap {
      * @param FileUploadStorage|null $storage
      * @param string|null $bucket_url
      * @param FileUploadType|null $upload_type
+     * @param bool $dry_run
      * @return FileUploadReturn
      * @throws Exception
      */
@@ -446,14 +450,22 @@ trait ValidateCleanMap {
             $add_to_entry = $this->__add_error($field, "$field_name must be one of: " . implode(', ', $options['must_contain']));
 
         if(isset($options['must_validate'])) {
-            if(isset($options['must_validate']['fun'])) {
-                if(!$options['must_validate']['fun']($value))
-                    $add_to_entry = $this->__add_error($field, $options['must_validate']['message'] ?? "$field_name has not satisfied the criteria for submission");
-            } else {
-                $has_error = $options['must_validate']['fun_str']($value);
+            if(is_callable($options['must_validate'])) {
+                if (!$options['must_validate']($value))
+                    $add_to_entry = $this->__add_error($field, "$field_name has not satisfied the criteria for submission");
+            }
+            else {
+                if (isset($options['must_validate']['fun']) && !$options['must_validate']['fun']($value)) {
+                    $add_to_entry = $this->__add_error(
+                        $field,
+                        $options['must_validate']['message'] ??
+                        "$field_name has not satisfied the criteria for submission"
+                    );
+                }
 
-                if($has_error)
+                if (isset($options['must_validate']['fun_str']) && $has_error = $options['must_validate']['fun_str']($value)) {
                     $add_to_entry = $this->__add_error($field, $has_error);
+                }
             }
         }
 
@@ -495,7 +507,7 @@ trait ValidateCleanMap {
             return $this;
 
         $is_required = $options['required'] ?? static::$_required ?? true;
-        $field = str_replace("[]", "", $options['field']);
+        $field = str_replace("[]", "", $options['field'] ?? $options['name']);
         $value = $this->__get_field($field);
 
         if(isset($options['before_validate']))

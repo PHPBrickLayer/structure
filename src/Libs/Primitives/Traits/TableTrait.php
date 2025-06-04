@@ -25,7 +25,7 @@ trait TableTrait
             return;
 
         // check if table exists, but catch the error
-        self::orm()->open(self::$table)->catch()->clause("LIMIT 1")->just_exec()->select();
+        self::orm()->open(self::$table)->catch()->limit(1)->just_exec()->select();
 
         $query_info = self::orm()->query_info;
 
