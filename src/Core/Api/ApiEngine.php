@@ -1228,10 +1228,15 @@ abstract class ApiEngine {
     /**
      * Capture the URI of requests sent to the api router then store it for further processing
      * @param string $local_endpoint The expected endpoint prefix
+     * @param bool $mock Used by ApiPlaster for cache invalidation
      * @return self
      */
-    public static function fetch(string $local_endpoint = "api") : self {
-        $req = Domain::current_route_data("*");
+    public static function fetch(string $local_endpoint = "api", bool $mock = false) : self {
+        $req = $mock ? [
+            "route" => "index",
+            "route_as_array" => ["index"],
+        ] : Domain::current_route_data("*");
+
         $endpoint = $req['route'];
 
         if(empty($endpoint))

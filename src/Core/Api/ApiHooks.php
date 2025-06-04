@@ -8,7 +8,6 @@ use BrickLayer\Lay\Libs\LayFn;
 
 abstract class ApiHooks extends ApiEngine
 {
-
     /**
      * Alias for $engine
      * @see $engine
@@ -19,9 +18,9 @@ abstract class ApiHooks extends ApiEngine
     public readonly ApiEngine $engine;
 
     final public function __construct(
-        private bool $prefetch = true,
-        private bool $print_end_result = true,
-        private bool $pre_connect = true,
+        protected bool $prefetch = true,
+        protected bool $print_end_result = true,
+        protected bool $pre_connect = true,
     ) {
         if(!isset($this->engine)) {
             $this->engine = $this->start($this::class);
@@ -32,14 +31,17 @@ abstract class ApiHooks extends ApiEngine
         }
     }
 
-    final public function prefetch(bool $option) : void
-    {
-        $this->prefetch = $option;
-    }
-
     final public function print_result(bool $option) : void
     {
         $this->print_end_result = $option;
+    }
+
+
+    protected static bool $is_mocking = false;
+
+    final public function prefetch(bool $option) : void
+    {
+        $this->prefetch = $option;
     }
 
     final public function preconnect(bool $option) : void
@@ -64,6 +66,7 @@ abstract class ApiHooks extends ApiEngine
         $this->hooks();
 
         $this->post_init();
+
         self::end($this->print_end_result);
     }
 
@@ -142,6 +145,7 @@ abstract class ApiHooks extends ApiEngine
 
     private static function cache_hooks(bool $invalidate = false, string ...$class_to_ignore) : array
     {
+        $invalidate = self::$is_mocking ? true : $invalidate;
         return LayFn::var_cache("_LAY_BRICKS_", function () use ($class_to_ignore) {
             $bricks_root = LayConfig::server_data()->bricks;
             $hooks = [
@@ -195,10 +199,12 @@ abstract class ApiHooks extends ApiEngine
 
     final public function load_brick_hooks(string ...$class_to_ignore) : void
     {
-        $hook_class = $this->interpolate_endpoints(
-            $this->get_uri_as_str(),
-            $this->cache_hooks(false, ...$class_to_ignore)
-        );
+        $hooks = $this->cache_hooks(false, ...$class_to_ignore);
+
+        if(self::$is_mocking)
+            return;
+
+        $hook_class = $this->interpolate_endpoints($this->get_uri_as_str(), $hooks);
 
         if(!$hook_class) {
             self::end();
@@ -214,9 +220,15 @@ abstract class ApiHooks extends ApiEngine
         }
     }
 
-    final static public function invalidate_hooks() : void
+    final public function invalidate_hooks() : void
     {
-        self::cache_hooks(true);
+        self::$is_mocking = true;
+
+        // Mock request
+        self::fetch(mock: true);
+
+        // Run same conditions as a regular Api plaster and invalidate cache
+        $this->hooks();
     }
 
     final public function get_all_endpoints() : ?array
@@ -236,4 +248,6 @@ abstract class ApiHooks extends ApiEngine
         if($data = $this->get_all_endpoints())
             LayFn::dump_json($data);
     }
+
+
 }
