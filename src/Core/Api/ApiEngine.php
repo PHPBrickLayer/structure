@@ -373,47 +373,8 @@ abstract class ApiEngine {
                 self::$current_request_uri = self::$route_uri;
         }
 
-        if(!self::$indexing_routes && (!self::$DEBUG_DUMP_MODE && (count(self::$route_uri) !== count(self::$current_request_uri))))
-            return $this;
-
-        $last_index_route_uri = count(self::$current_request_uri) - 1;
-
-
-        foreach (self::$current_request_uri as $i => $curren_req_entry) {
-            if (@self::$route_uri[$i] !== $curren_req_entry && !str_starts_with($curren_req_entry, "{"))
-                break;
-
-            if(@self::$route_uri[$i] === $curren_req_entry) {
-                if($curren_req_entry == $last_item_current_request && $last_index_route_uri == $i) {
-                    if(self::$indexing_routes)
-                        continue;
-
-                    self::$route_found = true;
-                }
-
-                continue;
-            }
-
-            /**
-             * If request has a {placeholder}, then process it and store for future use
-             */
-            if(str_starts_with($curren_req_entry, "{")) {
-                self::$uri_variables['args'][] = self::$route_uri[$i];
-
-                // If placeholder is the last item on the list, mark the route as found
-                if(!isset(self::$current_request_uri[$i + 1])) {
-                    if(self::$indexing_routes)
-                        continue;
-
-                    self::$route_found = true;
-                }
-            }
-        }
-
-        self::save_request_for_debug();
-
         if(self::$indexing_routes) {
-            $uri = self::stringify_request(false);
+            $uri = self::stringify_request();
 
             $is_var  = str_contains($uri, "{");
 
@@ -437,6 +398,36 @@ abstract class ApiEngine {
 
             return $this;
         }
+
+        if(!self::$DEBUG_DUMP_MODE && (count(self::$route_uri) !== count(self::$current_request_uri)))
+            return $this;
+
+        $last_index_route_uri = count(self::$current_request_uri) - 1;
+
+        foreach (self::$current_request_uri as $i => $curren_req_entry) {
+            if (self::$route_uri[$i] !== $curren_req_entry && !str_starts_with($curren_req_entry, "{"))
+                break;
+
+            if(self::$route_uri[$i] === $curren_req_entry) {
+                if($curren_req_entry == $last_item_current_request && $last_index_route_uri == $i)
+                    self::$route_found = true;
+
+                continue;
+            }
+
+            /**
+             * If request has a {placeholder}, then process it and store for future use
+             */
+            if(str_starts_with($curren_req_entry, "{")) {
+                self::$uri_variables['args'][] = self::$route_uri[$i];
+
+                // If placeholder is the last item on the list, mark the route as found
+                if(!isset(self::$current_request_uri[$i + 1]))
+                    self::$route_found = true;
+            }
+        }
+
+        self::save_request_for_debug();
 
         if(self::$route_found) {
             self::$active_route = self::stringify_request(false);
