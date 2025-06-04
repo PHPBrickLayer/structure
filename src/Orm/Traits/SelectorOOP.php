@@ -154,6 +154,11 @@ trait SelectorOOP
         return $this;
     }
 
+    /**
+     * @param string $clause
+     * @return SelectorOOP|SQL
+     * @deprecated Making it a private method in version 0.7.0
+     */
     final public function clause(string $clause): self
     {
         return $this->store_vars('clause', $clause);
@@ -458,12 +463,10 @@ trait SelectorOOP
     /**
      * Instruct the ORM to loop through the result and return an associative array of results.
      *
-     * @param string|null $clause
      * @return array|null
      */
-    final public function loop_assoc(?string $clause = null): ?array
+    final public function loop_assoc(): ?array
     {
-        if ($clause) $this->clause($clause);
         $this->loop();
         $this->assoc();
         return $this->select();
@@ -488,12 +491,10 @@ trait SelectorOOP
     /**
      * Instruct the ORM to loop through the result and return a multidimensional array of results that isn't associative.
      *
-     * @param string|null $clause
      * @return array|null
      */
-    final public function loop_row(?string $clause = null): ?array
+    final public function loop_row(): ?array
     {
-        if ($clause) $this->clause($clause);
         $this->loop();
         $this->row();
         return $this->select();
@@ -531,30 +532,22 @@ trait SelectorOOP
     }
 
     /**
-     * Update query with a clause directly here
-     * @param string|null $clause
+     * Update query
      * @return bool
      */
-    final public function then_update(?string $clause = null): bool
+    final public function then_update(): bool
     {
-        if ($clause)
-            $this->clause($clause);
-
         return $this->edit();
     }
 
     /**
-     * Select query with a clause directly here
+     * Select query with as assoc and not null
      *
-     * @param string|null $clause
      *
      * @return Generator|array|null
      */
-    final public function then_select(?string $clause = null): Generator|array|null
+    final public function then_select(): Generator|array|null
     {
-        if ($clause)
-            $this->clause($clause);
-
         $this->no_null();
         $this->assoc();
         return $this->select();

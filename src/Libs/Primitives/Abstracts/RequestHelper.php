@@ -164,13 +164,22 @@ abstract class RequestHelper
      * @param bool $throw_error
      * @param bool $as_array
      * @param bool $invalidate_cache
+     * @param null|array<string|int, mixed> $mock_data You can use this to mock data for testing and more
      * @return array<string, mixed>|object
      * @throws \Exception
      */
-    public static function request(bool $throw_error = true, bool $as_array = false, bool $invalidate_cache = false): array|object
+    public static function request(
+        bool $throw_error = true,
+        bool $as_array = false,
+        bool $invalidate_cache = false,
+        ?array $mock_data = null
+    ): array|object
     {
         if(isset(self::$cached_request_fd) and !$invalidate_cache)
             return self::$cached_request_fd;
+
+        if($mock_data)
+            return self::$cached_request_fd = $as_array ? $mock_data : (object) $mock_data;
 
         $req_method = $_SERVER['REQUEST_METHOD'] ?? 'NON-SPECIFIED';
 
