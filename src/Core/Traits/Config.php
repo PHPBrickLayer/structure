@@ -342,9 +342,20 @@ trait Config
                 ];
         }
 
-        $edge = LayFn::extract_word("Edg.*", $matches['browser']);
-        $safari = LayFn::extract_word("(Version\/[0-9.]+) (Safari\/[0-9.]+)", $matches['browser']);
-        $chrome = LayFn::extract_word("Chrome\/[0-9.]+", $matches['browser']);
+        $extract_word = function (string $pattern, string $subject) {
+            $pattern = '~' . $pattern . '~';
+
+            preg_match($pattern, $subject, $out);
+
+            if(empty($out))
+                return null;
+
+            return $out;
+        };
+
+        $edge = $extract_word("Edg.*", $matches['browser']);
+        $safari = $extract_word("(Version\/[0-9.]+) (Safari\/[0-9.]+)", $matches['browser']);
+        $chrome = $extract_word("Chrome\/[0-9.]+", $matches['browser']);
 
         if($edge)
             $browser = $edge[0];

@@ -95,4 +95,10 @@ enum ApiStatus : int
         return $code == $value->value;
     }
 
+    public function respond() : bool|int
+    {
+        if(!headers_sent())
+            return http_response_code($this->value);
+        return false;
+    }
 }

@@ -216,7 +216,13 @@ abstract class ApiHooks extends ApiEngine
 
             $hook_class->hooks();
         } catch (\Throwable $e) {
-            LayException::throw("", $hook_class['hook'] . "::HookError", $e);
+            if(is_object($hook_class))
+                $hook_class = $hook_class::class;
+
+            if(is_array($hook_class))
+                $hook_class = $hook_class['hook'];
+
+            LayException::throw("", $hook_class . "::HookError", $e);
         }
     }
 
@@ -246,7 +252,7 @@ abstract class ApiHooks extends ApiEngine
     final public function dump_endpoints_as_json() : void
     {
         if($data = $this->get_all_endpoints())
-            LayFn::dump_json($data);
+            LayFn::vd_json($data);
     }
 
 

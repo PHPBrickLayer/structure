@@ -8,7 +8,6 @@ use BrickLayer\Lay\Core\CoreException;
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\View\Domain;
 use BrickLayer\Lay\Core\View\DomainResource;
-use BrickLayer\Lay\Core\View\ViewBuilder;
 use BrickLayer\Lay\Libs\ID\Gen;
 use BrickLayer\Lay\Libs\LayCache;
 use BrickLayer\Lay\Libs\LayDate;
@@ -493,6 +492,9 @@ abstract class ApiEngine {
                 break;
             case ApiReturnType::XML:
                 LayFn::header("Content-Type: text/xml");
+                break;
+            case ApiReturnType::STREAM:
+                LayFn::header("Content-Type: text/event-stream");
                 break;
             default:
                 LayFn::header("Content-Type: text/plain");
