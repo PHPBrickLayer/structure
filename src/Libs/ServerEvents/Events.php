@@ -102,6 +102,7 @@ class Events
             if($this->fiber_buffer['event'])
                 echo "event: {$this->fiber_buffer['event']}\n";
 
+            $data = json_encode(["content" => $data]);
             echo "data: $data\n\n";
 
             flush();
@@ -211,6 +212,6 @@ class Events
     }
 
     public function __construct(
-        protected int $timeout = 60, // When set to 0, it means no timeout
+        protected int $timeout = 30, // When set to 0, it means no timeout
     ) { }
 }
