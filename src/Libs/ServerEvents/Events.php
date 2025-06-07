@@ -89,8 +89,9 @@ class Events
             return $data;
         };
 
-        $fiber = $this->fiber_buffer['fiber'];
+        $can_expire = $this->fiber_buffer['timeout'] != 0;
 
+        $fiber = $this->fiber_buffer['fiber'];
         $data = $exec_safely(fn() => $fiber->start($this, $fiber));
 
         if($data == "__SAFE_EXEC__ERR__") return;
@@ -105,7 +106,7 @@ class Events
 
             flush();
 
-            if($this->fiber_buffer['timeout'] != 0 && LayDate::expired($this->fiber_buffer['timeout'])) break;
+            if($can_expire && LayDate::expired($this->fiber_buffer['timeout'])) break;
 
             if($fiber->isSuspended()) {
                 $data = $exec_safely(fn() => $fiber->resume());
@@ -124,10 +125,6 @@ class Events
         echo $this->exit_buffer['event'];
         echo $this->exit_buffer['data'];
     }
-
-    public function __construct(
-        protected int $timeout = 60, // When set to 0, it means no timeout
-    ) { }
 
     public function timeout(int $timeout) : self
     {
@@ -162,17 +159,21 @@ class Events
     /**
      * Output a stream of data from a handler
      * @param string $data
-     * @throws \Throwable
      */
     public function out(string $data) : void
     {
+        if(isset($this->fiber_buffer['fiber'])) {
+            $this->fiber_buffer['fiber']::suspend($data);
+            return;
+        }
+
         Fiber::suspend($data);
     }
 
     public function done() : void
     {
         $this->close_connection = true;
-        $this->fiber_buffer['fiber']::suspend("__LAY_EVENTS_DONE__");
+        $this->out("__LAY_EVENTS_DONE__");
     }
 
     public function error(
@@ -208,4 +209,8 @@ class Events
     {
         $this->event_loop();
     }
+
+    public function __construct(
+        protected int $timeout = 60, // When set to 0, it means no timeout
+    ) { }
 }
