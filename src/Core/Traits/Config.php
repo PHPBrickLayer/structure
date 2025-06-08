@@ -226,6 +226,11 @@ trait Config
         Exception::new()->capture_errors();
     }
 
+    public static function is_dev() : bool
+    {
+        return self::$ENV_IS_DEV;
+    }
+
     public static function is_bot(): bool
     {
         $from = self::get_header("From");

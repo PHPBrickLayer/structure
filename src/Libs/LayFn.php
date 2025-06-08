@@ -178,6 +178,31 @@ final class LayFn
     }
 
     /**
+     * @param mixed $value
+     * @param int $flags [optional] <p>
+     *  Bitmask consisting of <b>JSON_HEX_QUOT</b>,
+     *  <b>JSON_HEX_TAG</b>,
+     *  <b>JSON_HEX_AMP</b>,
+     *  <b>JSON_HEX_APOS</b>,
+     *  <b>JSON_NUMERIC_CHECK</b>,
+     *  <b>JSON_PRETTY_PRINT</b>,
+     *  <b>JSON_UNESCAPED_SLASHES</b>,
+     *  <b>JSON_FORCE_OBJECT</b>,
+     *  <b>JSON_UNESCAPED_UNICODE</b>.
+     *  <b>JSON_THROW_ON_ERROR</b> The behaviour of these
+     *  constants is described on
+     *  the JSON constants page.
+     *  </p>
+     * @param int $depth
+     * @return string|false
+     *@see json_encode()
+     */
+    public static function json_encode(mixed $value, int $flags = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE, int $depth = 512) : string|false
+    {
+        return json_encode($value, $flags, $depth);
+    }
+
+    /**
      * Return environmental variable
      * @param string $key
      * @param mixed $default

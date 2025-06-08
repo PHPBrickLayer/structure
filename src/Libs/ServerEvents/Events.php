@@ -34,7 +34,10 @@ class Events
         LayFn::header("X-Accel-Buffering: no");
         LayFn::header("Content-Type: text/event-stream");
         LayFn::header("Cache-Control: no-cache");
-        @ob_end_flush();
+
+        while (ob_get_level()) {
+            ob_end_flush();
+        }
     }
 
     /**
@@ -77,16 +80,17 @@ class Events
             return;
         }
 
-        $exec_safely = function (callable $exec) {
+        $exec_safely = function (callable $exec) : array
+        {
             try {
                 $data = $exec();
             } catch (\Throwable $e) {
                 LayException::log("", $e,log_title: "EventsErr");
                 $this->error("An error occurred");
                 $this->close();
-                return "__SAFE_EXEC__ERR__";
+                return ["__lay_out__" => "__SAFE_EXEC__ERR__"];
             }
-            return $data;
+            return $data ?? [];
         };
 
         $can_expire = $this->fiber_buffer['timeout'] != 0;
@@ -97,13 +101,14 @@ class Events
         if($data == "__SAFE_EXEC__ERR__") return;
 
         while (!$fiber->isTerminated()) {
-            if( $data == "__LAY_EVENTS_DONE__" or connection_aborted() or $this->close_connection ) break;
+            $lay_out = $data['__lay_out__'] ?? null;
+
+            if( $lay_out == "__LAY_EVENTS_DONE__" or connection_aborted() or $this->close_connection ) break;
 
             if($this->fiber_buffer['event'])
                 echo "event: {$this->fiber_buffer['event']}\n";
 
-            $data = json_encode(["content" => $data]);
-            echo "data: $data\n\n";
+            echo "data: " . json_encode($data) . "\n\n";
 
             flush();
 
@@ -111,7 +116,8 @@ class Events
 
             if($fiber->isSuspended()) {
                 $data = $exec_safely(fn() => $fiber->resume());
-                if($data == "__SAFE_EXEC__ERR__") return;
+                $lay_out = $data['__lay_out__'] ?? null;
+                if($lay_out == "__SAFE_EXEC__ERR__") return;
             }
         }
 
@@ -120,8 +126,16 @@ class Events
 
     private function exit() : void
     {
-        if(@empty($this->exit_buffer))
-            $this->struct_n_exit("close", "Connection closed", ApiStatus::NO_CONTENT, false);
+        $this->default_headers();
+
+        if(!empty($this->exit_buffer)) {
+            echo $this->exit_buffer['event'];
+            echo $this->exit_buffer['data'];
+
+            if($this->exit_buffer['event'] == "event: close\n") return;
+        }
+
+        $this->struct_n_exit("close", "Connection closed", ApiStatus::NO_CONTENT, false);
 
         echo $this->exit_buffer['event'];
         echo $this->exit_buffer['data'];
@@ -139,29 +153,27 @@ class Events
      * @param callable(self, Fiber):self $handler The data to be sent should be echoed inside here using the `Events::out` method
      * @see out
      * @example `->event(fn (Events $event, Fiber $fiber) => $event::out("Values: Data"))->send();`
-     * @return $this
      */
-    public function event(?string $event, callable $handler) : self
+    public function event(?string $event, callable $handler) : void
     {
         $this->fiber_struct($event, new Fiber(fn($me, $fiber)  => $handler($me, $fiber)));
-        return $this;
+        $this->send();
     }
 
     /**
      * Send a message event from the server to a client
      * @see event
-     * @return $this
      */
-    public function message(callable $handler) : self
+    public function message(callable $handler) : void
     {
-        return $this->event("message", $handler);
+        $this->event("message", $handler);
     }
 
     /**
      * Output a stream of data from a handler
-     * @param string $data
+     * @param array $data
      */
-    public function out(string $data) : void
+    public function out(array $data) : void
     {
         if(isset($this->fiber_buffer['fiber'])) {
             $this->fiber_buffer['fiber']::suspend($data);
@@ -171,18 +183,20 @@ class Events
         Fiber::suspend($data);
     }
 
-    public function done() : void
+    public function done(?array $data = null, ApiStatus $status = ApiStatus::OK) : void
     {
-        $this->close_connection = true;
-        $this->out("__LAY_EVENTS_DONE__");
+        $this->struct_n_exit("complete", json_encode($data ?? ['status' => 'done']), $status);
     }
 
     public function error(
         string $message = "Could not complete request at the moment, please try again later",
-        ApiStatus $status = ApiStatus::INTERNAL_SERVER_ERROR
+        ApiStatus|int $status = ApiStatus::INTERNAL_SERVER_ERROR
     ) : void
     {
-        $this->struct_n_exit("error", $message, $status);
+        if(is_int($status))
+            $status = ApiStatus::tryFrom($status) ?? null;
+
+        $this->struct_n_exit("error", $message, $status ?? ApiStatus::INTERNAL_SERVER_ERROR);
     }
 
     /**
@@ -206,12 +220,12 @@ class Events
      * Send the event to the event loop
      * @return void
      */
-    public function send() : void
+    private function send() : void
     {
         $this->event_loop();
     }
 
     public function __construct(
-        protected int $timeout = 30, // When set to 0, it means no timeout
+        protected int $timeout = 25, // When set to 0, it means no timeout
     ) { }
 }
