@@ -12,6 +12,7 @@ use BrickLayer\Lay\Core\View\Domain;
 use BrickLayer\Lay\Libs\Dir\LayDir;
 use BrickLayer\Lay\Libs\LayFn;
 use BrickLayer\Lay\Libs\Primitives\Traits\IsSingleton;
+use BrickLayer\Lay\Libs\ServerEvents\Events;
 use BrickLayer\Lay\Orm\SQL;
 use Throwable;
 
@@ -563,6 +564,7 @@ final class CoreException
             return null;
 
         SQL::new()->__rollback_on_error();
+        Events::__close_on_error();
 
         $throw_500 = $this->throw_500 && LayConfig::get_mode() === LayMode::HTTP;
 

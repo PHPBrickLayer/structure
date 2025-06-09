@@ -10,6 +10,8 @@ use Fiber;
 
 class Events
 {
+    public static bool $is_streaming = false;
+
     /**
      * @var array{
      *     event: string,
@@ -29,8 +31,19 @@ class Events
 
     private bool $close_connection = false;
 
+    /**
+     * Send the event to the event loop
+     * @return void
+     */
+    private function send() : void
+    {
+        $this->event_loop();
+    }
+
     private function default_headers() : void
     {
+        self::$is_streaming = true;
+
         LayFn::header("X-Accel-Buffering: no");
         LayFn::header("Content-Type: text/event-stream");
         LayFn::header("Cache-Control: no-cache");
@@ -101,6 +114,8 @@ class Events
         if($data == "__SAFE_EXEC__ERR__") return;
 
         while (!$fiber->isTerminated()) {
+            if($can_expire && LayDate::expired($this->fiber_buffer['timeout'])) break;
+
             $lay_out = $data['__lay_out__'] ?? null;
 
             if( $lay_out == "__LAY_EVENTS_DONE__" or connection_aborted() or $this->close_connection ) break;
@@ -108,11 +123,9 @@ class Events
             if($this->fiber_buffer['event'])
                 echo "event: {$this->fiber_buffer['event']}\n";
 
-            echo "data: " . json_encode($data) . "\n\n";
+            echo "data: " . LayFn::json_encode($data) . "\n\n";
 
             flush();
-
-            if($can_expire && LayDate::expired($this->fiber_buffer['timeout'])) break;
 
             if($fiber->isSuspended()) {
                 $data = $exec_safely(fn() => $fiber->resume());
@@ -128,6 +141,8 @@ class Events
     {
         $this->default_headers();
 
+        self::$is_streaming = false;
+
         if(!empty($this->exit_buffer)) {
             echo $this->exit_buffer['event'];
             echo $this->exit_buffer['data'];
@@ -139,6 +154,8 @@ class Events
 
         echo $this->exit_buffer['event'];
         echo $this->exit_buffer['data'];
+
+        flush();
     }
 
     public function timeout(int $timeout) : self
@@ -183,9 +200,19 @@ class Events
         Fiber::suspend($data);
     }
 
+    public function stream(array $data) : void
+    {
+        $this->default_headers();
+
+        echo "event: message\n";
+        echo "data: " . LayFn::json_encode($data) . "\n\n";
+
+        flush();
+    }
+
     public function done(?array $data = null, ApiStatus $status = ApiStatus::OK) : void
     {
-        $this->struct_n_exit("complete", json_encode($data ?? ['status' => 'done']), $status);
+        $this->struct_n_exit("complete", LayFn::json_encode($data ?? ['status' => 'done']), $status);
     }
 
     public function error(
@@ -216,13 +243,12 @@ class Events
     {
         $this->close();
     }
-    /**
-     * Send the event to the event loop
-     * @return void
-     */
-    private function send() : void
+
+    public static function __close_on_error() : void
     {
-        $this->event_loop();
+        if(!self::$is_streaming) return;
+
+        (new self())->end();
     }
 
     public function __construct(
