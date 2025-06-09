@@ -261,6 +261,7 @@ trait SelectorOOPCrud
         $d = $this->get_vars();
         $table = $d['table'] ?? null;
         $clause = $this->parse_clause($d);
+        $fun = $d['fun'] ?? null;
 
         if (empty($table))
             $this->oop_exception("You did not initialize the `table`. Use the `->table(String)` method like this: `->value('your_table_name')`");
@@ -282,6 +283,8 @@ trait SelectorOOPCrud
                 $has_col_id = false;
 
                 foreach ($entry as $col => $val) {
+                    if($fun) $columns = $fun($columns);
+
                     if(!isset($columns[$col]))
                         $columns[$col] = self::escape_identifier($col);
 

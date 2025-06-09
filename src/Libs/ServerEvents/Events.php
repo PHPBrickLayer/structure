@@ -167,11 +167,11 @@ class Events
     /**
      * Send a message event from the server to a client
      * @param null|string $event The event to send
-     * @param callable(self, Fiber):self $handler The data to be sent should be echoed inside here using the `Events::out` method
-     * @see out
+     * @param callable(self, Fiber):self $handler The data to be sent should be echoed inside here using the `Events::fiber_out` method
+     * @see fiber_out
      * @example `->event(fn (Events $event, Fiber $fiber) => $event::out("Values: Data"))->send();`
      */
-    public function event(?string $event, callable $handler) : void
+    public function fiber_event(?string $event, callable $handler) : void
     {
         $this->fiber_struct($event, new Fiber(fn($me, $fiber)  => $handler($me, $fiber)));
         $this->send();
@@ -181,16 +181,16 @@ class Events
      * Send a message event from the server to a client
      * @see event
      */
-    public function message(callable $handler) : void
+    public function fiber_message(callable $handler) : void
     {
-        $this->event("message", $handler);
+        $this->fiber_event("message", $handler);
     }
 
     /**
-     * Output a stream of data from a handler
+     * @see fiber_event
      * @param array $data
      */
-    public function out(array $data) : void
+    public function fiber_out(array $data) : void
     {
         if(isset($this->fiber_buffer['fiber'])) {
             $this->fiber_buffer['fiber']::suspend($data);
@@ -200,14 +200,32 @@ class Events
         Fiber::suspend($data);
     }
 
-    public function stream(array $data) : void
+    /**
+     * Echo an event and data for streaming
+     * @param string|null $event
+     * @param array $data
+     * @return void
+     */
+    public function event(?string $event, array $data) : void
     {
         $this->default_headers();
 
-        echo "event: message\n";
+        if($event)
+            echo "event: $event\n";
+
         echo "data: " . LayFn::json_encode($data) . "\n\n";
 
         flush();
+    }
+
+    /**
+     * @see event
+     * @param array $data
+     * @return void
+     */
+    public function stream(array $data) : void
+    {
+        $this->event("message", $data);
     }
 
     public function done(?array $data = null, ApiStatus $status = ApiStatus::OK) : void

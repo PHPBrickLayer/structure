@@ -2,6 +2,8 @@
 declare(strict_types=1);
 namespace BrickLayer\Lay\Libs;
 
+use DateInterval;
+use DatePeriod;
 use DateTime;
 
 abstract class LayDate {
@@ -147,27 +149,61 @@ abstract class LayDate {
         return self::diff($date_word, "now", true);
     }
 
-    public static function week_of_month(int $date) : int
+    public static function month_total_weeks(string|int|null $date, bool $include_floating_week = true) : int
     {
-        $first_day_of_month = strtotime(date("Y-m-01", $date));
+        $start = new DateTime(self::date($date,'Y-m'));
+
+        $days = (clone $start)->add(new DateInterval('P1M'))->diff($start)->days;
+
+        $offset = intval(self::date($date, 'N')) - 1;
+
+        $fn = $include_floating_week ? "ceil" : "floor";
+
+        return (int) $fn(($days + $offset) / 7);
+    }
+
+    /**
+     * @param int $year
+     * @return array{
+     *     total: int,
+     *     month: array<int, array>,
+     * }
+     */
+    public static function year_total_weeks(int $year) : array
+    {
+        $start = self::date("$year-01-01", 'Y-');
+        $all_weeks = [
+            "total" => 0,
+            "month" => [],
+        ];
+
+        for ($i =1; $i <= 12; $i++) {
+            $x = self::month_total_weeks($start . $i . "-01", false);
+            $all_weeks["month"][] = $x;
+            $all_weeks["total"] += $x;
+        }
+
+        return $all_weeks;
+    }
+
+    public static function week_of_month(string|int|null $date) : int
+    {
+        $first_day_of_month = self::date($date, "Y-m-01", figure: true);
 
         //Apply above formula.
         return self::week_of_year($date) - self::week_of_year($first_day_of_month) + 1;
     }
 
-    /**
-     * @param false|int $date
-     */
-    public static function week_of_year(int|false $date) : int
+    public static function week_of_year(string|int|null $date) : int
     {
-        $week_of_year = intval(date("W", $date));
+        $week_of_year = intval(self::date($date, "W"));
 
         // It's the last week of the previous year.
-        if (date('n', $date) == "1" && $week_of_year > 51)
+        if (self::date( $date, 'n') == "1" && $week_of_year > 51)
             return 0;
 
         // It's the first week of the next year.
-        if (date('n', $date) == "12" && $week_of_year == 1)
+        if (self::date($date, 'n') == "12" && $week_of_year == 1)
             return 53;
 
         // It's a "normal" week.
