@@ -74,7 +74,7 @@ trait ControllerHelper {
     {
         $code = ApiStatus::get_code($code);
 
-        http_response_code($code);
+        LayFn::http_response_code($code, true);
 
         if($send_header)
             LayFn::header("Content-Type: application/json");

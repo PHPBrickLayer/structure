@@ -400,7 +400,7 @@ final class CoreException
         }
 
         if($use_json) {
-            $code = http_response_code();
+            $code = LayFn::http_response_code();
             $error_json = [
                 "code" => $other['json_packet']['code'] ?? ($code == 200 ? ($this->throw_500 ? 500 : $code) : $code),
                 "message" => $other['json_packet']['message'] ?? null,
@@ -564,7 +564,6 @@ final class CoreException
             return null;
 
         SQL::new()->__rollback_on_error();
-        Events::__close_on_error();
 
         $throw_500 = $this->throw_500 && LayConfig::get_mode() === LayMode::HTTP;
 
@@ -620,7 +619,12 @@ final class CoreException
             if(!$this->throw_as_json)
                 LayFn::header("Content-Type: text/html");
 
-            echo $act['error'];
+            if(Events::$is_streaming) {
+                (new Events())->error("An internal server error occurred, please check the server logs for more info");
+            }
+            else {
+                echo $act['error'];
+            }
         }
 
         if ($opt['kill']) {

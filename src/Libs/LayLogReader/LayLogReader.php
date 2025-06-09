@@ -16,27 +16,27 @@ abstract class LayLogReader
     /**
      * Reads the
      * @param bool $as_html
-     * @return Generator<array{
+     * @return array{
      *     time: string,
      *     message: string,
      *     x_info: string,
      *     app_trace: string,
      *     internal_trace: string,
-     * }>
+     * }
      * @throws \Exception
      */
     public static function exceptions(bool $as_html = true, int $max_files = 10) : array
     {
         $file_entry_cache = [];
 
-        $log_files = LayDir::read(
+        LayDir::read(
             LayConfig::server_data()->exceptions,
             function (string $name, string $dir, $handler, $file) use ($as_html, $max_files, &$file_entry_cache) {
-                if($file['index'] == $max_files) LayLoop::BREAK;
+                if($file['index'] == $max_files) return LayLoop::BREAK;
 
                 $fh = fopen($file['full_path'], 'r');
 
-                if (!$fh) LayLoop::CONTINUE;
+                if (!$fh) return LayLoop::CONTINUE;
 
                 $current_entry = null;
 
@@ -138,17 +138,17 @@ abstract class LayLogReader
                     
                     <details class='p-2 ms-4 bg-gray-200'>
                         <summary class='fs-3 fw-bold p-1'>[X-INFO]</summary>
-                        <div><pre style='line-height: 1.5rem; margin: 0; font-size: 1.05rem'>{$e['x_info']}</pre></div>
+                        <div><pre style='line-height: .9rem; margin: 0; font-size: 1.05rem'>{$e['x_info']}</pre></div>
                     </details>
                     
                     <details class='p-2 ms-4 bg-gray-200'>
                         <summary class='fs-3 fw-bold p-1'>[APP TRACE]</summary>
-                        <div><pre style='line-height: 1.5rem; margin: 0; font-size: 1.05rem'>{$e['app_trace']}</pre></div>
+                        <div><pre style='line-height: .9rem; margin: 0; font-size: 1.05rem'>{$e['app_trace']}</pre></div>
                     </details>
                     
                     <details class='p-2 ms-4 bg-gray-200'>
                         <summary class='fs-3 fw-bold p-1'>[INTERNAL TRACE]</summary>
-                        <div><pre style='line-height: 1.5rem; margin: 0; font-size: 1.05rem'>{$e['internal_trace']}</pre></div>
+                        <div><pre style='line-height: .9rem; margin: 0; font-size: 1.05rem'>{$e['internal_trace']}</pre></div>
                     </details>
                 </details>"
                 );

@@ -21,14 +21,6 @@ class Events
      */
     private array $fiber_buffer = [];
 
-    /**
-     * @var array{
-     *     event: string,
-     *     data: string,
-     * }
-     */
-    private array $exit_buffer = [];
-
     private bool $close_connection = false;
 
     /**
@@ -38,19 +30,6 @@ class Events
     private function send() : void
     {
         $this->event_loop();
-    }
-
-    private function default_headers() : void
-    {
-        self::$is_streaming = true;
-
-        LayFn::header("X-Accel-Buffering: no");
-        LayFn::header("Content-Type: text/event-stream");
-        LayFn::header("Cache-Control: no-cache");
-
-        while (ob_get_level()) {
-            ob_end_flush();
-        }
     }
 
     /**
@@ -71,25 +50,12 @@ class Events
         $this->fiber_buffer = $out;
     }
 
-    private function struct_n_exit(string $event, string $message, ApiStatus $status, bool $exit = true) : void
-    {
-        $this->close_connection = true;
-        $status->respond();
-
-        $this->exit_buffer = [
-            "event" => "event: " . $event . "\n",
-            "data" => "data: " . $message . "\n\n",
-        ];
-
-        if($exit) $this->exit();
-    }
-
     private function event_loop() : void
     {
-        $this->default_headers();
+        $this->set_headers();
 
         if(empty($this->fiber_buffer)) {
-            $this->exit();
+            $this->close();
             return;
         }
 
@@ -134,34 +100,7 @@ class Events
             }
         }
 
-        $this->exit();
-    }
-
-    private function exit() : void
-    {
-        $this->default_headers();
-
-        self::$is_streaming = false;
-
-        if(!empty($this->exit_buffer)) {
-            echo $this->exit_buffer['event'];
-            echo $this->exit_buffer['data'];
-
-            if($this->exit_buffer['event'] == "event: close\n") return;
-        }
-
-        $this->struct_n_exit("close", "Connection closed", ApiStatus::NO_CONTENT, false);
-
-        echo $this->exit_buffer['event'];
-        echo $this->exit_buffer['data'];
-
-        flush();
-    }
-
-    public function timeout(int $timeout) : self
-    {
-        $this->timeout = $timeout;
-        return $this;
+        $this->close();
     }
 
     /**
@@ -200,15 +139,25 @@ class Events
         Fiber::suspend($data);
     }
 
+    public function fiber_timeout(int $timeout) : self
+    {
+        $this->timeout = $timeout;
+        return $this;
+    }
+
+
     /**
      * Echo an event and data for streaming
      * @param string|null $event
      * @param array $data
      * @return void
      */
-    public function event(?string $event, array $data) : void
+    public function event(?string $event, array $data, ApiStatus|int $status = ApiStatus::OK) : void
     {
-        $this->default_headers();
+        $this->set_headers();
+
+        if($status instanceof ApiStatus) $status->respond();
+        else LayFn::http_response_code($status, true);
 
         if($event)
             echo "event: $event\n";
@@ -228,9 +177,9 @@ class Events
         $this->event("message", $data);
     }
 
-    public function done(?array $data = null, ApiStatus $status = ApiStatus::OK) : void
+    public function done(?array $data = null) : void
     {
-        $this->struct_n_exit("complete", LayFn::json_encode($data ?? ['status' => 'done']), $status);
+        $this->event("complete", $data ?? ['status' => '[DONE]'], ApiStatus::NO_CONTENT);
     }
 
     public function error(
@@ -238,10 +187,7 @@ class Events
         ApiStatus|int $status = ApiStatus::INTERNAL_SERVER_ERROR
     ) : void
     {
-        if(is_int($status))
-            $status = ApiStatus::tryFrom($status) ?? null;
-
-        $this->struct_n_exit("error", $message, $status ?? ApiStatus::INTERNAL_SERVER_ERROR);
+        $this->event("error", ['message' => $message], $status);
     }
 
     /**
@@ -250,7 +196,10 @@ class Events
      */
     public function close() : void
     {
-        $this->struct_n_exit("close", "Connection closed", ApiStatus::NO_CONTENT);
+        self::$is_streaming = false;
+        $this->close_connection = true;
+
+        $this->event("error", ['message' => "Connection closed"], ApiStatus::NO_CONTENT);
     }
 
     /**
@@ -262,11 +211,18 @@ class Events
         $this->close();
     }
 
-    public static function __close_on_error() : void
+    public function set_headers() : void
     {
-        if(!self::$is_streaming) return;
+        self::$is_streaming = true;
 
-        (new self())->end();
+        LayFn::header("X-Accel-Buffering: no");
+        LayFn::header("Content-Type: text/event-stream");
+        LayFn::header("Cache-Control: no-cache");
+        LayFn::header("Connection: keep-alive");
+
+        while (ob_get_level()) {
+            ob_end_flush();
+        }
     }
 
     public function __construct(

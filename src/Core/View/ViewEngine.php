@@ -287,7 +287,7 @@ final class ViewEngine {
 
         $this->add_cache_header($cache);
 
-        http_response_code($meta->{self::key_page}->response_code);
+        LayFn::http_response_code($meta->{self::key_page}->response_code, true);
         LayFn::header("Content-Type: text/html");
 
         echo $x;

@@ -2,6 +2,7 @@
 
 namespace BrickLayer\Lay\Libs;
 
+use BrickLayer\Lay\Core\Api\Enums\ApiStatus;
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\LayException;
 use BrickLayer\Lay\Core\View\Domain;
@@ -175,6 +176,24 @@ final class LayFn
             return;
 
         header($header, $replace, $response_code);
+    }
+
+    private static int $prev_http_code;
+
+    public static function http_response_code(ApiStatus|int $code = 0, bool $overwrite = false) : int|bool
+    {
+        if(headers_sent()) return false;
+
+        if(!$overwrite) {
+            self::$prev_http_code ??= http_response_code();
+            return self::$prev_http_code;
+        }
+
+        if($code instanceof ApiStatus)
+            $code = $code->value;
+
+        self::$prev_http_code = $code;
+        return http_response_code($code);
     }
 
     /**
