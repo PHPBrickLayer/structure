@@ -193,7 +193,12 @@ abstract class BaseModelHelper
         return $this->unfill();
     }
 
-    public function batch(array $columns) : bool
+    /**
+     * @param array $columns
+     * @param callable(array):array|null $fun a callback to run inside the batch insert run function for each entry of the row
+     * @return bool
+     */
+    public function batch(array $columns, ?callable $fun = null) : bool
     {
         $db = static::db();
 
@@ -207,7 +212,7 @@ abstract class BaseModelHelper
         $timestamp = $this->timestamp();
         $created_by = $this->created_by();
 
-        return $db->fun(function ($columns) use ($timestamp, $created_by) {
+        return $db->fun(function ($columns) use ($timestamp, $created_by, $fun) {
             $columns[static::$primary_key_col] ??= 'UUID()';
             $columns[static::$primary_delete_col] ??= "0";
 
@@ -216,7 +221,12 @@ abstract class BaseModelHelper
 
             $columns[static::$primary_created_at_col] ??= $timestamp;
 
-            return $columns;
+            foreach ($columns as $key => $val) {
+                if (is_array($val))
+                    $columns[$key] = json_encode($val);
+            }
+
+            return $fun($columns);
         })->insert_multi($columns);
     }
 
