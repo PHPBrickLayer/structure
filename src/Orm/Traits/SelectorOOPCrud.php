@@ -130,6 +130,8 @@ trait SelectorOOPCrud
             $this->oop_exception("OnConflict Error; Update column cannot be empty when action is implicitly UPDATE");
 
         foreach ($conflict['update_columns'] as $col) {
+            if($col == "id") continue;
+
             $update_cols .= "$col = $excluded.$col,";
         }
 
