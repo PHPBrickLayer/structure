@@ -106,14 +106,14 @@ trait SelectorOOPCrud
             return /** @lang text */ "INSERT INTO $table $column_and_values ON DUPLICATE KEY UPDATE $update $clause;";
         }
 
-        if($conflict['action'] == 'REPLACE')
+        if($conflict['action'] == 'REPLACE' && OrmDriver::is_sqlite($driver))
             return /** @lang text */ "INSERT OR REPLACE INTO $table $column_and_values $clause";
 
         $unique_cols = !empty($conflict['unique_columns'])  ? implode(",", $conflict['unique_columns']) : null;
 
         if(!$unique_cols)
             $this->oop_exception(
-                "OnConflict Error; Only `REPLACE` actions can be ran without unique columns"
+                "OnConflict Error; Only `REPLACE` actions in MySQL and SQLite can be ran without unique columns"
             );
 
         if($conflict['action'] == 'IGNORE' || $conflict['action'] == 'NOTHING')
@@ -122,12 +122,17 @@ trait SelectorOOPCrud
         $update_cols = "";
         $excluded = OrmDriver::is_sqlite($driver) ? "excluded" : "EXCLUDED";
 
+        if($conflict['action'] == 'REPLACE' && $driver == OrmDriver::POSTGRES) {
+            $conflict['update_columns'] = explode(",", trim(explode("VALUES", $column_and_values, 2)[0], "( )"));
+        }
+
         if(empty($conflict['update_columns']))
             $this->oop_exception("OnConflict Error; Update column cannot be empty when action is implicitly UPDATE");
 
         foreach ($conflict['update_columns'] as $col) {
             $update_cols .= "$col = $excluded.$col,";
         }
+
         $update_cols = rtrim($update_cols, ",");
 
         return /** @lang text */ "INSERT INTO $table $column_and_values ON CONFLICT ($unique_cols) DO UPDATE SET $update_cols $clause;";
@@ -282,8 +287,9 @@ trait SelectorOOPCrud
                 $values .= "(";
                 $has_col_id = false;
 
+                if($fun) $entry = $fun($entry);
+
                 foreach ($entry as $col => $val) {
-                    if($fun) $columns = $fun($columns);
 
                     if(!isset($columns[$col]))
                         $columns[$col] = self::escape_identifier($col);

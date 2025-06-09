@@ -194,8 +194,8 @@ abstract class BaseModelHelper
     }
 
     /**
-     * @param array $columns
-     * @param callable(array):array|null $fun a callback to run inside the batch insert run function for each entry of the row
+     * @param array<int,array<string,mixed>> $columns
+     * @param null|callable(array<string,mixed>):array<string,mixed> $fun a callback to run inside the batch insert run function for each entry of the row
      * @return bool
      */
     public function batch(array $columns, ?callable $fun = null) : bool
@@ -222,11 +222,12 @@ abstract class BaseModelHelper
             $columns[static::$primary_created_at_col] ??= $timestamp;
 
             foreach ($columns as $key => $val) {
-                if (is_array($val))
-                    $columns[$key] = json_encode($val);
+                if (is_array($val)) $columns[$key] = json_encode($val);
             }
 
-            return $fun($columns);
+            if($fun) return $fun($columns);
+
+            return $columns;
         })->insert_multi($columns);
     }
 
