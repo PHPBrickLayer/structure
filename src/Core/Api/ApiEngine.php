@@ -528,7 +528,7 @@ abstract class ApiEngine {
         header_remove("Pragma");
         header_remove("Expires");
 
-        header("Accept-Ranges: bytes");
+        LayFn::header("Accept-Ranges: bytes");
 
         if(isset($cache_control['max_age']) && is_string($cache_control['max_age']))
             $cache_control['max_age'] = LayDate::in_seconds($cache_control['max_age']);
@@ -538,11 +538,11 @@ abstract class ApiEngine {
             "public" => @!$cache_control['public'] ? 'private' : 'public'
         ];
 
-        header("Cache-Control: max-age={$cache_control['max_age']}, {$cache_control['public']}");
-        header("Etag: \"" . Gen::uuid() . "\"");
+        LayFn::header("Cache-Control: max-age={$cache_control['max_age']}, {$cache_control['public']}");
+        LayFn::header("Etag: \"" . Gen::uuid() . "\"");
 
         if($last_mod)
-            header("Last-Modified: " . LayDate::date($last_mod, format_index: 3));
+            LayFn::header("Last-Modified: " . LayDate::date($last_mod, format_index: 3));
     }
 
     /**

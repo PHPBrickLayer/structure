@@ -3,161 +3,116 @@
 namespace BrickLayer\Lay\Libs\ServerEvents;
 
 use BrickLayer\Lay\Core\Api\Enums\ApiStatus;
+use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\LayException;
-use BrickLayer\Lay\Libs\LayDate;
+use BrickLayer\Lay\Core\View\Domain;
 use BrickLayer\Lay\Libs\LayFn;
-use Fiber;
+use BrickLayer\Lay\Libs\Primitives\Enums\LayLoop;
 
 class Events
 {
     public static bool $is_streaming = false;
-
-    /**
-     * @var array{
-     *     event: string,
-     *     fiber: Fiber,
-     *     timeout: int,
-     * }
-     */
-    private array $fiber_buffer = [];
-
     private bool $close_connection = false;
+    protected ?string $event_id = null;
 
-    /**
-     * Send the event to the event loop
-     * @return void
-     */
-    private function send() : void
+    private function cleanup() : void
     {
-        $this->event_loop();
+        self::$is_streaming = false;
+        $this->close_connection = true;
+
+        $this->delete_event_id();
     }
 
-    /**
-     * @param string|null $event
-     * @param Fiber $fiber
-     */
-    private function fiber_struct(?string $event, Fiber $fiber) : void
+    private function gen_id() : string
     {
-        $out = [];
+        $id = "/";
 
-        if($event)
-            $out['event'] = "event: " . $event . "\n";
+        if (Domain::is_in_use())
+            $id = Domain::current_route_data("route");
 
-        $out['fiber'] = $fiber;
-
-        $out['timeout'] = $this->timeout > 0 ? LayDate::unix("$this->timeout seconds") : 0;
-
-        $this->fiber_buffer = $out;
+        return LayConfig::get_ip() . "_+_" . $id;
     }
 
-    private function event_loop() : void
+    private function cache_event_id() : void
     {
+        if(isset($_SESSION['__LAY_SSE_IDS__']["__LAY_EXCEPTION__"])){
+            LayException::log(
+                "You have an exception preventing you from executing server sent events. 
+                After fixing it, run `Events::clear_exception()` in the same session to allow SSE execution",
+                log_title: "SSE_Error"
+            );
+            $this->event("error", ['message' => "You have an exception, fix it, clear exception and try again"], ApiStatus::INTERNAL_SERVER_ERROR);
+            die;
+        }
+
+        $this->event_id ??= $this->gen_id();
+
+        if($this->is_duplicate($this->event_id)) {
+            $this->close_connection = true;
+
+            $this->event("error", ['message' => "User has an existing live connection"], ApiStatus::NO_CONTENT);
+            die;
+        }
+
+        $_SESSION['__LAY_SSE_IDS__'][$this->event_id] = "live";
+    }
+
+    private function delete_event_id() : void
+    {
+        if($this->event_id) unset($_SESSION['__LAY_SSE_IDS__'][$this->event_id]);
+        session_write_close();
+
+        flush();
+
+        while (ob_get_level()) {
+            ob_end_flush();
+        }
+    }
+
+    public function event_loop(callable $callback, bool $close = true) : void
+    {
+        ignore_user_abort(true);
+        set_time_limit(0);
+
         $this->set_headers();
 
-        if(empty($this->fiber_buffer)) {
-            $this->close();
-            return;
-        }
+        $abort_event_loop = LayConfig::server_data()->temp . "abort_event_loop";
 
-        $exec_safely = function (callable $exec) : array
-        {
-            try {
-                $data = $exec();
+        while (!connection_aborted() && self::$is_streaming) {
+            if (
+                connection_status() != CONNECTION_NORMAL ||
+                $this->close_connection || file_exists($abort_event_loop)
+            ) break;
+
+            try{
+                $out = $callback($this);
+
+                if($out == LayLoop::BREAK) break;
             } catch (\Throwable $e) {
-                LayException::log("", $e,log_title: "EventsErr");
-                $this->error("An error occurred");
-                $this->close();
-                return ["__lay_out__" => "__SAFE_EXEC__ERR__"];
+                LayException::log("", $e, "ServerEventsErr");
+                $this->error();
+                break;
             }
-            return $data ?? [];
-        };
-
-        $can_expire = $this->fiber_buffer['timeout'] != 0;
-
-        $fiber = $this->fiber_buffer['fiber'];
-        $data = $exec_safely(fn() => $fiber->start($this, $fiber));
-
-        if($data == "__SAFE_EXEC__ERR__") return;
-
-        while (!$fiber->isTerminated()) {
-            if($can_expire && LayDate::expired($this->fiber_buffer['timeout'])) break;
-
-            $lay_out = $data['__lay_out__'] ?? null;
-
-            if( $lay_out == "__LAY_EVENTS_DONE__" or connection_aborted() or $this->close_connection ) break;
-
-            if($this->fiber_buffer['event'])
-                echo "event: {$this->fiber_buffer['event']}\n";
-
-            echo "data: " . LayFn::json_encode($data) . "\n\n";
 
             flush();
-
-            if($fiber->isSuspended()) {
-                $data = $exec_safely(fn() => $fiber->resume());
-                $lay_out = $data['__lay_out__'] ?? null;
-                if($lay_out == "__SAFE_EXEC__ERR__") return;
-            }
         }
 
-        $this->close();
+        if($close) $this->close();
     }
-
-    /**
-     * Send a message event from the server to a client
-     * @param null|string $event The event to send
-     * @param callable(self, Fiber):self $handler The data to be sent should be echoed inside here using the `Events::fiber_out` method
-     * @see fiber_out
-     * @example `->event(fn (Events $event, Fiber $fiber) => $event::out("Values: Data"))->send();`
-     */
-    public function fiber_event(?string $event, callable $handler) : void
-    {
-        $this->fiber_struct($event, new Fiber(fn($me, $fiber)  => $handler($me, $fiber)));
-        $this->send();
-    }
-
-    /**
-     * Send a message event from the server to a client
-     * @see event
-     */
-    public function fiber_message(callable $handler) : void
-    {
-        $this->fiber_event("message", $handler);
-    }
-
-    /**
-     * @see fiber_event
-     * @param array $data
-     */
-    public function fiber_out(array $data) : void
-    {
-        if(isset($this->fiber_buffer['fiber'])) {
-            $this->fiber_buffer['fiber']::suspend($data);
-            return;
-        }
-
-        Fiber::suspend($data);
-    }
-
-    public function fiber_timeout(int $timeout) : self
-    {
-        $this->timeout = $timeout;
-        return $this;
-    }
-
 
     /**
      * Echo an event and data for streaming
      * @param string|null $event
      * @param array $data
+     * @param ApiStatus|int $status
      * @return void
      */
     public function event(?string $event, array $data, ApiStatus|int $status = ApiStatus::OK) : void
     {
-        $this->set_headers();
-
-        if($status instanceof ApiStatus) $status->respond();
+        if ($status instanceof ApiStatus) $status->respond();
         else LayFn::http_response_code($status, true);
+
+        $this->set_headers();
 
         if($event)
             echo "event: $event\n";
@@ -172,14 +127,15 @@ class Events
      * @param array $data
      * @return void
      */
-    public function stream(array $data) : void
+    public function message(array $data) : void
     {
         $this->event("message", $data);
     }
 
-    public function done(?array $data = null) : void
+    public function complete(?array $data = null) : void
     {
         $this->event("complete", $data ?? ['status' => '[DONE]'], ApiStatus::NO_CONTENT);
+        $this->cleanup();
     }
 
     public function error(
@@ -188,6 +144,17 @@ class Events
     ) : void
     {
         $this->event("error", ['message' => $message], $status);
+        $this->cleanup();
+    }
+
+    public function __exception() : void
+    {
+        $this->event("error", ['message' => "An internal server error occurred, please check the server logs for more info"], ApiStatus::INTERNAL_SERVER_ERROR);
+
+        self::$is_streaming = false;
+        $this->close_connection = true;
+
+        $_SESSION['__LAY_SSE_IDS__']["__LAY_EXCEPTION__"] = true;
     }
 
     /**
@@ -196,10 +163,8 @@ class Events
      */
     public function close() : void
     {
-        self::$is_streaming = false;
-        $this->close_connection = true;
-
         $this->event("error", ['message' => "Connection closed"], ApiStatus::NO_CONTENT);
+        $this->cleanup();
     }
 
     /**
@@ -211,8 +176,10 @@ class Events
         $this->close();
     }
 
-    public function set_headers() : void
+    public function set_headers(bool $cache_id = true) : void
     {
+        if(self::$is_streaming) return;
+
         self::$is_streaming = true;
 
         LayFn::header("X-Accel-Buffering: no");
@@ -223,9 +190,24 @@ class Events
         while (ob_get_level()) {
             ob_end_flush();
         }
+
+        if($cache_id) $this->cache_event_id();
     }
 
-    public function __construct(
-        protected int $timeout = 25, // When set to 0, it means no timeout
-    ) { }
+    public function set_event_id(string $id) : void
+    {
+        $this->event_id = $id;
+    }
+
+    public function is_duplicate(?string $id = null) : bool
+    {
+        $id = $id ?? $this->event_id ?? $this->gen_id();
+
+        return isset($_SESSION['__LAY_SSE_IDS__'][$id]);
+    }
+
+    public static function clear_exception() : void
+    {
+        unset($_SESSION['__LAY_SSE_IDS__']);
+    }
 }

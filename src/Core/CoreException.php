@@ -45,7 +45,7 @@ final class CoreException
 
             if($err_no === E_WARNING || $err_no === E_USER_WARNING) {
                 $this->use_exception(
-                    "Warning",
+                    "[!] Warning",
                     $err_str . $eol
                     . "File: " . $err_file . ":$err_line" . $eol,
                     kill: $turn_warning_to_errors,
@@ -56,12 +56,13 @@ final class CoreException
             }
 
             $this->use_exception(
-                "Error",
+                "[X] Error",
                 $err_str . $eol
                 . "File: " . $err_file . ":$err_line" . $eol,
                 raw: ["err_code" => $err_no]
             );
 
+            return true;
         });
 
         set_exception_handler(function ($exception) {
@@ -400,7 +401,7 @@ final class CoreException
         }
 
         if($use_json) {
-            $code = LayFn::http_response_code();
+            $code = LayFn::http_response_code() ?: 500;
             $error_json = [
                 "code" => $other['json_packet']['code'] ?? ($code == 200 ? ($this->throw_500 ? 500 : $code) : $code),
                 "message" => $other['json_packet']['message'] ?? null,
@@ -441,8 +442,8 @@ final class CoreException
                 $error_json['message'] ?? "Internal Server Error"
             );
 
-            header("HTTP/1.1 $status");
-            header("Content-Type: application/json");
+            LayFn::header("HTTP/1.1 $status");
+            LayFn::header("Content-Type: application/json");
 
             if(!$this->always_log)
                 return [
@@ -564,6 +565,9 @@ final class CoreException
             return null;
 
         SQL::new()->__rollback_on_error();
+        if(Events::$is_streaming) {
+            (new Events())->error("An internal server error occurred, please check the server logs for more info");
+        }
 
         $throw_500 = $this->throw_500 && LayConfig::get_mode() === LayMode::HTTP;
 
@@ -619,12 +623,8 @@ final class CoreException
             if(!$this->throw_as_json)
                 LayFn::header("Content-Type: text/html");
 
-            if(Events::$is_streaming) {
-                (new Events())->error("An internal server error occurred, please check the server logs for more info");
-            }
-            else {
-                echo $act['error'];
-            }
+            if(!Events::$is_streaming) (new Events())->__exception();
+            else echo $act['error'];
         }
 
         if ($opt['kill']) {
