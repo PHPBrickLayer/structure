@@ -495,10 +495,10 @@ trait SelectorOOPCrud
                 return @$d['can_be_null'] ? null : [];
 
             $clause .= " LIMIT $result_per_queue OFFSET $current_result";
-
-            if(isset($d['debug_full']))
-                $d['debug'] = true;
         }
+
+        if(isset($d['debug_full']))
+            $d['debug'] = true;
 
         if (isset($d['join']))
             $clause = $this->_join($d) . $clause;
