@@ -55,14 +55,6 @@ const $sel = (elementSelector, parent = $doc) => $sela(elementSelector, parent)[
 
 const $id = (elementSelector, parent = $doc) => $sela("#" + elementSelector, parent)[0];
 
-const $tag = (elementTag, parent = $doc) => {
-    try {
-        return parent.getElementsByTagName(elementTag);
-    } catch (e) {
-        $omjsError("$tag", e, true);
-    }
-};
-
 const $name = (elementName, parent = $doc) => {
     try {
         return parent.getElementsByName(elementName);
@@ -70,6 +62,8 @@ const $name = (elementName, parent = $doc) => {
         $omjsError("$name", e, true);
     }
 };
+
+const $nam = (elementName, parent = $doc) => $name(elementName, parent)[0];
 
 const $on = (element, event, listener, ...options) => {
     element = $omjsElSub(element, "$on");
@@ -160,7 +154,7 @@ const $style = (element, cssProperties = null, pseudoElement = null) => {
 
 const $html = (element, whereOrHtml = null, code__moveTo = null) => {
     element = $omjsElSub(element, "$html");
-    if (whereOrHtml && !code__moveTo && whereOrHtml !== "in" && whereOrHtml !== "del" && whereOrHtml !== "move" && whereOrHtml !== "wrap") {
+    if (whereOrHtml && !code__moveTo && whereOrHtml !== "in" && whereOrHtml !== "del" && whereOrHtml !== "move" && whereOrHtml !== "wrap" && whereOrHtml !== "replace") {
         code__moveTo = whereOrHtml;
         whereOrHtml = "in";
     }
@@ -195,6 +189,19 @@ const $html = (element, whereOrHtml = null, code__moveTo = null) => {
             return element.previousElementSibling.appendChild(element).parentElement;
         } catch (e) {
             $omjsError("$html", e, true, "%cEnsure the first parameter is a valid node\nEnsure a valid tag name was supplied to the third parameter` === Parent Element receiving `param 1`", "color: #e0a800");
+        }
+        return;
+    }
+    if (whereOrHtml === "replace") {
+        try {
+            const id = Math.floor(Math.random() * 1e6);
+            $sel("body").insertAdjacentHTML("beforeend", `<div style="display: none" data-omjs-t-${id}="t">${code__moveTo}</div>`);
+            const tmp = $sel(`[data-omjs-t-${id}=t]`);
+            const x = element.replaceWith(tmp.childNodes[0]);
+            tmp.remove();
+            return x;
+        } catch (e) {
+            $omjsError("$html", e, true, "Failed when trying to replace one element with another");
         }
         return;
     }
@@ -470,8 +477,10 @@ const $mediaPreview = (elementToWatch, placeToPreview, other = {}) => $media({
 });
 
 const $showPassword = (callbackFn = (fieldType => fieldType), throwError = true) => {
-    $sela($id("toggle-password") ? "#toggle-password" : ".osai-show-password").$loop((ele => {
-        ele.$on("click", (() => {
+    $sela(".lay-show-password").$loop((ele => {
+        const isInput = $type(ele) === "HTMLInputElement";
+        const evtType = $data(ele, "event") ?? null;
+        ele.$on(evtType ?? (isInput ? "change" : "click"), (() => {
             let fields = $data(ele, "field");
             if (!fields) return;
             fields.split(",").$loop((field => {
@@ -657,21 +666,33 @@ const $cookie = (name = "*", value = null, expire = null, path = "/", domain = "
         let field = form.elements[i];
         if (field.name && field.type === "file" && field.disabled === false && field.files.length > 0) hasFile = true;
         if (!field.name || field.disabled || field.type === "file" || field.type === "reset" || field.type === "submit" || field.type === "button") continue;
-        if (field.type === "select-multiple") $loop(field.options, (v => {
-            if (v.selected) addField(field.name, v.value);
-        })); else if (field.type === "checkbox" || field.type === "radio") {
+        if (field.type === "select-multiple") {
+            $loop(field.options, (v => {
+                if (v.selected) addField(field.name, v.value);
+            }));
+            continue;
+        }
+        if (field.type === "checkbox" || field.type === "radio") {
             let all = $name(field.name);
             if (alreadyChecked === all) continue;
             alreadyChecked = all;
-            if (all.length < 2) field.checked ? addField(field.name, field.value !== "" ? field.value : field.checked) : addField(field.name, field.checked); else $loop(all, (check => {
+            if (all.length < 2) {
+                if (field.checked && field.value !== "") addField(field.name, field.value); else addField(field.name, field.checked);
+                continue;
+            }
+            $loop(all, (check => {
+                if (check.disabled) return "continue";
                 if (field.type === "radio" && check.checked) {
                     addField(field.name, check.value !== "" ? check.value : check.checked);
                     return "break";
-                } else if (field.type === "checkbox" && check.checked) {
+                }
+                if (field.type === "checkbox" && check.checked) {
                     addField(field.name, check.value !== "" ? check.value : check.checked);
                 }
             }));
-        } else addField(field.name, field.value);
+            continue;
+        }
+        addField(field.name, field.value);
     }
     return {
         string: formFieldsString.slice(0, -1),

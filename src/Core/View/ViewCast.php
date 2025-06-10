@@ -2,6 +2,8 @@
 
 namespace BrickLayer\Lay\Core\View;
 
+use BrickLayer\Lay\Libs\LayFn;
+
 abstract class ViewCast extends ViewBuilder
 {
     public readonly ViewBuilder $builder;
@@ -46,7 +48,7 @@ abstract class ViewCast extends ViewBuilder
     public function default(): void
     {
         $this->route($this->builder::DEFAULT_ROUTE)->bind(function (ViewCast $builder) {
-            http_response_code(404);
+            LayFn::http_response_code(404, true);
 
             $this
                 // Using a custom Error page?

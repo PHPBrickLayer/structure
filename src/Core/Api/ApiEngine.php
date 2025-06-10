@@ -8,7 +8,6 @@ use BrickLayer\Lay\Core\CoreException;
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\View\Domain;
 use BrickLayer\Lay\Core\View\DomainResource;
-use BrickLayer\Lay\Core\View\ViewBuilder;
 use BrickLayer\Lay\Libs\ID\Gen;
 use BrickLayer\Lay\Libs\LayCache;
 use BrickLayer\Lay\Libs\LayDate;
@@ -494,6 +493,9 @@ abstract class ApiEngine {
             case ApiReturnType::XML:
                 LayFn::header("Content-Type: text/xml");
                 break;
+            case ApiReturnType::STREAM:
+                LayFn::header("Content-Type: text/event-stream");
+                break;
             default:
                 LayFn::header("Content-Type: text/plain");
                 break;
@@ -526,7 +528,7 @@ abstract class ApiEngine {
         header_remove("Pragma");
         header_remove("Expires");
 
-        header("Accept-Ranges: bytes");
+        LayFn::header("Accept-Ranges: bytes");
 
         if(isset($cache_control['max_age']) && is_string($cache_control['max_age']))
             $cache_control['max_age'] = LayDate::in_seconds($cache_control['max_age']);
@@ -536,11 +538,11 @@ abstract class ApiEngine {
             "public" => @!$cache_control['public'] ? 'private' : 'public'
         ];
 
-        header("Cache-Control: max-age={$cache_control['max_age']}, {$cache_control['public']}");
-        header("Etag: \"" . Gen::uuid() . "\"");
+        LayFn::header("Cache-Control: max-age={$cache_control['max_age']}, {$cache_control['public']}");
+        LayFn::header("Etag: \"" . Gen::uuid() . "\"");
 
         if($last_mod)
-            header("Last-Modified: " . LayDate::date($last_mod, format_index: 3));
+            LayFn::header("Last-Modified: " . LayDate::date($last_mod, format_index: 3));
     }
 
     /**
@@ -1135,7 +1137,7 @@ abstract class ApiEngine {
             if(is_array(self::$bind_return_value))
                 $code = self::$bind_return_value['code'] ?? 0;
 
-            self::set_response_header(http_response_code($code), $return_type, "Ok");
+            self::set_response_header(LayFn::http_response_code($code, true), $return_type, "Ok");
             print_r($x);
             die;
         }

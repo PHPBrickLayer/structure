@@ -132,7 +132,7 @@ abstract class BaseModelHelper
      */
     protected function resolve_conflict(SQL $db) : void
     {
-        throw new \RuntimeException("Unimplemented Method: Must override resolve conflict");
+        LayException::unimplemented("resolve_conflict");
 
         /**
          * This is a sample code for implementation ideas
@@ -193,10 +193,42 @@ abstract class BaseModelHelper
         return $this->unfill();
     }
 
-    // TODO: Ensure batch uploads uses transaction; also add an insert_conflict resolution strategy
-    public function batch(array $columns) : bool
+    /**
+     * @param array<int,array<string,mixed>> $columns
+     * @param null|callable(array<string,mixed>):array<string,mixed> $fun a callback to run inside the batch insert run function for each entry of the row
+     * @return bool
+     */
+    public function batch(array $columns, ?callable $fun = null) : bool
     {
-        return static::db()->insert_multi($columns, true);
+        $db = static::db();
+
+        $this->resolve_conflict($db);
+
+        if($this->debug_mode)
+            $db->debug();
+
+        $this->exec_pre_run($db);
+
+        $timestamp = $this->timestamp();
+        $created_by = $this->created_by();
+
+        return $db->fun(function ($columns) use ($timestamp, $created_by, $fun) {
+            $columns[static::$primary_key_col] ??= 'UUID()';
+            $columns[static::$primary_delete_col] ??= "0";
+
+            if($this->enable_created_by)
+                $columns[static::$primary_created_by_col] ??= $created_by;
+
+            $columns[static::$primary_created_at_col] ??= $timestamp;
+
+            foreach ($columns as $key => $val) {
+                if (is_array($val)) $columns[$key] = json_encode($val);
+            }
+
+            if($fun) return $fun($columns);
+
+            return $columns;
+        })->insert_multi($columns);
     }
 
     /**

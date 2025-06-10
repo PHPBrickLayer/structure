@@ -48,7 +48,7 @@ final class LayCache
             Exception::throw_exception("Cache storage [$this->cache_store] does not exist!", "CacheStoreNotFound", exception: $e);
         }
 
-        LayFn::recursive_array_update($key_chain, $value, $data);
+        LayArray::update_recursive($key_chain, $value, $data);
 
         $new_data = json_encode($data);
 

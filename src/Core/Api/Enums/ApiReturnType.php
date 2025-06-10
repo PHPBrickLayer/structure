@@ -2,10 +2,11 @@
 
 namespace BrickLayer\Lay\Core\Api\Enums;
 
-enum ApiReturnType : string
+enum ApiReturnType
 {
-    case JSON = "JSON";
-    case HTML = "HTML";
-    case XML = "XML";
-    case STRING = "STRING";
+    case JSON;
+    case HTML;
+    case STREAM;
+    case XML;
+    case STRING;
 }

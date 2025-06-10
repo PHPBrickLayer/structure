@@ -138,18 +138,18 @@ trait Config
         // in an ideal word, this variable will only be empty if it's the same origin
         if (empty($http_origin)) return true;
 
-        header("Access-Control-Allow-Credentials: true");
-        header("Access-Control-Allow-Origin: $http_origin");
-        header('Access-Control-Max-Age: 86400');    // cache for 1 day
+        LayFn::header("Access-Control-Allow-Credentials: true");
+        LayFn::header("Access-Control-Allow-Origin: $http_origin");
+        LayFn::header('Access-Control-Max-Age: 86400');    // cache for 1 day
 
         // Access-Control headers are received during OPTIONS requests
         if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
 
             if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_METHOD']))
-                header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
+                LayFn::header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
 
             if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS']))
-                header("Access-Control-Allow-Headers:{$_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS']}");
+                LayFn::header("Access-Control-Allow-Headers:{$_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS']}");
 
             exit(0);
         }
@@ -224,6 +224,11 @@ trait Config
             Exception::throw_exception("This script cannot be accessed this way, please return home", "BadRequest");
 
         Exception::new()->capture_errors();
+    }
+
+    public static function is_dev() : bool
+    {
+        return self::$ENV_IS_DEV;
     }
 
     public static function is_bot(): bool
@@ -342,9 +347,20 @@ trait Config
                 ];
         }
 
-        $edge = LayFn::extract_word("Edg.*", $matches['browser']);
-        $safari = LayFn::extract_word("(Version\/[0-9.]+) (Safari\/[0-9.]+)", $matches['browser']);
-        $chrome = LayFn::extract_word("Chrome\/[0-9.]+", $matches['browser']);
+        $extract_word = function (string $pattern, string $subject) {
+            $pattern = '~' . $pattern . '~';
+
+            preg_match($pattern, $subject, $out);
+
+            if(empty($out))
+                return null;
+
+            return $out;
+        };
+
+        $edge = $extract_word("Edg.*", $matches['browser']);
+        $safari = $extract_word("(Version\/[0-9.]+) (Safari\/[0-9.]+)", $matches['browser']);
+        $chrome = $extract_word("Chrome\/[0-9.]+", $matches['browser']);
 
         if($edge)
             $browser = $edge[0];

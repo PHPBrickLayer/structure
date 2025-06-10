@@ -154,6 +154,8 @@ trait IsFillable {
     protected function props_schema(array &$props) : void
     {
         // You can use `parse_prop` here
+//        $this->parse_prop("deleted", "bool", false);
+//        $this->parse_prop("permissions", "array", []);
     }
 
     /**

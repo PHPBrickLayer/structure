@@ -2,6 +2,8 @@
 
 namespace BrickLayer\Lay\Core\Api\Enums;
 
+use BrickLayer\Lay\Libs\LayFn;
+
 enum ApiStatus : int
 {
     case SWITCHING_PROTOCOLS = 101;
@@ -95,4 +97,8 @@ enum ApiStatus : int
         return $code == $value->value;
     }
 
+    public function respond(bool $overwrite = true) : bool|int
+    {
+        return LayFn::http_response_code($this->value, $overwrite);
+    }
 }

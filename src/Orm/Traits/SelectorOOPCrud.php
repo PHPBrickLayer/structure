@@ -106,14 +106,14 @@ trait SelectorOOPCrud
             return /** @lang text */ "INSERT INTO $table $column_and_values ON DUPLICATE KEY UPDATE $update $clause;";
         }
 
-        if($conflict['action'] == 'REPLACE')
+        if($conflict['action'] == 'REPLACE' && OrmDriver::is_sqlite($driver))
             return /** @lang text */ "INSERT OR REPLACE INTO $table $column_and_values $clause";
 
         $unique_cols = !empty($conflict['unique_columns'])  ? implode(",", $conflict['unique_columns']) : null;
 
         if(!$unique_cols)
             $this->oop_exception(
-                "OnConflict Error; Only `REPLACE` actions can be ran without unique columns"
+                "OnConflict Error; Only `REPLACE` actions in MySQL and SQLite can be ran without unique columns"
             );
 
         if($conflict['action'] == 'IGNORE' || $conflict['action'] == 'NOTHING')
@@ -122,12 +122,19 @@ trait SelectorOOPCrud
         $update_cols = "";
         $excluded = OrmDriver::is_sqlite($driver) ? "excluded" : "EXCLUDED";
 
+        if($conflict['action'] == 'REPLACE' && $driver == OrmDriver::POSTGRES) {
+            $conflict['update_columns'] = explode(",", trim(explode("VALUES", $column_and_values, 2)[0], "( )"));
+        }
+
         if(empty($conflict['update_columns']))
             $this->oop_exception("OnConflict Error; Update column cannot be empty when action is implicitly UPDATE");
 
         foreach ($conflict['update_columns'] as $col) {
+            if(trim($col,"\"`") == "id") continue;
+
             $update_cols .= "$col = $excluded.$col,";
         }
+
         $update_cols = rtrim($update_cols, ",");
 
         return /** @lang text */ "INSERT INTO $table $column_and_values ON CONFLICT ($unique_cols) DO UPDATE SET $update_cols $clause;";
@@ -261,6 +268,7 @@ trait SelectorOOPCrud
         $d = $this->get_vars();
         $table = $d['table'] ?? null;
         $clause = $this->parse_clause($d);
+        $fun = $d['fun'] ?? null;
 
         if (empty($table))
             $this->oop_exception("You did not initialize the `table`. Use the `->table(String)` method like this: `->value('your_table_name')`");
@@ -281,7 +289,10 @@ trait SelectorOOPCrud
                 $values .= "(";
                 $has_col_id = false;
 
+                if($fun) $entry = $fun($entry);
+
                 foreach ($entry as $col => $val) {
+
                     if(!isset($columns[$col]))
                         $columns[$col] = self::escape_identifier($col);
 
@@ -484,10 +495,10 @@ trait SelectorOOPCrud
                 return @$d['can_be_null'] ? null : [];
 
             $clause .= " LIMIT $result_per_queue OFFSET $current_result";
-
-            if(isset($d['debug_full']))
-                $d['debug'] = true;
         }
+
+        if(isset($d['debug_full']))
+            $d['debug'] = true;
 
         if (isset($d['join']))
             $clause = $this->_join($d) . $clause;

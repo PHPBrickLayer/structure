@@ -5,6 +5,7 @@ namespace BrickLayer\Lay\Core\View;
 
 use BrickLayer\Lay\Core\Annotate\CurrentRouteData;
 use BrickLayer\Lay\Core\Api\ApiEngine;
+use BrickLayer\Lay\Core\Api\Enums\ApiStatus;
 use BrickLayer\Lay\Core\Enums\LayMode;
 use BrickLayer\Lay\Core\Enums\LayServerType;
 use BrickLayer\Lay\Core\Exception;
@@ -289,8 +290,8 @@ final class Domain {
             if(in_array($ext, self::$site_data->ext_ignore_list,true))
                 return $view;
 
-            header("Content-Type: application/json");
-            http_response_code(404);
+            LayFn::header("Content-Type: application/json");
+            LayFn::http_response_code(ApiStatus::NOT_FOUND, true);
 
             exit('{"error": 404, "response": "resource not found"}');
         }
@@ -318,8 +319,8 @@ final class Domain {
         );
 
         if($js) {
-            header("Content-Type: text/javascript");
-            http_response_code(200);
+            LayFn::header("Content-Type: text/javascript");
+            LayFn::http_response_code(ApiStatus::OK, true);
 
             ApiEngine::add_cache_header(
                 $js['last_mod'],
@@ -333,8 +334,8 @@ final class Domain {
             die;
         }
 
-        header("Content-Type: application/json");
-        http_response_code(404);
+        LayFn::header("Content-Type: application/json");
+        LayFn::http_response_code(ApiStatus::NOT_FOUND, true);
         exit('{"error": 404, "response": "resource not found"}');
     }
 

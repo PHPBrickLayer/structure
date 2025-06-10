@@ -2,6 +2,7 @@
 
 namespace BrickLayer\Lay\Libs;
 
+use BrickLayer\Lay\Core\Api\Enums\ApiStatus;
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\LayException;
 use BrickLayer\Lay\Core\View\Domain;
@@ -108,7 +109,14 @@ final class LayFn
         return self::trim_word($string, $word, '~(' . preg_quote($word,'~') . ')$~');
     }
 
-    public static function dump_json(array $data, bool $show_trace = true, bool $kill = true) : void
+    /**
+     * Var dump in JSON format
+     * @param array $data
+     * @param bool $show_trace
+     * @param bool $kill
+     * @return void
+     */
+    public static function vd_json(array $data, bool $show_trace = true, bool $kill = true) : void
     {
         if($show_trace)
             $data['dump_trace'] = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2);
@@ -170,63 +178,48 @@ final class LayFn
         header($header, $replace, $response_code);
     }
 
-    /**
-     * Extract the word from a string using regex
-     *
-     * @param string $pattern
-     * @param string $subject
-     *
-     * @return null|string[]
-     *
-     * @psalm-return array<string>|null
-     */
-    public static function extract_word(string $pattern, string $subject) : array|null
+    private static int $prev_http_code;
+
+    public static function http_response_code(ApiStatus|int $code = 0, bool $overwrite = false) : int|bool
     {
-        $pattern = '~' . $pattern . '~';
+        if(headers_sent($file, $line))
+            LayException::log("Headers sent already in file [$file] line [$line]");
 
-        preg_match($pattern, $subject, $out);
+        if(!$overwrite) {
+            self::$prev_http_code ??= http_response_code();
+            return self::$prev_http_code;
+        }
 
-        if(empty($out))
-            return null;
+        if($code instanceof ApiStatus)
+            $code = $code->value;
 
-        return $out;
+        self::$prev_http_code = $code;
+        return http_response_code($code);
     }
 
     /**
-     * Checks if a string starts with http or https
-     * @param string|null $string
-     * @return bool
-     */
-    public static function is_str_http(?string $string) : bool
-    {
-        if($string === null) return false;
-
-        return str_starts_with($string, "http");
-    }
-
-    /**
-     * Update an array in multiple dimensions, using an array of keys
-     *
-     * @param array $key_chain
      * @param mixed $value
-     * @param array $array_to_update
-     * @return void
+     * @param int $flags [optional] <p>
+     *  Bitmask consisting of <b>JSON_HEX_QUOT</b>,
+     *  <b>JSON_HEX_TAG</b>,
+     *  <b>JSON_HEX_AMP</b>,
+     *  <b>JSON_HEX_APOS</b>,
+     *  <b>JSON_NUMERIC_CHECK</b>,
+     *  <b>JSON_PRETTY_PRINT</b>,
+     *  <b>JSON_UNESCAPED_SLASHES</b>,
+     *  <b>JSON_FORCE_OBJECT</b>,
+     *  <b>JSON_UNESCAPED_UNICODE</b>.
+     *  <b>JSON_THROW_ON_ERROR</b> The behaviour of these
+     *  constants is described on
+     *  the JSON constants page.
+     *  </p>
+     * @param int $depth
+     * @return string|false
+     *@see json_encode()
      */
-    public static function recursive_array_update(array $key_chain, mixed $value, array &$array_to_update) : void
+    public static function json_encode(mixed $value, int $flags = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE, int $depth = 512) : string|false
     {
-        $current_key = array_shift($key_chain);
-
-        if (empty($key_chain)) {
-            $array_to_update[$current_key] = $value;
-            return;
-        }
-
-        if (!isset($array_to_update[$current_key]) || !is_array($array_to_update[$current_key])) {
-            $array_to_update[$current_key] = [];
-        }
-
-        // Recurse to the next level
-        self::recursive_array_update($key_chain, $value, $array_to_update[$current_key]);
+        return json_encode($value, $flags, $depth);
     }
 
     /**
