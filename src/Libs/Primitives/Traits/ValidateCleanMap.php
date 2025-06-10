@@ -451,11 +451,11 @@ trait ValidateCleanMap {
 
         if(isset($options['must_validate'])) {
             if(is_callable($options['must_validate'])) {
-                if (!$options['must_validate']($value))
+                if (!$options['must_validate']($value, $options['array_index']))
                     $add_to_entry = $this->__add_error($field, "$field_name has not satisfied the criteria for submission");
             }
             else {
-                if (isset($options['must_validate']['fun']) && !$options['must_validate']['fun']($value)) {
+                if (isset($options['must_validate']['fun']) && !$options['must_validate']['fun']($value, $options['array_index'])) {
                     $add_to_entry = $this->__add_error(
                         $field,
                         $options['must_validate']['message'] ??
@@ -463,7 +463,7 @@ trait ValidateCleanMap {
                     );
                 }
 
-                if (isset($options['must_validate']['fun_str']) && $has_error = $options['must_validate']['fun_str']($value)) {
+                if (isset($options['must_validate']['fun_str']) && $has_error = $options['must_validate']['fun_str']($value, $options['array_index'])) {
                     $add_to_entry = $this->__add_error($field, $has_error);
                 }
             }
@@ -513,8 +513,12 @@ trait ValidateCleanMap {
         if(isset($options['before_validate']))
             $value = $options['before_validate']($value);
 
+        $options['array_index'] = 0;
+
         if(is_array($value)) {
-            foreach ($value as $val) {
+            foreach ($value as $index => $val) {
+                $options['array_index'] = $index;
+
                 $x = $this->__validate(
                     $field, $val,
                     $is_required, $options
