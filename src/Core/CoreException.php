@@ -565,9 +565,6 @@ final class CoreException
             return null;
 
         SQL::new()->__rollback_on_error();
-        if(Events::$is_streaming) {
-            (new Events())->error("An internal server error occurred, please check the server logs for more info");
-        }
 
         $throw_500 = $this->throw_500 && LayConfig::get_mode() === LayMode::HTTP;
 
@@ -623,7 +620,7 @@ final class CoreException
             if(!$this->throw_as_json)
                 LayFn::header("Content-Type: text/html");
 
-            if(!Events::$is_streaming) (new Events())->__exception();
+            if(Events::$is_streaming) (new Events())->__exception();
             else echo $act['error'];
         }
 
