@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace BrickLayer\Lay\Libs\Mail;
 
+use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\LayException;
 use BrickLayer\Lay\Libs\Cron\LayCron;
 use BrickLayer\Lay\Libs\LayDate;
@@ -183,15 +184,17 @@ final class MailerQueueHandler {
         if(!$res)
             return false;
 
+        $server = LayConfig::server_data();
+
         $out = LayCron::new()
             ->job_id(self::JOB_UID)
             ->every_minute()
-            ->new_job(".lay/workers/mail-processor.php");
+            ->new_job(str_replace($server->root, "", $server->framework . "__internal/workers/mail-processor.php"));
 
-        if(!$out)
+        if(!$out['exec'])
             LayException::log($out['msg'], log_title: "MailerQueuingFailed");
 
-        return $res;
+        return true;
     }
 
     public function stop_on_finish() : void

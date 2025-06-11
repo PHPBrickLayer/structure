@@ -21,7 +21,6 @@ trait Resources {
 
         $obj->framework         =   $dir       .   "vendor"   . $slash . "bricklayer" . $slash .   "structure" . $slash;
         $obj->lay_static        =   $obj->framework  . "src"        . $slash . "static"     . $slash;
-        $obj->framework_workers =   $obj->framework  . "__internal" . $slash . "workers"    . $slash;
 
 
         $obj->root              =   $dir;
@@ -30,7 +29,6 @@ trait Resources {
         $obj->utils             =   $dir  .   "utils"     .   $slash;
 
         $obj->lay               =   $dir  .   ".lay"      .  $slash;
-        $obj->workers           =   $obj->lay    .   "workers"      .   $slash;
 
         $obj->temp              =   $obj->lay    .   "temp"         .   $slash;
         $obj->exceptions        =   $obj->temp   .   "exceptions"   .   $slash;
@@ -76,8 +74,6 @@ trait Resources {
      *     lay: string,
      *     lay_static: string,
      *     framework: string,
-     *     framework_workers: string,
-     *     workers: string,
      *     root: string,
      *     temp: string,
      *     exceptions: string,

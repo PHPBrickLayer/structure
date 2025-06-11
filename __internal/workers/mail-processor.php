@@ -19,7 +19,9 @@ use BrickLayer\Lay\Libs\Mail\MailerStatus;
 
 const SAFE_TO_INIT_LAY = true;
 
-include_once __DIR__ . DIRECTORY_SEPARATOR . ".." . DIRECTORY_SEPARATOR . ".." . DIRECTORY_SEPARATOR . "foundation.php";
+$s = DIRECTORY_SEPARATOR;
+
+include_once __DIR__ . "{$s}..{$s}..{$s}..{$s}..{$s}..{$s}foundation.php";
 
 Mailer::write_to_log("[x] -- Starting a New Mailer Queue Session");
 
