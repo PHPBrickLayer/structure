@@ -7,18 +7,18 @@ use BrickLayer\Lay\Libs\LayDate;
 use BrickLayer\Lay\Libs\String\Enum\EscapeType;
 use BrickLayer\Lay\Libs\String\Escape;
 use BrickLayer\Lay\Orm\Enums\OrmDriver;
+use UUID\UUID;
 
 trait Functions
 {
     final public function uuid(): string
     {
-        if(OrmDriver::is_sqlite(self::get_driver()))
-            return $this->query("SELECT `next` from uuid7")[0];
-
-        if(OrmDriver::POSTGRES == self::get_driver())
-            return $this->query("SELECT gen_random_uuid()")[0];
-
-        return $this->query("SELECT UUID()")[0];
+        return match (self::uuid_version()){
+            default => UUID::uuid7(),
+            4 => UUID::uuid4(),
+            6 => UUID::uuid6(),
+            8 => UUID::uuid8(),
+        };
     }
 
     public static function escape_identifier(string $identifier) : string
@@ -49,18 +49,14 @@ trait Functions
      * @param array $filter_list List of filler words than need to be removed
      * @return string
      * @example relevance_query (
-     *  "Egypt minister",
+     *  "Egypt minister", // query
      *  [
-     *      "blogs.title" => [
-     *          'full' => 10,
-     *          'keyword' => 8
+     *      "blogs.title" => [ // column to match
+     *          'full' => 10, // score for full match
+     *          'keyword' => 8 // score for keywords/partial match
      *      ],
-     *      "blogs.subtitle" => [
-     *          'full' => 8,
-     *          'keyword' => 5
-     *      ],
-     *      "blogs.tags" => 3,
-     *      "blogs.keyword" => 2,
+     *      "blogs.tags" => 3, // Score for partial match
+     *      ... // you can add as much columns as needed
      * ]);
      */
     final public function relevance_query(
@@ -70,30 +66,25 @@ trait Functions
         array $filter_list = ["in","it","a","the","of","or","I","you","he","me","us","they","she","to","but","that","this","those","then"]
     ) : string
     {
-        $filter_words = /**
-         * @return string[]
-         *
-         * @psalm-return list<string>
-         */
-            function ($query) use ($filter_list) : array {
-                $words = [];
+        $filter_words = function ($query) use ($filter_list) : array {
+            $words = [];
 
-                $c = 0;
+            $c = 0;
 
-                foreach(explode(" ", trim($query)) as $key){
-                    if (in_array($key, $filter_list))
-                        continue;
+            foreach (explode(" ", trim($query)) as $key) {
+                if (in_array($key, $filter_list))
+                    continue;
 
-                    $words[] = $key;
+                $words[] = $key;
 
-                    if ($c > 14)
-                        break;
+                if ($c > 14)
+                    break;
 
-                    $c++;
-                }
+                $c++;
+            }
 
-                return $words;
-            };
+            return $words;
+        };
 
         $query = trim($query);
 
@@ -110,7 +101,7 @@ trait Functions
             else
                 $op = "LIKE '%$token%'";
 
-            return "if ($col $op, $score, 0) + ";
+            return "CASE WHEN $col $op THEN $score ELSE 0 END + ";
         };
 
         $sql_text = "";

@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 namespace BrickLayer\Lay\Orm\Traits;
+
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Libs\Dir\LayDir;
 use BrickLayer\Lay\Libs\LayFn;
@@ -14,6 +15,7 @@ use BrickLayer\Lay\Orm\Interfaces\OrmConnections;
 use SQLite3;
 
 trait Config{
+    private static int $uuid_version;
     private static OrmDriver $active_driver;
     private static OrmConnections $link;
 
@@ -106,27 +108,9 @@ trait Config{
                 new SQLite3(
                     self::$DB_FILE,
                     SQLITE3_OPEN_READWRITE | SQLITE3_OPEN_CREATE,
-                    $_ENV['SQLITE_ENCRYPT_KEY'] ?? ''
+                    LayFn::env('SQLITE_ENCRYPT_KEY', '')
                 )
             );
-
-            // We create a view which can be called whenever we want to use the uuid() function
-            // Thanks to this gist for this solution
-            // https://gist.github.com/fabiolimace/e3c3d354d1afe0b3175f65be2d962523
-            self::$link->exec("
-            DROP VIEW IF EXISTS uuid7;
-            CREATE VIEW uuid7 AS WITH unixtime AS (
-                SELECT CAST((STRFTIME('%s') * 1000) + ((STRFTIME('%f') * 1000) % 1000) AS INTEGER) AS time
-            )
-            SELECT PRINTF(
-                '%08x-%04x-%04x-%04x-%012x', 
-                (select time from unixtime) >> 16,
-                (select time from unixtime) & 0xffff,
-                ABS(RANDOM()) % 0x0fff + 0x7000,
-                ABS(RANDOM()) % 0x3fff + 0x8000,
-                ABS(RANDOM()) >> 16
-            ) AS next;
-            ");
         } catch (\Throwable $e){
             self::exception(
                 "SQLiteConnectionError",
@@ -136,7 +120,7 @@ trait Config{
         }
 
         self::$link->link->enableExceptions(true);
-        self::$link->link->busyTimeout($_ENV['SQLITE_BUSY_TIMEOUT'] ?? 600);
+        self::$link->link->busyTimeout(LayFn::env('SQLITE_BUSY_TIMEOUT', 600));
         self::$connected = true;
     }
 
@@ -422,14 +406,15 @@ trait Config{
         ?OrmDriver $driver = OrmDriver::MYSQL
     ): self
     {
-        $driver = $driver ?? OrmDriver::tryFrom($_ENV['DB_DRIVER'] ?? '');
+        $driver = $driver ?? OrmDriver::tryFrom(LayFn::env('DB_DRIVER', ''));
 
         if($driver === null)
-            self::exception("InvalidOrmDriver", "An invalid db driver was received: [" . @$_ENV['DB_DRIVER'] . "]. Please specify the `DB_DRIVER`. Valid keys includes any of the following: [" . OrmDriver::stringify() . "]");
+            self::exception("InvalidOrmDriver", "An invalid db driver was received: [" . LayFn::env('DB_DRIVER') . "]. Please specify the `DB_DRIVER`. Valid keys includes any of the following: [" . OrmDriver::stringify() . "]");
 
         if($connection === null) {
             $connection = match ($driver) {
-                OrmDriver::MYSQL, OrmDriver::POSTGRES => [
+                OrmDriver::SQLITE, OrmDriver::SQLITE3 => LayFn::env('SQLITE_DB'),
+                default => [
                     "host" => LayFn::env('DB_HOST'),
                     "user" => LayFn::env('DB_USERNAME'),
                     "password" => LayFn::env('DB_PASSWORD'),
@@ -449,18 +434,23 @@ trait Config{
                         "flag" => LayFn::env('DB_SSL_FLAG', 0),
                     ],
                 ],
-                default => LayFn::env('SQLITE_DB'),
             };
         }
 
         if(is_string($connection))
             $driver = OrmDriver::SQLITE;
 
+        self::$uuid_version = LayFn::env("DB_UUID_VERSION", 7);
         self::$active_driver = $driver;
         self::$persist_connection = $connection['persist_connection'] ?? true;
         self::new()->set_db($connection);
 
         return self::new();
+    }
+
+    public static function uuid_version() : int
+    {
+        return self::$uuid_version;
     }
 
     /**
@@ -480,12 +470,12 @@ trait Config{
                 "No Database driver was found. It's possible that you called this method before initializing the ORM"
             );
 
-        if($driver = OrmDriver::tryFrom($_ENV['DB_DRIVER'] ?? ''))
+        if($driver = OrmDriver::tryFrom(LayFn::env('DB_DRIVER')))
             return $driver;
 
         self::exception(
             "UnidentifiedDriver",
-            "An unidentified database driver was found: " . $_ENV['DB_DRIVER']
+            "An unidentified database driver was found: " . LayFn::env('DB_DRIVER')
         );
 
         return false;
