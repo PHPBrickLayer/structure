@@ -214,7 +214,9 @@ abstract class ApiHooks extends ApiEngine
         try {
             $hook_class = new $hook_class['hook']();
 
+            $hook_class->pre_init();
             $hook_class->hooks();
+            $hook_class->post_init();
         } catch (\Throwable $e) {
             if(is_object($hook_class))
                 $hook_class = $hook_class::class;
