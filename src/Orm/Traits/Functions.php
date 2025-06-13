@@ -157,22 +157,14 @@ trait Functions
         if (LayDate::is_valid($date_1)) {
             $date_1 = explode(" ", $date_1)[0]; // Strip the time part, we're only interested in the date
             $date_1 = "'$date_1'";
-            $x1_is_col = false;
         }
-        else {
-            self::escape_identifier($date_1);
-            $x1_is_col = true;
-        }
+        else self::escape_identifier($date_1);
 
         if (LayDate::is_valid($date_2)) {
-            $date_2 = explode(" ", $date_1)[0]; // Strip the time part, we're only interested in the date
+            $date_2 = explode(" ", $date_2)[0]; // Strip the time part, we're only interested in the date
             $date_2 = "'$date_2'";
-            $x2_is_col = false;
         }
-        else {
-            self::escape_identifier($date_1);
-            $x2_is_col = true;
-        }
+        else self::escape_identifier($date_2);
 
         $x1 = $date_1;
         $x2 = $date_2;
@@ -180,17 +172,13 @@ trait Functions
         if($invert_arg) {
             $x1 = $date_2;
             $x2 = $date_1;
-
-            $c1 = $x1_is_col;
-            $x1_is_col = $x2_is_col;
-            $x2_is_col = $c1;
         }
 
         $driver = self::get_driver();
 
         if($driver == OrmDriver::POSTGRES) {
-            $x1 = $x1_is_col ? $x1 : "$x1::date";
-            $x2 = $x2_is_col ? $x2 : "$x2::date";
+            $x1 .= "::date";
+            $x2 .= "::date";
 
             return $cast ? "(CAST(($x1 - $x2) AS INTEGER))" : "(($x1 - $x2) AS INTEGER)";
         }

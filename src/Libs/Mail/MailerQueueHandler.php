@@ -58,24 +58,23 @@ final class MailerQueueHandler {
     private function hard_delete_mails(bool $include_sent_mails = true, int $days_after = 15) : bool
     {
         $orm = self::orm(self::$table);
-        $interval = SQL::get_driver() != OrmDriver::MYSQL ? 'INTERVAL' : '';
 
         $orm->where(
-            $orm->days_diff(LayDate::date(), "time_sent", cast: false),
-            "> $interval",
+            $orm->days_diff(LayDate::date(), "time_sent"),
+            ">",
             (string) max($days_after, 0)
         );
 
         $orm->wrap(
             "OR",
-            function (SQL $orm) use($interval, $days_after) {
+            function (SQL $orm) use($days_after) {
                 $orm->where("time_sent", "IS", "NULL");
 
-                $orm->wrap("AND", function (SQL $orm) use($interval, $days_after) {
+                $orm->wrap("AND", function (SQL $orm) use($days_after) {
                     $orm->where("status", MailerStatus::FAILED->name);
                     $orm->or_where(
-                        $orm->days_diff(LayDate::date(), "created_at", cast: false),
-                        "> $interval",
+                        $orm->days_diff(LayDate::date(), "created_at"),
+                        ">",
                         (string) max($days_after, 0)
                     );
                 });
