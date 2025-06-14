@@ -3,7 +3,6 @@
 namespace BrickLayer\Lay\Libs\Cron;
 
 use BrickLayer\Lay\Libs\LayDate;
-use BrickLayer\Lay\Libs\LayFn;
 use BrickLayer\Lay\Libs\Primitives\Abstracts\RequestHelper;
 use BrickLayer\Lay\Libs\Primitives\Traits\IsSingleton;
 use BrickLayer\Lay\Libs\Primitives\Traits\TableTrait;
@@ -12,8 +11,6 @@ final class CronController
 {
     use IsSingleton;
     use TableTrait;
-
-    public const JOB_CLI_KEY = "--job-uuid";
 
 
     ////                 ////
@@ -43,12 +40,14 @@ final class CronController
         ");
     }
 
-    public function job_exists(string $script, string $schedule) : array|\Generator
+    public function job_exists(string $script, string $schedule) : array
     {
         self::init(self::$table);
 
         return self::orm(self::$table)
-            ->where("deleted=0 AND `script`='$script' AND schedule='$schedule'")
+            ->where("deleted","0")
+            ->and_where("script","$script")
+            ->and_where("schedule","$schedule")
             ->then_select();
     }
 
@@ -114,17 +113,18 @@ final class CronController
         }
 
         $id = $this->uuid();
-        $raw_script .= " " . self::JOB_CLI_KEY . " " . $id;
 
         $cron = LayCron::new()->job_id($id);
+
+        $raw_schedule = trim($raw_schedule);
 
         if ($post->use_php)
             $res = $cron->schedule(...explode(" ", $raw_schedule))->new_job($raw_script);
         else
-            $res = $cron->exec($raw_schedule . " " . $raw_script)[''];
+            $res = $cron->exec($raw_schedule . " " . $raw_script);
 
         if (!$res['exec'])
-            return self::res_warning($res['message']);
+            return self::res_warning($res['msg']);
 
         if (
             !$this->new_record([
@@ -132,17 +132,13 @@ final class CronController
                 "script" => $post->script,
                 "schedule" => $post->schedule,
                 "use_php" => $post->use_php ? 1 : 0,
-                "created_by" => self::$created_by
+                "created_by" => self::$created_by,
+                "created_at" => LayDate::date()
             ])
         ) return self::res_warning();
 
 
         return self::res_success( "Job added successfully!");
-    }
-
-    public function extract_job_id(array $arg_values): string|bool|int|null
-    {
-        return LayFn::extract_cli_tag(self::JOB_CLI_KEY, true);
     }
 
     public function update_last_run(string $job_id): bool
@@ -153,9 +149,8 @@ final class CronController
     }
 
     /**
-     * @return (array|int|null|string)[]
      *
-     * @psalm-return array{code: int, status: string, message: string, data: array|null}
+     * @return array{code: int, status: string, message: string, data: array|null}
      */
     public function run_script() : array
     {
@@ -169,8 +164,7 @@ final class CronController
             $bin = $job['binary'];
 
             // Extract Job uuid and attach it to the tag variable
-            $sc_frag = explode(self::JOB_CLI_KEY, $job['script']);
-            $tag = self::JOB_CLI_KEY . " " . $sc_frag[1];
+            $sc_frag = explode("--id", $job['script']);
 
             // Extract any further tags attached to the script so we can safely wrap the script in a single quote
             $sc = explode(" ", $sc_frag[0], 2);
@@ -180,11 +174,10 @@ final class CronController
         else {
             $job = $this->get_job($job_id);
             $bin = $job['use_php'] == 1 ? LayCron::php_bin() : "";
-            $tag = self::JOB_CLI_KEY . " " . $job['id'];
             $script = $job['script'];
         }
 
-        exec("'$bin' $script $tag", $out);
+        exec("'$bin' $script", $out);
 
         return self::res_success( "Script executed!", ['output' => implode(PHP_EOL , $out ?? '')]);
     }
@@ -220,7 +213,7 @@ final class CronController
         $job_id ??= RequestHelper::request()->id;
         $job = $this->get_job($job_id);
 
-        $raw_script = $job['script'] . " " . self::JOB_CLI_KEY . " " . $job_id;
+        $raw_script = $job['script'];
         $raw_schedule = $job['schedule'];
 
         $cron = LayCron::new()->job_id($job_id);
@@ -228,7 +221,7 @@ final class CronController
         if ($job['use_php'])
             $res = $cron->schedule(...explode(" ", $raw_schedule))->new_job($raw_script);
         else
-            $res = $cron->exec($raw_schedule . " " . $raw_script)[''];
+            $res = $cron->exec($raw_schedule . " " . $raw_script);
 
         if (!$res['exec'])
             return self::res_warning($res['message']);

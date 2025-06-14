@@ -135,7 +135,7 @@ trait IsFillable {
 
     public function exists(): bool
     {
-        return !empty($this->columns);
+        return !$this->is_empty();
     }
 
     public function is_empty(): bool

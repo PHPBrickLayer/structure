@@ -105,6 +105,16 @@ abstract class RequestHelper
     }
 
     /**
+     * Quickly get an already validate value safely from the `vcm_data` array inside the request helper class.
+     * @param string $key
+     * @return mixed
+     */
+    protected final function get(string $key) : mixed
+    {
+        return self::vcm_data()[$key] ?? null;
+    }
+
+    /**
      * By default, it's responsible for digesting the request and setting the default rules
      */
     protected function pre_validate() : void

@@ -103,7 +103,7 @@ final class EnginePlug
         $namespace = implode("\\", $namespace) . "\\Cmd";
 
         LayDir::read(__DIR__ . $this->s . "Cmd", function ($class, $src, DirectoryIterator $handler) use ($namespace) {
-            if ( $handler->isDir() )
+            if ( $handler->isDir() || str_starts_with($class, "."))
                 return LayLoop::CONTINUE;
 
             $cmd_class = $namespace . "\\" . explode(".php", $class)[0];

@@ -213,9 +213,8 @@ final class CoreException
     }
 
     /**
-     * @return (bool|string)[]
      *
-     * @psalm-return array{error: false|string, display_error: bool}
+     * @return array{error: false|string, display_error: bool}
      */
     private function container(?string $title, ?string $body, array $other = []): array
     {
@@ -237,7 +236,9 @@ final class CoreException
                 break;
         }
 
-        if(Domain::is_in_use() && Domain::current_route_data("*")['domain_name'] != "Api") $this->throw_as_json = false;
+        $route_data = Domain::is_in_use() ? Domain::current_route_data("*") : [];
+
+        if(@$route_data['domain_name'] != "Api") $this->throw_as_json = false;
 
         $env = $this->get_env();
         $this->always_log = $env == "PRODUCTION" ? true : $this->always_log;
@@ -273,10 +274,10 @@ final class CoreException
         $api_route = "false";
         $error = "";
 
-        if(Domain::is_in_use()) {
-            $route = Domain::current_route_data("*");
-            $api_route = isset($route['domain_is_api']) ? 'true' : $api_route;
-            $route = $route['domain_uri'] . $route['route'];
+        if(!empty($route_data)) {
+            $api_route = @$route_data['domain_is_api'] ? 'true' : $api_route;
+
+            $route = $route_data['domain_uri'] . ltrim($route_data['route'], "api/");
         }
 
         $req_headers = LayConfig::get_header("*");

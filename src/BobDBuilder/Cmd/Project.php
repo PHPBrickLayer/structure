@@ -60,15 +60,8 @@ final class Project implements CmdLayout
 
         // Create Lay dependent directories if they don't exist
         LayDir::make($server->temp, 0755, true);
-        LayDir::make($server->workers, 0755, true);
         LayDir::make($server->exceptions, 0755, true);
         LayDir::make($server->cron_outputs, 0755, true);
-
-        // update mail worker to the latest version
-        copy(
-            $server->framework_workers . "mail-processor.php",
-            $server->workers . "mail-processor.php",
-        );
 
         if($tag == "--refresh-links") {
             LayConfig::generate_project_identity();

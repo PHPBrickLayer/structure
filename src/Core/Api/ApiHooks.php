@@ -70,6 +70,10 @@ abstract class ApiHooks extends ApiEngine
         self::end($this->print_end_result);
     }
 
+    public function pre_hook() : void {}
+
+    public function post_hook() : void {}
+
     public function hooks() : void
     {
         $this->load_brick_hooks();
@@ -180,7 +184,10 @@ abstract class ApiHooks extends ApiEngine
                 try {
                     self::__indexing_routes();
 
+                    $brick->pre_hook();
                     $brick->hooks();
+                    $brick->post_hook();
+
                     $d = $brick->__indexed_routes();
 
                     if(empty($d)) continue;
@@ -214,7 +221,9 @@ abstract class ApiHooks extends ApiEngine
         try {
             $hook_class = new $hook_class['hook']();
 
+            $hook_class->pre_hook();
             $hook_class->hooks();
+            $hook_class->post_hook();
         } catch (\Throwable $e) {
             if(is_object($hook_class))
                 $hook_class = $hook_class::class;
