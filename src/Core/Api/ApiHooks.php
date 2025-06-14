@@ -184,7 +184,10 @@ abstract class ApiHooks extends ApiEngine
                 try {
                     self::__indexing_routes();
 
+                    $brick->pre_hook();
                     $brick->hooks();
+                    $brick->post_hook();
+
                     $d = $brick->__indexed_routes();
 
                     if(empty($d)) continue;
