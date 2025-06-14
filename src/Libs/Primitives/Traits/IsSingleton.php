@@ -10,21 +10,21 @@ trait IsSingleton {
     private function __construct(){}
     private function __clone(){}
 
-    private  static function SINGLETON() : static
+    private static function SINGLETON() : self
     {
         if(!isset(static::$instance))
-            static::$instance = new static();
+            self::$instance = new static();
 
-        return self::$instance;
+        return static::$instance;
     }
 
-    public static function instance() : static
+    public static function instance() : self
     {
-        return self::SINGLETON();
+        return static::SINGLETON();
     }
 
-    public static function new() : static
+    public static function new() : self
     {
-        return self::SINGLETON();
+        return static::SINGLETON();
     }
 }
