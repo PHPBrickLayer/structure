@@ -936,7 +936,7 @@ abstract class ApiEngine {
             'route' => self::$current_uri_string,
             'route_name' => self::$route_uri_name ?? "",
             'method' => self::$request_method,
-            'return_type' => self::$method_return_type,
+            'return_type' => self::$method_return_type->name,
             'using_middleware' => [
                 'route' => self::$using_route_middleware,
                 'group' => self::$using_group_middleware

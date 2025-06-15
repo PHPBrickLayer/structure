@@ -252,8 +252,40 @@ abstract class ApiHooks extends ApiEngine
             return null;
 
         self::set_debug_dump_mode();
+
         self::fetch();
-        $this->load_brick_hooks();
+
+        $bricks_root = LayConfig::server_data()->bricks;
+
+        foreach (scandir($bricks_root) as $brick) {
+            if (
+                $brick == "." || $brick == ".." ||
+                !file_exists($bricks_root . $brick . DIRECTORY_SEPARATOR . "Api" . DIRECTORY_SEPARATOR . "Hook.php")
+            ) continue;
+
+            $cmd_class = "Bricks\\$brick\\Api\\Hook";
+
+            try{
+                $brick = new \ReflectionClass($cmd_class);
+            } catch (\ReflectionException $e) {
+                LayException::throw("", "ReflectionException", $e);
+            }
+
+            try {
+                $brick = $brick->newInstance();
+            } catch (\Throwable $e) {
+                $brick = $brick::class ?? "ApiHooks";
+                LayException::throw("", "$brick::ApiError", $e);
+            }
+
+            try {
+                $brick->pre_hook();
+                $brick->hooks();
+                $brick->post_hook();
+            } catch (\Throwable $e) {
+                LayException::throw("", $brick::class . "::RouteIndexingError", $e);
+            }
+        }
 
         return self::all_api_endpoints();
     }
