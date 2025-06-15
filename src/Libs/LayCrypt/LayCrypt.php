@@ -100,12 +100,12 @@ class LayCrypt
         ?array $payload = null,
         ?string $issuer = null,
         ?array $audience = null,
-        string $expires = '60 seconds',
+        string|int $expires = '60 seconds',
     ): string
     {
         $payload = [ 'data' => $payload ];
         $payload['iat'] = LayDate::now();
-        $payload['exp'] = LayDate::date($expires, figure: true);
+        $payload['exp'] = LayDate::unix($expires);
         $payload['iss'] = $issuer ?? LayConfig::site_data()->base_no_proto_no_www;
         $payload['nbf'] = LayDate::now() + 50;
 
