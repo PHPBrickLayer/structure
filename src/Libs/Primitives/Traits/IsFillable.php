@@ -54,25 +54,22 @@ trait IsFillable {
      */
     public function __construct(string|array|null|self $record_id = null, bool $invalidate = false)
     {
-        if(empty($record_id))
-            return $this;
-
-        if($record_id instanceof self)
-            $record_id = $record_id->props();
-
         return $this->fill($record_id, $invalidate);
     }
 
     /**
      * Same as calling a new instance of the model
-     * @param string|array|null $record_or_id
+     * @param string|array|null|self $record_or_id
      * @param bool $invalidate
      * @return self
      */
-    public function fill(string|array|null $record_or_id = null, bool $invalidate = false) : static
+    public function fill(string|array|null|self $record_or_id = null, bool $invalidate = false) : static
     {
         if(empty($record_or_id))
             return $this;
+
+        if($record_or_id instanceof self)
+            $record_or_id = $record_or_id->props();
 
         $by_id = is_array($record_or_id) && !$invalidate ?
             fn() => $this->set_columns($record_or_id) :
