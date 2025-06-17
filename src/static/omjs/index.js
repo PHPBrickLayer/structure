@@ -639,9 +639,12 @@ const $cookie = (name = "*", value = null, expire = null, path = "/", domain = "
  * Acquire form data as string, object or FormData
  * @param {HTMLFormElement|HTMLElement}  form = Form to be fetched or an existing element within the form
  * @param {boolean} validate = if to validate form automatically [default = false]
+ * @param {boolean} inForm = When true, you let this function know `form` is in a form element or inside a form element,
+ * so it can use the form element or find the closet form. Else, it will search the child of the passed element for
+ * fields like input, select and textarea to serialize them [default = true]
  * @return {Object}
  * @example $getForm(formElement).string || $getForm(formElement).object || $getForm(formElement).file
- */ const $getForm = (form, validate = false) => {
+ */ const $getForm = (form, validate = false, inForm = true) => {
     let formFieldsString = "";
     let formFieldsObject = {};
     let hasFile = false;
@@ -659,11 +662,11 @@ const $cookie = (name = "*", value = null, expire = null, path = "/", domain = "
             formFieldsObject[name].push(value);
         } else formFieldsObject[fieldName] = value;
     };
-    if (validate && !$form(findForm())) throw Error("Your form has not satisfied all required validation!");
-    form = findForm();
+    form = inForm ? findForm().elements : $sela("input, select, textarea", form);
+    if (inForm && validate && !$form(form)) throw Error("Your form has not satisfied all required validation!");
     let alreadyChecked;
-    for (let i = 0; i < form.elements.length; i++) {
-        let field = form.elements[i];
+    for (let i = 0; i < form.length; i++) {
+        let field = form[i];
         if (field.name && field.type === "file" && field.disabled === false && field.files.length > 0) hasFile = true;
         if (!field.name || field.disabled || field.type === "file" || field.type === "reset" || field.type === "submit" || field.type === "button") continue;
         if (field.type === "select-multiple") {
@@ -697,7 +700,7 @@ const $cookie = (name = "*", value = null, expire = null, path = "/", domain = "
     return {
         string: formFieldsString.slice(0, -1),
         object: formFieldsObject,
-        file: new FormData(findForm()),
+        file: inForm ? new FormData(form) : null,
         hasFile: hasFile
     };
 };
