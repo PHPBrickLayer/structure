@@ -23,6 +23,7 @@ use Exception;
  *
  * @phpstan-type VcmRules array{
  *    required?: bool,
+ *    json_encode?: bool,
  *    result_is_assoc?: bool,
  *    alias_required?: bool,
  *    clean?: bool|array{
@@ -38,9 +39,10 @@ use Exception;
  *    dimension?: array<int>,
  *    upload_storage?: FileUploadStorage,
  *    bucket_url?: string,
+ *    each?: callable(mixed $value, int $index) : mixed,
  *    upload_handler?: callable,
- *    return_schema?: callable(mixed, string, array<string, mixed>) : mixed,
- *    return_struct?: callable(mixed, string, array<string, mixed>) : mixed,
+ *    return_schema?: callable(mixed $value, string $alias, array<string, mixed> $options) : mixed,
+ *    return_struct?: callable(mixed $value, string $alias, array<string, mixed> $options) : mixed,
  *  }
  *
  * @phpstan-type VcmOptions array{
@@ -70,6 +72,7 @@ use Exception;
  *     // This modifies the default error message when a required field is not filled
  *     required_message?: string,
  *
+ *     each?: callable(mixed, int) : mixed, // A callback to run on each iteration of an array field
  *     before_validate?: callable(mixed) : string,
  *     before_clean?: callable(mixed) : string,
  *     after_clean?: callable(mixed) : string,
@@ -171,6 +174,7 @@ trait ValidateCleanMap {
     private static ?array $_errors;
     private static ?bool $_break_validation = false;
 
+    private static ?bool $_json_encode;
     private static ?bool $_required;
     private static ?bool $_alias_required;
     private static array|bool|null $_clean_by_default;
@@ -181,6 +185,7 @@ trait ValidateCleanMap {
     private static ?array $_dimension;
     private static ?FileUploadStorage $_upload_storage;
     private static ?string $_bucket_url;
+    private static ?closure $_each;
     private static ?closure $_upload_handler;
     private static ?closure $_return_schema;
     private static bool $_result_is_assoc = true;
@@ -496,7 +501,7 @@ trait ValidateCleanMap {
      *
      * @param VcmOptions $options
      */
-    public function vcm(array $options ) : static
+    public function vcm(array $options) : static
     {
         if(isset($options['request']) && empty(static::$_filled_request))
             static::vcm_start($options['request']);
@@ -509,14 +514,10 @@ trait ValidateCleanMap {
         $value = $this->__get_field($field);
 
         if(isset($options['before_validate']))
-            $value = $options['before_validate']($value);
-
-        $options['array_index'] = 0;
+            $value = $options['before_validate']($value, $options);
 
         if(is_array($value)) {
             foreach ($value as $index => $val) {
-                $options['array_index'] = $index;
-
                 $x = $this->__validate(
                     $field, $val,
                     $is_required, $options
@@ -524,9 +525,16 @@ trait ValidateCleanMap {
 
                 if(!$x['add_to_entry'])
                     return $this;
+
+                $each = $options['each'] ?? self::$_each ?? null;
+
+                var_dump($each);
+                if($each)
+                    $value[$index] = $each($val, $index);
             }
 
-            $value = isset($options['json_encode']) && !$options['json_encode'] ? $value : json_encode($value);
+            $encode = $options['json_encode'] ?? static::$_json_encode ?? true;
+            $value = $encode ? json_encode($value) : $value;
 
             $x['add_to_entry'] = true;
             $x['apply_clean'] = false;
@@ -604,6 +612,7 @@ trait ValidateCleanMap {
     public function vcm_rules(array $options) : static
     {
         static::$_required = $options['required'] ?? null;
+        static::$_json_encode = $options['json_encode'] ?? null;
         static::$_clean_by_default = $options['clean'] ?? null;
         static::$_alias_required = $options['alias_required'] ?? null;
         static::$_sub_dir = $options['sub_dir'] ?? null;
@@ -620,6 +629,7 @@ trait ValidateCleanMap {
         static::$_bucket_url = $options['bucket_url'] ?? null;
         static::$_upload_handler = $options['upload_handler'] ?? null;
 
+        static::$_each = $options['each'] ?? null;
         static::$_return_schema = $options['return_struct'] ?? $options['return_schema'] ?? null;
         static::$_result_is_assoc = $options['result_is_assoc'] ?? true;
 
@@ -641,6 +651,7 @@ trait ValidateCleanMap {
         static::$_break_validation = false;
 
         static::$_required = null;
+        static::$_json_encode = null;
         static::$_alias_required = null;
         static::$_clean_by_default = null;
         static::$_sub_dir = null;
@@ -653,6 +664,7 @@ trait ValidateCleanMap {
         static::$_upload_handler = null;
         static::$_return_schema = null;
         static::$_result_is_assoc = true;
+        static::$_each = null;
 
         static::$VCM_INSTANCE ??= new static();
 
