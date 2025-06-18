@@ -198,8 +198,10 @@ abstract class BaseModelHelper
      * @param null|callable(array<string,mixed>):array<string,mixed> $fun a callback to run inside the batch insert run function for each entry of the row
      * @return bool
      */
-    public function batch(array $columns, ?callable $fun = null) : bool
+    public function batch(array|RequestHelper $columns, ?callable $fun = null) : bool
     {
+        $columns = $this->req_2_array($columns);
+
         $db = static::db();
 
         $this->resolve_conflict($db);

@@ -43,11 +43,18 @@ use Exception;
  *    upload_handler?: callable,
  *    return_schema?: callable(mixed $value, string $alias, array<string, mixed> $options) : mixed,
  *    return_struct?: callable(mixed $value, string $alias, array<string, mixed> $options) : mixed,
+ *
+ *    // Instructs VCM to return result where each entry has its child in an array (VCM way)
+ *    // Or make a 2D array and return each result as an individual role of themselves, just like a result from a database
+ *    group_result?: bool,
  *  }
  *
  * @phpstan-type VcmOptions array{
  *     // This is the $_POST request
  *     request?: array<string|int, mixed>|object,
+ *
+ *     // A custom function to handle validation rather than using the inbuilt validator
+ *     validator: callable(string $field, mixed &$value, bool $is_required, VcmOptions $options): array{ apply_clean: bool, add_to_entry: bool },
  *
  *     // By default, VCM returns an assoc array with the key being (`alias` ?? `db_col` ?? `field`),
  *     // and the value is the validated result of the current field. With this option, vcm can append the value to the
@@ -173,6 +180,7 @@ trait ValidateCleanMap {
     private static array $_entries = [];
     private static ?array $_errors;
     private static ?bool $_break_validation = false;
+    private static ?bool $_group_result = false;
 
     private static ?bool $_json_encode;
     private static ?bool $_required;
@@ -190,12 +198,6 @@ trait ValidateCleanMap {
     private static ?closure $_return_schema;
     private static bool $_result_is_assoc = true;
 
-    private function __add_error(string $field, string $message): false
-    {
-        static::$_errors[$field] = $message;
-        return false;
-    }
-
     private function __get_field(string $key) : mixed
     {
         if(is_array(static::$_filled_request))
@@ -206,7 +208,7 @@ trait ValidateCleanMap {
 
     /**
      *
-     * @psalm-return array{valid: bool, message: string}
+     * @return array{valid: bool, message: string}
      */
     private function __validate_captcha(?string $value, bool $as_jwt = false, ?string $jwt = null) : array
     {
@@ -304,11 +306,11 @@ trait ValidateCleanMap {
      * @param bool $is_required
      * @param VcmOptions $options
      *
-     * @return array{apply_clean: true, add_to_entry: true}
+     * @return array{apply_clean: bool, add_to_entry: bool}
      */
     private function __validate(string $field, mixed &$value, bool $is_required, array $options) : array
     {
-        $field_name = str_replace(["_", "-"], " ", $options['field_name'] ?? $field);
+        $field_name = $options['field_name'];
 
         $add_to_entry = true;
         $apply_clean = true;
@@ -353,7 +355,7 @@ trait ValidateCleanMap {
             }
 
             if(!$file['uploaded']) {
-                $add_to_entry = $this->__add_error($field, $options['required_message'] ?? "$field_name: " . $file['error']);
+                $add_to_entry = $this->report_error($field, $options['required_message'] ?? "$field_name: " . $file['error']);
                 LayException::log($file['dev_error'] . "; Error Type: " . $file['error_type']->name, log_title: "VCM::Log");
                 return $return();
             }
@@ -383,7 +385,7 @@ trait ValidateCleanMap {
             $test = $this->__validate_captcha($value, $as_jwt, $jwt);
 
             if(!$test['valid']) {
-                $add_to_entry = $this->__add_error($field, $options['required_message'] ?? "Field $field_name response: " . $test['message']);
+                $add_to_entry = $this->report_error($field, $options['required_message'] ?? "Field $field_name response: " . $test['message']);
                 static::$_break_validation = true;
             }
 
@@ -392,7 +394,7 @@ trait ValidateCleanMap {
         }
 
         if($is_required && $is_empty) {
-            $add_to_entry = $this->__add_error($field, $options['required_message'] ?? "$field_name is required");
+            $add_to_entry = $this->report_error($field, $options['required_message'] ?? "$field_name is required");
             return $return();
         }
 
@@ -403,11 +405,11 @@ trait ValidateCleanMap {
             preg_match("#^[a-zA-Z\-]+$#", $value, $test, PREG_UNMATCHED_AS_NULL);
 
             if(empty($test))
-                $add_to_entry = $this->__add_error($field, $options['required_message'] ?? "Received an invalid text format for $field_name, please remove any special characters or multiple names");
+                $add_to_entry = $this->report_error($field, $options['required_message'] ?? "Received an invalid text format for $field_name, please remove any special characters or multiple names");
         }
 
         if(isset($options['is_email']) && !filter_var($value, FILTER_VALIDATE_EMAIL))
-            $add_to_entry = $this->__add_error($field, "Received an invalid email format for: $field_name");
+            $add_to_entry = $this->report_error($field, "Received an invalid email format for: $field_name");
 
         if(isset($options['is_bool'])) {
             if(in_array(strtolower($value . ''), ['true', 'false', '1', '0'])) {
@@ -415,26 +417,26 @@ trait ValidateCleanMap {
                 $apply_clean = false;
             }
             else
-                $add_to_entry = $this->__add_error($field, "$field_name is not a valid boolean");
+                $add_to_entry = $this->report_error($field, "$field_name is not a valid boolean");
         }
 
         if(isset($options['is_num']) && !is_numeric($value))
-            $add_to_entry = $this->__add_error($field, "$field_name is not a valid number");
+            $add_to_entry = $this->report_error($field, "$field_name is not a valid number");
 
         if(isset($options['is_uuid']) && preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i', $value) !== 1)
-            $add_to_entry = $this->__add_error($field, "$field_name is not valid! A malformed value was encountered");
+            $add_to_entry = $this->report_error($field, "$field_name is not valid! A malformed value was encountered");
 
         if(isset($options['min_length']) && (strlen($value) < $options['min_length']))
-            $add_to_entry = $this->__add_error($field, "$field_name must be at least {$options['min_length']} characters long");
+            $add_to_entry = $this->report_error($field, "$field_name must be at least {$options['min_length']} characters long");
 
         if(isset($options['max_length']) && (strlen($value) > $options['max_length']))
-            $add_to_entry = $this->__add_error($field, "$field_name must not exceed {$options['max_length']} characters");
+            $add_to_entry = $this->report_error($field, "$field_name must not exceed {$options['max_length']} characters");
 
         if(isset($options['min_value']) && ($value < $options['min_value']))
-            $add_to_entry = $this->__add_error($field, "$field_name must be greater than {$options['min_value']}");
+            $add_to_entry = $this->report_error($field, "$field_name must be greater than {$options['min_value']}");
 
         if(isset($options['max_value']) && ($value > $options['max_value']))
-            $add_to_entry = $this->__add_error($field, "$field_name must be less than {$options['max_value']}");
+            $add_to_entry = $this->report_error($field, "$field_name must be less than {$options['max_value']}");
 
         if(isset($options['match'])) {
             $to_match = $this->__get_field($options['match']['field']) ?? $options['match']['value'] ?? null;
@@ -446,20 +448,20 @@ trait ValidateCleanMap {
                 $message = $options['match']['message'] ?? "$field_name must match $match_field";
 
             if($to_match == null || $to_match != $value)
-                $add_to_entry = $this->__add_error($field, $message);
+                $add_to_entry = $this->report_error($field, $message);
         }
 
         if(isset($options['must_contain']) && !in_array($value, $options['must_contain']))
-            $add_to_entry = $this->__add_error($field, "$field_name must be one of: " . implode(', ', $options['must_contain']));
+            $add_to_entry = $this->report_error($field, "$field_name must be one of: " . implode(', ', $options['must_contain']));
 
         if(isset($options['must_validate'])) {
             if(is_callable($options['must_validate'])) {
                 if (!$options['must_validate']($value, $options))
-                    $add_to_entry = $this->__add_error($field, "$field_name has not satisfied the criteria for submission");
+                    $add_to_entry = $this->report_error($field, "$field_name has not satisfied the criteria for submission");
             }
             else {
                 if (isset($options['must_validate']['fun']) && !$options['must_validate']['fun']($value, $options)) {
-                    $add_to_entry = $this->__add_error(
+                    $add_to_entry = $this->report_error(
                         $field,
                         $options['must_validate']['message'] ??
                         "$field_name has not satisfied the criteria for submission"
@@ -467,7 +469,7 @@ trait ValidateCleanMap {
                 }
 
                 if (isset($options['must_validate']['fun_str']) && $has_error = $options['must_validate']['fun_str']($value, $options)) {
-                    $add_to_entry = $this->__add_error($field, $has_error);
+                    $add_to_entry = $this->report_error($field, $has_error);
                 }
             }
         }
@@ -475,6 +477,15 @@ trait ValidateCleanMap {
         if(isset($options['hash'])) {
             $apply_clean = false;
             $value = LayCrypt::hash($value);
+        }
+
+        if(isset($options['is_date']) || isset($options['is_datetime'])) {
+            $old_value = $value;
+            $value = LayDate::date($old_value, format_index: isset($options['is_date']) ? 0 : -1);
+            $apply_clean = false;
+
+            if(!LayDate::is_valid($value))
+                $add_to_entry = $this->report_error($field, "$field_name with value [$old_value] is not a valid date");
         }
 
         return $return();
@@ -490,10 +501,34 @@ trait ValidateCleanMap {
     {
         $result_is_assoc = $options['result_is_assoc'] ?? static::$_result_is_assoc;
 
-        if($result_is_assoc)
+        if($result_is_assoc) {
+            if(static::$_group_result) {
+                static::$_entries[$options['array_index']][$key] = $value;
+                return;
+            }
+
             static::$_entries[$key] = $value;
-        else
-            static::$_entries[] = $value;
+            return;
+        }
+
+        if(static::$_group_result) {
+            static::$_entries[$options['array_index']][] = $value;
+            return;
+        }
+
+        static::$_entries[] = $value;
+    }
+
+    /**
+     * Reports Error to the VCM, which can later be gathered from the VCM array object
+     * @param string $field
+     * @param string $message
+     * @return false
+     */
+    public final function report_error(string $field, string $message): false
+    {
+        static::$_errors[$field] = $message;
+        return false;
     }
 
     /**
@@ -512,25 +547,60 @@ trait ValidateCleanMap {
         $is_required = $options['required'] ?? static::$_required ?? true;
         $field = str_replace("[]", "", $options['field'] ?? $options['name']);
         $value = $this->__get_field($field);
+        $validator = $options['validator'] ?? [$this, "__validate"];
+        $group_result = static::$_group_result ?? false;
+
+        $options['field_name'] = str_replace(["_", "-"], " ", $options['field_name'] ?? $field);
 
         if(isset($options['before_validate']))
             $value = $options['before_validate']($value, $options);
 
-        if(is_array($value)) {
+
+        if (is_array($value)) {
             foreach ($value as $index => $val) {
-                $x = $this->__validate(
+                $x = $validator(
                     $field, $val,
                     $is_required, $options
                 );
 
-                if(!$x['add_to_entry'])
+                if (!$x['add_to_entry'])
                     return $this;
 
                 $each = $options['each'] ?? self::$_each ?? null;
 
-                if($each)
+                if ($each)
                     $value[$index] = $each($val, $index);
+
+                // Since we are grouping result, VCM assumes the request set is coming as a perfect array, meaning
+                // name[], name[];  or design[][], design[][]
+                // age[], age[];    or time[][], time[][]
+                if($group_result) {
+                    $options['array_index'] = $index;
+
+                    if(isset($options['before_clean']))
+                        $value[$index] = $options['before_clean']($value[$index], $options);
+
+                    if(isset($options['after_clean']))
+                        $value[$index] = $options['after_clean']($value[$index], $options);
+
+                    $alias = $options['alias'] ?? $options['db_col'] ?? null;
+
+                    if(static::$_alias_required && !$alias)
+                        LayException::throw_exception(
+                            "An alias for field [$field] was not specified and is required by the validation rule. Please set one using the `alias` key",
+                            "VCM::Error"
+                        );
+
+                    $return_schema = $options['return_struct'] ?? $options['return_schema'] ?? static::$_return_schema ?? null;
+
+                    if($return_schema)
+                        $value[$index] = $return_schema($value[$index], $alias ?? $field, $options);
+
+                    $this->add_to_entry($field, $value[$index] , $options);
+                }
             }
+
+            if($group_result) return $this;
 
             $encode = $options['json_encode'] ?? static::$_json_encode ?? true;
             $value = $encode ? json_encode($value) : $value;
@@ -538,7 +608,7 @@ trait ValidateCleanMap {
             $x['add_to_entry'] = true;
             $x['apply_clean'] = false;
         } else {
-            $x = $this->__validate(
+            $x = $validator(
                 $field, $value,
                 $is_required, $options
             );
@@ -549,18 +619,6 @@ trait ValidateCleanMap {
 
         // Break on error or empty value
         if(!$add_to_entry || empty($value)) return $this;
-
-        if(isset($options['is_date']) || isset($options['is_datetime'])) {
-            $old_value = $value;
-            $value = LayDate::date($old_value, format_index: isset($options['is_date']) ? 0 : -1);
-            $apply_clean = false;
-
-            if(!LayDate::is_valid($value)) {
-                $field_name = str_replace(["_", "-"], " ", $options['field_name'] ?? $field);
-                $this->__add_error($field, "$field_name with value [$old_value] is not a valid date");
-                return $this;
-            }
-        }
 
         if(isset($options['before_clean']))
             $value = $options['before_clean']($value, $options);
@@ -631,6 +689,7 @@ trait ValidateCleanMap {
         static::$_each = $options['each'] ?? null;
         static::$_return_schema = $options['return_struct'] ?? $options['return_schema'] ?? null;
         static::$_result_is_assoc = $options['result_is_assoc'] ?? true;
+        static::$_group_result = $options['group_result'] ?? null;
 
         return $this;
     }
@@ -646,24 +705,27 @@ trait ValidateCleanMap {
         static::$_filled_request = $request;
 
         static::$_entries = [];
-        static::$_errors = null;
         static::$_break_validation = false;
-
-        static::$_required = null;
-        static::$_json_encode = null;
-        static::$_alias_required = null;
-        static::$_clean_by_default = null;
-        static::$_sub_dir = null;
-        static::$_allowed_types = null;
-        static::$_max_size = null;
-        static::$_new_file_name = null;
-        static::$_dimension = null;
-        static::$_upload_storage = null;
-        static::$_bucket_url = null;
-        static::$_upload_handler = null;
-        static::$_return_schema = null;
         static::$_result_is_assoc = true;
-        static::$_each = null;
+
+        list(
+            static::$_errors,
+            static::$_required,
+            static::$_json_encode,
+            static::$_alias_required,
+            static::$_clean_by_default,
+            static::$_sub_dir,
+            static::$_allowed_types,
+            static::$_max_size,
+            static::$_new_file_name,
+            static::$_dimension,
+            static::$_upload_storage,
+            static::$_bucket_url,
+            static::$_upload_handler,
+            static::$_return_schema,
+            static::$_group_result,
+            static::$_each,
+            ) = null;
 
         static::$VCM_INSTANCE ??= new static();
 
@@ -738,7 +800,7 @@ trait ValidateCleanMap {
     {
         $errors = static::$_errors ?? null;
 
-        if(empty(static::$_entries) and !$errors)
+        if(empty(static::vcm_data()) and !$errors)
             $errors = ["Form submission is invalid, please check if you submitted a file above the specified file limit"];
 
         if($as_string && $errors)
