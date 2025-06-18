@@ -528,7 +528,6 @@ trait ValidateCleanMap {
 
                 $each = $options['each'] ?? self::$_each ?? null;
 
-                var_dump($each);
                 if($each)
                     $value[$index] = $each($val, $index);
             }
