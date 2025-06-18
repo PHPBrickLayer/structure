@@ -586,9 +586,9 @@ const $cookie = (name = "*", value = null, expire = null, path = "/", domain = "
  * @return {boolean} [false] if field(s) is|are empty || [true] if field(s) is|are not empty
  */ const $form = (element, option = {}) => {
     let errorMessage = option.message ?? "Please fill all required fields!";
-    if (!(element.nodeName === "FORM")) element = element.closest("FORM");
+    const inForm = option.inForm ?? true;
+    if (!(element.nodeName === "FORM")) element = inForm ? element.closest("FORM").elements : $sela("input, select, textarea", element);
     if (!$id("osai-form-error")) $sel("head").$html("beforeend", `<style id="osai-form-error">.osai-form-error{background: #e66507 none padding-box !important; color: #ffff !important;}.osai-form-error::placeholder{color: #ffff !important;}</style>`);
-    let elem = element.elements;
     let xTest = () => {
         $sela("input[data-osai-tested='true']").forEach((test => {
             $data(test, "osai-tested", "del");
@@ -607,8 +607,8 @@ const $cookie = (name = "*", value = null, expire = null, path = "/", domain = "
         return false;
     };
     let passedCheck = true;
-    for (let i = 0; i < elem.length; i++) {
-        let field = elem[i], test = field.name && field.required && field.disabled === false;
+    for (let i = 0; i < element.length; i++) {
+        let field = element[i], test = field.name && field.required && field.disabled === false;
         if (test && (field.value.trim() === "" || field.value === undefined || field.value === null)) passedCheck = aErrMsg(field, errorMessage); else if (test && field.type === "email" && !$check(field.value, "mail")) passedCheck = aErrMsg(field, "Invalid email format, should be <div style='font-weight: bold; text-align: center'>\"[A-Za-Z_.-]@[A-Za-Z.-].[A-Za-Z_.-].[A-Za-Z]\"</div>"); else if (test && field.type === "file" && $data(field, "max-size")) {
             let maxSize = parseFloat($data(field, "max-size"));
             $loop(field.files, (file => {
@@ -639,19 +639,60 @@ const $cookie = (name = "*", value = null, expire = null, path = "/", domain = "
  * Acquire form data as string, object or FormData
  * @param {HTMLFormElement|HTMLElement}  form = Form to be fetched or an existing element within the form
  * @param {boolean} validate = if to validate form automatically [default = false]
- * @param {boolean} inForm = When true, you let this function know `form` is in a form element or inside a form element,
+ * @param {object} option
  * so it can use the form element or find the closet form. Else, it will search the child of the passed element for
  * fields like input, select and textarea to serialize them [default = true]
  * @return {Object}
  * @example $getForm(formElement).string || $getForm(formElement).object || $getForm(formElement).file
- */ const $getForm = (form, validate = false, inForm = true) => {
+ */ const $getForm = (form, validate = false, option = {}) => {
     let formFieldsString = "";
     let formFieldsObject = {};
     let hasFile = false;
+    let allChecksPassed = true;
+    let inForm = option.inForm ?? true;
+    let errorMessage = option.message ?? "Please fill all required fields!";
+    if (!$id("osai-form-error")) $sel("head").$html("beforeend", `<style id="osai-form-error">.osai-form-error{background: #e66507 none padding-box !important; color: #ffff !important;}.osai-form-error::placeholder{color: #ffff !important;}</style>`);
     let findForm = () => {
         if (form) {
             if (form.nodeName === "FORM") return form;
             return form.closest("FORM");
+        }
+    };
+    let clearCheckMarker = () => {
+        $sela("input[data-osai-tested='true']").$loop((test => {
+            $data(test, "osai-tested", "del");
+        }));
+    };
+    let failCheck = (formField, customMsg = errorMessage) => {
+        if (!$id("osai-form-error-notify")) osNote(customMsg, "danger", {
+            id: "osai-form-error-notify"
+        });
+        setTimeout((() => {
+            formField.$class("add", "osai-form-error");
+            if (formField.checkVisibility() && !$sel(".osai-form-error-focused")) {
+                formField.$class("add", "osai-form-error-focused");
+                formField.focus();
+            }
+        }), 100);
+        $on(formField, "input,change", (() => {
+            formField.$class("del", "osai-form-error");
+            formField.$class("del", "osai-form-error-focused");
+        }), "addEvent");
+        clearCheckMarker();
+        allChecksPassed = false;
+    };
+    let validateField = field => {
+        if (!validate) return;
+        if (field.required && field.value.trim() === "" || field.value === undefined || field.value === null) return failCheck(field, errorMessage);
+        if (field.type === "email" && !$check(field.value, "mail")) return failCheck(field, "Invalid email format, should be like: <b>name@example.com</b>");
+        if (field.required && (field.type === "radio" || field.type === "checkbox") && !$data(field, "osai-tested")) {
+            let marked = 0;
+            $name(field.name).forEach((radio => {
+                $data(radio, "osai-tested", "true");
+                if (marked === 1) return;
+                if (radio.checked) marked = 1;
+            }));
+            if (marked === 0) return failCheck(field, "Please select the required number of options from the required checklist");
         }
     };
     let addField = (fieldName, value) => {
@@ -663,12 +704,27 @@ const $cookie = (name = "*", value = null, expire = null, path = "/", domain = "
         } else formFieldsObject[fieldName] = value;
     };
     form = inForm ? findForm().elements : $sela("input, select, textarea", form);
-    if (inForm && validate && !$form(form)) throw Error("Your form has not satisfied all required validation!");
     let alreadyChecked;
     for (let i = 0; i < form.length; i++) {
         let field = form[i];
-        if (field.name && field.type === "file" && field.disabled === false && field.files.length > 0) hasFile = true;
+        if (field.name && field.type === "file" && field.disabled === false && field.files.length > 0) {
+            hasFile = true;
+            if ($data(field, "max-size")) {
+                let maxSize = parseFloat($data(field, "max-size"));
+                $loop(field.files, (file => {
+                    if (file.size < maxSize) return "continue";
+                    const maxSizeRaw = maxSize / 1e6;
+                    maxSize = (maxSizeRaw + "").toLocaleString(undefined, {
+                        minimumFractionDigits: 2
+                    });
+                    maxSize = maxSizeRaw > 1 ? maxSize + "mb" : maxSize + "bytes";
+                    const name = field.name.replaceAll("_", " ").replaceAll("-", " ");
+                    failCheck(field, `File cannot exceed max size limit of ${maxSize}, please check ${name} and update it`);
+                }));
+            }
+        }
         if (!field.name || field.disabled || field.type === "file" || field.type === "reset" || field.type === "submit" || field.type === "button") continue;
+        validateField(field);
         if (field.type === "select-multiple") {
             $loop(field.options, (v => {
                 if (v.selected) addField(field.name, v.value);
@@ -696,6 +752,10 @@ const $cookie = (name = "*", value = null, expire = null, path = "/", domain = "
             continue;
         }
         addField(field.name, field.value);
+    }
+    if (validate && !allChecksPassed) {
+        clearCheckMarker();
+        throw Error("Your form has not satisfied all required validation!");
     }
     return {
         string: formFieldsString.slice(0, -1),
