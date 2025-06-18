@@ -308,14 +308,12 @@ trait ValidateCleanMap {
         $add_to_entry = true;
         $apply_clean = true;
 
-        $return = /**
-         * @return true[]
-         *
-         * @psalm-return array{apply_clean: true, add_to_entry: true}
-         */
-            function() use (&$apply_clean, &$add_to_entry): array {
-                return ["apply_clean" => $apply_clean, "add_to_entry" => $add_to_entry];
-            };
+        // The reason this is like this and not a traditional arrow function, is because as of the time of writing,
+        // PHP doesn't get the updated value of $apply_clean and the other when we call $return at a later stage.
+        // But with a traditional function, it gets the latest value
+        $return = function () use (&$apply_clean, &$add_to_entry) {
+            return ["apply_clean" => $apply_clean, "add_to_entry" => $add_to_entry];
+        };
 
         if(isset($options['is_file']) || isset($options['maybe_file'], $_FILES[$field])) {
             $storage_type = $options['bucket_url'] ?? static::$_bucket_url ?? null;
@@ -451,11 +449,11 @@ trait ValidateCleanMap {
 
         if(isset($options['must_validate'])) {
             if(is_callable($options['must_validate'])) {
-                if (!$options['must_validate']($value, $options['array_index']))
+                if (!$options['must_validate']($value, $options))
                     $add_to_entry = $this->__add_error($field, "$field_name has not satisfied the criteria for submission");
             }
             else {
-                if (isset($options['must_validate']['fun']) && !$options['must_validate']['fun']($value, $options['array_index'])) {
+                if (isset($options['must_validate']['fun']) && !$options['must_validate']['fun']($value, $options)) {
                     $add_to_entry = $this->__add_error(
                         $field,
                         $options['must_validate']['message'] ??
@@ -463,7 +461,7 @@ trait ValidateCleanMap {
                     );
                 }
 
-                if (isset($options['must_validate']['fun_str']) && $has_error = $options['must_validate']['fun_str']($value, $options['array_index'])) {
+                if (isset($options['must_validate']['fun_str']) && $has_error = $options['must_validate']['fun_str']($value, $options)) {
                     $add_to_entry = $this->__add_error($field, $has_error);
                 }
             }
@@ -557,9 +555,8 @@ trait ValidateCleanMap {
             }
         }
 
-        //TODO: Depreciate fun option
-        if(isset($options['before_clean']) || isset($options['fun']))
-            $value = ($options['before_clean'] ?? $options['fun'])($value);
+        if(isset($options['before_clean']))
+            $value = $options['before_clean']($value, $options);
 
         if($apply_clean) {
             // Clean and Map field
@@ -579,7 +576,7 @@ trait ValidateCleanMap {
         }
 
         if(isset($options['after_clean']))
-            $value = $options['after_clean']($value);
+            $value = $options['after_clean']($value, $options);
 
         $alias = $options['alias'] ?? $options['db_col'] ?? null;
 
