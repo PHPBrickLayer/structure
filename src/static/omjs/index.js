@@ -579,16 +579,14 @@ const $cookie = (name = "*", value = null, expire = null, path = "/", domain = "
 };
 
 /**!
- * This Function validates form, it doesn't get the form data (serialize), that's done by $getForm
- * @param element {HTMLElement|HTMLFormElement} Element to trigger form check or the form element itself
- * @param option {Object} Element to trigger form check or the form element itself
- * {string} option.errorMessage error text to return to user (not necessary if using function for {errorDisplay})
+ * @deprecated use $getForm(form, validate = true, option = { message: "Error message" })
+ *
  * @return {boolean} [false] if field(s) is|are empty || [true] if field(s) is|are not empty
  */ const $form = (element, option = {}) => {
     let errorMessage = option.message ?? "Please fill all required fields!";
-    if (!(element.nodeName === "FORM")) element = element.closest("FORM");
+    const inForm = option.inForm ?? true;
+    if (!(element.nodeName === "FORM")) element = inForm ? element.closest("FORM").elements : $sela("input, select, textarea", element);
     if (!$id("osai-form-error")) $sel("head").$html("beforeend", `<style id="osai-form-error">.osai-form-error{background: #e66507 none padding-box !important; color: #ffff !important;}.osai-form-error::placeholder{color: #ffff !important;}</style>`);
-    let elem = element.elements;
     let xTest = () => {
         $sela("input[data-osai-tested='true']").forEach((test => {
             $data(test, "osai-tested", "del");
@@ -607,8 +605,8 @@ const $cookie = (name = "*", value = null, expire = null, path = "/", domain = "
         return false;
     };
     let passedCheck = true;
-    for (let i = 0; i < elem.length; i++) {
-        let field = elem[i], test = field.name && field.required && field.disabled === false;
+    for (let i = 0; i < element.length; i++) {
+        let field = element[i], test = field.name && field.required && field.disabled === false;
         if (test && (field.value.trim() === "" || field.value === undefined || field.value === null)) passedCheck = aErrMsg(field, errorMessage); else if (test && field.type === "email" && !$check(field.value, "mail")) passedCheck = aErrMsg(field, "Invalid email format, should be <div style='font-weight: bold; text-align: center'>\"[A-Za-Z_.-]@[A-Za-Z.-].[A-Za-Z_.-].[A-Za-Z]\"</div>"); else if (test && field.type === "file" && $data(field, "max-size")) {
             let maxSize = parseFloat($data(field, "max-size"));
             $loop(field.files, (file => {
@@ -637,18 +635,67 @@ const $cookie = (name = "*", value = null, expire = null, path = "/", domain = "
 
 /**!
  * Acquire form data as string, object or FormData
- * @param {HTMLFormElement|HTMLElement}  form = Form to be fetched or an existing element within the form
- * @param {boolean} validate = if to validate form automatically [default = false]
+ * @param {HTMLFormElement|HTMLElement}  formElement = Form to be fetched or an existing element within the form
+ * @param {boolean|Object} validate = if to validate form automatically [default = false]
+ * @param {Object} option
+ * {string} option.errorMessage: The error text to return to user
+ * {bool} option.InForm: Instruct the function to use the form element or find the closet form if element is in or a form.
+ * Else, it will search the child of the passed element for form-compatible fields to serialize them [default = true]
  * @return {Object}
  * @example $getForm(formElement).string || $getForm(formElement).object || $getForm(formElement).file
- */ const $getForm = (form, validate = false) => {
+ */ const $getForm = (formElement, validate = false, option = {}) => {
     let formFieldsString = "";
     let formFieldsObject = {};
     let hasFile = false;
+    let allChecksPassed = true;
+    if ($type(validate) === "Object") {
+        option = validate;
+        validate = option.validate ?? true;
+    }
+    let inForm = option.inForm ?? true;
+    let errorMessage = option.message ?? "Please fill all required fields!";
+    if (!$id("osai-form-error")) $sel("head").$html("beforeend", `<style id="osai-form-error">.osai-form-error{background: #e66507 none padding-box !important; color: #ffff !important;}.osai-form-error::placeholder{color: #ffff !important;}</style>`);
     let findForm = () => {
-        if (form) {
-            if (form.nodeName === "FORM") return form;
-            return form.closest("FORM");
+        if (formElement) {
+            if (formElement.nodeName === "FORM") return formElement;
+            return formElement.closest("FORM");
+        }
+    };
+    let clearCheckMarker = () => {
+        $sela("input[data-osai-tested='true']").$loop((test => {
+            $data(test, "osai-tested", "del");
+        }));
+    };
+    let failCheck = (formField, customMsg = errorMessage) => {
+        if (!$id("osai-form-error-notify")) osNote(customMsg, "danger", {
+            id: "osai-form-error-notify"
+        });
+        setTimeout((() => {
+            formField.$class("add", "osai-form-error");
+            if (formField.checkVisibility() && !$sel(".osai-form-error-focused")) {
+                formField.$class("add", "osai-form-error-focused");
+                formField.focus();
+            }
+        }), 100);
+        $on(formField, "input,change", (() => {
+            formField.$class("del", "osai-form-error");
+            formField.$class("del", "osai-form-error-focused");
+        }), "addEvent");
+        clearCheckMarker();
+        allChecksPassed = false;
+    };
+    let validateField = field => {
+        if (!validate) return;
+        if (field.required && field.value.trim() === "" || field.value === undefined || field.value === null) return failCheck(field, errorMessage);
+        if (field.type === "email" && !$check(field.value, "mail")) return failCheck(field, "Invalid email format, should be like: <b>name@example.com</b>");
+        if (field.required && (field.type === "radio" || field.type === "checkbox") && !$data(field, "osai-tested")) {
+            let marked = 0;
+            $name(field.name).forEach((radio => {
+                $data(radio, "osai-tested", "true");
+                if (marked === 1) return;
+                if (radio.checked) marked = 1;
+            }));
+            if (marked === 0) return failCheck(field, "Please select the required number of options from the required checklist");
         }
     };
     let addField = (fieldName, value) => {
@@ -659,13 +706,28 @@ const $cookie = (name = "*", value = null, expire = null, path = "/", domain = "
             formFieldsObject[name].push(value);
         } else formFieldsObject[fieldName] = value;
     };
-    if (validate && !$form(findForm())) throw Error("Your form has not satisfied all required validation!");
-    form = findForm();
+    const form = inForm ? findForm().elements : $sela("input, select, textarea", formElement);
     let alreadyChecked;
-    for (let i = 0; i < form.elements.length; i++) {
-        let field = form.elements[i];
-        if (field.name && field.type === "file" && field.disabled === false && field.files.length > 0) hasFile = true;
+    for (let i = 0; i < form.length; i++) {
+        let field = form[i];
+        if (field.name && field.type === "file" && field.disabled === false && field.files.length > 0) {
+            hasFile = true;
+            if ($data(field, "max-size")) {
+                let maxSize = parseFloat($data(field, "max-size"));
+                $loop(field.files, (file => {
+                    if (file.size < maxSize) return "continue";
+                    const maxSizeRaw = maxSize / 1e6;
+                    maxSize = (maxSizeRaw + "").toLocaleString(undefined, {
+                        minimumFractionDigits: 2
+                    });
+                    maxSize = maxSizeRaw > 1 ? maxSize + "mb" : maxSize + "bytes";
+                    const name = field.name.replaceAll("_", " ").replaceAll("-", " ");
+                    failCheck(field, `File cannot exceed max size limit of ${maxSize}, please check ${name} and update it`);
+                }));
+            }
+        }
         if (!field.name || field.disabled || field.type === "file" || field.type === "reset" || field.type === "submit" || field.type === "button") continue;
+        validateField(field);
         if (field.type === "select-multiple") {
             $loop(field.options, (v => {
                 if (v.selected) addField(field.name, v.value);
@@ -694,10 +756,14 @@ const $cookie = (name = "*", value = null, expire = null, path = "/", domain = "
         }
         addField(field.name, field.value);
     }
+    if (validate && !allChecksPassed) {
+        clearCheckMarker();
+        throw Error("Your form has not satisfied all required validation!");
+    }
     return {
         string: formFieldsString.slice(0, -1),
         object: formFieldsObject,
-        file: new FormData(findForm()),
+        file: inForm ? new FormData(findForm()) : null,
         hasFile: hasFile
     };
 };
@@ -820,10 +886,10 @@ const $copyToClipboard = (str, successMsg = "Copied to clipboard") => {
     return true;
 };
 
-const $preloader = (act = "show") => {
+const $preloader = (show = true) => {
     if (!$sel(".osai-preloader")) $html($sel("body"), "beforeend", `<div class="osai-preloader" style="display:none"><svg width="110" height="110" viewBox="0 0 110 110" fill="none" xmlns="http://www.w3.org/2000/svg">\n<path d="M33.7 0.419922C32.6768 0.428607 31.6906 0.803566 30.9201 1.47684C30.1496 2.15011 29.6458 3.07715 29.5 4.08992C28.5259 10.0187 25.4776 15.4087 20.8988 19.2989C16.32 23.1891 10.5083 25.3265 4.5 25.3299C3.37445 25.3352 2.2965 25.7846 1.50061 26.5805C0.704714 27.3764 0.25526 28.4544 0.25 29.5799V86.0499C0.25 89.2017 0.87078 92.3225 2.07689 95.2343C3.28301 98.1461 5.05083 100.792 7.27944 103.02C9.50804 105.249 12.1538 107.017 15.0656 108.223C17.9774 109.429 21.0983 110.05 24.25 110.05H75.6C76.6302 110.034 77.6202 109.647 78.388 108.96C79.1559 108.273 79.6501 107.332 79.78 106.31C80.584 100.96 83.0765 96.007 86.8938 92.1735C90.7112 88.34 95.6536 85.8266 101 84.9999C103.562 84.6132 106.168 84.6132 108.73 84.9999H109.73V24.4499C109.73 18.0847 107.201 11.9802 102.701 7.47936C98.1997 2.97849 92.0952 0.449923 85.73 0.449923L33.7 0.419922ZM61.57 79.9099H47.73C45.379 79.9099 43.051 79.4465 40.8792 78.5462C38.7074 77.6459 36.7343 76.3264 35.0728 74.663C33.4113 72.9996 32.0939 71.0251 31.1961 68.8523C30.2982 66.6794 29.8374 64.351 29.84 61.9999V46.7499C29.8387 44.6348 30.2542 42.5401 31.0627 40.5856C31.8712 38.6312 33.0569 36.8551 34.552 35.359C36.0472 33.863 37.8225 32.6761 39.7765 31.8664C41.7305 31.0567 43.8249 30.6399 45.94 30.6399H63.36C67.6326 30.6399 71.7303 32.3372 74.7515 35.3584C77.7727 38.3796 79.47 42.4773 79.47 46.7499V61.9999C79.4713 64.3514 79.0093 66.6801 78.1103 68.853C77.2113 71.0259 75.8931 73.0004 74.2308 74.6636C72.5685 76.3268 70.5947 77.6462 68.4223 78.5464C66.25 79.4466 63.9215 79.9099 61.57 79.9099Z" fill="url(#paint0_linear_29_21)"/>\n<defs>\n<linearGradient id="paint0_linear_29_21" x1="8.59" y1="74.8799" x2="109.29" y2="31.9699" gradientUnits="userSpaceOnUse">\n<stop stop-color="#53C3BD"/>\n<stop offset="0.47" stop-color="#739CD2"/>\n<stop offset="1" stop-color="#4C64AF"/>\n</linearGradient>\n</defs>\n</svg>\n<span>Loading...please wait</span></div></div>`);
     if (!$sel(".osai-preloader-css")) $html($sel("head"), "beforeend", `<style type="text/css" class="osai-preloader-css">.osai-preloader{display: flex;position: fixed; flex-direction:column;width: 101vw;height: 101vh;justify-content: center;align-items: center;background: rgba(8,11,31,0.8);left: -5px;right: -5px;top: -5px;bottom: -5px;z-index:9993}.osai-preloader__container{display: table; text-align: center;margin:0;padding:0;}.osai-preloader svg{width: 80px;padding: 1px;border-radius: 5px;animation: pulse 2s infinite linear;transition: .6s ease-in-out}.osai-preloader span{color: #fff;text-align: center;margin-top: 10px;display: block}@keyframes pulse {0% {transform: scale(0.6);opacity: 0}33% {transform: scale(1);opacity: 1}100%{transform: scale(1.4);opacity: 0}}</style>`);
-    if (act === "show") return $style($sel(".osai-preloader"), "del");
+    if (show === true || show === "show") return $style($sel(".osai-preloader"), "del");
     return $style($sel(".osai-preloader"), "display:none");
 };
 
@@ -1303,7 +1369,7 @@ const $freeze = (element, operation, attr = true) => {
     }
     if (boxToDraw === "all" || boxToDraw === "notifier" || boxToDraw === "notify") {
         if (!$in($sel(".osai-simple-notifier"))) $html($sel("body"), "beforeend", `<div class="osai-simple-notifier"><div style="display: none" class="osai-notifier__config_wrapper"></div></div>`);
-        if (!$in($sel(".osai-notifier__stylesheet"))) $html($sel("head"), "beforeend", `<style class="osai-notifier__stylesheet" rel="stylesheet" media="all">\n\t\t\t.osai-notifier{\n\t\t\t    line-height: normal;\n\t\t\t\tscroll-behavior: smooth;\n\t\t\t\tposition: fixed;\n\t\t\t\ttop: 10px;\n\t\t\t\tright: 10px;\n\t\t\t\tborder-radius: 0 10px 10px 0;\n\t\t\t\tpadding: 10px;\n\t\t\t\tfont-weight: 500;\n\t\t\t\tcolor: #000000;\n\t\t\t\tbackground-color: var(--text);\n\t\t\t\tborder-left: solid .5rem var(--bg);\n\t\t\t\tbox-shadow: 0 1px 2px rgba(0, 0, 0, .3);\n\t\t\t\tdisplay: flex;\n\t\t\t\topacity: 0;\n\t\t\t\ttransform: translate(50%, 0);\n\t\t\t\tz-index: 9993;\n\t\t\t\tmin-height: 50px;\n\t\t\t\tmin-width: 150px;\n\t\t\t\tjustify-content: center;\n\t\t\t\talign-items: center;\n                transition: ease-in-out all .5s;\n\t\t\t}\n\t\t\t.osai-notifier__dialog{\n\t\t\tpadding-left:10px;\n\t\t\t}\n\t\t\t.osai-notifier__copy{\n                border-radius: 5px;\n                padding: 8px 15px;\n                font-size: .8rem;\n                background: rgba(229,234,246,0.5);\n                transform: scale(.9);\n                margin-top: 10px;\n                display: flex;\n                gap: 10px;\n                justify-content: center;\n                align-items: center;\n                transition: all 0.55s ease-in-out;\n\t\t\t}\n\t\t\t.osai-notifier__copy:hover{\n\t\t\t    background: rgba(229,234,246,1);\n\t\t\t}\n\t\t\t.osai-notifier__display{\n\t\t\t\topacity: 1;\n\t\t\t\ttransform: translate(0,0);\n\t\t\t\tmax-width: 50vw;\n\t\t\t}\n\t\t\t.osai-notifier__display-center{\n\t\t\t\ttop: 50%; \n\t\t\t\tleft: 50%;\n                right: auto;\n\t\t\t\ttransform: translate(-50%,-50%);\n\t\t\t} @media (max-width: 767px){\n                .osai-notifier__display-center{\n                    max-width: 60vw;\n                }\n            }\n            @media (max-width: 426px){\n            \t.osai-notifier__display-center{\n                    max-width: 93vw;\n                }\n                .osai-notifier__display{\n\t\t\t\t\tmax-width: 93vw;\n\t\t\t\t}\n            }\n\t\t\t.osai-notifier__close{\n\t\t\t\tposition: absolute;\n\t\t\t\tright: 10px;\n\t\t\t\ttop: 10px;\n\t\t\t\tcursor: pointer;\n\t\t\t\topacity: .8;\n\t\t\t}\n\t\t\t.osai-notifier__close:hover{\n\t\t\t\topacity: 1;\n\t\t\t\tcolor: var(--fail);\n\t\t\t}\n\t\t\t.osai-notifier.success{\n\t\t\t\tborder-color: var(--success);\n\t\t\t}\n\t\t\t.osai-notifier.fail{\n\t\t\t\tborder-color: var(--fail);\n\t\t\t}\n\t\t\t.osai-notifier.warn{\n\t\t\t\tborder-color: var(--warn);\n\t\t\t}\n\t\t\t.osai-notifier.info{\n\t\t\t\tborder-color: var(--info);\n\t\t\t}\n\t\t\t.osai-notifier__body{\n\t\t\t\tpadding: 5px 26px 5px 36px;\n\t\t\t\tpadding-left: 0;\n\t\t\t\twidth: 100%;\n\t\t\t}\n\t\t</style>`);
+        if (!$in($sel(".osai-notifier__stylesheet"))) $html($sel("head"), "beforeend", `<style class="osai-notifier__stylesheet" rel="stylesheet" media="all">\n\t\t\t.osai-notifier{\n\t\t\t    line-height: normal;\n\t\t\t\tscroll-behavior: smooth;\n\t\t\t\tposition: fixed;\n\t\t\t\ttop: 10px;\n\t\t\t\tright: 10px;\n\t\t\t\tborder-radius: 0 10px 10px 0;\n\t\t\t\tpadding: 10px;\n\t\t\t\tfont-weight: 500;\n\t\t\t\tcolor: #000000;\n\t\t\t\tbackground-color: var(--text);\n\t\t\t\tborder-left: solid .5rem var(--bg);\n\t\t\t\tbox-shadow: 0 1px 2px rgba(0, 0, 0, .3);\n\t\t\t\tdisplay: flex;\n\t\t\t\topacity: 0;\n\t\t\t\ttransform: translate(50%, 0);\n\t\t\t\tz-index: 9993;\n\t\t\t\tmin-height: 50px;\n\t\t\t\tmin-width: 150px;\n\t\t\t\tjustify-content: center;\n\t\t\t\talign-items: center;\n                transition: ease-in-out all .5s;\n\t\t\t}\n\t\t\t.osai-notifier__dialog{\n\t\t\tpadding-left:10px;\n\t\t\t}\n\t\t\t.osai-notifier__copy{\n                border-radius: 5px;\n                padding: 8px 15px;\n                font-size: .8rem;\n                background: rgba(229,234,246,0.5);\n                transform: scale(.9);\n                margin-top: 10px;\n                display: flex;\n                gap: 10px;\n                justify-content: center;\n                align-items: center;\n                transition: all 0.55s ease-in-out;\n                border: outset;\n                color: #000000;\n\t\t\t}\n\t\t\t.osai-notifier__copy:hover{\n\t\t\t    border-color: transparent;\n\t\t\t}\n\t\t\t.osai-notifier__display{\n\t\t\t\topacity: 1;\n\t\t\t\ttransform: translate(0,0);\n\t\t\t\tmax-width: 50vw;\n\t\t\t}\n\t\t\t.osai-notifier__display-center{\n\t\t\t\ttop: 50%; \n\t\t\t\tleft: 50%;\n                right: auto;\n\t\t\t\ttransform: translate(-50%,-50%);\n\t\t\t} @media (max-width: 767px){\n                .osai-notifier__display-center{\n                    max-width: 60vw;\n                }\n            }\n            @media (max-width: 426px){\n            \t.osai-notifier__display-center{\n                    max-width: 93vw;\n                }\n                .osai-notifier__display{\n\t\t\t\t\tmax-width: 93vw;\n\t\t\t\t}\n            }\n\t\t\t.osai-notifier__close{\n\t\t\t\tposition: absolute;\n\t\t\t\tright: 10px;\n\t\t\t\ttop: 10px;\n\t\t\t\tcursor: pointer;\n\t\t\t\topacity: .8;\n\t\t\t}\n\t\t\t.osai-notifier__close:hover{\n\t\t\t\topacity: 1;\n\t\t\t\tcolor: var(--fail);\n\t\t\t}\n\t\t\t.osai-notifier.success{\n\t\t\t\tborder-color: var(--success);\n\t\t\t}\n\t\t\t.osai-notifier.fail{\n\t\t\t\tborder-color: var(--fail);\n\t\t\t}\n\t\t\t.osai-notifier.warn{\n\t\t\t\tborder-color: var(--warn);\n\t\t\t}\n\t\t\t.osai-notifier.info{\n\t\t\t\tborder-color: var(--info);\n\t\t\t}\n\t\t\t.osai-notifier__body{\n\t\t\t\tpadding: 5px 26px 5px 36px;\n\t\t\t\tpadding-left: 0;\n\t\t\t\twidth: 100%;\n\t\t\t}\n\t\t</style>`);
         let presenceSelector = ".osai-simple-notifier";
         let sideCardSelector = ".osai-notifier-entry:not(.osai-notifier__display-center)";
         const NOTIFY = (dialog, theme, options) => {
