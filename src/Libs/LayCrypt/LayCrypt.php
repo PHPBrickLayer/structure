@@ -3,6 +3,7 @@
 namespace BrickLayer\Lay\Libs\LayCrypt;
 
 use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Core\LayException;
 use BrickLayer\Lay\Libs\LayDate;
 use BrickLayer\Lay\Libs\LayFn;
 use Jose\Component\Core\AlgorithmManager;
@@ -135,7 +136,18 @@ class LayCrypt
      */
     public static function verify_jwt(string $jwt): array
     {
-        $jws = (new CompactSerializer())->unserialize($jwt);
+        $jws = null;
+
+        try {
+            $jws = (new CompactSerializer())->unserialize($jwt);
+        } catch (\Throwable $e) {
+            LayException::log("", $e);
+            return [
+                "valid" => false,
+                "message" => "Invalid token received!",
+                "data" => null,
+            ];
+        }
 
         if (!(new JWSVerifier(self::jwt_algo()))->verifyWithKey($jws, self::gen_jwk(), 0))
             return [
