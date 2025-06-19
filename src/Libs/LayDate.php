@@ -284,12 +284,19 @@ class LayDate {
         return $date2 - $date1;
     }
 
-    public static function greater(string|int $datetime_earlier, string|int $datetime_latest = "now", bool $invert = false) : bool
+    /**
+     * Check if $date2 is greater than $date1. $date2 is "now" by default
+     * @param string|int $date1
+     * @param string|int $date2
+     * @param bool $invert invert the function to check if $date2 is greater than $date1
+     * @return bool
+     */
+    public static function greater(string|int $date1, string|int $date2 = "now", bool $invert = false) : bool
     {
         if($invert)
-            return self::date($datetime_latest, figure: true) < self::date($datetime_earlier, figure: true);
+            return self::date($date2, figure: true) < self::date($date1, figure: true);
 
-        return self::date($datetime_latest, figure: true) > self::date($datetime_earlier, figure: true);
+        return self::date($date2, figure: true) > self::date($date1, figure: true);
     }
 
     public static function expired(string|int $expiry_date) : bool

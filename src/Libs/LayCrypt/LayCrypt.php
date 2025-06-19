@@ -7,8 +7,6 @@ use BrickLayer\Lay\Libs\LayDate;
 use BrickLayer\Lay\Libs\LayFn;
 use Jose\Component\Core\AlgorithmManager;
 use Jose\Component\Core\JWK;
-use Jose\Component\Core\JWKSet;
-use Jose\Component\Core\Util\Base64UrlSafe;
 use Jose\Component\KeyManagement\JWKFactory;
 use Jose\Component\Signature\Algorithm\HS256;
 use Jose\Component\Signature\JWSBuilder;
@@ -138,9 +136,8 @@ class LayCrypt
     public static function verify_jwt(string $jwt): array
     {
         $jws = (new CompactSerializer())->unserialize($jwt);
-        $key = new JWKSet([self::gen_jwk()]);
 
-        if (!(new JWSVerifier(self::jwt_algo()))->verifyWithKey($jws, $key, 0))
+        if (!(new JWSVerifier(self::jwt_algo()))->verifyWithKey($jws, self::gen_jwk(), 0))
             return [
                 "valid" => false,
                 "message" => "Invalid token!",
@@ -156,6 +153,7 @@ class LayCrypt
                 "data" => null,
             ];
 
+
         if (LayDate::expired($payload['exp']))
             return [
                 "valid" => false,
@@ -163,7 +161,7 @@ class LayCrypt
                 "data" => null,
             ];
 
-        if (LayDate::greater($payload['nbf']))
+        if (LayDate::greater($payload['nbf'], invert: true))
             return [
                 "valid" => false,
                 "message" => "Token is not yet active!",
