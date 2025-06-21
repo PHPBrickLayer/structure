@@ -3,10 +3,21 @@ declare(strict_types=1);
 namespace BrickLayer\Lay\Libs;
 
 use DateInterval;
-use DatePeriod;
 use DateTime;
 
-abstract class LayDate {
+class LayDate {
+    public int|string $result;
+
+    public function minus(string|int $date1, string|int $date2 = "now") : self
+    {
+        $this->result = self::diff($date1, $date2);
+        return $this;
+    }
+
+    public function minute() : int
+    {
+        return self::sec_2_min($this->result);
+    }
     /**
      * @param string|int|null $datetime values accepted by `strtotime` or integer equivalent of a datetime
      * @link https://php.net/manual/en/function.idate.php
@@ -149,6 +160,16 @@ abstract class LayDate {
         return self::diff($date_word, "now", true);
     }
 
+    /**
+     * Converts seconds to minutes
+     * @param int $sec
+     * @return int
+     */
+    public static function sec_2_min(int $sec) : int
+    {
+        return (int) ceil($sec/60);
+    }
+
     public static function month_total_weeks(string|int|null $date, bool $include_floating_week = true) : int
     {
         $start = new DateTime(self::date($date,'Y-m'));
@@ -244,23 +265,38 @@ abstract class LayDate {
         return $string ? implode(', ', $string) . ($append_ago ? ' ago' : '') : 'just now';
     }
 
-    public static function diff(string|int $datetime_earlier, string|int $datetime_latest = "now", bool $absolute = false) : int
+    /**
+     * ## Subtract two dates and return the value in seconds.
+     * This function subtracts `$date2` - `$date1`; $date2 = now by default
+     * @param string|int $date1
+     * @param string|int $date2
+     * @param bool $absolute when true, it makes the result unsigned or always positive
+     * @return int
+     */
+    public static function diff(string|int $date1, string|int $date2 = "now", bool $absolute = false) : int
     {
-        $datetime_earlier = self::date($datetime_earlier, figure: true);
-        $datetime_latest = self::date($datetime_latest, figure: true);
+        $date1 = self::unix($date1);
+        $date2 = self::unix($date2);
 
         if($absolute)
-            return abs($datetime_latest - $datetime_earlier);
+            return abs($date2 - $date1);
 
-        return $datetime_latest - $datetime_earlier;
+        return $date2 - $date1;
     }
 
-    public static function greater(string|int $datetime_earlier, string|int $datetime_latest = "now", bool $invert = false) : bool
+    /**
+     * Check if $date2 is greater than $date1. $date2 is "now" by default
+     * @param string|int $date1
+     * @param string|int $date2
+     * @param bool $invert invert the function to check if $date2 is greater than $date1
+     * @return bool
+     */
+    public static function greater(string|int $date1, string|int $date2 = "now", bool $invert = false) : bool
     {
         if($invert)
-            return self::date($datetime_latest, figure: true) < self::date($datetime_earlier, figure: true);
+            return self::date($date2, figure: true) < self::date($date1, figure: true);
 
-        return self::date($datetime_latest, figure: true) > self::date($datetime_earlier, figure: true);
+        return self::date($date2, figure: true) > self::date($date1, figure: true);
     }
 
     public static function expired(string|int $expiry_date) : bool

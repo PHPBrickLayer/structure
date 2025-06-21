@@ -3,11 +3,12 @@
 namespace BrickLayer\Lay\Libs\LayCrypt;
 
 use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Core\LayException;
 use BrickLayer\Lay\Libs\LayDate;
 use BrickLayer\Lay\Libs\LayFn;
 use Jose\Component\Core\AlgorithmManager;
 use Jose\Component\Core\JWK;
-use Jose\Component\Core\Util\Base64UrlSafe;
+use Jose\Component\KeyManagement\JWKFactory;
 use Jose\Component\Signature\Algorithm\HS256;
 use Jose\Component\Signature\JWSBuilder;
 use Jose\Component\Signature\JWSVerifier;
@@ -83,12 +84,15 @@ class LayCrypt
 
     private static function gen_jwk() : JWK
     {
-        $secret = hash('sha256', self::$jwt_secret ?? LayFn::env('LAY_JWT_SECRET', LayConfig::get_project_identity()), true);
-
-        return new JWK([
-            "kty" => "oct",
-            "k" => Base64UrlSafe::encodeUnpadded($secret),
-        ]);
+        return JWKFactory::createFromSecret(
+            hash(
+                'sha256',
+                self::$jwt_secret ?? LayFn::env(
+                'LAY_JWT_SECRET',
+                LayConfig::get_project_identity()
+            )
+            )
+        );
     }
 
     public static function set_jwt_secret(string $secret) : void
@@ -116,7 +120,7 @@ class LayCrypt
             (  new JWSBuilder( self::jwt_algo() )  )
                 ->create()
                 ->withPayload(json_encode($payload))
-                ->addSignature(self::gen_jwk(), ["alg" => "HS256"])
+                ->addSignature(self::gen_jwk(), ["alg" => "HS256", "typ" => "JWT"])
                 ->build(),
             0
         );
@@ -132,7 +136,18 @@ class LayCrypt
      */
     public static function verify_jwt(string $jwt): array
     {
-        $jws = (new CompactSerializer())->unserialize($jwt);
+        $jws = null;
+
+        try {
+            $jws = (new CompactSerializer())->unserialize($jwt);
+        } catch (\Throwable $e) {
+            LayException::log("", $e);
+            return [
+                "valid" => false,
+                "message" => "Invalid token received!",
+                "data" => null,
+            ];
+        }
 
         if (!(new JWSVerifier(self::jwt_algo()))->verifyWithKey($jws, self::gen_jwk(), 0))
             return [
@@ -150,6 +165,7 @@ class LayCrypt
                 "data" => null,
             ];
 
+
         if (LayDate::expired($payload['exp']))
             return [
                 "valid" => false,
@@ -157,7 +173,7 @@ class LayCrypt
                 "data" => null,
             ];
 
-        if (LayDate::greater($payload['nbf']))
+        if (LayDate::greater($payload['nbf'], invert: true))
             return [
                 "valid" => false,
                 "message" => "Token is not yet active!",

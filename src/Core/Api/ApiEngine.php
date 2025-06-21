@@ -676,7 +676,7 @@ abstract class ApiEngine {
 
     public function limit(int $requests, string $interval, ?string $key = null, string $__INTERNAL_TYPE__ = "ROUTE") : self
     {
-        if(!self::$DEBUG_DUMP_MODE && (!self::$route_found || self::$request_complete || self::$using_route_rate_limiter))
+        if(LayConfig::$ENV_IS_DEV || !self::$DEBUG_DUMP_MODE && (!self::$route_found || self::$request_complete || self::$using_route_rate_limiter))
             return $this;
 
         if($__INTERNAL_TYPE__ == "ROUTE")
