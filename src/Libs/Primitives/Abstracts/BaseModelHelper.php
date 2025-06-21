@@ -88,7 +88,7 @@ abstract class BaseModelHelper
      * @return bool
      * @abstract Must override if you want to use it
      */
-    public function is_duplicate(mixed $columns) : bool
+    public function is_duplicate(array|RequestHelper $columns) : bool
     {
         LayException::unimplemented("is_duplicate");
 
