@@ -8,11 +8,13 @@ use BrickLayer\Lay\Core\LayException;
 use BrickLayer\Lay\Libs\Primitives\Traits\IsSingleton;
 use BrickLayer\Lay\Libs\String\Enum\EscapeType;
 use BrickLayer\Lay\Libs\String\Escape;
+use BrickLayer\Lay\Orm\SQL;
 use Random\RandomException;
 
 final class Gen
 {
     use IsSingleton;
+
     private static int $recursion_index = 0;
 
     private static string $prepend;
@@ -55,7 +57,11 @@ final class Gen
     protected static function token_exists(string $table, string $column, string $value) : bool
     {
         $value = Escape::clean($value,EscapeType::STRIP_TRIM_ESCAPE, [ "strict" => true ]);
-        return LayConfig::get_orm()->open($table)->count_row($column,"$column='$value'") > 0;
+
+        return LayConfig::get_orm()
+                ->open($table)
+                ->where($column, "$value")
+        ->count() > 0;
     }
 
     /**
@@ -215,6 +221,24 @@ final class Gen
     public function letters(?string ...$remove_chars) : ?string
     {
         return $this->string(...$remove_chars);
+    }
+
+    public function slug(string $text) : string
+    {
+        self::$recursion_index++;
+
+        $table = self::$confirm_table ?? null;
+        $column = self::$confirm_column ?? null;
+
+        $slug = Escape::clean($text, EscapeType::P_URL);
+
+        if($table && $column && self::token_exists($table, $column, $text)) {
+            $rand = explode("-", SQL::new()->uuid());
+            $rand = trim(end($rand));
+            return $this->slug($text . "-" . $rand);
+        }
+
+        return $slug;
     }
 
 }
