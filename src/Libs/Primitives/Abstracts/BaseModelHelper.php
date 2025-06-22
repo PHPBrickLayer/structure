@@ -88,7 +88,7 @@ abstract class BaseModelHelper
      * @return bool
      * @abstract Must override if you want to use it
      */
-    public function is_duplicate(mixed $columns) : bool
+    public function is_duplicate(array|RequestHelper $columns) : bool
     {
         LayException::unimplemented("is_duplicate");
 
@@ -144,7 +144,7 @@ abstract class BaseModelHelper
         );
     }
 
-    private function exec_pre_run(SQL $db) : void
+    protected final function exec_pre_run(SQL $db) : void
     {
         foreach($this->pre_run as $query) {
             if(!($query instanceof Closure))

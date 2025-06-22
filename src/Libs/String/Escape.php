@@ -5,7 +5,6 @@ namespace BrickLayer\Lay\Libs\String;
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Libs\String\Enum\EscapeType;
-use JetBrains\PhpStorm\ArrayShape;
 use WeakMap;
 
 final class Escape
@@ -16,24 +15,28 @@ final class Escape
     /**
      * Escape strings, encode uris, convert words to a acceptable hyphen (-) separated set of characters
      * @param mixed $value
-     * @param EscapeType|array $type_or_combo
-     * @param array $options
+     * @param array{
+     *     special_chars?: array{
+     *         flag: int,
+     *         encoding?: string,
+     *         double_encode?: bool,
+     *     },
+     *     allowed_tags?: string|array<string>,
+     *     debug?: bool,
+     *     strict?: bool,
+     *     connect_db?: bool,
+     *     reset_esc_string?: bool,
+     *     find?: string|array<string>,
+     *     replace?: string|array<string>,
+     *     p_url_replace?: string,
+     * } $options
+     * @param EscapeType|array<int, EscapeType> $type_or_combo
      * @return mixed
      */
     public static function clean(
         mixed $value,
         EscapeType|array $type_or_combo = EscapeType::STRIP_ESCAPE,
-        #[ArrayShape([
-            "special_chars" => "array [flag(int), encoding(?string), double_encode(bool)]",
-            "allowed_tags" => "string|array[string]",
-            "debug" => "bool",
-            "strict" => "bool",
-            "connect_db" => "bool",
-            "reset_esc_string" => "bool",
-            "find" => "string|array",
-            "replace" => "string|array",
-            "p_url_replace" => "string",
-        ])] array $options = []
+        array $options = []
     ): mixed
     {
         $flags = $options['special_chars']['flag'] ?? ENT_QUOTES|ENT_SUBSTITUTE;
@@ -51,7 +54,10 @@ final class Escape
 
         if ($type_or_combo == EscapeType::P_URL && $reset_esc_string) {
             self::reset_escape_string();
-            self::add_escape_string("/", "\\", "\"", "#", "|", "^", "*", "~", "!", "$", "@", "%", "`", ';', ':', '=', '<', '>', "»", " ", "%20", "?", "'", '"', "(", ")", "[", "]", ".", ",");
+            self::add_escape_string(
+                "/", "\\", "\"", "#", "|", "^", "*", "~", "!", "$", "@", "%", "`", ';',
+                ':', '=', '<', '>', "»", " ", "%20", "?", "'", '"', "(", ")", "[", "]", ".", ","
+            );
         }
 
         $find = $options['find'] ?? self::$escape_string;
@@ -84,7 +90,7 @@ final class Escape
         if(!is_string($value) && $strict)
             self::exception(
                 "NonString",
-                "A non stringed value was received in a strict environment. In <b>strict</b> mode, only stringed values are accepted\n"
+                "A non-stringed value was received in a strict environment. In <b>strict</b> mode, only stringed values are accepted\n"
                 . "<div>Value: <span style='font-weight: bold; color: #0dcaf0'>" . print_r($value, true) . "</span></div>\n"
                 . "<div>Type: <span style='font-weight: bold; color: #0dcaf0'>" . gettype($value) . "</span></div>"
             );
@@ -101,7 +107,7 @@ final class Escape
             return $value;
 
         $map = new WeakMap();
-        $map[EscapeType::P_ESCAPE] = fn($val = null): string => LayConfig::get_orm($connect_db)->escape_string((string) $value);
+        $map[EscapeType::P_ESCAPE] = fn($val = null): string => LayConfig::get_orm($connect_db)->escape_string((string) $val ?? $value);
         $map[EscapeType::P_STRIP] = fn($val = null): string => strip_tags((string)($val ?? $value), $allowedTags);
         $map[EscapeType::P_TRIM] = fn($val = null): string => trim($val ?? $value);
         $map[EscapeType::P_SPEC_CHAR] = fn($val = null): string => htmlspecialchars($val ?? $value, $flags, $encoding, $double_encode);
@@ -139,15 +145,9 @@ final class Escape
 
         switch ($type_or_combo) {
             default:
-                if(!is_object($type_or_combo))
-                    self::exception(
-                        "InvalidEscapeType",
-                        "A invalid combo key was received: <b>" . print_r($type_or_combo, true) . "</b>"
-                    );
-
                 $type_or_combo = [$type_or_combo];
                 break;
-            case EscapeType::STRIP_TRIM_ESCAPE: // 16
+            case EscapeType::STRIP_TRIM_ESCAPE:
                 $type_or_combo = [EscapeType::P_STRIP, EscapeType::P_TRIM, EscapeType::P_ESCAPE];
                 break;
             case EscapeType::STRIP_ESCAPE:
@@ -194,9 +194,6 @@ final class Escape
         self::$escape_string = self::$stock_escape_string;
     }
 
-    /**
-     * @psalm-param '/' $escape_string
-     */
     public static function add_escape_string(string ...$escape_string): void
     {
         self::$escape_string = [...self::$escape_string, ...$escape_string];

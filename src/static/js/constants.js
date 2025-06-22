@@ -71,6 +71,7 @@ $lay.fn = {
                         name: decodeURIComponent($data(btn, "name")),
                         item: btn,
                         params: $data(btn, "params")?.split(","),
+                        parentElement: parentElement,
                         fn: () => {
                             let fn = $data(btn, "fn")?.trim()
                             if(!fn) return null
