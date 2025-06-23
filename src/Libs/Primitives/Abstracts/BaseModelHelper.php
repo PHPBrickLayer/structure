@@ -388,6 +388,62 @@ abstract class BaseModelHelper
     }
 
     /**
+     * ### Update a batch of records at once using a where clause for each update.
+     * This method uses transaction under the hood, so there's no need for you to wrap it in a transaction.
+     *
+     * @param array<int, mixed>|RequestHelper $columns
+     * @param string $where_col The column to use in our where clause. This method assumes the column value is inside the `$columns` array,
+     * and it will extract the value from the array to use properly for the statements, and remove it from the `$columns` to avoid conflict.
+     * @param string|null $key_in_columns An alias to the `$where_col` in case the key name in the `$column` is different from the db column name
+     * @param callable|null $fun A function that should run on every entry
+     * @return bool
+     */
+    public function edit_batch(array|RequestHelper $columns, string $where_col, ?string $key_in_columns = null, ?callable $fun = null) : bool
+    {
+        $columns = $this->req_2_array($columns);
+
+        $db = static::db();
+
+        $this->resolve_conflict($db);
+
+        if($this->debug_mode)
+            $db->debug();
+
+        $this->exec_pre_run($db);
+
+        $timestamp = $this->timestamp();
+        $created_by = $this->created_by();
+
+        $actual_cols = [];
+        $cal_ids = [];
+
+        foreach ($columns as $prop) {
+            $key = $key_in_columns ?? $where_col;
+
+            $cal_ids[] = $prop[$key];
+            unset($prop[$key]);
+            $actual_cols[] = $prop;
+        }
+
+        $db->where_agr($where_col, $cal_ids);
+
+        return $db->fun(function ($columns) use ($timestamp, $created_by, $fun) {
+            if($this->enable_created_by)
+                $columns[static::$primary_updated_by_col] ??= $created_by;
+
+            $columns[static::$primary_updated_at_col] ??= $timestamp;
+
+            foreach ($columns as $key => $val) {
+                if (is_array($val)) $columns[$key] = json_encode($val);
+            }
+
+            if($fun) return $fun($columns);
+
+            return $columns;
+        })->no_false()->edit_multi($actual_cols);
+    }
+
+    /**
      * Edit the db record of a specified record entry
      * @param string $record_id
      * @param array<string, string|null|bool>|RequestHelper $columns

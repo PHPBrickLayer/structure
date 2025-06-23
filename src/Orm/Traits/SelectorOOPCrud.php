@@ -9,6 +9,7 @@ use BrickLayer\Lay\Libs\String\Escape;
 use BrickLayer\Lay\Orm\Enums\OrmDriver;
 use BrickLayer\Lay\Orm\Enums\OrmQueryType;
 use BrickLayer\Lay\Orm\Enums\OrmReturnType;
+use BrickLayer\Lay\Orm\SQL;
 use Exception;
 use Generator;
 
@@ -341,6 +342,72 @@ trait SelectorOOPCrud
             [$this->query($query, $d) ?? false, $d],
             'bool',
         );
+    }
+
+    final public function edit_multi(array $multi_column_and_values) : bool
+    {
+        $d = $this->get_vars();
+        $table = $d['table'] ?? null;
+
+        if (empty($table))
+            $this->oop_exception("You did not initialize the `table`. Use the `->table(String)` method like this: `->value('your_table_name')`");
+
+        return SQL::new()::scoped_transaction(function () use ($multi_column_and_values, $d, $table) {
+            $clause_agr = $d['clause_agr'];
+            $fun = $d['fun'] ?? null;
+
+            $table = self::escape_identifier($table);
+
+            $treat_value = function ($val) {
+                $val = Escape::clean($val, EscapeType::TRIM_ESCAPE);
+
+                if($val === null) return "NULL";
+
+                // If value is not a function like uuid(), timestamp(), etc; enclose it quotes
+                if (!preg_match("/^[a-zA-Z]+\([^)]*\)$/", $val))
+                    $val = "'$val'";
+
+                return "$val";
+            };
+
+            foreach ($multi_column_and_values as $index => $entry) {
+                $values = "";
+
+                if($fun) $entry = $fun($entry);
+
+                foreach ($entry as $col => $val) {
+                    $col = self::escape_identifier($col);
+
+                    $values .= " $col=" . $treat_value($val) . ",";
+                }
+
+                $clause = "";
+
+                foreach ($clause_agr as $clu) {
+                    $c = $clu;
+
+                    $clause .= $c['prepend'] . " " . self::escape_identifier($c['column']) . " " . $c['operator'] . " " . $treat_value($c['values'][$index]) . " ";
+                }
+
+                $values = rtrim($values, ",");
+
+                $success = $this->capture_result(
+                    [$this->query(/** @lang text */ "UPDATE $table SET $values $clause", $d), $d],
+                    'bool'
+                );
+
+                if(!$success) return [
+                    'status' => "error",
+                    "message" => "Update was not done due to an unknown error"
+                ];
+
+            }
+
+            return [
+                "status" => "success",
+                "data" => true
+            ];
+        })['data'];
     }
 
     final public function edit(): bool
