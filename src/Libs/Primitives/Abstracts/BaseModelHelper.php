@@ -165,7 +165,7 @@ abstract class BaseModelHelper
      * @param bool $resolve_conflict
      * @return static
      */
-    public function add(mixed $columns, bool $resolve_conflict = false) : static
+    public function add(array|RequestHelper $columns, bool $resolve_conflict = false) : static
     {
         $columns = $this->req_2_array($columns);
 
@@ -267,6 +267,29 @@ abstract class BaseModelHelper
         $this->exec_pre_run($db);
 
         return $db->count();
+    }
+
+    public function one_item(bool $first = true) : static
+    {
+        $db = static::db();
+
+        if(static::$use_delete)
+            $db->where(static::$table . "." . static::$primary_delete_col, '0');
+
+        if($this->debug_mode)
+            $db->debug_full();
+
+        if($first)
+            $db->sort(static::$primary_key_col, "asc");
+        else
+            $db->sort(static::$primary_key_col, "desc");
+
+        $this->exec_pre_run($db);
+
+        if($res = $db->assoc()->select())
+            return $this->fill($res);
+
+        return $this;
     }
 
     public function get_by(string $field, string $value_or_operator, ?string $value = null) : static
