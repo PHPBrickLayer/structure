@@ -11,6 +11,7 @@ abstract  class DomainResource
 {
     private static object $resource;
     private static object $plaster;
+    private static ViewCast $plaster_instance;
 
     private static function domain () : object
     {
@@ -66,6 +67,16 @@ abstract  class DomainResource
             $obj = (object) array_merge((array) $obj, (array) self::$resource);
 
         self::$resource = $obj;
+    }
+
+    public static function set_plaster_instance(ViewCast $cast) : void
+    {
+        self::$plaster_instance = $cast;
+    }
+
+    public static function plaster_instance() : ViewCast
+    {
+        return self::$plaster_instance;
     }
 
     public static function set_res(string $key, mixed $value) : void
