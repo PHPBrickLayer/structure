@@ -2,6 +2,7 @@
 
 namespace BrickLayer\Lay\Core\Api;
 
+use BrickLayer\Lay\Core\Api\Enums\ApiStatus;
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\LayException;
 use BrickLayer\Lay\Libs\LayFn;
@@ -43,12 +44,27 @@ abstract class ApiHooks extends ApiEngine
 
     protected function post_init() : void {}
 
+    protected function security() : bool
+    {
+        if(LayConfig::is_bot()) {
+            self::set_response_header(ApiStatus::NOT_ACCEPTABLE);
+            return false;
+        }
+
+        return true;
+    }
+
     final public function init() : void
     {
         if(str_starts_with(static::class, "Bricks\\"))
             LayException::throw("You cannot use this method in this class. This method is reserved for the Apex Api Plaster only, not " . static::class);
 
         $this->pre_init();
+
+        if(!$this->security()) {
+            self::end($this->print_end_result);
+            return;
+        }
 
         if($this->pre_connect)
             LayConfig::connect();

@@ -144,7 +144,7 @@ abstract class BaseModelHelper
         );
     }
 
-    protected final function exec_pre_run(SQL $db) : void
+    private function exec_pre_run(SQL $db) : void
     {
         foreach($this->pre_run as $query) {
             if(!($query instanceof Closure))
