@@ -1289,7 +1289,7 @@ abstract class ApiEngine {
             $uris = "<div>" . PHP_EOL;
             $uris .= "<span style='color: #0dcaf0'>URI:</span> " . $reg_uri['route'] . "<br>" . PHP_EOL;
             $uris .= "<span style='color: #0dcaf0'>URI_NAME:</span> " . ($reg_uri['route_name'] ?: '-') . "<br>" . PHP_EOL;
-            $uris .= "<span style='color: #0dcaf0'>RESPONSE_TYPE:</span> " . $reg_uri['return_type']->name . "<br>" . PHP_EOL;
+            $uris .= "<span style='color: #0dcaf0'>RESPONSE_TYPE:</span> " . $reg_uri['return_type'] . "<br>" . PHP_EOL;
             $uris .= "</div>" . PHP_EOL;
         }
 
