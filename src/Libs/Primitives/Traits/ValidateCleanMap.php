@@ -76,6 +76,8 @@ use Exception;
  *     alias?: string,
  *     db_col?: string,
  *
+ *     default_value?: string, // This is a value VCM should assign to a non-required field if it's empty
+ *
  *     // This modifies the default error message when a required field is not filled
  *     required_message?: string,
  *
@@ -547,11 +549,15 @@ trait ValidateCleanMap {
         $is_required = $options['required'] ?? static::$_required ?? true;
         $field = str_replace("[]", "", $options['field'] ?? $options['name']);
         $value = $this->__get_field($field);
+        $default_value = $options['default_value'] ?? null;
         $validator = $options['validator'] ?? [$this, "__validate"];
         $group_result = static::$_group_result ?? false;
         $options['array_index'] = 0;
 
         $options['field_name'] = str_replace(["_", "-"], " ", $options['field_name'] ?? $field);
+
+        if(!$is_required && empty($value) && $default_value)
+            $value = $default_value;
 
         if(isset($options['before_validate']))
             $value = $options['before_validate']($value, $options);
