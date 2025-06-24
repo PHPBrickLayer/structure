@@ -194,7 +194,7 @@ final class LayFn
             $code = $code->value;
 
         self::$prev_http_code = $code;
-        return http_response_code($code);
+        return @http_response_code($code);
     }
 
     /**
