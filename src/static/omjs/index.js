@@ -55,15 +55,15 @@ const $sel = (elementSelector, parent = $doc) => $sela(elementSelector, parent)[
 
 const $id = (elementSelector, parent = $doc) => $sela("#" + elementSelector, parent)[0];
 
-const $name = (elementName, parent = $doc) => {
+const $name = (fieldName, parent = $doc) => {
     try {
-        return parent.getElementsByName(elementName);
+        return parent.getElementsByName(fieldName);
     } catch (e) {
         $omjsError("$name", e, true);
     }
 };
 
-const $nam = (elementName, parent = $doc) => $name(elementName, parent)[0];
+const $field = (fieldName, parent = $doc) => $name(fieldName, parent)[0];
 
 const $on = (element, event, listener, ...options) => {
     element = $omjsElSub(element, "$on");
@@ -686,13 +686,16 @@ const $cookie = (name = "*", value = null, expire = null, path = "/", domain = "
     };
     let validateField = field => {
         if (!validate) return;
-        if (field.required && field.value.trim() === "" || field.value === undefined || field.value === null) return failCheck(field, errorMessage);
+        if (field.value.trim() === "" || field.value === undefined || field.value === null) {
+            if (field.required) return failCheck(field, errorMessage);
+            return;
+        }
         if (field.type === "email" && !$check(field.value, "mail")) return failCheck(field, "Invalid email format, should be like: <b>name@example.com</b>");
         if (field.required && (field.type === "radio" || field.type === "checkbox") && !$data(field, "osai-tested")) {
             let marked = 0;
-            $name(field.name).forEach((radio => {
+            $name(field.name).$loop((radio => {
                 $data(radio, "osai-tested", "true");
-                if (marked === 1) return;
+                if (marked === 1) return "continue";
                 if (radio.checked) marked = 1;
             }));
             if (marked === 0) return failCheck(field, "Please select the required number of options from the required checklist");
