@@ -17,6 +17,14 @@ abstract class ApiHooks extends ApiEngine
 
     public readonly ApiEngine $engine;
 
+    protected static bool $is_mocking = false;
+
+    private static function is_not_apex() : void
+    {
+        if(str_starts_with(static::class, "Bricks\\"))
+            LayException::throw("You cannot use this method in this class. This method is reserved for the Apex Api Plaster only");
+    }
+
     final public function __construct(
         protected bool $prefetch = true,
         protected bool $print_end_result = true,
@@ -31,30 +39,15 @@ abstract class ApiHooks extends ApiEngine
         }
     }
 
-    final public function print_result(bool $option) : void
-    {
-        $this->print_end_result = $option;
-    }
-
-
-    protected static bool $is_mocking = false;
-
-    final public function prefetch(bool $option) : void
-    {
-        $this->prefetch = $option;
-    }
-
-    final public function preconnect(bool $option) : void
-    {
-        $this->pre_connect = $option;
-    }
-
     protected function pre_init() : void {}
 
     protected function post_init() : void {}
 
     final public function init() : void
     {
+        if(str_starts_with(static::class, "Bricks\\"))
+            LayException::throw("You cannot use this method in this class. This method is reserved for the Apex Api Plaster only, not " . static::class);
+
         $this->pre_init();
 
         if($this->pre_connect)
@@ -70,13 +63,20 @@ abstract class ApiHooks extends ApiEngine
         self::end($this->print_end_result);
     }
 
-    public function pre_hook() : void {}
+    abstract protected function hooks() : void;
 
-    public function post_hook() : void {}
+    protected function pre_hook() : void {}
 
-    public function hooks() : void
+    protected function post_hook() : void {}
+
+    public final function exec_hooks() : void
     {
-        $this->load_brick_hooks();
+        if(!str_starts_with(static::class, "Bricks\\"))
+            LayException::throw("You can only use this method in a Brick Hook class, not: " . static::class);
+
+        $this->pre_hook();
+        $this->hooks();
+        $this->post_hook();
     }
 
     /**
@@ -184,9 +184,10 @@ abstract class ApiHooks extends ApiEngine
                 try {
                     self::__indexing_routes();
 
-                    $brick->pre_hook();
-                    $brick->hooks();
-                    $brick->post_hook();
+                    /**
+                     * @var self $brick
+                     */
+                    $brick->exec_hooks();
 
                     $d = $brick->__indexed_routes();
 
@@ -204,8 +205,17 @@ abstract class ApiHooks extends ApiEngine
         }, $invalidate);
     }
 
-    final public function load_brick_hooks(string ...$class_to_ignore) : void
+    /**
+     * This method is ONLY used by the Apex Api Plaster, and should not be called by Bricks Hooks, it will throw an error
+     * @param string ...$class_to_ignore
+     * @return void
+     * @throws \Exception
+     */
+    final protected function load_brick_hooks(string ...$class_to_ignore) : void
     {
+        if(str_starts_with(static::class, "Bricks\\"))
+            LayException::throw("You cannot use this method in this class. This method is reserved for the Apex Api Plaster only");
+
         $hooks = $this->cache_hooks(false, ...$class_to_ignore);
 
         if(self::$is_mocking)
@@ -221,9 +231,10 @@ abstract class ApiHooks extends ApiEngine
         try {
             $hook_class = new $hook_class['hook']();
 
-            $hook_class->pre_hook();
-            $hook_class->hooks();
-            $hook_class->post_hook();
+            /**
+             * @var self $hook_class
+             */
+            $hook_class->exec_hooks();
         } catch (\Throwable $e) {
             if(is_object($hook_class))
                 $hook_class = $hook_class::class;
@@ -235,6 +246,10 @@ abstract class ApiHooks extends ApiEngine
         }
     }
 
+    /**
+     * @deprecated IF I used you somewhere, then explain with comments, because I don't see the point of this method
+     * @return void
+     */
     final public function invalidate_hooks() : void
     {
         self::$is_mocking = true;
@@ -243,7 +258,7 @@ abstract class ApiHooks extends ApiEngine
         self::fetch(mock: true);
 
         // Run same conditions as a regular Api plaster and invalidate cache
-        $this->hooks();
+        $this->exec_hooks();
     }
 
     final public function get_all_endpoints() : ?array
@@ -278,10 +293,11 @@ abstract class ApiHooks extends ApiEngine
                 LayException::throw("", "$brick::ApiError", $e);
             }
 
+            /**
+             * @var self $brick
+             */
             try {
-                $brick->pre_hook();
-                $brick->hooks();
-                $brick->post_hook();
+                $brick->exec_hooks();
             } catch (\Throwable $e) {
                 LayException::throw("", $brick::class . "::RouteIndexingError", $e);
             }

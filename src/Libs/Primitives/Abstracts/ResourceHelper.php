@@ -85,12 +85,16 @@ abstract class ResourceHelper
      * @param array<int, array<string, mixed>> $data
      * @param array<string> $except
      * @param null|callable $callback The result of this callback is returned rather than the props of the collection when used
-     * @return array<int|string, array<string, mixed>>
+     * @param bool $as_array true by default. Instructs the collection to be returned as an array of arrays or array of resources
+     * @return array<int, self|array<string, mixed>>
      */
-    public static final function collect(array $data, array $except = [], ?callable $callback = null): array
+    public static final function collect(array $data, array $except = [], ?callable $callback = null, bool $as_array = true): array
     {
-        return LayArray::map($data, function($d) use ($except, $callback) {
-            $data = (new static($d, false))->except(...$except)->props();
+        return LayArray::map($data, function($d) use ($except, $callback, $as_array) {
+            $data = (new static($d, false))->except(...$except);
+
+            if($as_array)
+                $data = $data->props();
 
             if($callback)
                 return $callback($data);

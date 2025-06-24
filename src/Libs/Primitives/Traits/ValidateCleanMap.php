@@ -549,6 +549,7 @@ trait ValidateCleanMap {
         $value = $this->__get_field($field);
         $validator = $options['validator'] ?? [$this, "__validate"];
         $group_result = static::$_group_result ?? false;
+        $options['array_index'] = 0;
 
         $options['field_name'] = str_replace(["_", "-"], " ", $options['field_name'] ?? $field);
 

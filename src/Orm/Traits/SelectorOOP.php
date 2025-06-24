@@ -86,6 +86,16 @@ trait SelectorOOP
             "$column $operator_or_value '$value'";
     }
 
+    final public function where_agr(string $column, string|array $operator_or_value, ?array $agr_values = null): self
+    {
+        if(is_array($operator_or_value)) {
+            $agr_values = $operator_or_value;
+            $operator_or_value = "=";
+        }
+
+        return $this->clause_agr("WHERE", $column, $operator_or_value, $agr_values);
+    }
+
     final public function where(string $column, ?string $operator_or_value = null, ?string $value = null): self
     {
         $WHERE = $this->process_condition_stmt($column,$operator_or_value,$value);
@@ -162,6 +172,20 @@ trait SelectorOOP
     final public function clause(string $clause): self
     {
         return $this->store_vars('clause', $clause);
+    }
+
+    private function clause_agr(string $prepend, string $column, string $operator, array $values): self
+    {
+        $clause_arr = $this->cached_options[self::$current_index]['clause_agr'] ?? [];
+
+        $clause_arr[] = [
+            "prepend" => $prepend,
+            "column" => $column,
+            "operator" => $operator,
+            "values" => $values
+        ];
+
+        return $this->store_vars('clause_agr', $clause_arr);
     }
 
     private function clause_array(string $clause): self
