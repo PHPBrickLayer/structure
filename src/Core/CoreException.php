@@ -621,7 +621,9 @@ final class CoreException
             if(!$this->throw_as_json)
                 LayFn::header("Content-Type: text/html");
 
-            if(Events::$is_streaming) (new Events())->__exception();
+            if(Events::$is_streaming && LayConfig::get_mode() !== LayMode::CLI) {
+                (new Events())->__exception();
+            }
             else echo $act['error'];
         }
 

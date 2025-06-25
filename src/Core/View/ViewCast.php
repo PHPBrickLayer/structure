@@ -22,7 +22,7 @@ abstract class ViewCast extends ViewBuilder
         $this->end();
     }
 
-    public function init_pages(): void
+    protected function init_pages(): void
     {
         $this->init_start()
             ->page("cache", null)
@@ -30,7 +30,7 @@ abstract class ViewCast extends ViewBuilder
         $this->init_end();
     }
 
-    public function pages(): void
+    protected function pages(): void
     {
         $this->route("index")->bind(function (ViewCast $builder) {
             $this->page("title", "Default Lay Page")
@@ -45,7 +45,7 @@ abstract class ViewCast extends ViewBuilder
      * It can be used as a 404 error page
      * @return void
      */
-    public function default(): void
+    protected function default(): void
     {
         $this->route($this->builder::DEFAULT_ROUTE)->bind(function (ViewCast $builder) {
             LayFn::http_response_code(404, true);

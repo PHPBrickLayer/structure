@@ -144,7 +144,17 @@ abstract class BaseModelHelper
         );
     }
 
-    private function exec_pre_run(SQL $db) : void
+    /**
+     * ## Execute every cached pre_run actions
+     *
+     * This method is protected and not private because we want to give access to implementors to plug the pre_run
+     * so their methods can feel native
+     *
+     * @param SQL $db
+     * @return void
+     * @throws \Exception
+     */
+    protected final function exec_pre_run(SQL $db) : void
     {
         foreach($this->pre_run as $query) {
             if(!($query instanceof Closure))

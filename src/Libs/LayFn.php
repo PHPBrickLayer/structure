@@ -180,10 +180,12 @@ final class LayFn
 
     private static int $prev_http_code;
 
-    public static function http_response_code(ApiStatus|int $code = 0, bool $overwrite = false) : int|bool
+    public static function http_response_code(ApiStatus|int $code = 0, bool $overwrite = false) : int|false
     {
-        if(headers_sent($file, $line))
+        if(headers_sent($file, $line)) {
             LayException::log("Headers sent already in file [$file] line [$line]");
+            return false;
+        }
 
         if(!$overwrite) {
             self::$prev_http_code ??= http_response_code();

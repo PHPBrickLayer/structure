@@ -1137,7 +1137,11 @@ abstract class ApiEngine {
             if(is_array(self::$bind_return_value))
                 $code = self::$bind_return_value['code'] ?? 0;
 
-            self::set_response_header(LayFn::http_response_code($code, true), $return_type, "Ok");
+            $code = LayFn::http_response_code($code, true);
+
+            if($code !== false)
+                self::set_response_header($code, $return_type, "Ok");
+
             print_r($x);
             die;
         }
@@ -1289,7 +1293,7 @@ abstract class ApiEngine {
             $uris = "<div>" . PHP_EOL;
             $uris .= "<span style='color: #0dcaf0'>URI:</span> " . $reg_uri['route'] . "<br>" . PHP_EOL;
             $uris .= "<span style='color: #0dcaf0'>URI_NAME:</span> " . ($reg_uri['route_name'] ?: '-') . "<br>" . PHP_EOL;
-            $uris .= "<span style='color: #0dcaf0'>RESPONSE_TYPE:</span> " . $reg_uri['return_type']->name . "<br>" . PHP_EOL;
+            $uris .= "<span style='color: #0dcaf0'>RESPONSE_TYPE:</span> " . $reg_uri['return_type'] . "<br>" . PHP_EOL;
             $uris .= "</div>" . PHP_EOL;
         }
 

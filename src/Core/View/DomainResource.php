@@ -2,6 +2,7 @@
 
 namespace BrickLayer\Lay\Core\View;
 
+use BrickLayer\Lay\Core\Api\ApiHooks;
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\View\Enums\DomainType;
@@ -11,6 +12,7 @@ abstract  class DomainResource
 {
     private static object $resource;
     private static object $plaster;
+    private static ViewCast|ApiHooks $plaster_instance;
 
     private static function domain () : object
     {
@@ -66,6 +68,16 @@ abstract  class DomainResource
             $obj = (object) array_merge((array) $obj, (array) self::$resource);
 
         self::$resource = $obj;
+    }
+
+    public static function set_plaster_instance(ViewCast|ApiHooks $cast) : void
+    {
+        self::$plaster_instance = $cast;
+    }
+
+    public static function plaster_instance() : ViewCast|ApiHooks
+    {
+        return self::$plaster_instance;
     }
 
     public static function set_res(string $key, mixed $value) : void

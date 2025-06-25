@@ -255,6 +255,8 @@ final class Domain {
             );
         }
 
+        DomainResource::set_plaster_instance($builder);
+
         $builder->init();
     }
 

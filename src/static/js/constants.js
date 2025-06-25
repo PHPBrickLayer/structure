@@ -48,7 +48,7 @@ $lay.fn = {
      * @example [...].tableAction({delete: ({id,name}) => [id,name,...]})
      */
     rowEntryAction: (actionsObject) => {
-        $on((actionsObject.targetElement ?? $sel("table.has-table-action") ?? $sel("table.data-table") ?? $sel("table.dt-live-dom")),"click", e =>{
+        $on((actionsObject.targetElement ?? $sel(".table-action")?.closest("table") ?? $sel("table.has-table-action") ?? $sel("table.data-table") ?? $sel("table.dt-live-dom")),"click", e =>{
             if(actionsObject.then)
                 actionsObject.then()
 
