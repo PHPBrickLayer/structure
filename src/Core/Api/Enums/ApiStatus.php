@@ -97,7 +97,7 @@ enum ApiStatus : int
         return $code == $value->value;
     }
 
-    public function respond(bool $overwrite = true) : bool|int
+    public function respond(bool $overwrite = true) : false|int
     {
         return LayFn::http_response_code($this->value, $overwrite);
     }

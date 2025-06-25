@@ -1137,7 +1137,11 @@ abstract class ApiEngine {
             if(is_array(self::$bind_return_value))
                 $code = self::$bind_return_value['code'] ?? 0;
 
-            self::set_response_header(LayFn::http_response_code($code, true), $return_type, "Ok");
+            $code = LayFn::http_response_code($code, true);
+
+            if($code !== false)
+                self::set_response_header($code, $return_type, "Ok");
+
             print_r($x);
             die;
         }

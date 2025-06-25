@@ -565,6 +565,8 @@ trait ValidateCleanMap {
 
         if (is_array($value)) {
             foreach ($value as $index => $val) {
+                $options['array_index'] = $index;
+
                 $x = $validator(
                     $field, $val,
                     $is_required, $options
@@ -582,8 +584,6 @@ trait ValidateCleanMap {
                 // name[], name[];  or design[][], design[][]
                 // age[], age[];    or time[][], time[][]
                 if($group_result) {
-                    $options['array_index'] = $index;
-
                     if(isset($options['before_clean']))
                         $value[$index] = $options['before_clean']($value[$index], $options);
 
