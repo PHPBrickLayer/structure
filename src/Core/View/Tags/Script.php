@@ -9,11 +9,6 @@ use BrickLayer\Lay\Libs\Primitives\Enums\LayLoop;
 
 final class Script
 {
-    private const ATTRIBUTES = [
-        "defer" => "true",
-        "type" => "text/javascript",
-    ];
-
     use Standard;
 
     private bool $prepend_domain_on_src = true;

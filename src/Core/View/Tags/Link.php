@@ -11,18 +11,13 @@ final class Link
 {
     use Standard;
 
-    private const ATTRIBUTES = [
-        "rel" => "stylesheet",
-        "media" => "all",
-        "type" => "text/css",
-    ];
     private bool $rel_set = false;
     private bool $prepend_domain_on_src = true;
 
     public static function clear(): void
     {
         self::$me->rel_set = false;
-        self::$me->attr = self::ATTRIBUTES ?? [];
+        self::$me->attr = [];
     }
 
     public function media(string $media): self
