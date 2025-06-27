@@ -49,13 +49,17 @@ final class Img {
     {
         $src = ViewSrc::gen($src, $this->prepend_domain_on_src);
         $lazy_load = $lazy_load ? 'lazy' : 'eager';
-        $alt = "Image " . rand(0, 100);
+
+        $alt = null;
+
         $attr = $this->get_attr(function($v, $k) use (&$alt) {
             if($k == "alt") {
                 $alt = $v;
                 return LayLoop::CONTINUE;
             }
         });
+
+        $alt ??= substr($src, strrpos($src, "/") + 1);
 
         return <<<LNK
             <img src="$src" loading="$lazy_load" $attr alt="$alt">
