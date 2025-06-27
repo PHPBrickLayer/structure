@@ -38,7 +38,7 @@ final class ViewEngine {
     private static array $head_styles;
 
     public static function constants(array $const) : void {
-        $route = ViewBuilder::new()->request('route');
+        $route = DomainResource::get()->domain->route;
         $url = DomainResource::get()->domain->domain_uri . ($route == "index" ? "" : $route);
 
         self::$constant_attributes = [
