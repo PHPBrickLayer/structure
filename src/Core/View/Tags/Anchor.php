@@ -61,7 +61,7 @@ final class Anchor {
         }
 
         if(str_starts_with($link, "#"))
-            $link = ViewBuilder::new()->request("route") . $link;
+            $link = DomainResource::get()->domain->route . $link;
 
         $this->link = $base_full . $link;
 

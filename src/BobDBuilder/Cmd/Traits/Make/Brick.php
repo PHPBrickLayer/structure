@@ -88,7 +88,7 @@ trait Brick
                 // In as much as this is an ApiHooks class, it is also a normal class,
                 // So every normal class rule applies to it.
             
-                public function hooks(): void
+                protected function hooks(): void
                 {
                     // All hooks placed here are added to the general hooks of the project
                     // You don't have to do anything extra.

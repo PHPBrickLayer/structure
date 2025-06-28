@@ -10,7 +10,6 @@ use BrickLayer\Lay\Core\LayException;
 use BrickLayer\Lay\Core\View\Enums\DomainType;
 use BrickLayer\Lay\Core\View\Tags\Anchor;
 use BrickLayer\Lay\Libs\LayArray;
-use BrickLayer\Lay\Libs\Primitives\Traits\IsSingleton;
 use Closure;
 use JetBrains\PhpStorm\ExpectedValues;
 use JetBrains\PhpStorm\NoReturn;
@@ -20,8 +19,6 @@ use JetBrains\PhpStorm\NoReturn;
  */
 class ViewBuilder
 {
-    use IsSingleton;
-
     const DEFAULT_ROUTE = "*";
 
     private  const route_storage_key = "__LAY_VIEWS__";

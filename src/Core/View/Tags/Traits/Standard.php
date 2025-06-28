@@ -22,7 +22,7 @@ trait Standard {
     }
 
     public static function clear() : void {
-        self::$me->attr = self::ATTRIBUTES ?? [];
+        self::$me->attr = [];
     }
 
     /**
