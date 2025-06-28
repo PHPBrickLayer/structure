@@ -263,7 +263,13 @@ abstract class ApiHooks extends ApiEngine
     }
 
     /**
-     * @deprecated IF I used you somewhere, then explain with comments, because I don't see the point of this method
+     * This method is used by GitAutoDeploy for invalidating the cached hooks whenever there is a new deployment,
+     * so that the app will have the latest hooks for consumption.
+     *
+     * It is a very important method that should never be deleted!
+     *
+     * The GitAutoDeploy calls this method from the primary Api Plaster class and ensures all measures set in the class
+     * are fulfilled then caching the routes for later consumption
      * @return void
      */
     final public function invalidate_hooks() : void
