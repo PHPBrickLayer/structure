@@ -97,7 +97,7 @@ trait ControllerHelper {
      *    data: array|null
      * }
      */
-    public static function res_success(string $message = "Successful", array|null|ResourceHelper $data = null, ApiStatus|int $code = ApiStatus::OK, bool $send_header = false) : array
+    public static function res_success(string $message = "Successful", array|null|ResourceHelper $data = null, ApiStatus|int $code = ApiStatus::OK, bool $send_header = false, array $meta = []) : array
     {
         $data = [
             "status" => "success",
