@@ -99,11 +99,18 @@ trait ControllerHelper {
      */
     public static function res_success(string $message = "Successful", array|null|ResourceHelper $data = null, ApiStatus|int $code = ApiStatus::OK, bool $send_header = false) : array
     {
-        return self::__res_send([
+        $data = [
             "status" => "success",
             "message" => $message,
             "data" => $data instanceOf ResourceHelper ? $data->props() : $data,
-        ], $code, $send_header);
+        ];
+
+        // Add meta information
+        if ( ! empty($meta)) {
+            $data = array_merge($data, $meta);
+        }
+
+        return self::__res_send($data, $code, $send_header);
     }
 
     /**
