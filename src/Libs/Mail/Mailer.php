@@ -6,6 +6,7 @@ use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\LayException;
 use BrickLayer\Lay\Libs\Dir\LayDir;
 use BrickLayer\Lay\Libs\LayDate;
+use BrickLayer\Lay\Libs\LayFn;
 use JetBrains\PhpStorm\ArrayShape;
 use JetBrains\PhpStorm\ExpectedValues;
 use PHPMailer\PHPMailer\Exception;
@@ -94,11 +95,8 @@ class Mailer {
 
     /**
      * @throws Exception
-     * @throws \Exception
      *
-     * @return (mixed|null)[]
-     *
-     * @psalm-return array{to: mixed|null, name: mixed|null}
+     * @return array{to: mixed|null, name: mixed|null}
      */
     private function start_process() : array
     {
@@ -221,17 +219,19 @@ class Mailer {
         return self::$credentials;
     }
 
-    final public static function set_credentials(
-        #[ArrayShape([
-            "host" => 'string',
-            "port" => 'string',
-            "protocol" => 'string',
-            "username" => 'string',
-            "password" => 'string',
-            "default_sender_name" => 'string',
-            "default_sender_email" => 'string',
-        ])] ?array $details = null
-    ) : array {
+    /**
+     * @param null|array{
+     *     host: string,
+     *     port: string,
+     *     protocol: string,
+     *     username: string,
+     *     password: string,
+     *     default_sender_name: string,
+     *     default_sender_email: string,
+     * } $details
+     */
+    final public static function set_credentials(?array $details = null) : array
+    {
         $details ??= [
             "host" => $_ENV['SMTP_HOST'] ?? 'localhost',
             "port" => $_ENV['SMTP_PORT'] ?? 587,
@@ -481,7 +481,9 @@ class Mailer {
         try {
             $this->connect_smtp();
 
-            if(LayConfig::$ENV_IS_PROD || $this->send_on_dev_env) {
+            $send_on_dev = LayFn::env('SMTP_SEND_ON_DEV', $this->send_on_dev_env);
+
+            if(LayConfig::$ENV_IS_PROD || $send_on_dev) {
                 $send = self::$mail_link->send();
                 $this->dump_log($send);
                 return $send;

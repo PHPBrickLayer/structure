@@ -21,7 +21,6 @@ final class MailerQueueHandler {
 
     protected static function table_creation_query() : void
     {
-
         self::orm()->query(
             "CREATE TABLE IF NOT EXISTS " . self::$table . " (
                 id char(36) NOT NULL PRIMARY KEY,
@@ -97,10 +96,9 @@ final class MailerQueueHandler {
         return (bool) self::orm(self::$table)
             ->where("deleted", "0")
             ->wrap("AND",
-                function (SQL $db){
-                    return $db->where("status",  MailerStatus::QUEUED->name)
-                        ->or_where("status", MailerStatus::RETRY->name);
-                },
+                fn (SQL $db) => $db
+                    ->where("status",  MailerStatus::QUEUED->name)
+                    ->or_where("status", MailerStatus::RETRY->name),
             )
             ->count();
     }
@@ -123,7 +121,8 @@ final class MailerQueueHandler {
             $cols['time_sent'] = LayDate::date();
 
         return self::orm(self::$table)
-            ->where("id='$id' AND deleted=0")
+            ->where("id","$id")
+            ->and_where("deleted", "0")
             ->column($cols)
             ->edit();
     }
@@ -136,11 +135,12 @@ final class MailerQueueHandler {
     public function want_to_retry(string $id, int $retries) : bool
     {
         return self::orm(self::$table)
-            ->where("id='$id' AND deleted=0")
             ->column([
                 "status" => MailerStatus::SENDING->name,
                 "retries" => $retries + 1
             ])
+            ->where("id", "$id")
+            ->and_where("deleted", "0")
             ->edit();
     }
 
