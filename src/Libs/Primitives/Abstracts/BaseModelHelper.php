@@ -52,7 +52,7 @@ abstract class BaseModelHelper
         return $this->pre_run(
             function(SQL $db) use ($each) {
                 $db->each(
-                    fn($data): array => $each($this->fill($data))
+                    fn($data): mixed => $each($this->fill($data))
                 );
             }
         );
@@ -246,7 +246,7 @@ abstract class BaseModelHelper
 
     /**
      * An alias for add_batch
-     * @see ad_batch
+     * @see add_batch
      */
     public function batch(array|RequestHelper $columns, ?callable $fun = null) : bool
     {
