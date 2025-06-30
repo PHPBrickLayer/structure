@@ -111,7 +111,7 @@ class LayCrypt
         $payload['iat'] = LayDate::now();
         $payload['exp'] = LayDate::unix($expires);
         $payload['iss'] = $issuer ?? LayConfig::site_data()->base_no_proto_no_www;
-        $payload['nbf'] = LayDate::now() + 50;
+        $payload['nbf'] ??= $payload['iat'] - 50;
 
         if($audience)
             $payload['aud'] = $audience;
