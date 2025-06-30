@@ -204,11 +204,12 @@ abstract class BaseModelHelper
     }
 
     /**
+     * Add a batch of columns in one go
      * @param array<int,array<string,mixed>> $columns
      * @param null|callable(array<string,mixed>):array<string,mixed> $fun a callback to run inside the batch insert run function for each entry of the row
      * @return bool
      */
-    public function batch(array|RequestHelper $columns, ?callable $fun = null) : bool
+    public function add_batch(array|RequestHelper $columns, ?callable $fun = null) : bool
     {
         $columns = $this->req_2_array($columns);
 
@@ -241,6 +242,15 @@ abstract class BaseModelHelper
 
             return $columns;
         })->insert_multi($columns);
+    }
+
+    /**
+     * An alias for add_batch
+     * @see ad_batch
+     */
+    public function batch(array|RequestHelper $columns, ?callable $fun = null) : bool
+    {
+        return $this->add_batch($columns, $fun);
     }
 
     /**
