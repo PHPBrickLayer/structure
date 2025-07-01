@@ -341,7 +341,7 @@ trait SelectorOOP
      */
     final public function group(string $columns): SQL
     {
-        return $this->store_vars('group', ["columns" => $columns,]);
+        return $this->store_vars('group', $columns);
     }
 
     /**
