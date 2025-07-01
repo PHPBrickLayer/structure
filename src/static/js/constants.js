@@ -116,10 +116,20 @@ $lay.fn = {
             })
         })
     },
-    currency : (num, currency = "NGN",locale = "en-NG") => {
-        return new Intl.NumberFormat(locale,!currency ? {} : {
+    numFormat : (num, option = {}) => {
+        const style = option.style ?? 'decimal';
+        const locale = option.locale ?? 'en-NG';
+
+        return new Intl.NumberFormat(locale,!option.currency ? {} : {
+            style: style,
+            currency: option.currency,
+        }).format(num ?? 0)
+    },
+    currency : function(num, currency = "NGN",locale = "en-NG") {
+        return this.numFormat(num, {
             style: "currency",
             currency: currency,
-        }).format(num)
+            locale: locale
+        })
     },
 }
