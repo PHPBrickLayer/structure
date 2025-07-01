@@ -862,6 +862,8 @@ abstract class ApiEngine {
         return $this;
     }
 
+    //TODO: Add a new method called scoped_middleware, where a middleware will be called instantly and it will affect
+    // everything inside the callable attached to the middleware, just like scoped_transaction
     /**
      * This method runs for a series grouped routes.
      * Routes are grouped either by using the `grouped` method or `prefix` method.
