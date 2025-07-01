@@ -114,7 +114,8 @@ abstract class LayLogReader
                     $file_entry_cache[$file['file']][] = $current_entry;
                 }
             },
-            sort: SortOrder::TIME_DESC
+            false,
+            SortOrder::TIME_DESC
         );
 
         return $file_entry_cache;
@@ -180,7 +181,8 @@ abstract class LayLogReader
                 </details>"
                 );
             },
-            sort: SortOrder::TIME_DESC,
+            false,
+            SortOrder::TIME_DESC,
         );
 
         return empty($all_log) ? null : $all_log;
