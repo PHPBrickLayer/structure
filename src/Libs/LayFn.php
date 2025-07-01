@@ -170,20 +170,26 @@ final class LayFn
         return $value;
     }
 
-    public static function header(string $header, bool $replace = true, int $response_code = 0) : void
+    public static function header(string $header, bool $replace = true, int $response_code = 0, bool $log_sent = false) : void
     {
-        if(headers_sent())
+        if(headers_sent($file, $line)) {
+            if($log_sent)
+                LayException::log("Headers sent already in file [$file] line [$line]");
+
             return;
+        }
 
         header($header, $replace, $response_code);
     }
 
     private static int $prev_http_code;
 
-    public static function http_response_code(ApiStatus|int $code = 0, bool $overwrite = false) : int|false
+    public static function http_response_code(ApiStatus|int $code = 0, bool $overwrite = false, bool $log_sent = true) : int|false
     {
         if(headers_sent($file, $line)) {
-            LayException::log("Headers sent already in file [$file] line [$line]");
+            if($log_sent)
+                LayException::log("Headers sent already in file [$file] line [$line]");
+
             return false;
         }
 
