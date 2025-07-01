@@ -72,7 +72,7 @@ abstract class ApiHooks extends ApiEngine
 
         $this->pre_init();
 
-        if(($this->security_in_dev || LayConfig::$ENV_IS_PROD) && !$this->security()) {
+        if(($this->security_in_dev || LayConfig::$ENV_IS_PROD) && !self::$is_invalidating && !$this->security()) {
             self::end($this->print_end_result);
             return;
         }
