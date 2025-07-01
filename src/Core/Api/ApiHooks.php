@@ -23,7 +23,7 @@ abstract class ApiHooks extends ApiEngine
      */
     public readonly ApiEngine $engine;
 
-    protected static bool $is_mocking = false;
+    protected static bool $is_invalidating = false;
 
     final public function __construct(
         protected bool $print_end_result = true,
@@ -52,9 +52,6 @@ abstract class ApiHooks extends ApiEngine
 
     protected function security() : bool
     {
-        if(!$this->security_in_dev && LayConfig::$ENV_IS_DEV)
-            return true;
-
         if(LayConfig::is_bot()) {
             self::set_response_header(ApiStatus::NOT_ACCEPTABLE);
             return false;
@@ -75,14 +72,15 @@ abstract class ApiHooks extends ApiEngine
 
         $this->pre_init();
 
-        if(!$this->security()) {
+        if(($this->security_in_dev || LayConfig::$ENV_IS_PROD) && !$this->security()) {
             self::end($this->print_end_result);
             return;
         }
 
-        LayConfig::connect();
-
-        self::fetch();
+        if(!self::$is_invalidating) {
+            LayConfig::connect();
+            self::fetch();
+        }
 
         $this->pre_hook();
         $this->load_brick_hooks();
@@ -90,7 +88,8 @@ abstract class ApiHooks extends ApiEngine
 
         $this->post_init();
 
-        self::end($this->print_end_result);
+        if(!self::$is_invalidating)
+            self::end($this->print_end_result);
     }
 
     /**
@@ -118,7 +117,7 @@ abstract class ApiHooks extends ApiEngine
      */
     public final function exec_hooks() : void
     {
-        if(!self::$is_mocking && !str_starts_with(static::class, "Bricks\\"))
+        if(!self::$is_invalidating && !str_starts_with(static::class, "Bricks\\"))
             LayException::throw("You can only use this method in a Brick Hook class, not: " . static::class);
 
         $this->pre_hook();
@@ -196,7 +195,7 @@ abstract class ApiHooks extends ApiEngine
 
     private static function cache_hooks(bool $invalidate = false, string ...$class_to_ignore) : array
     {
-        $invalidate = self::$is_mocking ? true : $invalidate;
+        $invalidate = self::$is_invalidating ? true : $invalidate;
         return LayFn::var_cache("_LAY_BRICKS_", function () use ($class_to_ignore) {
             $bricks_root = LayConfig::server_data()->bricks;
             $hooks = [
@@ -265,7 +264,7 @@ abstract class ApiHooks extends ApiEngine
 
         $hooks = $this->cache_hooks(false, ...$class_to_ignore);
 
-        if(self::$is_mocking)
+        if(self::$is_invalidating)
             return;
 
         $hook_class = $this->interpolate_endpoints($this->get_uri_as_str(), $hooks);
@@ -305,13 +304,13 @@ abstract class ApiHooks extends ApiEngine
      */
     final public function invalidate_hooks() : void
     {
-        self::$is_mocking = true;
+        self::$is_invalidating = true;
 
         // Mock request
         self::fetch(mock: true);
 
         // Run same conditions as a regular Api plaster and invalidate cache
-        $this->exec_hooks();
+        $this->init();
     }
 
     final public function get_all_endpoints() : ?array
