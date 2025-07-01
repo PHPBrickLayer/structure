@@ -6,7 +6,6 @@ use Aws\S3\S3Client;
 use Error;
 use Exception;
 use GuzzleHttp\Promise\Utils;
-use JetBrains\PhpStorm\ArrayShape;
 use BrickLayer\Lay\Libs\Aws\Enums\AwsS3Client;
 
 final class Bucket
@@ -28,7 +27,15 @@ final class Bucket
         self::$client = new S3Client(LayAws::init($type)::$credentials);
     }
 
-    #[ArrayShape(['statusCode' => 'int', 'effectiveUri' => 'string', 'headers' => 'string', 'transferStats' => 'string'])]
+    /**
+     * @return array{
+     *     statusCode?: int,
+     *     message?: string,
+     *     effectiveUri?: string,
+     *     headers?: string,
+     *     transferStats?: string,
+     * }
+     */
     public function upload(string $from, string $to): array
     {
         if (!file_exists($from))
@@ -45,25 +52,28 @@ final class Bucket
 
             return $contents->get("@metadata") ?? [];
 
-        } catch (Error|Exception|Aws\S3\Exception\S3Exception $e) {
+        } catch (\Throwable $e) {
             LayAws::exception("LayBucketUploadError", $e->getMessage());
         }
 
         return ["statusCode" => 500];
     }
 
-
-    #[ArrayShape(['statusCode' => 'int', 'message' => "string", 'effectiveUri' => 'string', 'headers' => 'string', 'transferStats' => 'string'])]
+    /**
+     * @return array{
+     *     statusCode?: int,
+     *     message?: string,
+     *     effectiveUri?: string,
+     *     headers?: string,
+     *     transferStats?: string,
+     * }
+     */
     public function rm_file(string $file): array
     {
         self::validate_bucket();
 
         try {
-            if(
-                !self::$client->doesObjectExist($this->bucket, [
-                    "Key" => $file
-                ])
-            ) return [
+            if( !self::$client->doesObjectExist($this->bucket, $file) ) return [
                 "statusCode" => 404,
                 "message" => "File not found"
             ];
@@ -88,7 +98,12 @@ final class Bucket
         ];
     }
 
-    #[ArrayShape(['statusCode' => 'int', 'promise' => 'object'])]
+    /**
+     * @return array{
+     *     statusCode: int,
+     *     promise: object,
+     * }
+     */
     public function rm_dir(string $dir): array
     {
         self::validate_bucket();
@@ -130,7 +145,7 @@ final class Bucket
     }
 
     /**
-     * @psalm-return list{0?: mixed,...}
+     * @return array{0?: mixed,...}
      */
     public function list(string $directory, bool $src_only = true, ?callable $callback = null) : array
     {
