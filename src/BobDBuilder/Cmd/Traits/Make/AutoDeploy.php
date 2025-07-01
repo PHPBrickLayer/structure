@@ -110,7 +110,7 @@ trait AutoDeploy
             if(\$_SERVER['REQUEST_METHOD'] !== 'POST' or @\$_GET['brick'] !== "$uuid")
                 Exception::throw_exception("Invalid endpoint met! please check your uuid and try again", "GitADMismatched");
 
-            \$post = json_decode(\$_POST['payload']);
+            \$post = json_decode(\$_POST['payload'] ?? null);
 
             if(!isset(\$post->pull_request)) {
                 x_hook_logger(\$post?->action?->zen);
