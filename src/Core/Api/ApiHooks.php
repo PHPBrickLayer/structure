@@ -87,7 +87,7 @@ abstract class ApiHooks extends ApiEngine
 
     public final function exec_hooks() : void
     {
-        if(!str_starts_with(static::class, "Bricks\\"))
+        if(!self::$is_mocking && !str_starts_with(static::class, "Bricks\\"))
             LayException::throw("You can only use this method in a Brick Hook class, not: " . static::class);
 
         $this->pre_hook();
