@@ -131,6 +131,13 @@ abstract class ApiEngine {
     private static bool $route_found = false;
 
     /**
+     * Used to determine if the Engine has fetch the URI already from the request.
+     * The engine should only fetch once, so this will prevent multi fetch
+     * @var bool
+     */
+    protected static bool $fetched = false;
+
+    /**
      * Becomes true when the Engine is done running
      * @var bool
      */
@@ -1238,6 +1245,8 @@ abstract class ApiEngine {
      * @return self
      */
     public static function fetch(string $local_endpoint = "api", bool $mock = false) : self {
+        if (self::$fetched) return self::$engine;
+
         $req = $mock ? [
             "route" => "index",
             "route_as_array" => ["index"],
@@ -1253,6 +1262,7 @@ abstract class ApiEngine {
         self::$request_header = LayConfig::get_header("*");
         self::$route_uri_raw = $endpoint;
         self::$route_uri = $req['route_as_array'];
+        self::$fetched = true;
 
         if(self::$route_uri[0] == $local_endpoint) {
             array_shift(self::$route_uri);
