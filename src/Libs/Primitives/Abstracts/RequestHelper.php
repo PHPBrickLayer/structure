@@ -119,7 +119,7 @@ abstract class RequestHelper
      */
     protected function pre_validate() : void
     {
-        self::vcm_start(self::request(), [
+        self::vcm_start(self::request(as_array: true), [
             'required' => true,
         ]);
     }
