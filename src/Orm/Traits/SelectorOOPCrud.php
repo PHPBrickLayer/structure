@@ -457,7 +457,7 @@ trait SelectorOOPCrud
                     $auto_create = $struct['auto_create'] ? 'true' : 'false';
 
                     foreach ($struct['json'] as $key => $value) {
-                        $value = $cast($value);
+                        $value = "'" . $cast($value) . "'::jsonb";
 
                         $column = "jsonb_set($column, '{" . $key . "}', $value, $auto_create)";
                     }
