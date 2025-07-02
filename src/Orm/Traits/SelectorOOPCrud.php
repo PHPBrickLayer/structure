@@ -425,12 +425,67 @@ trait SelectorOOPCrud
 
         if (is_array($values)) {
             $cols = "";
+            $json_col_fn = function (string $column, array $struct) {
+                $driver = self::get_driver();
+                $cast = function ($value) {
+                    if(is_string($value))
+                        $value = '"' . $value . '"';
+
+                    if(is_array($value))
+                        $value = json_encode($value);
+
+                    if(is_bool($value))
+                        $value = $value ? 'true' : 'false';
+
+                    return Escape::clean($value, EscapeType::TRIM_ESCAPE);
+                };
+
+                if($driver == OrmDriver::MYSQL) {
+                    $x = "";
+
+                    foreach ($struct['json'] as $key => $value) {
+                        $value = $cast($value);
+                        $x .= "'$.$key', $value,";
+                    }
+
+                    $x = rtrim($x, ",");
+
+                    return "JSON_SET($column, $x),";
+                }
+
+                if($driver == OrmDriver::POSTGRES) {
+                    $auto_create = $struct['auto_create'] ? 'true' : 'false';
+
+                    foreach ($struct['json'] as $key => $value) {
+                        $value = "'" . $cast($value) . "'::jsonb";
+
+                        $column = "jsonb_set($column, '{" . $key . "}', $value, $auto_create)";
+                    }
+
+                    return $column . ",";
+                }
+
+                foreach ($struct['json'] as $key => $value) {
+                    $value = $cast($value);
+
+                    $column = "json_set($column, '$.$key', json($value))";
+                }
+
+                return $column . ",";
+            };
 
             try {
                 foreach ($values as $k => $c) {
-                    $c = Escape::clean($c, EscapeType::TRIM_ESCAPE);
                     $k = self::escape_identifier($k);
-                    $cols .= $c == null ? "$k=NULL," : "$k='$c',";
+
+                    // Process JSON column update
+                    if(is_array($c) && isset($c['@lay_json@'])) {
+                        $cols .= "$k = " . $json_col_fn($k, $c['@lay_json@']);
+                        continue;
+                    }
+
+                    $c = Escape::clean($c, EscapeType::TRIM_ESCAPE);
+                    $cols .= $c == null ? "$k = NULL," : "$k = '$c',";
                 }
             } catch (Exception $e) {
                 $this->oop_exception("Error occurred when trying to update a DB", $e);

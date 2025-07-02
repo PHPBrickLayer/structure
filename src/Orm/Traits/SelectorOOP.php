@@ -400,6 +400,17 @@ trait SelectorOOP
     }
 
     /**
+     * Directly update a json_column value instead of decoding updating and re-encoding
+     * @param array $json
+     * @param bool $auto_create
+     * @return array[]
+     */
+    final public function json_column(array $json, bool $auto_create = true): array
+    {
+        return [ "@lay_json@" => ["json" => $json, "auto_create" => $auto_create] ];
+    }
+
+    /**
      * Sorts the result of a select query by a column and by an ascending or descending order.
      *
      * @param string $column
