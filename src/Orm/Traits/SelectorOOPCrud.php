@@ -484,7 +484,7 @@ trait SelectorOOPCrud
         $sort = $d['sort'] ?? null;
         $limit = $d['limit'] ?? null;
         $clause = $this->parse_clause($d) ?? "";
-        $cols = $d['values'] ?? $d['columns'] ?? "*";
+        $columns = $d['values'] ?? $d['columns'] ?? "*";
         $between = $d['between'] ?? null;
         $between_allow_null = true;
         $d['query_type'] = OrmQueryType::SELECT;
@@ -573,6 +573,18 @@ trait SelectorOOPCrud
         $clause = $this->bind_param($clause, $d);
 
         $table = self::escape_identifier($table);
+
+        $cols = $columns;
+
+        if(is_array($cols)) {
+            $cols = "";
+
+            foreach ($columns as $as => $column) {
+                $cols .= "$column AS $as,";
+            }
+
+            $cols = rtrim($cols, ",");
+        }
 
         $rtn = $this->capture_result(
             [$this->query(/** @lang text */ "SELECT $cols FROM $table $clause", $d), $d],
