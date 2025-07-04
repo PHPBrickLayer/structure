@@ -276,8 +276,13 @@ class ViewBuilder
         die;
     }
 
-    #[NoReturn]
-    public function redirect(string $route, ViewCast $viewCast): void
+    /**
+     * Redirect and kill execution
+     * @param string|null $route
+     * @return void
+     * @noreturn
+     */
+    public function redirect(?string $route = null): void
     {
         if (self::$view_found)
             LayException::throw_exception(
@@ -287,15 +292,14 @@ class ViewBuilder
 
         if ($route == self::DEFAULT_ROUTE) {
             self::$is_404 = true;
-            $this->invoke(fn() => $viewCast->default());
+            $this->invoke(fn() => $this->default());
         }
 
         self::$redirecting = true;
         self::$route = $route;
 
         $this->rebuild_route();
-        $viewCast->pages();
-
+        $this->pages();
         die;
     }
 
