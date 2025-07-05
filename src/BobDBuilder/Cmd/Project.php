@@ -66,8 +66,10 @@ final class Project implements CmdLayout
         if($tag == "--refresh-links") {
             LayConfig::generate_project_identity();
 
-            $this->plug->write_info("Refreshing symlinks!");
-
+            //TODO: Really look at it and determine if we still need to track symlinks
+            // since they are all relative now rather than absolute
+            $this->plug->write_info("Pruning and refreshing symlinks!");
+            (new Symlink($this->plug))->prune_link();
             (new Symlink($this->plug))->refresh_link();
         }
 

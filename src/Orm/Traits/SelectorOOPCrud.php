@@ -93,12 +93,14 @@ trait SelectorOOPCrud
             if($conflict['action'] == 'REPLACE')
                 return /** @lang text */ "REPLACE INTO $table $column_and_values $clause";
 
-            if(empty($conflict['update_columns']))
+            if(empty($conflict['update_columns']) && empty($conflict['ignore_columns']))
                 $this->oop_exception(
-                    "OnConflict Error; Update column cannot be empty when action is implicitly UPDATE"
+                    "OnConflict Error; update_columns and ignore_columns cannot be empty when action is `UPDATE` for $table; you must specify the columns to update or ignore"
                 );
 
             foreach ($conflict['update_columns'] as $col) {
+                if(in_array($col, $conflict['ignore_columns'], true)) continue;
+
                 $update .= "$col = VALUES($col),";
             }
 
@@ -123,15 +125,21 @@ trait SelectorOOPCrud
         $update_cols = "";
         $excluded = OrmDriver::is_sqlite($driver) ? "excluded" : "EXCLUDED";
 
-        if($conflict['action'] == 'REPLACE' && $driver == OrmDriver::POSTGRES) {
+        if($driver == OrmDriver::POSTGRES && in_array($conflict['action'], ['REPLACE', 'UPDATE'], true) && empty($conflict['update_columns'])) {
             $conflict['update_columns'] = explode(",", trim(explode("VALUES", $column_and_values, 2)[0], "( )"));
         }
 
-        if(empty($conflict['update_columns']))
-            $this->oop_exception("OnConflict Error; Update column cannot be empty when action is implicitly UPDATE");
+        if(empty($conflict['update_columns']) && empty($conflict['ignore_columns']))
+            $this->oop_exception("OnConflict Error; update_column and ignore_columns cannot both be empty when action is `UPDATE`; one must be filled for $table");
 
         foreach ($conflict['update_columns'] as $col) {
-            if(trim($col,"\"`") == "id") continue;
+            $trimmed_col = trim($col,"\"`");
+
+            if(
+                $trimmed_col == "id"
+                || in_array($trimmed_col, $conflict['ignore_columns'], true)
+                || in_array($trimmed_col, $conflict['unique_columns'], true)
+            ) continue;
 
             $update_cols .= "$col = $excluded.$col,";
         }

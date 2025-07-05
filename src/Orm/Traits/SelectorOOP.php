@@ -285,12 +285,14 @@ trait SelectorOOP
      *
      * @param array<int,string> $unique_columns
      * @param array<int,string> $update_columns
+     * @param array<int,string> $ignore_columns
      * @param "UPDATE"|"IGNORE"|"REPLACE"|"NOTHING" $action
      * @param string|null $constraint a unique constraint name created by the database admin or developer
      */
     final public function on_conflict(
         array $unique_columns = [],
         array $update_columns = [],
+        array $ignore_columns = [],
         #[ExpectedValues(["UPDATE", "IGNORE", "REPLACE", "NOTHING"])] string $action = "UPDATE",
         ?string $constraint = null,
     ): SQL
@@ -298,6 +300,7 @@ trait SelectorOOP
         return $this->store_vars('on_conflict', [
             "unique_columns" => $unique_columns,
             "update_columns" => $update_columns,
+            "ignore_columns" => $ignore_columns,
             "action" => strtoupper($action),
             "constraint" => $constraint,
         ]);
