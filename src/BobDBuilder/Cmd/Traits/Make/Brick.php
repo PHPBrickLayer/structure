@@ -76,7 +76,6 @@ trait Brick
             
             namespace Bricks\\$brick\Api;
             
-            use BrickLayer\Lay\Core\Api\ApiEngine;
             use BrickLayer\Lay\Core\Api\ApiHooks;
             
             // This is the alpha Api Hook class.
