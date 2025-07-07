@@ -669,6 +669,23 @@ trait ValidateCleanMap {
     }
 
     /**
+     * Used to process a request where the post data is a non-assoc array.
+     * @param callable $vcm_rules All the vcm rules to execute in each iteration of the headless request
+     */
+    public function headless(callable $vcm_rules) : void
+    {
+        $x = [];
+
+        foreach (self::request(as_array: true) as $i => $request) {
+            static::$_filled_request = $request;
+            $vcm_rules();
+            $x[] = static::$_entries;
+        }
+
+        static::$_entries = $x;
+    }
+
+    /**
      * Set a general rule that applies to every object of a particular request
      *
      * @param VcmRules $options
