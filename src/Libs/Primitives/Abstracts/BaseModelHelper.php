@@ -64,6 +64,10 @@ abstract class BaseModelHelper
         return $this;
     }
 
+    protected function pre_add(SQL $db, array &$columns) : void {}
+    protected function pre_get(SQL $db) : void {}
+    protected function pre_edit(SQL $db, array &$columns) : void {}
+
     public static function orm(?string $table = null) : SQL
     {
         return SQL::new()->open($table ?? static::$table);
@@ -195,6 +199,7 @@ abstract class BaseModelHelper
         if($this->debug_mode)
             $db->debug();
 
+        $this->pre_add($db, $columns);
         $this->exec_pre_run($db);
 
         if($rtn = $db->insert($columns, true))
@@ -225,7 +230,7 @@ abstract class BaseModelHelper
         $timestamp = $this->timestamp();
         $created_by = $this->created_by();
 
-        return $db->fun(function ($columns) use ($timestamp, $created_by, $fun) {
+        return $db->fun(function ($columns) use ($timestamp, $created_by, $fun, $db) {
             $columns[static::$primary_key_col] ??= 'UUID()';
             $columns[static::$primary_delete_col] ??= "0";
 
@@ -237,6 +242,8 @@ abstract class BaseModelHelper
             foreach ($columns as $key => $val) {
                 if (is_array($val)) $columns[$key] = json_encode($val);
             }
+
+            $this->pre_add($db, $columns);
 
             if($fun) return $fun($columns);
 
@@ -266,6 +273,7 @@ abstract class BaseModelHelper
         if($this->debug_mode)
             $db->debug_full();
 
+        $this->pre_get($db);
         $this->exec_pre_run($db);
 
         return $db->loop()->limit($limit, $page)->then_select();
@@ -284,6 +292,7 @@ abstract class BaseModelHelper
         if($this->debug_mode)
             $db->debug_full();
 
+        $this->pre_get($db);
         $this->exec_pre_run($db);
 
         return $db->count();
@@ -304,6 +313,7 @@ abstract class BaseModelHelper
         else
             $db->sort(static::$primary_key_col, "desc");
 
+        $this->pre_get($db);
         $this->exec_pre_run($db);
 
         if($res = $db->assoc()->select())
@@ -325,6 +335,7 @@ abstract class BaseModelHelper
         if($this->debug_mode)
             $db->debug_full();
 
+        $this->pre_get($db);
         $this->exec_pre_run($db);
 
         if($res = $db->assoc()->select())
@@ -359,6 +370,7 @@ abstract class BaseModelHelper
         if($this->debug_mode)
             $db->debug_full();
 
+        $this->pre_get($db);
         $this->exec_pre_run($db);
 
         return $db->loop()->then_select();
@@ -400,13 +412,14 @@ abstract class BaseModelHelper
         if($this->debug_mode)
             $db->debug_full();
 
+        $this->pre_get($db);
         $this->exec_pre_run($db);
 
         return $db->loop()->then_select();
     }
 
     /**
-     * Checks if all the value received are exists in the database, hence valid or not
+     * Checks if all the value received exists in the database, hence valid or not
      * @param array<string|int> $values
      * @param string $column
      * @return bool
@@ -422,6 +435,7 @@ abstract class BaseModelHelper
         if($this->debug_mode)
             $db->debug_full();
 
+        $this->pre_get($db);
         $this->exec_pre_run($db);
 
         return empty(array_diff(
@@ -470,7 +484,7 @@ abstract class BaseModelHelper
 
         $db->where_agr($where_col, $cal_ids);
 
-        return $db->fun(function ($columns) use ($timestamp, $created_by, $fun) {
+        return $db->fun(function ($columns) use ($timestamp, $created_by, $fun, $db) {
             if($this->enable_created_by)
                 $columns[static::$primary_updated_by_col] ??= $created_by;
 
@@ -480,6 +494,7 @@ abstract class BaseModelHelper
                 if (is_array($val)) $columns[$key] = json_encode($val);
             }
 
+            $this->pre_edit($db, $columns);
             if($fun) return $fun($columns);
 
             return $columns;
@@ -511,6 +526,7 @@ abstract class BaseModelHelper
         if($this->debug_mode)
             $db->debug();
 
+        $this->pre_edit($db, $columns);
         $this->exec_pre_run($db);
 
         return $db->edit();
@@ -537,23 +553,23 @@ abstract class BaseModelHelper
      */
     public function delete(string $record_id, ?string $act_by = null) : bool
     {
-
-        $cols = [
+        $columns = [
             static::$primary_delete_col => 1,
             static::$primary_delete_col . "_at" => $this->timestamp(),
         ];
 
         if($this->enable_created_by)
-            $cols[static::$primary_delete_col . "_by"] = $act_by ?? $this->created_by();
+            $columns[static::$primary_delete_col . "_by"] = $act_by ?? $this->created_by();
 
-        $db = static::db()->column($cols);
+        $db = static::db();
 
         if($this->debug_mode)
             $db->debug();
 
+        $this->pre_edit($db, $columns);
         $this->exec_pre_run($db);
 
-        return $db->where(static::$primary_key_col, $record_id)->edit();
+        return $db->column($columns)->where(static::$primary_key_col, $record_id)->edit();
     }
 
     /**
