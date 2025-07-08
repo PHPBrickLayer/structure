@@ -378,7 +378,8 @@ trait ValidateCleanMap {
                 $this->add_to_entry($options['file_ratio_field'], ["width" => $file['width'], "height" => $file['height']], $options);
         }
 
-        $is_empty = empty($value);
+//        $is_empty = empty($value);
+        $is_empty = $value === null;
 
         if(isset($options['is_captcha'])) {
             $as_jwt = isset($options['captcha_jwt_field']);
@@ -414,7 +415,7 @@ trait ValidateCleanMap {
             $add_to_entry = $this->report_error($field, "Received an invalid email format for: $field_name");
 
         if(isset($options['is_bool'])) {
-            if(in_array(strtolower($value . ''), ['true', 'false', '1', '0'])) {
+            if(in_array(strtolower($value . ''), ['true', 'false', '1', '0', true, false])) {
                 $value = filter_var($value, FILTER_VALIDATE_BOOL);
                 $apply_clean = false;
             }
