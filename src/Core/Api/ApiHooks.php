@@ -5,7 +5,9 @@ namespace BrickLayer\Lay\Core\Api;
 use BrickLayer\Lay\Core\Api\Enums\ApiStatus;
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\LayException;
+use BrickLayer\Lay\Libs\Dir\LayDir;
 use BrickLayer\Lay\Libs\LayFn;
+use BrickLayer\Lay\Libs\Primitives\Enums\LayLoop;
 
 abstract class ApiHooks extends ApiEngine
 {
@@ -24,6 +26,8 @@ abstract class ApiHooks extends ApiEngine
     public readonly ApiEngine $engine;
 
     protected static bool $is_invalidating = false;
+
+    protected static bool $is_dumping = false;
 
     final public function __construct(
         protected bool $print_end_result = true,
@@ -83,7 +87,7 @@ abstract class ApiHooks extends ApiEngine
         }
 
         $this->pre_hook();
-        $this->load_brick_hooks();
+        $this->load_bricks_hook();
         $this->post_hook();
 
         $this->post_init();
@@ -184,7 +188,6 @@ abstract class ApiHooks extends ApiEngine
                     }
                 }
             }
-
         }
 
         if(!$key)
@@ -196,25 +199,31 @@ abstract class ApiHooks extends ApiEngine
     private static function cache_hooks(bool $invalidate = false, string ...$class_to_ignore) : array
     {
         $invalidate = self::$is_invalidating ? true : $invalidate;
+
         return LayFn::var_cache("_LAY_BRICKS_", function () use ($class_to_ignore) {
-            $bricks_root = LayConfig::server_data()->bricks;
             $hooks = [
                 "var" => [],
                 "const" => [],
             ];
 
-            foreach (scandir($bricks_root) as $brick) {
-                if (
-                    $brick == "." || $brick == ".." ||
-                    !file_exists($bricks_root . $brick . DIRECTORY_SEPARATOR . "Api" . DIRECTORY_SEPARATOR . "Hook.php")
-                ) continue;
+            $project_root = LayConfig::server_data()->root;
 
-                $cmd_class = "Bricks\\$brick\\Api\\Hook";
+            $load_brick = function (string $brick, string $directory, \DirectoryIterator $dir_handler, array $entry_obj)  use ($class_to_ignore, &$load_brick, &$hooks, $project_root) {
+                if (!file_exists($dir_handler->getPathname() . DIRECTORY_SEPARATOR . "Api" . DIRECTORY_SEPARATOR . "Hook.php")) {
+                    $child_bricks = $dir_handler->getPathname() . DIRECTORY_SEPARATOR;
 
-                if (in_array($cmd_class, $class_to_ignore, true))
-                    continue;
+                    if(file_exists($child_bricks . "child-has-hooks.php")) {
+                        LayDir::read($child_bricks, $load_brick);
+                    }
 
-                try{
+                    return LayLoop::CONTINUE;
+                }
+
+                $cmd_class = ucwords(str_replace([$project_root, DIRECTORY_SEPARATOR], ["", "\\"], $entry_obj['full_path'])) . "\\Api\\Hook";
+
+                if (in_array($cmd_class, $class_to_ignore, true)) return LayLoop::CONTINUE;
+
+                try {
                     $brick = new \ReflectionClass($cmd_class);
                 } catch (\ReflectionException $e) {
                     LayException::throw("", "ReflectionException", $e);
@@ -228,6 +237,11 @@ abstract class ApiHooks extends ApiEngine
                 }
 
                 try {
+                    if(self::$is_dumping) {
+                        $brick->exec_hooks();
+                        return LayLoop::CONTINUE;
+                    }
+
                     self::__indexing_routes();
 
                     /**
@@ -237,27 +251,32 @@ abstract class ApiHooks extends ApiEngine
 
                     $d = $brick->__indexed_routes();
 
-                    if(empty($d)) continue;
+                    if (empty($d)) return LayLoop::CONTINUE;
 
                     $hooks['var'] = array_merge($hooks['var'], $d['var']);
                     $hooks['const'] = array_merge($hooks['const'], $d['const']);
                 } catch (\Throwable $e) {
                     LayException::throw("", $brick::class . "::RouteIndexingError", $e);
                 }
-            }
+
+                return LayLoop::FLOW;
+            };
+
+            LayDir::read(LayConfig::server_data()->bricks, $load_brick);
 
             self::__indexing_routes_done();
+
             return $hooks;
         }, $invalidate);
     }
 
     /**
-     * This method is ONLY used by the Apex Api Plaster, and should not be called by Bricks Hooks, it will throw an error
+     * Load the hooks of the project either from cache [PROD] or by crawling the bricks folder [DEV]
      * @param string ...$class_to_ignore
      * @return void
      * @throws \Exception
      */
-    private function load_brick_hooks(string ...$class_to_ignore) : void
+    private function load_bricks_hook(string ...$class_to_ignore) : void
     {
         if(str_starts_with(static::class, "Bricks\\"))
             LayException::throw("You cannot use this method in this class. This method is reserved for the Apex Api Plaster only");
@@ -319,41 +338,9 @@ abstract class ApiHooks extends ApiEngine
             return null;
 
         self::set_debug_dump_mode();
+        self::$is_dumping = true;
 
-        self::fetch();
-
-        $bricks_root = LayConfig::server_data()->bricks;
-
-        foreach (scandir($bricks_root) as $brick) {
-            if (
-                $brick == "." || $brick == ".." ||
-                !file_exists($bricks_root . $brick . DIRECTORY_SEPARATOR . "Api" . DIRECTORY_SEPARATOR . "Hook.php")
-            ) continue;
-
-            $cmd_class = "Bricks\\$brick\\Api\\Hook";
-
-            try{
-                $brick = new \ReflectionClass($cmd_class);
-            } catch (\ReflectionException $e) {
-                LayException::throw("", "ReflectionException", $e);
-            }
-
-            try {
-                $brick = $brick->newInstance();
-            } catch (\Throwable $e) {
-                $brick = $brick::class ?? "ApiHooks";
-                LayException::throw("", "$brick::ApiError", $e);
-            }
-
-            /**
-             * @var self $brick
-             */
-            try {
-                $brick->exec_hooks();
-            } catch (\Throwable $e) {
-                LayException::throw("", $brick::class . "::RouteIndexingError", $e);
-            }
-        }
+        self::cache_hooks(true);
 
         return self::all_api_endpoints();
     }
