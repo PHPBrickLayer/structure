@@ -5,4 +5,6 @@ namespace BrickLayer\Lay\Libs\LayCrypt\Enums;
 enum HashType : string
 {
     case SHA256 = "HS256";
+    case MD5 = "MD5";
+    case SHA1 = "HS1";
 }
