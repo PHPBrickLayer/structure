@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 
 namespace BrickLayer\Lay\Core\Api;
 
@@ -212,9 +213,8 @@ abstract class ApiHooks extends ApiEngine
                 if (!file_exists($dir_handler->getPathname() . DIRECTORY_SEPARATOR . "Api" . DIRECTORY_SEPARATOR . "Hook.php")) {
                     $child_bricks = $dir_handler->getPathname() . DIRECTORY_SEPARATOR;
 
-                    if(file_exists($child_bricks . "child-has-hooks.php")) {
+                    if(file_exists($child_bricks . "child-has-hooks.php"))
                         LayDir::read($child_bricks, $load_brick);
-                    }
 
                     return LayLoop::CONTINUE;
                 }
@@ -223,17 +223,12 @@ abstract class ApiHooks extends ApiEngine
 
                 if (in_array($cmd_class, $class_to_ignore, true)) return LayLoop::CONTINUE;
 
-                try {
-                    $brick = new \ReflectionClass($cmd_class);
-                } catch (\ReflectionException $e) {
-                    LayException::throw("", "ReflectionException", $e);
-                }
+                if (in_array($cmd_class, $class_to_ignore, true)) return LayLoop::CONTINUE;
 
                 try {
-                    $brick = $brick->newInstance();
+                    $brick = new $cmd_class();
                 } catch (\Throwable $e) {
-                    $brick = $brick::class ?? "ApiHooks";
-                    LayException::throw("", "$brick::ApiError", $e);
+                    LayException::throw("", "$cmd_class::ApiError", $e);
                 }
 
                 try {
