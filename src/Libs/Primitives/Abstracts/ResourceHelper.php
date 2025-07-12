@@ -14,6 +14,18 @@ abstract class ResourceHelper
     private array $mapped;
 
     /**
+     * Executes before schema is mapped
+     * @return void
+     */
+    protected function pre_schema() : void {}
+
+    /**
+     * Executes after schema is mapped
+     * @return void
+     */
+    protected function post_schema() : void {}
+
+    /**
      * Define how you want the resource to be mapped
      * @param array<string, mixed>|object $data
      * @return array<string, mixed>
@@ -33,7 +45,11 @@ abstract class ResourceHelper
 
         if(isset($this->mapped)) return $this->mapped;
 
-        return $this->mapped = $this->schema($this->data);
+        $this->pre_schema();
+        $this->mapped = $this->schema($this->data);
+        $this->post_schema();
+
+        return $this->mapped;
     }
 
     /**
