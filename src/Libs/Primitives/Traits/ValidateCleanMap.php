@@ -134,6 +134,8 @@ use Exception;
  *     maybe_file?: bool,
  *
  *     // @see FileUpload
+ *     pre_upload?: callable(?string $tmp_file, ?array $file):(array|true),
+ *     post_upload?: callable(FileUploadReturn $response):void,
  *     is_file?: bool,
  *     allowed_types?: array<int,FileUploadExtension>,
  *     allowed_extensions?: array<int,FileUploadExtension>,
@@ -235,17 +237,6 @@ trait ValidateCleanMap {
 
     /**
      * Default file upload handler
-     *
-     * @param string $post_name
-     * @param string $new_name
-     * @param string|null $upload_sub_dir
-     * @param int|null $file_limit
-     * @param array|null $extension_list
-     * @param array|null $dimension
-     * @param FileUploadStorage|null $storage
-     * @param string|null $bucket_url
-     * @param FileUploadType|null $upload_type
-     * @param bool $dry_run
      * @return FileUploadReturn
      * @throws Exception
      */
@@ -260,6 +251,8 @@ trait ValidateCleanMap {
         ?string $bucket_url = null,
         ?FileUploadType $upload_type = null,
         bool $dry_run = false,
+        ?callable $pre_upload = null,
+        ?callable $post_upload = null,
     ) : array
     {
         // If dev wishes to use a custom upload handler, it must follow the params list chronologically,
@@ -269,7 +262,7 @@ trait ValidateCleanMap {
                 $this,
                 $post_name, $new_name, $upload_sub_dir, $file_limit,
                 $extension_list, $dimension, $storage, $bucket_url,
-                $upload_type, $dry_run
+                $upload_type, $dry_run, $pre_upload
             );
         }
 
@@ -288,7 +281,8 @@ trait ValidateCleanMap {
             "extension_list" => $extension_list,
             "dimension" => $dimension,
             "upload_type" => $upload_type ?? false,
-            "dry_run" => $dry_run
+            "dry_run" => $dry_run,
+            "pre_upload" => $pre_upload
         ]))->response;
 
         if(!$file['uploaded'])
@@ -298,6 +292,9 @@ trait ValidateCleanMap {
             $file['url'] = ($bucket_url ?? "") . $file['url'];
         else
             $file['url'] = rtrim($dir, DIRECTORY_SEPARATOR . "/") . "/" . $file['url'];
+
+        if($post_upload)
+            return $post_upload($file);
 
         return $file;
     }

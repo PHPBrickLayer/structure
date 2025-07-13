@@ -8,78 +8,24 @@ use BrickLayer\Lay\Libs\Dir\LayDir;
 use BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadErrors;
 use BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadStorage;
 use BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadType;
+use BrickLayer\Lay\Libs\FileUpload\FileUpload;
 use BrickLayer\Lay\Libs\LayFn;
 use BrickLayer\Lay\Libs\String\Enum\EscapeType;
 use BrickLayer\Lay\Libs\String\Escape;
-use JetBrains\PhpStorm\ArrayShape;
 
+/**
+ * @phpstan-import-type FileUploadOptions from FileUpload
+ * @phpstan-import-type FileUploadReturn from FileUpload
+ */
 trait Doc {
-
 
     /**
      * This function handles documents uploads like pdf,
-     * @param array $options
-     * @return array
+     * @param FileUploadOptions $options
+     * @return FileUploadReturn
      * @throws \Exception
      */
-    #[ArrayShape([
-        'uploaded' => 'bool',
-        'dev_error' => 'string',
-        'error' => 'string',
-        'error_type' => "BrickLayer\\Lay\\Libs\\FileUpload\\Enums\\FileUploadErrors",
-        'upload_type' => "BrickLayer\\Lay\\Libs\\FileUpload\\Enums\\FileUploadType",
-        'storage' => "BrickLayer\\Lay\\Libs\\FileUpload\\Enums\\FileUploadStorage",
-        'url' => 'string',
-        'size' => 'int',
-    ])]
-    public function doc_upload(
-        #[ArrayShape([
-            // Name of file from the form
-            'post_name' => 'string',
-
-            // New name and file extension of file after upload
-            'new_name' => 'string',
-
-            //<<START DISK KEY
-            'directory' => 'string',
-            'permission' => 'int',
-            //<<END DISK KEY
-
-            // The path the bucket should use in storing your file. Example: files/user/1/report/
-            'bucket_path' => 'string',
-
-            // Use this to force bucket upload in development environment
-            'upload_on_dev' => 'bool',
-
-            // File limit in bytes
-            'file_limit' => 'int',
-
-            // If nothing is provided the
-            'extension' => 'BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadExtension',
-
-            // Use this to add a custom MIME that does not exist in the extension key above
-            'custom_mime' => 'array', // ['application/zip', 'application/x-zip-compressed']
-
-            // The type of storage the file should be uploaded to
-            'storage' => 'BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadStorage',
-
-            // Add last modified time to the returned url key, so that your browser can cache it.
-            // This is necessary if you are using the same 'new_name' for multiple versions of a file
-            // The new file will overwrite the old file, and the last_mod_time will force the browser to update its copy
-            'add_mod_time' => 'bool',
-
-            // The compression quality to produce after uploading an image: [10 - 100]
-            'quality' => 'int',
-
-            // The dimension an image should maintain: [max_width, max_height]
-            'dimension' => 'array',
-
-            // If the php temporary file should be moved or copied. This is necessary if you want to generate a thumbnail
-            // and other versions of the image from one upload file
-            'copy_tmp_file' => 'bool',
-        ])]
-        array $options
-    ): array
+    public function doc_upload(array $options): array
     {
         extract($options);
 
@@ -123,6 +69,8 @@ trait Doc {
             $file_ext = "." . strtolower(end($ext));
         }
 
+        $tmp_checksum = $this->checksum($tmp_file);
+
         $add_mod_time = $add_mod_time ? "-" .  filemtime($file['tmp_name']) . $file_ext : $file_ext;
         $new_name = Escape::clean(LayFn::rtrim_word($new_name, $file_ext),EscapeType::P_URL) . $add_mod_time;
 
@@ -135,7 +83,11 @@ trait Doc {
                     true,
                     [
                         "url" => $bucket_path . $new_name,
-                        "size" => $file_size
+                        "size" => $file_size,
+                        "checksum" => [
+                            "tmp" => $tmp_checksum,
+                            "new" => $tmp_checksum
+                        ]
                     ]
                 );
 
@@ -174,6 +126,10 @@ trait Doc {
         return $this->upload_response(true, [
             "url" => $new_name,
             "size" => $file_size,
+            "checksum" => [
+                "tmp" => $tmp_checksum,
+                "new" => $tmp_checksum
+            ]
         ]);
     }
 }
