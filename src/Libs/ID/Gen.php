@@ -9,6 +9,7 @@ use BrickLayer\Lay\Libs\Primitives\Traits\IsSingleton;
 use BrickLayer\Lay\Libs\String\Enum\EscapeType;
 use BrickLayer\Lay\Libs\String\Escape;
 use BrickLayer\Lay\Orm\SQL;
+use Closure;
 use Random\RandomException;
 
 final class Gen
@@ -22,6 +23,7 @@ final class Gen
     private static int $digit_length = 7;
     private static string $confirm_table;
     private static string $confirm_column;
+    private static ?Closure $more_query;
 
     /**
      * Generate a simple UUID
@@ -58,10 +60,12 @@ final class Gen
     {
         $value = Escape::clean($value,EscapeType::STRIP_TRIM_ESCAPE, [ "strict" => true ]);
 
-        return LayConfig::get_orm()
-                ->open($table)
-                ->where($column, "$value")
-        ->count() > 0;
+        $db = LayConfig::get_orm()->open($table)->where($column, "$value");
+
+        if(isset(self::$more_query))
+            (self::$more_query)($db);
+
+        return $db->count() > 0;
     }
 
     /**
@@ -113,9 +117,13 @@ final class Gen
      * @param string $confirm_column
      * @return $this
      */
-    public function db_confirm(string $confirm_table, string $confirm_column) : self {
+    public function db_confirm(string $confirm_table, string $confirm_column, ?callable $more = null) : self {
         self::$confirm_table = $confirm_table;
         self::$confirm_column = $confirm_column;
+
+        if($more)
+            self::$more_query = $more;
+
         return $this;
     }
 

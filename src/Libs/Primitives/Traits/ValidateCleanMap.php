@@ -41,6 +41,8 @@ use Exception;
  *    bucket_url?: string,
  *    each?: callable(mixed $value, int $index) : mixed,
  *    upload_handler?: callable,
+ *    pre_upload?: callable(?string $tmp_file, ?array $file):(array|true),
+ *    post_upload?: callable(FileUploadReturn $response):array,
  *    return_schema?: callable(mixed $value, string $alias, array<string, mixed> $options) : mixed,
  *    return_struct?: callable(mixed $value, string $alias, array<string, mixed> $options) : mixed,
  *
@@ -135,7 +137,7 @@ use Exception;
  *
  *     // @see FileUpload
  *     pre_upload?: callable(?string $tmp_file, ?array $file):(array|true),
- *     post_upload?: callable(FileUploadReturn $response):void,
+ *     post_upload?: callable(FileUploadReturn $response):array,
  *     is_file?: bool,
  *     allowed_types?: array<int,FileUploadExtension>,
  *     allowed_extensions?: array<int,FileUploadExtension>,
@@ -196,10 +198,12 @@ trait ValidateCleanMap {
     private static ?string $_new_file_name;
     private static ?array $_dimension;
     private static ?FileUploadStorage $_upload_storage;
+    private static ?Closure $_pre_upload;
+    private static ?Closure $_post_upload;
     private static ?string $_bucket_url;
-    private static ?closure $_each;
-    private static ?closure $_upload_handler;
-    private static ?closure $_return_schema;
+    private static ?Closure $_each;
+    private static ?Closure $_upload_handler;
+    private static ?Closure $_return_schema;
     private static bool $_result_is_assoc = true;
 
     private function __get_field(string $key) : mixed
@@ -342,6 +346,8 @@ trait ValidateCleanMap {
                 storage: $options['upload_storage'] ?? static::$_upload_storage ?? null,
                 bucket_url: $options['bucket_url'] ?? static::$_bucket_url ?? null,
                 dry_run: !empty(static::$_errors),
+                pre_upload: $options['pre_upload'] ?? static::$_pre_upload ?? null,
+                post_upload: $options['post_upload'] ?? static::$_post_upload ?? null,
             );
 
             if(
@@ -705,6 +711,8 @@ trait ValidateCleanMap {
         static::$_new_file_name = $options['new_file_name'] ?? null;
         static::$_dimension = $options['dimension'] ?? null;
         static::$_upload_storage = $options['upload_storage'] ?? null;
+        static::$_pre_upload = $options['pre_upload'] ?? null;
+        static::$_post_upload = $options['post_upload'] ?? null;
         static::$_bucket_url = $options['bucket_url'] ?? null;
         static::$_upload_handler = $options['upload_handler'] ?? null;
 
@@ -742,6 +750,8 @@ trait ValidateCleanMap {
             static::$_new_file_name,
             static::$_dimension,
             static::$_upload_storage,
+            static::$_pre_upload,
+            static::$_post_upload,
             static::$_bucket_url,
             static::$_upload_handler,
             static::$_return_schema,

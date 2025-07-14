@@ -2,6 +2,8 @@
 
 namespace BrickLayer\Lay\Libs\FileUpload\Enums;
 
+use BrickLayer\Lay\Libs\Primitives\Enums\EnumHelper;
+
 enum FileUploadExtension : string
 {
     // Docs
@@ -21,4 +23,6 @@ enum FileUploadExtension : string
     case JPEG = "image/jpeg";
     case HEIC = "image/heic";
     case WEBP = "image/webp";
+
+    use EnumHelper;
 }
