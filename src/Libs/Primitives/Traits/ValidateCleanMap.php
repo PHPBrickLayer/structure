@@ -387,7 +387,7 @@ trait ValidateCleanMap {
         }
 
 //        $is_empty = empty($value);
-        $is_empty = $value === null;
+        $is_empty = ($value === null || $value === "");
 
         if(isset($options['is_captcha'])) {
             $as_jwt = isset($options['captcha_jwt_field']);
