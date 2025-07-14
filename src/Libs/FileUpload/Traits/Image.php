@@ -208,7 +208,7 @@ trait Image
         LayDir::make($directory, $permission ?? 0755, true);
 
         $created = $dimension ?
-            $this->create($tmpImg, $directory . $new_name, $quality, true, $dimension[0], $add_mod_time) :
+            $this->create($tmpImg, $directory . $new_name, $quality, true, $dimension[0] ?? $dimension['width'], $add_mod_time) :
             $this->create($tmpImg, $directory . $new_name, $quality, add_mod_time: $add_mod_time);
 
         if(!$created['created'])
