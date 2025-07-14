@@ -368,6 +368,9 @@ trait ValidateCleanMap {
             $apply_clean = false;
             $value = $file['url'];
 
+            //TODO: All these will no longer necessary as a result of what has been done in Elevator
+            // But we will leave them here since that file store module is still in just elevator
+
             // Add the file storage to the data entry if specified by the dev
             if(isset($options['file_size_field']))
                 $this->add_to_entry($options['file_size_field'], $file['size'], $options);
@@ -379,10 +382,12 @@ trait ValidateCleanMap {
             // Add the file type
             if(isset($options['file_ratio_field']) && $file['upload_type'] == FileUploadType::IMG)
                 $this->add_to_entry($options['file_ratio_field'], ["width" => $file['width'], "height" => $file['height']], $options);
+
+            //TODO: End All these
         }
 
 //        $is_empty = empty($value);
-        $is_empty = $value === null;
+        $is_empty = ($value === null || $value === "");
 
         if(isset($options['is_captcha'])) {
             $as_jwt = isset($options['captcha_jwt_field']);
