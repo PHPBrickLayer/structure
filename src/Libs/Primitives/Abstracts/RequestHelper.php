@@ -142,7 +142,9 @@ abstract class RequestHelper
         if ($this->error = self::vcm_errors())
             return $this;
 
-        $this->data = $this->post_validate(self::vcm_data());
+        $this->data = self::vcm_data();
+
+        $this->data = $this->post_validate($this->data);
 
         return $this;
     }
