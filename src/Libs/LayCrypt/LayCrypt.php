@@ -121,7 +121,7 @@ class LayCrypt
             (  new JWSBuilder( self::jwt_algo() )  )
                 ->create()
                 ->withPayload(json_encode($payload))
-                ->addSignature(self::gen_jwk(), ["alg" => HashType::SHA256, "typ" => "JWT"])
+                ->addSignature(self::gen_jwk(), ["alg" => HashType::SHA256->value, "typ" => "JWT"])
                 ->build(),
             0
         );
