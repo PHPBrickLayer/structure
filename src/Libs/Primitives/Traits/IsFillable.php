@@ -92,9 +92,10 @@ trait IsFillable {
         $this->columns = $data;
 
         if(self::$use_delete)
-            $this->parse_prop(self::$primary_delete_col, "bool", false);
+            $this->cast(self::$primary_delete_col, "bool", false);
 
         $this->props_schema($this->columns);
+        $this->cast_schema();
 
         return $this;
     }
@@ -147,13 +148,34 @@ trait IsFillable {
      * @param array $props
      * @return void
      * @abstract
+     * @deprecated use cast_schema
      */
     protected function props_schema(array &$props) : void
     {
         // You can use `parse_prop` here
-//        $this->parse_prop("deleted", "bool", false);
-//        $this->parse_prop("permissions", "array", []);
+//        $this->cast("deleted", "bool", false);
+//        $this->cast("permissions", "array", []);
     }
+
+    /**
+     * An alias for cast
+     * @see cast
+     * @deprecated use cast
+     */
+    protected function parse_prop(
+        string          $key, string $type,
+        mixed           $default_value = "@same@",
+        string|callable $parser = "@nothing@"
+    ) : void
+    {
+        $this->cast($key, $type, $default_value, $parser);
+    }
+
+    /**
+     * Where to run your cast operations
+     * @return void
+     */
+    protected function cast_schema() : void {}
 
     /**
      * A helper method used inside the `props_schema` method to parse props to a specific data type
@@ -164,12 +186,13 @@ trait IsFillable {
      * @param string|callable(mixed $value):mixed $parser When using a custom type, you must this and return the parsed value
      * @return void
      */
-    protected function parse_prop(
+    protected function cast(
         string          $key, string $type,
         mixed           $default_value = "@same@",
         string|callable $parser = "@nothing@"
     ) : void
     {
+
         if(!isset($this->columns[$key])) {
             if($default_value === "@same@")
                 LayException::throw("Key [$key] is not set, and a default value was not presented. '@same@' cannot be used as a default value");
@@ -184,16 +207,21 @@ trait IsFillable {
         if($old_type == $type || $is_same_type)
             return;
 
-        if($type == "array" || $type == "object") {
+        if(($type == "array" || $type == "object") && $parser === "@nothing@") {
             $this->columns[$key] = json_decode($this->columns[$key], $type == "array");
             return;
         }
 
-        $primitives = ["bool", "boolean", "int", "integer", "float", "double", "string", "array", "object"];
+        $primitives = ["bool", "boolean", "int", "integer", "float", "double", "string"];
 
         if(!in_array($type, $primitives)) {
             if($parser === "@nothing@")
                 LayException::throw("Using a custom type [$type], but no parser implemented for your model: [" . static::class . "]");
+
+            if($this->columns[$key] === null) {
+                $this->columns[$key] = $default_value;
+                return;
+            }
 
             $this->columns[$key] = $parser($this->columns[$key]);
             return;
