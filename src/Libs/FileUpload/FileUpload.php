@@ -8,9 +8,8 @@ use BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadExtension;
 use BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadStorage;
 use BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadType;
 use BrickLayer\Lay\Libs\FileUpload\Traits\Doc;
-use BrickLayer\Lay\Libs\FileUpload\Traits\ImageOld;
 use BrickLayer\Lay\Libs\FileUpload\Traits\Image;
-use JetBrains\PhpStorm\ArrayShape;
+use BrickLayer\Lay\Libs\LayCrypt\Enums\HashType;
 
 /**
  * @phpstan-type FileUploadReturn array{
@@ -21,15 +20,31 @@ use JetBrains\PhpStorm\ArrayShape;
  *     upload_type: FileUploadType,
  *     storage: FileUploadStorage,
  *     url?: string,
+ *     path?: string,
  *     size?: int,
  *     width?: int,
  *     height?: int,
  *     file_type?: FileUploadExtension,
+ *     mime_type?: string,
+ *     extension?: string,
+ *     checksum?: array{
+ *        tmp: array{
+ *          checksum: string,
+ *          algo: string,
+ *        },
+ *        new: array{
+ *          checksum: string,
+ *          algo: string,
+ *       },
+ *    },
  *  }
  *
  * @phpstan-type FileUploadOptions array{
  *  // Instruct the class to not upload or move php's temp files, but process every other thing before that step
  * dry_run?: bool,
+ *
+ * // A function to run before starting upload process of file
+ * pre_upload?: callable(?string $tmp_file, ?array $file):(FileUploadReturn|true),
  *
  * // Name of file from the form
  * post_name: string,
@@ -143,6 +158,18 @@ final class FileUpload {
                 $this->upload_type = FileUploadType::DOC;
         }
 
+        if(isset($opts['pre_upload'])) {
+            $out = $opts['pre_upload'](
+                @$_FILES[$opts['post_name']]['tmp_name'],
+                @$_FILES[$opts['post_name']],
+            );
+
+            if(is_array($out)) {
+                $this->response = $out;
+                return;
+            }
+        }
+
         if($this->upload_type == FileUploadType::IMG)
             $this->response = $this->image_upload($opts);
 
@@ -176,24 +203,21 @@ final class FileUpload {
         return filesize($files['tmp_name']);
     }
 
+    public function checksum(string $file_name, HashType $algo = HashType::MD5) : array
+    {
+        return [
+            "checksum" => hash_file($algo->name, $file_name),
+            "algo" => $algo
+        ];
+    }
+
     private function exception(string $message) : void {
         Exception::throw_exception($message, "FileUpload");
     }
 
     /**
      * @param bool $uploaded
-     * @param array{
-     *      uploaded?: bool,
-     *      dev_error?: string,
-     *      error?: string,
-     *      error_type?: FileUploadErrors,
-     *      upload_type?: FileUploadType,
-     *      storage?: FileUploadStorage,
-     *      url?: string,
-     *      size?: int,
-     *      width?: int,
-     *      height?: int,
-     *   } $opt
+     * @param FileUploadReturn $opt
      * @return FileUploadReturn
      */
     private function upload_response( bool $uploaded, array $opt ) : array
@@ -210,6 +234,7 @@ final class FileUpload {
 
         return [
             "uploaded" => true,
+            "path" => $opt['path'],
             "url" => $opt['url'],
             "size" => $opt['size'],
             "storage" => $this->storage,
@@ -217,6 +242,9 @@ final class FileUpload {
             'width' => $opt['width'] ?? null,
             'height' => $opt['height'] ?? null,
             'file_type' => $this->file_type,
+            'checksum' => $opt['checksum'] ?? null,
+            'mime_type' => $opt['mime_type'] ?? null,
+            'extension' => $opt['extension'] ?? null,
         ];
     }
 

@@ -41,6 +41,8 @@ use Exception;
  *    bucket_url?: string,
  *    each?: callable(mixed $value, int $index) : mixed,
  *    upload_handler?: callable,
+ *    pre_upload?: callable(?string $tmp_file, ?array $file):(array|true),
+ *    post_upload?: callable(FileUploadReturn $response):array,
  *    return_schema?: callable(mixed $value, string $alias, array<string, mixed> $options) : mixed,
  *    return_struct?: callable(mixed $value, string $alias, array<string, mixed> $options) : mixed,
  *
@@ -134,6 +136,8 @@ use Exception;
  *     maybe_file?: bool,
  *
  *     // @see FileUpload
+ *     pre_upload?: callable(?string $tmp_file, ?array $file):(array|true),
+ *     post_upload?: callable(FileUploadReturn $response):array,
  *     is_file?: bool,
  *     allowed_types?: array<int,FileUploadExtension>,
  *     allowed_extensions?: array<int,FileUploadExtension>,
@@ -194,10 +198,12 @@ trait ValidateCleanMap {
     private static ?string $_new_file_name;
     private static ?array $_dimension;
     private static ?FileUploadStorage $_upload_storage;
+    private static ?Closure $_pre_upload;
+    private static ?Closure $_post_upload;
     private static ?string $_bucket_url;
-    private static ?closure $_each;
-    private static ?closure $_upload_handler;
-    private static ?closure $_return_schema;
+    private static ?Closure $_each;
+    private static ?Closure $_upload_handler;
+    private static ?Closure $_return_schema;
     private static bool $_result_is_assoc = true;
 
     private function __get_field(string $key) : mixed
@@ -235,17 +241,6 @@ trait ValidateCleanMap {
 
     /**
      * Default file upload handler
-     *
-     * @param string $post_name
-     * @param string $new_name
-     * @param string|null $upload_sub_dir
-     * @param int|null $file_limit
-     * @param array|null $extension_list
-     * @param array|null $dimension
-     * @param FileUploadStorage|null $storage
-     * @param string|null $bucket_url
-     * @param FileUploadType|null $upload_type
-     * @param bool $dry_run
      * @return FileUploadReturn
      * @throws Exception
      */
@@ -260,6 +255,8 @@ trait ValidateCleanMap {
         ?string $bucket_url = null,
         ?FileUploadType $upload_type = null,
         bool $dry_run = false,
+        ?callable $pre_upload = null,
+        ?callable $post_upload = null,
     ) : array
     {
         // If dev wishes to use a custom upload handler, it must follow the params list chronologically,
@@ -269,7 +266,7 @@ trait ValidateCleanMap {
                 $this,
                 $post_name, $new_name, $upload_sub_dir, $file_limit,
                 $extension_list, $dimension, $storage, $bucket_url,
-                $upload_type, $dry_run
+                $upload_type, $dry_run, $pre_upload
             );
         }
 
@@ -288,7 +285,8 @@ trait ValidateCleanMap {
             "extension_list" => $extension_list,
             "dimension" => $dimension,
             "upload_type" => $upload_type ?? false,
-            "dry_run" => $dry_run
+            "dry_run" => $dry_run,
+            "pre_upload" => $pre_upload
         ]))->response;
 
         if(!$file['uploaded'])
@@ -298,6 +296,9 @@ trait ValidateCleanMap {
             $file['url'] = ($bucket_url ?? "") . $file['url'];
         else
             $file['url'] = rtrim($dir, DIRECTORY_SEPARATOR . "/") . "/" . $file['url'];
+
+        if($post_upload)
+            return $post_upload($file);
 
         return $file;
     }
@@ -345,6 +346,8 @@ trait ValidateCleanMap {
                 storage: $options['upload_storage'] ?? static::$_upload_storage ?? null,
                 bucket_url: $options['bucket_url'] ?? static::$_bucket_url ?? null,
                 dry_run: !empty(static::$_errors),
+                pre_upload: $options['pre_upload'] ?? static::$_pre_upload ?? null,
+                post_upload: $options['post_upload'] ?? static::$_post_upload ?? null,
             );
 
             if(
@@ -708,6 +711,8 @@ trait ValidateCleanMap {
         static::$_new_file_name = $options['new_file_name'] ?? null;
         static::$_dimension = $options['dimension'] ?? null;
         static::$_upload_storage = $options['upload_storage'] ?? null;
+        static::$_pre_upload = $options['pre_upload'] ?? null;
+        static::$_post_upload = $options['post_upload'] ?? null;
         static::$_bucket_url = $options['bucket_url'] ?? null;
         static::$_upload_handler = $options['upload_handler'] ?? null;
 
@@ -745,6 +750,8 @@ trait ValidateCleanMap {
             static::$_new_file_name,
             static::$_dimension,
             static::$_upload_storage,
+            static::$_pre_upload,
+            static::$_post_upload,
             static::$_bucket_url,
             static::$_upload_handler,
             static::$_return_schema,

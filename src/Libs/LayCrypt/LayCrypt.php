@@ -4,6 +4,7 @@ namespace BrickLayer\Lay\Libs\LayCrypt;
 
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\LayException;
+use BrickLayer\Lay\Libs\LayCrypt\Enums\HashType;
 use BrickLayer\Lay\Libs\LayDate;
 use BrickLayer\Lay\Libs\LayFn;
 use Jose\Component\Core\AlgorithmManager;
@@ -120,7 +121,7 @@ class LayCrypt
             (  new JWSBuilder( self::jwt_algo() )  )
                 ->create()
                 ->withPayload(json_encode($payload))
-                ->addSignature(self::gen_jwk(), ["alg" => "HS256", "typ" => "JWT"])
+                ->addSignature(self::gen_jwk(), ["alg" => HashType::SHA256, "typ" => "JWT"])
                 ->build(),
             0
         );

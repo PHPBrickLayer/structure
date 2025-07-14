@@ -19,7 +19,9 @@ class LayDate {
         return self::sec_2_min($this->result);
     }
     /**
-     * @param string|int|null $datetime values accepted by `strtotime` or integer equivalent of a datetime
+     * @param string|int|null $datetime values accepted by `strtotime` or integer equivalent of a datetime.
+     * If you pass null to it, it will return null, except you explicitly state that it shouldn't with the `return_null` arg
+     *
      * @link https://php.net/manual/en/function.idate.php
      * @param string $format <p>
      *  <table>
@@ -105,10 +107,13 @@ class LayDate {
      *  </p>
      * @param int $format_index 0 = date; 1 = time; 2 = appearance: [Ddd dd, Mmm YYYY | hh:mm a] - format: [D d, M Y | h:i a]
      * @param bool $figure to return the integer equivalent of the give datetime
-     * @return string|int
+     * @return string|int|null
      */
-    public static function date(string|int|null $datetime = null, string $format = "Y-m-d H:i:s", int $format_index = -1, bool $figure = false) : string|int
+    public static function date(string|int|null $datetime = "now", string $format = "Y-m-d H:i:s", int $format_index = -1, bool $figure = false, bool $return_null = true) : string|int|null
     {
+        if($datetime === null && $return_null)
+            return null;
+
         $format = match ($format_index) {
             0 => "Y-m-d",
             1 => "H:i:s",
@@ -140,7 +145,7 @@ class LayDate {
 
     public static function now() : int
     {
-        return self::date("", figure: true);
+        return self::date(figure: true);
     }
 
     public static function unix(string|int|null $datetime) : int
