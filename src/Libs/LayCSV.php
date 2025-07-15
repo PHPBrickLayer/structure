@@ -81,8 +81,8 @@ abstract class LayCSV {
 
         if($has_error)
             return self::res_warning(
-                "Could not process CSV. An error occurred. Ensure you used the template provided and you saved the file as `.csv`"
-                . (empty($error_msg) ? '' : '. More Info: ' . $error_msg)
+                $error_msg ?: "Could not process CSV. An error occurred. 
+                Ensure you used the template provided and you saved the file as `.csv`"
             );
 
         return self::res_success( "Processed successfully", $output);

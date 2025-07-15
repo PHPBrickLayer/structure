@@ -227,17 +227,14 @@ abstract class BaseModelHelper
 
         $this->exec_pre_run($db);
 
-        $timestamp = $this->timestamp();
-        $created_by = $this->created_by();
-
-        return $db->fun(function ($columns) use ($timestamp, $created_by, $fun, $db) {
+        return $db->fun(function ($columns) use ($fun, $db) {
             $columns[static::$primary_key_col] ??= 'UUID()';
             $columns[static::$primary_delete_col] ??= "0";
 
             if($this->enable_created_by)
-                $columns[static::$primary_created_by_col] ??= $created_by;
+                $columns[static::$primary_created_by_col] ??= $this->created_by();
 
-            $columns[static::$primary_created_at_col] ??= $timestamp;
+            $columns[static::$primary_created_at_col] ??= $this->timestamp();
 
             foreach ($columns as $key => $val) {
                 if (is_array($val)) $columns[$key] = json_encode($val);
