@@ -11,7 +11,7 @@ abstract class LayCSV {
 
     /**
      * @param string $file
-     * @param Closure(array<int,mixed>|false $row, array<string, mixed> $row_head):(LayLoop|array<int,mixed>) $callback
+     * @param Closure(array<int,mixed>|false $row, array<string, mixed> $row_head, int $line_num, string &$errors):(LayLoop|array<int,mixed>) $callback
      * @param int $max_size_kb
      *
      *
@@ -30,7 +30,7 @@ abstract class LayCSV {
             return self::res_warning("Invalid file received");
 
         if(!in_array($file_type, ["text/csv" , "text/plain"], true))
-            return self::res_warning( "Invalid file type received, ensure your file is saved as <b>CSV</b>");
+            return self::res_warning( "Invalid file type received, ensure your file is saved as <b>CSV</b>. File type <b>$file_type</b> received");
 
         $fh = fopen($file,'r');
         $output = [];
@@ -38,6 +38,7 @@ abstract class LayCSV {
         $i = 0;
         $head = [];
         $has_error = false;
+        $error_msg = "";
 
         while ($row = fgetcsv($fh, escape: "\\")) {
             if($i == 0) {
@@ -65,8 +66,11 @@ abstract class LayCSV {
 
             if($has_error) break;
 
-            $x = $callback($row, $row_head);
+            $x = $callback($row, $row_head, $i, $error_msg);
             $i++;
+
+            if(!empty($error_msg))
+                $has_error = true;
 
             if ($x == LayLoop::CONTINUE) continue;
 
@@ -77,7 +81,8 @@ abstract class LayCSV {
 
         if($has_error)
             return self::res_warning(
-                "Could not process CSV. An error occurred. Ensure you used the template provided and you saved the file as `.CSV`"
+                $error_msg ?: "Could not process CSV. An error occurred. 
+                Ensure you used the template provided and you saved the file as `.csv`"
             );
 
         return self::res_success( "Processed successfully", $output);
