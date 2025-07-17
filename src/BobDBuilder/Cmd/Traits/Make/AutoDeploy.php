@@ -75,6 +75,16 @@ trait AutoDeploy
             
                 file_put_contents(\$hook_file, "\$action \n", FILE_APPEND);
             }
+            
+            function pre_invalidate_hooks(string &\$log) : void
+            {
+            
+            }
+            
+            function post_invalidate_hooks(string &\$log) : void
+            {
+            
+            }
             FILE
         );
 
@@ -131,9 +141,18 @@ trait AutoDeploy
             \$log .= "-- Git Reset: " . shell_exec("git reset --hard origin/\$main_branch 2>&1 &") . "\\n";
             
             \$log .= "\\n";
+            \$log .= "--++ Pre Invalidate Hooks Actions\\n";
+            
+            pre_invalidate_hooks(\$log);
+
+            \$log .= "\\n";
             \$log .= "-- Invalidating Hooks\\n";
             (new \Web\Api\Plaster())->invalidate_hooks();
             
+            \$log .= "\\n";
+            \$log .= "--++ Post Invalidate Hooks Actions\\n";
+            post_invalidate_hooks(\$log);
+
             \$log .= "\\n";
             \$log .= "-- Symlinks are being refreshed\\n";
             
