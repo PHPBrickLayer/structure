@@ -155,6 +155,7 @@ trait Image
         if(
             $check = $this->check_all_requirements(
                 $post_name ?? null,
+                $post_index ?? 0,
                 $file_limit ?? null,
             )
         ) return $check;
@@ -184,7 +185,7 @@ trait Image
         $copy_tmp_file ??= false;
         $quality = $quality ?? 80;
 
-        $tmp_file = $file['tmp_name'];
+        $tmp_file = is_array($file['tmp_name']) ? $file['tmp_name'][$post_index] : $file['tmp_name'];
         $tmpImg = LayConfig::mk_tmp_dir() . "temp-file-" . Gen::uuid(32);
 
         if($copy_tmp_file && !copy($tmp_file, $tmpImg))

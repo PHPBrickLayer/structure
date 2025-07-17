@@ -49,6 +49,8 @@ use BrickLayer\Lay\Libs\LayCrypt\Enums\HashType;
  * // Name of file from the form
  * post_name: string,
  *
+ * post_index?: int,
+ *
  * // New name and file extension of file after upload
  * new_name?: string,
  *
@@ -124,8 +126,11 @@ final class FileUpload {
         if(empty($opts))
             return;
 
+        $post_index = $opts['post_index'] ?? 0;
+
         $req = $this->check_all_requirements(
             post_name: $opts['post_name'],
+            post_index: $post_index,
             custom_mime:  $opts['custom_mime'] ?? null,
             extension_list:  $opts['extension_list'] ?? null,
         );
@@ -140,13 +145,16 @@ final class FileUpload {
             return;
         }
 
+        $file = $_FILES[$opts['post_name']];
+        $tmp_file = is_array($file['tmp_name']) ? $file['tmp_name'][$post_index] : $file['tmp_name'];
+
         if($opts['upload_type'] ?? false) {
             if($opts['upload_type'] instanceof FileUploadType)
                 $this->upload_type = $opts['upload_type'];
             else
                 $this->exception("upload_type received is not of type: " . FileUploadType::class . "; Rather received: " . gettype($opts['upload_type']));
         } else {
-            $mime = mime_content_type($_FILES[$opts['post_name']]['tmp_name']);
+            $mime = mime_content_type($tmp_file);
 
             if (str_starts_with($mime, "image/"))
                 $this->upload_type = FileUploadType::IMG;
@@ -159,10 +167,7 @@ final class FileUpload {
         }
 
         if(isset($opts['pre_upload'])) {
-            $out = $opts['pre_upload'](
-                @$_FILES[$opts['post_name']]['tmp_name'],
-                @$_FILES[$opts['post_name']],
-            );
+            $out = $opts['pre_upload']($tmp_file, $file);
 
             if(is_array($out)) {
                 $this->response = $out;
@@ -179,12 +184,13 @@ final class FileUpload {
 
     /**
      * @param string $file_name_or_post_name The path to the file or the name of the file from a post request
+     * @param int $index Index for specific file entry in the case of multiple files upload
      *
      * @return false|int
      *
      * @throws \Exception
      */
-    public function file_size(string $file_name_or_post_name) : int|false
+    public function file_size(string $file_name_or_post_name, int $index = 0) : int|false
     {
         $files = $_FILES[$file_name_or_post_name] ?? null;
 
@@ -200,9 +206,17 @@ final class FileUpload {
             return $size;
         }
 
-        return filesize($files['tmp_name']);
+        return filesize(is_array($files['tmp_name']) ? $files['tmp_name'][$index] : $files['tmp_name'] );
     }
 
+    /**
+     * @param string $file_name
+     * @param HashType $algo
+     * @return array{
+     *     checksum: string,
+     *     algo: HashType,
+     * }
+     */
     public function checksum(string $file_name, HashType $algo = HashType::MD5) : array
     {
         return [
@@ -253,6 +267,7 @@ final class FileUpload {
      */
     private function check_all_requirements(
         ?string                         $post_name,
+        int                             $post_index = 0,
         ?int                            $file_limit = null,
         FileUploadExtension|null|string $extension = null,
         ?array                          $custom_mime = null,
@@ -288,7 +303,8 @@ final class FileUpload {
                 ]
             );
 
-        $file = $file['tmp_name'];
+
+        $file = is_array($file['tmp_name']) ? $file['tmp_name'][$post_index] : $file['tmp_name'];
 
         if($file_limit && $this->file_size($file) > $file_limit) {
             $file_limit = $file_limit/1000000;

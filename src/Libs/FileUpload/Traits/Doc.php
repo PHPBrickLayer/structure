@@ -38,6 +38,7 @@ trait Doc {
         if(
             $check = $this->check_all_requirements(
                 $post_name ?? null,
+                $post_index ?? 0,
                 $file_limit ?? null,
                 $extension ?? null,
                 $custom_mime ?? null
@@ -56,8 +57,9 @@ trait Doc {
 
         $file = $_FILES[$post_name];
 
-        $file_size = $file['size'];
-        $tmp_file = $file['tmp_name'];
+        $file_size = is_array($file['size']) ? $file['size'][$post_index] : $file['size'];
+        $file_name = is_array($file['name']) ? $file['name'][$post_index] : $file['name'];
+        $tmp_file = is_array($file['tmp_name']) ? $file['tmp_name'][$post_index] : $file['tmp_name'];
         $add_mod_time ??= true;
 
         if(@$extension) {
@@ -65,13 +67,13 @@ trait Doc {
             $file_ext = "." . strtolower($file_ext);
         }
         else {
-            $ext = explode(".", $file['name']);
+            $ext = explode(".", $file_name);
             $file_ext = "." . strtolower(end($ext));
         }
 
         $tmp_checksum = $this->checksum($tmp_file);
 
-        $add_mod_time = $add_mod_time ? "-" .  filemtime($file['tmp_name']) . $file_ext : $file_ext;
+        $add_mod_time = $add_mod_time ? "-" .  filemtime($tmp_file) . $file_ext : $file_ext;
         $new_name = Escape::clean(LayFn::rtrim_word($new_name, $file_ext),EscapeType::P_URL) . $add_mod_time;
 
         if($storage == FileUploadStorage::BUCKET) {
