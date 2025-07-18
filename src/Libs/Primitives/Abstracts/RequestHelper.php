@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace BrickLayer\Lay\Libs\Primitives\Abstracts;
 
 use BrickLayer\Lay\Core\Exception;
+use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\LayException;
 use BrickLayer\Lay\Libs\Primitives\Traits\ValidateCleanMap;
 
@@ -195,26 +196,16 @@ abstract class RequestHelper
 
         $req_method = $_SERVER['REQUEST_METHOD'] ?? 'NON-SPECIFIED';
 
-        if($req_method != "POST") {
-            parse_str(file_get_contents("php://input"), $data);
-
-            if(!$data && $throw_error)
-                Exception::throw_exception(
-                    "Trying to access post data for a [$req_method] method request",
-                    "LayObject::ERR",
-                );
-
-            self::$cached_request_fd = $data;
-
-            if($as_array)
-                return self::$cached_request_fd;
-
-            self::$cached_request_fd = (object) self::$cached_request_fd;
-
-            return self::$cached_request_fd;
-        }
-
         $data = file_get_contents("php://input");
+
+        if($req_method != "POST") {
+            $content_type = explode(";", LayConfig::get_header('Content-Type'))[0];
+
+            if($req_method == "PUT" && $content_type == "multipart/form-data")
+                Exception::throw_exception("PUT method is not allowed for multipart/form-data requests", "LayObject::ERR");
+
+//            parse_str($data, $data);
+        }
 
         $msg = "No values found in request; check if you actually sent your values as \$_POST";
         $post = $as_array ? $_POST : (object) $_POST;
@@ -230,14 +221,10 @@ abstract class RequestHelper
         }
 
         if ($throw_error && empty($data) && empty($post))
-            Exception::throw_exception(
-                $msg,
-                "LayObject::ERR",
-            );
+            Exception::throw_exception($msg, "LayObject::ERR");
 
         self::$cached_request_fd =  json_decode($data, $as_array) ?? $post;
 
         return self::$cached_request_fd;
-
     }
 }

@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace BrickLayer\Lay\Libs\FileUpload;
 
 use BrickLayer\Lay\Core\Exception;
+use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadErrors;
 use BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadExtension;
 use BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadStorage;
@@ -21,6 +22,7 @@ use BrickLayer\Lay\Libs\LayCrypt\Enums\HashType;
  *     storage: FileUploadStorage,
  *     url?: string,
  *     path?: string,
+ *     name?: string,
  *     size?: int,
  *     width?: int,
  *     height?: int,
@@ -47,7 +49,12 @@ use BrickLayer\Lay\Libs\LayCrypt\Enums\HashType;
  * pre_upload?: callable(?string $tmp_file, ?array $file):(FileUploadReturn|true),
  *
  * // Name of file from the form
- * post_name: string,
+ * post_name?: string,
+ *
+ * // The link to the temporary file. If this is set, it is assumed dev wants to validate the file only, so no upload is done
+ * tmp_file?: string,
+ *
+ * post_index?: int,
  *
  * // New name and file extension of file after upload
  * new_name?: string,
@@ -70,7 +77,8 @@ use BrickLayer\Lay\Libs\LayCrypt\Enums\HashType;
  *
  * // Instructs the class to validate this specific file extension. If this is specified, `extension_list` is ignored
  * // If nothing is provided the system will not validate for the extension type
- * extension?: FileUploadExtension,
+ * // If passing extension as a string, it should be just the extension, without period; so: jpg or zip, etc.
+ * extension?: FileUploadExtension|string,
  *
  * // An array of BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadExtension
  * extension_list?: array<int,FileUploadExtension>,
@@ -107,6 +115,11 @@ final class FileUpload {
 
     protected bool $dry_run = false;
 
+    /**
+     * @var FileUploadOptions|null
+     */
+    protected array|null $attr;
+
     protected ?FileUploadStorage $storage = null;
     protected ?FileUploadType $upload_type = null;
     protected ?FileUploadExtension $file_type = null;
@@ -124,13 +137,28 @@ final class FileUpload {
         if(empty($opts))
             return;
 
-        $req = $this->check_all_requirements(
-            post_name: $opts['post_name'],
-            custom_mime:  $opts['custom_mime'] ?? null,
-            extension_list:  $opts['extension_list'] ?? null,
-        );
+        $this->attr = $opts;
 
-        if($req) {
+        $post_index = $opts['post_index'] ?? 0;
+        $upload_on_dev = $opts['upload_on_dev'] ?? false;
+        $storage = $opts['storage'] ?? null;
+
+        if(LayConfig::$ENV_IS_DEV && !$upload_on_dev)
+            $storage = FileUploadStorage::DISK;
+
+        $this->storage = $storage;
+
+        if(
+            $req = $this->check_all_requirements(
+                post_name: $opts['post_name'] ?? null,
+                post_index: $post_index,
+                file_limit: $opts['file_limit'] ?? null,
+                extension: $opts['extension'] ?? null,
+                custom_mime:  $opts['custom_mime'] ?? null,
+                extension_list:  $opts['extension_list'] ?? null,
+                tmp_file: $opts['tmp_file'] ?? null
+            )
+        ) {
             if($req['error_type'] == FileUploadErrors::NO_POST_NAME) {
                 $this->response = null;
                 return;
@@ -140,13 +168,31 @@ final class FileUpload {
             return;
         }
 
-        if($opts['upload_type'] ?? false) {
-            if($opts['upload_type'] instanceof FileUploadType)
-                $this->upload_type = $opts['upload_type'];
-            else
-                $this->exception("upload_type received is not of type: " . FileUploadType::class . "; Rather received: " . gettype($opts['upload_type']));
-        } else {
-            $mime = mime_content_type($_FILES[$opts['post_name']]['tmp_name']);
+        if(isset($opts['tmp_file'])) {
+            $this->response = null;
+            return;
+        }
+
+        if($opts['dry_run'] ?? $this->dry_run) {
+            $this->response = $this->upload_response(
+                false,
+                [
+                    'dev_error' => "Function is running dry run",
+                    'error' => "Upload prevented by user action",
+                    'error_type' => FileUploadErrors::DRY_RUN,
+                ]
+            );
+
+            return;
+        }
+
+        $file = $_FILES[$opts['post_name']];
+        $tmp_file = is_array($file['tmp_name']) ? $file['tmp_name'][$post_index] : $file['tmp_name'];
+
+        $this->upload_type = $opts['upload_type'] ?? null;
+
+        if(!$this->upload_type) {
+            $mime = mime_content_type($tmp_file);
 
             if (str_starts_with($mime, "image/"))
                 $this->upload_type = FileUploadType::IMG;
@@ -159,32 +205,54 @@ final class FileUpload {
         }
 
         if(isset($opts['pre_upload'])) {
-            $out = $opts['pre_upload'](
-                @$_FILES[$opts['post_name']]['tmp_name'],
-                @$_FILES[$opts['post_name']],
-            );
+            $out = $opts['pre_upload']($tmp_file, $file);
 
             if(is_array($out)) {
-                $this->response = $out;
-                return;
+                if(isset($out['update_attr'])){
+                    $this->attr = array_merge($this->attr, $out['update_attr']);
+                }
+                else{
+                    $this->response = $out;
+                    return;
+                }
             }
         }
 
+        $file = [
+            "tmp_file" => $tmp_file,
+            "size" => is_array($file['size']) ? $file['size'][$post_index] : $file['size'],
+            "name" => is_array($file['name']) ? $file['name'][$post_index] : $file['name'],
+        ];
+
+        $extension = $opts['extension'] ?? null;
+
+        if($extension) {
+            $file_ext = is_string($extension) ? $extension : $extension->name;
+            $file_ext = "." . strtolower($file_ext);
+        }
+        else {
+            $ext = explode(".", $file['name']);
+            $file_ext = "." . strtolower(end($ext));
+        }
+
+        $file['extension'] = $file_ext;
+
         if($this->upload_type == FileUploadType::IMG)
-            $this->response = $this->image_upload($opts);
+            $this->response = $this->image_upload($file);
 
         if($this->upload_type == FileUploadType::DOC)
-            $this->response = $this->doc_upload($opts);
+            $this->response = $this->doc_upload($file);
     }
 
     /**
      * @param string $file_name_or_post_name The path to the file or the name of the file from a post request
+     * @param int $index Index for specific file entry in the case of multiple files upload
      *
      * @return false|int
      *
      * @throws \Exception
      */
-    public function file_size(string $file_name_or_post_name) : int|false
+    public function file_size(string $file_name_or_post_name, int $index = 0) : int|false
     {
         $files = $_FILES[$file_name_or_post_name] ?? null;
 
@@ -200,9 +268,17 @@ final class FileUpload {
             return $size;
         }
 
-        return filesize($files['tmp_name']);
+        return filesize(is_array($files['tmp_name']) ? $files['tmp_name'][$index] : $files['tmp_name'] );
     }
 
+    /**
+     * @param string $file_name
+     * @param HashType $algo
+     * @return array{
+     *     checksum: string,
+     *     algo: HashType,
+     * }
+     */
     public function checksum(string $file_name, HashType $algo = HashType::MD5) : array
     {
         return [
@@ -234,6 +310,7 @@ final class FileUpload {
 
         return [
             "uploaded" => true,
+            "name" => $opt['name'],
             "path" => $opt['path'],
             "url" => $opt['url'],
             "size" => $opt['size'],
@@ -253,13 +330,15 @@ final class FileUpload {
      */
     private function check_all_requirements(
         ?string                         $post_name,
+        int                             $post_index = 0,
         ?int                            $file_limit = null,
         FileUploadExtension|null|string $extension = null,
         ?array                          $custom_mime = null,
         ?array                          $extension_list = null,
+        ?string                         $tmp_file = null,
     ) : ?array
     {
-        if(!$post_name)
+        if(!$post_name && !$tmp_file)
             return $this->upload_response (
                 false,
                 [
@@ -268,7 +347,7 @@ final class FileUpload {
                 ]
             );
 
-        if(!isset($_FILES[$post_name]))
+        if(!$tmp_file && !isset($_FILES[$post_name]))
             return $this->upload_response (
                 false,
                 [
@@ -277,9 +356,9 @@ final class FileUpload {
                 ]
             );
 
-        $file = $_FILES[$post_name];
+        $file = $_FILES[$post_name] ?? null;
 
-        if(empty($file['tmp_name']))
+        if(!$tmp_file && !$file)
             return $this->upload_response (
                 false,
                 [
@@ -288,7 +367,8 @@ final class FileUpload {
                 ]
             );
 
-        $file = $file['tmp_name'];
+
+        $file = $tmp_file ?? (is_array($file['tmp_name']) ? $file['tmp_name'][$post_index] : $file['tmp_name']);
 
         if($file_limit && $this->file_size($file) > $file_limit) {
             $file_limit = $file_limit/1000000;

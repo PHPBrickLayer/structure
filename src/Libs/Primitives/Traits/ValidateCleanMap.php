@@ -246,6 +246,7 @@ trait ValidateCleanMap {
      */
     private function __file_upload_handler(
         string $post_name,
+        int $index,
         string $new_name,
         ?string $upload_sub_dir,
         ?int $file_limit,
@@ -256,7 +257,6 @@ trait ValidateCleanMap {
         ?FileUploadType $upload_type = null,
         bool $dry_run = false,
         ?callable $pre_upload = null,
-        ?callable $post_upload = null,
     ) : array
     {
         // If dev wishes to use a custom upload handler, it must follow the params list chronologically,
@@ -276,6 +276,7 @@ trait ValidateCleanMap {
 
         $file = (new FileUpload([
             "post_name" => $post_name,
+            "index" => $index,
             "new_name" =>  Escape::clean($new_name, EscapeType::P_URL),
             "directory" => $root . $dir,
             "permission" => 0755,
@@ -284,7 +285,7 @@ trait ValidateCleanMap {
             "bucket_path" => str_replace("uploads/", "", rtrim($dir, DIRECTORY_SEPARATOR . "/") . "/"),
             "extension_list" => $extension_list,
             "dimension" => $dimension,
-            "upload_type" => $upload_type ?? false,
+            "upload_type" => $upload_type ?? null,
             "dry_run" => $dry_run,
             "pre_upload" => $pre_upload
         ]))->response;
@@ -296,9 +297,6 @@ trait ValidateCleanMap {
             $file['url'] = ($bucket_url ?? "") . $file['url'];
         else
             $file['url'] = rtrim($dir, DIRECTORY_SEPARATOR . "/") . "/" . $file['url'];
-
-        if($post_upload)
-            return $post_upload($file);
 
         return $file;
     }
@@ -336,8 +334,19 @@ trait ValidateCleanMap {
             if(isset($options['max_size_in_mb']))
                 $max_size = $options['max_size_in_mb'] * 1000000;
 
+            $pre_upload = function (?string $tmp_file, ?array $file) use (&$options) {
+                $x = $options['pre_upload'] ?? static::$_pre_upload ?? null;
+
+                if($x !== null) return $x($tmp_file, $file, $options);
+
+                return null;
+            };
+
+            $post_upload = $options['post_upload'] ?? static::$_post_upload ?? null;
+
             $file = static::__file_upload_handler(
                 post_name: $field,
+                index: $options['array_index'],
                 new_name: $options['new_file_name'] ?? $field,
                 upload_sub_dir: $options['sub_dir'] ?? static::$_sub_dir ?? null,
                 file_limit: $max_size,
@@ -345,10 +354,13 @@ trait ValidateCleanMap {
                 dimension: $options['dimension'] ?? static::$_dimension ?? [800, 800],
                 storage: $options['upload_storage'] ?? static::$_upload_storage ?? null,
                 bucket_url: $options['bucket_url'] ?? static::$_bucket_url ?? null,
+                upload_type: $options['upload_type'] ?? null,
                 dry_run: !empty(static::$_errors),
-                pre_upload: $options['pre_upload'] ?? static::$_pre_upload ?? null,
-                post_upload: $options['post_upload'] ?? static::$_post_upload ?? null,
+                pre_upload: $pre_upload,
             );
+
+            if($post_upload)
+                $file = $post_upload($file, $options);
 
             if(
                 !$is_required && !$file['uploaded'] && (
