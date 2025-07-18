@@ -9,7 +9,6 @@ use BrickLayer\Lay\Libs\Aws\Bucket;
 use BrickLayer\Lay\Libs\Dir\LayDir;
 use BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadErrors;
 use BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadStorage;
-use BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadType;
 use BrickLayer\Lay\Libs\FileUpload\FileUpload;
 use BrickLayer\Lay\Libs\ID\Gen;
 use BrickLayer\Lay\Libs\String\Enum\EscapeType;
@@ -18,7 +17,6 @@ use Imagick;
 use ImagickException;
 
 /**
- * @phpstan-import-type FileUploadOptions from FileUpload
  * @phpstan-import-type FileUploadReturn from FileUpload
  */
 trait Image
@@ -59,6 +57,7 @@ trait Image
      * @param bool $add_mod_time
      * @return array{
      *    created: bool,
+     *    name?: string,
      *    ext?: string,
      *    url?: string,
      *    path?: string,
@@ -79,9 +78,10 @@ trait Image
             $img = new Imagick($tmp_img);
             $format = strtolower($img->getImageFormat());
             $ext = $format === 'gif' ? 'gif' : 'webp';
-            $mod_time = $add_mod_time ? "-" . filemtime($tmp_img) : "";
+            $mod_time = $add_mod_time ? "-mt" . filemtime($tmp_img) : "";
             $new_img .= $mod_time . ".$ext";
-            $filename = pathinfo($new_img, PATHINFO_FILENAME) . ".$ext";
+            $name_only = pathinfo($new_img, PATHINFO_FILENAME);
+            $filename = "$name_only.$ext";
 
             if ($resize && $width !== null) {
                 $img->resizeImage($width, $width, Imagick::FILTER_CATROM, 1, true);
@@ -114,6 +114,7 @@ trait Image
 
             return [
                 "created" => true,
+                "name" => $name_only,
                 "ext" => $ext,
                 "url" => $filename,
                 "path" => str_replace(LayConfig::server_data()->root, "", $new_img),
@@ -138,27 +139,21 @@ trait Image
     }
 
     /**
-     * @param FileUploadOptions $options
      * @return FileUploadReturn
      * @throws \Exception
      */
-    public function image_upload(array $options) : array
+    protected function image_upload(array $file) : array
     {
-        extract($options);
+        $add_mod_time = $this->attr['add_mod_time'] ?? true;
+        $copy_tmp_file = $this->attr['copy_tmp_file'] ?? false;
+        $quality = $this->attr['quality'] ?? 80;
+        $directory = $this->attr['directory'] ?? '';
+        $dimension = $this->attr['dimension'] ?? null;
+        $bucket_path = $this->attr['bucket_path'] ?? null;
+        $permission = $this->attr['permission'] ?? 0755;
+        $new_name = $this->attr['new_name'];
+        $tmp_file = $file['tmp_file'];
 
-        if(LayConfig::$ENV_IS_DEV && !@$upload_on_dev)
-            $storage = FileUploadStorage::DISK;
-
-        $this->storage = $storage;
-        $this->upload_type = FileUploadType::IMG;
-
-        if(
-            $check = $this->check_all_requirements(
-                $post_name ?? null,
-                $post_index ?? 0,
-                $file_limit ?? null,
-            )
-        ) return $check;
 
         if (!extension_loaded("imagick"))
             return $this->upload_response(
@@ -170,29 +165,13 @@ trait Image
                 ]
             );
 
-        if($this->dry_run)
-            return $this->upload_response(
-                false,
-                [
-                    'dev_error' => "Function is running dry run",
-                    'error' => "Upload prevented by user action",
-                    'error_type' => FileUploadErrors::DRY_RUN,
-                ]
-            );
-
-        $file = $_FILES[$post_name];
-        $add_mod_time ??= true;
-        $copy_tmp_file ??= false;
-        $quality = $quality ?? 80;
-
-        $tmp_file = is_array($file['tmp_name']) ? $file['tmp_name'][$post_index] : $file['tmp_name'];
         $tmpImg = LayConfig::mk_tmp_dir() . "temp-file-" . Gen::uuid(32);
 
         if($copy_tmp_file && !copy($tmp_file, $tmpImg))
             return $this->upload_response(
                 false,
                 [
-                    'dev_error' => "Failed to copy temporary image <b>FROM</b; $tmp_file <b>TO</b> $tmpImg <b>USING</b> (\$_FILES['$post_name']), ensure location exists, or you have permission; Class: " . self::class,
+                    'dev_error' => "Failed to copy temporary image <b>FROM</b; $tmp_file <b>TO</b> $tmpImg; ensure location exists, or you have permission; Class: " . self::class,
                     'error' => "Could not complete upload process, an error occurred",
                     'error_type' => FileUploadErrors::IMG_COPY_FAILED,
                 ]
@@ -206,7 +185,7 @@ trait Image
 
         $tmp_checksum = $this->checksum($tmp_file);
 
-        LayDir::make($directory, $permission ?? 0755, true);
+        LayDir::make($directory, $permission, true);
 
         $created = $dimension ?
             $this->create($tmpImg, $directory . $new_name, $quality, true, $dimension[0] ?? $dimension['width'], $add_mod_time) :
@@ -229,6 +208,7 @@ trait Image
         $out = [
             "url" => $new_name,
             "path" => $created['path'],
+            "name" => $created['name'],
             "size" => $created['size'],
             "width" => $created['width'],
             "height" => $created['height'],
@@ -240,7 +220,7 @@ trait Image
             ]
         ];
 
-        if($storage == FileUploadStorage::BUCKET) {
+        if($this->storage == FileUploadStorage::BUCKET) {
             if(!$bucket_path)
                 $this->exception("Bucket path is required when making use of the Bucket storage method");
 
@@ -263,7 +243,7 @@ trait Image
         }
 
         //TODO: Implement FTP Upload. I'll probably not implement it
-        if($storage == FileUploadStorage::FTP) {
+        if($this->storage == FileUploadStorage::FTP) {
             return $this->upload_response(false, [
                 "dev_error" => "Class: " . self::class,
                 "error" => "The FTP upload function has not been implemented",
@@ -272,6 +252,5 @@ trait Image
         }
 
         return $this->upload_response(true, $out);
-
     }
 }
