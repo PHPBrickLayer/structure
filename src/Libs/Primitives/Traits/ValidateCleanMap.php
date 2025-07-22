@@ -435,7 +435,7 @@ trait ValidateCleanMap {
             $add_to_entry = $this->report_error($field, "Received an invalid email format for: $field_name");
 
         if(isset($options['is_bool'])) {
-            if(in_array(strtolower($value . ''), ['true', 'false', '1', '0', true, false])) {
+            if(in_array(strtolower($value . ''), ['on', 'true', 'false', '1', '0', true, false])) {
                 $value = filter_var($value, FILTER_VALIDATE_BOOL);
                 $apply_clean = false;
             }

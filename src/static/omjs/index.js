@@ -401,7 +401,7 @@ const $exceeds = (element, size) => {
     return element.files[0].size > size;
 };
 
-const $media = ({srcElement: srcElement, previewElement: previewElement, then: then = null, on: on = "change", useReader: useReader = true}) => {
+const $media = ({srcElement: srcElement, previewElement: previewElement, then: then = null, on: on = "change", useReader: useReader = true, useOn: useOn = true}) => {
     const currentMediaSrc = previewElement.src;
     if (!$id("lay-media-previewer-loader")) $sel("head").$html("beforeend", `<style id="lay-media-previewer-loader">.lay-media-previewer-loader{font-size: 1rem; position: absolute; left: 0; right: 0; top: 5px; bottom: 5px; background: rgba(0,0,0,.5); margin: auto; width: 150px; display: flex;justify-content: center;align-items: center;font-weight: bold;color: #fff;letter-spacing: .3rem; border-radius: 15px; animation: pulse 2s infinite linear; transition: .6s ease-in-out</style>`);
     let defaultInputFile = null;
@@ -464,16 +464,17 @@ const $media = ({srcElement: srcElement, previewElement: previewElement, then: t
         }
     };
     if (!on || on === "") return previewMedia(srcElement);
-    if ($type(srcElement) === "Array") return $loop(srcElement, (src => $on(src, on, (() => previewMedia(src)), "on")));
-    return $on(srcElement, on, (() => previewMedia(srcElement)), "on");
+    if ($type(srcElement) === "Array") return $loop(srcElement, (src => $on(src, on, (() => previewMedia(src)), useOn ? "on" : "add")));
+    return $on(srcElement, on, (() => previewMedia(srcElement)), useOn ? "on" : "");
 };
 
 const $mediaPreview = (elementToWatch, placeToPreview, other = {}) => $media({
     srcElement: elementToWatch,
     previewElement: placeToPreview,
     useReader: other.type === 1,
-    then: other.operation,
-    on: other.event ?? "change"
+    then: other.operation ?? other.then ?? null,
+    on: other.event ?? "change",
+    useOn: other.useOn ?? true
 });
 
 const $showPassword = (callbackFn = (fieldType => fieldType), throwError = true) => {
@@ -713,7 +714,11 @@ const $cookie = (name = "*", value = null, expire = null, path = "/", domain = "
     let alreadyChecked;
     for (let i = 0; i < form.length; i++) {
         let field = form[i];
-        if (field.name && field.type === "file" && field.disabled === false && field.files.length > 0) {
+        if (field.name && field.type === "file" && field.disabled === false) {
+            if (validate && field.required && field.files.length === 0) {
+                failCheck(field, "File " + (field.dataset.name ?? field.name) + " is required. But no file was uploaded");
+                continue;
+            }
             hasFile = true;
             if ($data(field, "max-size")) {
                 let maxSize = parseFloat($data(field, "max-size"));

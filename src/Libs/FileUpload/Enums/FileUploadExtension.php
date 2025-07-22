@@ -10,6 +10,8 @@ enum FileUploadExtension : string
     case PDF =          'application/pdf';
     case CSV =          'text/csv';
     case EXCEL =        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    case MS_DOCX =      'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    case MS_DOC =       'application/msword';
     case ZIP =          'application/zip';
 
     // Extra doc extensions
