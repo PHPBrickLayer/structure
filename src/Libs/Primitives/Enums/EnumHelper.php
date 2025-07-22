@@ -24,10 +24,10 @@ trait EnumHelper
         return null;
     }
 
-    public static function is_enum(string $value) : bool
+    public static function is_enum(string $value, bool $use_value = true) : bool
     {
         foreach (self::cases() as $enum) {
-            $entry = $enum->value ??  $enum->name;
+            $entry = $use_value ? ($enum->value ??  $enum->name) : $enum->name;
 
             if($value == $entry)
                 return true;
