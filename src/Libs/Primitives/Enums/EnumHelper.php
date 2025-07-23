@@ -81,9 +81,27 @@ trait EnumHelper
         ];
     }
 
-    public function stringify() : string
+    /**
+     * @param 'default'|'upper'|'ucwords'|'lower'|'ucfirst' $case
+     * @return string
+     */
+    public function stringify(string $case = "default") : string
     {
-        return str_replace(["_"], [" "], $this->name);
+        $str = str_replace(["_"], [" "], $this->name);
+
+        if($case == "upper")
+            return strtoupper($str);
+
+        if($case == "lower")
+            return strtolower($str);
+
+        if($case == "ucwords")
+            return ucwords(strtolower($str));
+
+        if($case == "ucfirst")
+            return ucfirst(strtolower($str));
+
+        return $str;
     }
 
 }
