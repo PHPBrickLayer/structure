@@ -3,6 +3,8 @@ namespace BrickLayer\Lay\Libs\Primitives\Traits;
 
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\LayException;
+use BrickLayer\Lay\Libs\String\Enum\EscapeType;
+use BrickLayer\Lay\Libs\String\Escape;
 use BrickLayer\Lay\Orm\SQL;
 
 /**
@@ -73,7 +75,7 @@ trait IsFillable {
 
         $by_id = is_array($record_or_id) && !$invalidate ?
             fn() => $this->set_columns($record_or_id) :
-            fn() => $this->set_columns(static::db()->where(static::$primary_key_col, $record_or_id)->then_select());
+            fn() => $this->set_columns(static::db()->where(static::$primary_key_col, Escape::clean($record_or_id, EscapeType::STRIP_TRIM_ESCAPE))->then_select());
 
         if($invalidate)
             return $by_id();
