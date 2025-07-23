@@ -146,9 +146,7 @@ trait ControllerHelper {
      * @param bool $send_header
      * @param bool $log_error
      *
-     * @return (array|int|null|string)[]
-     *
-     * @psalm-return array{code: int, status: string, message: string, data: array|null}
+     * @return array{code: int, status: string, message: string, data: array|null}
      */
     public static function res_error(string $message = "An internal server error occurred", ?array $errors = null, ApiStatus|int $code = ApiStatus::CONFLICT, ?Throwable $exception = null, bool $send_header = false, bool $log_error =  true) : array
     {
@@ -156,7 +154,7 @@ trait ControllerHelper {
             $last_error = error_get_last();
             $msg = "";
 
-            if(!empty($last_error) && @$last_error['type'] != E_USER_WARNING){
+            if(!empty($last_error) && @$last_error['type'] != E_USER_WARNING && !$exception){
                 $msg = <<<BDY
                 [LAST_ERROR]                
                 {$last_error['message']} 

@@ -23,6 +23,8 @@ final class CoreException
     public static bool $DISPLAYED_ERROR = false;
     public static bool $HAS_500 = false;
     public static bool $ERROR_AS_HTML = false;
+    public static bool $IN_TRY = false;
+    public static bool $LOGGING = false;
 
     private static bool $already_caught = false;
     private static bool $show_internal_trace = true;
@@ -556,13 +558,12 @@ final class CoreException
      *     as_string: bool
      * }
      *
-     * @param (Throwable|array|bool|mixed|null|string)[] $opt
      *
-     * @psalm-param array{title?: string, body_includes?: string, kill?: bool, ascii?: bool, return_as_string?: bool, trace?: array, raw?: array, echo_error?: bool, use_lay_error?: bool, exception_type?: 'error'|mixed, exception_object?: Throwable|null, show_internal_trace?: mixed|null|true, json_packet?: array|null, show_exception_trace?: true} $opt
+     * @param array{title?: string, body_includes?: string, kill?: bool, ascii?: bool, return_as_string?: bool, trace?: array, raw?: array, echo_error?: bool, use_lay_error?: bool, exception_type?: 'error'|mixed, exception_object?: Throwable|null, show_internal_trace?: mixed|null|true, json_packet?: array|null, show_exception_trace?: true} $opt
      */
     private function show_exception(array $opt = []): ?array
     {
-        if(self::$already_caught)
+        if(self::$already_caught and !self::$LOGGING)
             return null;
 
         SQL::new()->__rollback_on_error();
@@ -624,7 +625,10 @@ final class CoreException
             if(Events::$is_streaming && LayConfig::get_mode() !== LayMode::CLI) {
                 (new Events())->__exception();
             }
-            else echo $act['error'];
+            else {
+                if(!self::$IN_TRY) echo $act['error'];
+                else self::$DISPLAYED_ERROR = false;
+            }
         }
 
         if ($opt['kill']) {
@@ -634,6 +638,9 @@ final class CoreException
             if(isset($opt['exception_object']) and !empty($opt['exception_object']))
                 throw new \Exception($opt['exception_object']->getMessage());
 //                throw new $opt['exception_object'];
+
+            if(self::$IN_TRY)
+                throw new \Exception(strip_tags($act['error']));
 
             error_reporting(0);
             die;

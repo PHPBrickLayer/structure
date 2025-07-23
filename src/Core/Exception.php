@@ -28,6 +28,15 @@ abstract class Exception {
     }
 
     /**
+     * Use this inside a try block to silent Lay's exception so you can do anything in your catch block
+     * @return void
+     */
+    public static function in_try() : void
+    {
+        self::new()::$IN_TRY = true;
+    }
+
+    /**
      * ## Kill the program and return a stack trace.
      *
      * If this method is called in a non-development environment,
@@ -81,7 +90,9 @@ abstract class Exception {
     public static function log(mixed $message, ?Throwable $exception = null, string $log_title = "") : void
     {
         self::always_log();
+        self::new()::$LOGGING = true;
         self::throw_exception(var_export($message, true), "ManualLog:$log_title", kill: false, exception: $exception, throw_500: false, error_as_json: false, echo_error: false, opts: ['type' => 'log']);
+        self::new()::$LOGGING = false;
     }
 
     public static function trigger_depreciation(string $depreciating, string $replacement, ?string $since = null) : void
