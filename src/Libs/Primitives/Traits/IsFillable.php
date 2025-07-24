@@ -94,28 +94,7 @@ trait IsFillable {
             $by_id = function () use ($record_or_id) {
                 $db = static::db();
 
-                $this->relationships();
-                $aliases = $this->props_alias();
-
-                if (!empty($this->joinery)) {
-                    foreach ($this->joinery as $joint) {
-                        $db->join($joint['child_table'], $joint['type'])
-                            ->on(
-                                $joint['child_table'] . "." . $joint['child_col'],
-                                static::$table . "." . $joint['column']
-                            );
-                    }
-                }
-
-                $cols = static::$table . ".*";
-
-                if (!empty($aliases)) {
-                    foreach ($aliases as $alias) {
-                        $cols .= "," . $alias[0] . (isset($alias[1]) ? " as " . $alias[1] : '');
-                    }
-                }
-
-                $db->column($cols);
+                $db->column($this->model_cols($db));
 
                 $db->where(static::$table . "." . static::$primary_key_col, Escape::clean($record_or_id, EscapeType::STRIP_TRIM_ESCAPE));
 
@@ -133,6 +112,40 @@ trait IsFillable {
             return $by_id();
 
         return $this;
+    }
+
+    /**
+     * This returns the columns the models collects to form a record.
+     * So all the joint tables, aliased columns are all here.
+     * Best to use this while making a custom query select to have a consistent result
+     *
+     * @param SQL $db
+     * @return string
+     */
+    protected function model_cols(SQL $db) : string
+    {
+        $this->relationships();
+        $aliases = $this->props_alias();
+
+        if (!empty($this->joinery)) {
+            foreach ($this->joinery as $joint) {
+                $db->join($joint['child_table'], $joint['type'])
+                    ->on(
+                        $joint['child_table'] . "." . $joint['child_col'],
+                        static::$table . "." . $joint['column']
+                    );
+            }
+        }
+
+        $cols = static::$table . ".*";
+
+        if (!empty($aliases)) {
+            foreach ($aliases as $alias) {
+                $cols .= "," . $alias[0] . (isset($alias[1]) ? " as " . $alias[1] : '');
+            }
+        }
+
+        return $cols;
     }
 
     protected function set_columns(array $data) : static
