@@ -273,6 +273,8 @@ abstract class BaseModelHelper
         $this->pre_get($db);
         $this->exec_pre_run($db);
 
+        $db->column($this->fillable($db));
+
         return $db->loop()->limit($limit, $page)->then_select();
     }
 
@@ -313,6 +315,8 @@ abstract class BaseModelHelper
         $this->pre_get($db);
         $this->exec_pre_run($db);
 
+        $db->column($this->fillable($db));
+
         if($res = $db->assoc()->select())
             return $this->fill($res);
 
@@ -334,6 +338,8 @@ abstract class BaseModelHelper
 
         $this->pre_get($db);
         $this->exec_pre_run($db);
+
+        $db->column($this->fillable($db));
 
         if($res = $db->assoc()->select())
             return $this->fill($res);
@@ -369,6 +375,8 @@ abstract class BaseModelHelper
 
         $this->pre_get($db);
         $this->exec_pre_run($db);
+
+        $db->column($this->fillable($db));
 
         return $db->loop()->then_select();
     }
@@ -412,11 +420,14 @@ abstract class BaseModelHelper
         $this->pre_get($db);
         $this->exec_pre_run($db);
 
+        $db->column($this->fillable($db));
         return $db->loop()->then_select();
     }
 
     /**
-     * Checks if all the value received exists in the database, hence valid or not
+     * Checks if all the value received exists in the database, hence valid or not.
+     * This operation only works on the primary model. It doesn't check the joint models
+     *
      * @param array<string|int> $values
      * @param string $column
      * @return bool
