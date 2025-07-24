@@ -64,8 +64,8 @@ abstract class BaseModelHelper
         return $this;
     }
 
-    protected function pre_add(SQL $db, array &$columns) : void {}
     protected function pre_get(SQL $db) : void {}
+    protected function pre_add(SQL $db, array &$columns) : void {}
     protected function pre_edit(SQL $db, array &$columns) : void {}
 
     public static function orm(?string $table = null) : SQL

@@ -3,6 +3,7 @@ namespace BrickLayer\Lay\Libs\Primitives\Traits;
 
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\LayException;
+use BrickLayer\Lay\Libs\Primitives\Abstracts\BaseModelHelper;
 use BrickLayer\Lay\Libs\String\Enum\EscapeType;
 use BrickLayer\Lay\Libs\String\Escape;
 use BrickLayer\Lay\Orm\SQL;
@@ -39,11 +40,24 @@ trait IsFillable {
      */
     protected static bool $use_delete = true;
 
+    private int $join_index = -1;
+
     /**
      * @var array
      * @readonly
      */
     protected array $columns;
+
+    /**
+     * An array of table and columns that should be joined when filling model
+     * @var array{ int, array{
+     *     column: string,
+     *     type: string,
+     *     child_table: string,
+     *     child_col: string,
+     * } }
+     */
+    protected array $joinery = [];
 
     public static function db() : SQL
     {
@@ -73,9 +87,41 @@ trait IsFillable {
         if($record_or_id instanceof self)
             $record_or_id = $record_or_id->props();
 
-        $by_id = is_array($record_or_id) && !$invalidate ?
-            fn() => $this->set_columns($record_or_id) :
-            fn() => $this->set_columns(static::db()->where(static::$primary_key_col, Escape::clean($record_or_id, EscapeType::STRIP_TRIM_ESCAPE))->then_select());
+        if(is_array($record_or_id) && !$invalidate) {
+            $by_id = fn() => $this->set_columns($record_or_id);
+        }
+        else {
+            $by_id = function () use ($record_or_id) {
+                $db = static::db();
+
+                $this->relationships();
+                $aliases = $this->props_alias();
+
+                if (!empty($this->joinery)) {
+                    foreach ($this->joinery as $joint) {
+                        $db->join($joint['child_table'], $joint['type'])
+                            ->on(
+                                $joint['child_table'] . "." . $joint['child_col'],
+                                static::$table . "." . $joint['column']
+                            );
+                    }
+                }
+
+                $cols = static::$table . ".*";
+
+                if (!empty($aliases)) {
+                    foreach ($aliases as $alias) {
+                        $cols .= "," . $alias[0] . (isset($alias[1]) ? " as " . $alias[1] : '');
+                    }
+                }
+
+                $db->column($cols);
+
+                $db->where(static::$table . "." . static::$primary_key_col, Escape::clean($record_or_id, EscapeType::STRIP_TRIM_ESCAPE));
+
+                return $this->set_columns($db->then_select());
+            };
+        }
 
         if($invalidate)
             return $by_id();
@@ -96,7 +142,10 @@ trait IsFillable {
         if(self::$use_delete)
             $this->cast(self::$primary_delete_col, "bool", false);
 
+        //TODO: Delete depreciated code
         $this->props_schema($this->columns);
+        //TODO: END Delete depreciated code
+
         $this->cast_schema();
 
         return $this;
@@ -247,6 +296,71 @@ trait IsFillable {
             );
 
         $this->columns[$key] = $value;
+    }
+
+    /**
+     * Define an alias for properties.
+     * This is especially useful if you are creating a relationship between two models
+     * @return array<int, array<int, string>>
+     */
+    protected function props_alias() : array
+    {
+        return [];
+
+        /**
+         * Example
+         */
+        return [
+            [static::$table . ".created_by", "creator"],
+            [static::$table . ".created_at", "submitted"],
+        ];
+    }
+
+    /**
+     * Define the relationships this model has if any.
+     *
+     * Take note: After creating relationships, you need to create props_alias for each column you want,
+     * because Lay will not fetch any columns of the joint or children tables
+     * @return void
+     */
+    protected function relationships() : void
+    {
+        return;
+
+        /**
+         * This is just an example of how to define a relationship
+         */
+        $this->join("dp")->to("Lay\\File\\Model");
+        $this->join("auth_id")->to("Lay\\User\\Model", "my_id");
+    }
+
+    /**
+     * This is the start of a relationship definition.
+     * Specify the column to be joints and call the `->to` method to complete the process
+     * @param string $column A column of this model
+     */
+    protected function join(string $column, string $type = "left") : static
+    {
+        $this->join_index++;
+
+        $this->joinery[$this->join_index] = [
+            "column" => $column,
+            "type" => $type
+        ];
+
+        return $this;
+    }
+
+    /**
+     * Connect this model to a dependent model based on a particular column (joint_col)
+     * @param BaseModelHelper|string $model
+     * @param string $joint_col
+     * @return void
+     */
+    protected function to(BaseModelHelper|string $model, string $joint_col = "id") : void
+    {
+        $this->joinery[$this->join_index]['child_table'] = $model::$table;
+        $this->joinery[$this->join_index]['child_col'] = $joint_col;
     }
 
 }
