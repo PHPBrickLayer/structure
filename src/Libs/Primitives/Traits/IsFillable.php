@@ -40,8 +40,6 @@ trait IsFillable {
      */
     protected static bool $use_delete = true;
 
-    private int $join_index = -1;
-
     /**
      * @var array
      * @readonly
@@ -50,14 +48,26 @@ trait IsFillable {
 
     /**
      * An array of table and columns that should be joined when filling model
-     * @var array{ int, array{
+     * @var array<int, array{
      *     column: string,
      *     type: string,
      *     child_table: string,
+     *     child_table_alias: string,
      *     child_col: string,
-     * } }
+     * }>
      */
-    protected array $joinery = [];
+    private array $joinery = [];
+    private int $join_index = -1;
+
+    /**
+     * @var array<int, array{
+     *     column: string,
+     *     alias: string,
+     *     table: string
+     * }>
+     */
+    private array $aliases = [];
+    private int $alias_index = -1;
 
     public static function db() : SQL
     {
@@ -94,7 +104,7 @@ trait IsFillable {
             $by_id = function () use ($record_or_id) {
                 $db = static::db();
 
-                $db->column($this->model_cols($db));
+                $db->column($this->fillable($db));
 
                 $db->where(static::$table . "." . static::$primary_key_col, Escape::clean($record_or_id, EscapeType::STRIP_TRIM_ESCAPE));
 
@@ -114,24 +124,47 @@ trait IsFillable {
         return $this;
     }
 
+
     /**
-     * This returns the columns the models collects to form a record.
+     * Every action that should take place before a model is filled.
+     *
+     * You can:
+     *  - Define the relationships this model has with other models if any.
+     *  - Alias column names if necessary
+     *
+     * Take note: After defining relationships, you need to include the columns you want using the alias method,
+     * because Lay will not fetch any columns of the joint or children models
+     * @return void
+     */
+    protected function prefill() : void
+    {
+        return;
+
+        /**
+         * This is just an example of how to define a relationship
+         */
+        $this->join("auth_id")->to("Lay\\User\\Model", "my_id")
+            ->use("last_name")                        // Forcing the inclusion of last_name in the props
+            ->use("first_name", "name");        // Include a column as an alias
+    }
+
+    /**
+     * This returns a string of the columns the models requests from the db when trying to fill a model.
      * So all the joint tables, aliased columns are all here.
      * Best to use this while making a custom query select to have a consistent result
      *
      * @param SQL $db
      * @return string
      */
-    protected function model_cols(SQL $db) : string
+    protected final function fillable(SQL $db) : string
     {
-        $this->relationships();
-        $aliases = $this->props_alias();
+        $this->prefill();
 
         if (!empty($this->joinery)) {
             foreach ($this->joinery as $joint) {
-                $db->join($joint['child_table'], $joint['type'])
+                $db->join($joint['child_table'] . " as " . $joint['child_table_alias'], $joint['type'])
                     ->on(
-                        $joint['child_table'] . "." . $joint['child_col'],
+                        $joint['child_table_alias'] . "." . $joint['child_col'],
                         static::$table . "." . $joint['column']
                     );
             }
@@ -139,38 +172,36 @@ trait IsFillable {
 
         $cols = static::$table . ".*";
 
-        if (!empty($aliases)) {
-            foreach ($aliases as $alias) {
-                $cols .= "," . $alias[0] . (isset($alias[1]) ? " as " . $alias[1] : '');
+        if (!empty($this->aliases)) {
+            foreach ($this->aliases as $alias) {
+                $a = $alias['alias'] ? " as " . $alias['alias'] : '';
+
+                $cols .= "," . $alias['table'] . "." . $alias['column'] . $a;
             }
         }
 
         return $cols;
     }
 
-    protected function set_columns(array $data) : static
+    private function set_columns(array $data) : static
     {
         $this->columns = $data;
 
         if(self::$use_delete)
             $this->cast(self::$primary_delete_col, "bool", false);
 
-        //TODO: Delete depreciated code
-        $this->props_schema($this->columns);
-        //TODO: END Delete depreciated code
-
         $this->cast_schema();
 
         return $this;
     }
 
-    protected function unfill() : static
+    private function unfill() : static
     {
         $this->columns = [];
         return  $this;
     }
 
-    public function refresh(): static
+    public final function refresh(): static
     {
         $id = $this->columns[static::$primary_key_col] ?? null;
 
@@ -180,59 +211,29 @@ trait IsFillable {
         return $this;
     }
 
-    public function __get(string $key) : mixed
+    public final function __get(string $key) : mixed
     {
         return $this->columns[$key] ?? null;
     }
 
-    public function __isset($key) : bool
+    public final function __isset($key) : bool
     {
         return isset($this->columns[$key]);
     }
 
-    public function props(): array
+    public final function props(): array
     {
         return $this->columns;
     }
 
-    public function exists(): bool
+    public final function exists(): bool
     {
         return !$this->is_empty();
     }
 
-    public function is_empty(): bool
+    public final function is_empty(): bool
     {
         return !isset($this->columns[static::$primary_key_col]);
-    }
-
-    /**
-     * Use this to format the final props. It is good practice to ensure your props name and data type match
-     * what you defined at the beginning of your class in the `property` attribution.
-     *
-     * @param array $props
-     * @return void
-     * @abstract
-     * @deprecated use cast_schema
-     */
-    protected function props_schema(array &$props) : void
-    {
-        // You can use `parse_prop` here
-//        $this->cast("deleted", "bool", false);
-//        $this->cast("permissions", "array", []);
-    }
-
-    /**
-     * An alias for cast
-     * @see cast
-     * @deprecated use cast
-     */
-    protected function parse_prop(
-        string          $key, string $type,
-        mixed           $default_value = "@same@",
-        string|callable $parser = "@nothing@"
-    ) : void
-    {
-        $this->cast($key, $type, $default_value, $parser);
     }
 
     /**
@@ -242,7 +243,7 @@ trait IsFillable {
     protected function cast_schema() : void {}
 
     /**
-     * A helper method used inside the `props_schema` method to parse props to a specific data type
+     * A helper method used inside the `cast_schema` method to cast a prop to a specific data type
      *
      * @param string $key Prop key
      * @param string $type Primitive datatypes like bool, objective, etc. Class string like an Enum can be used too.
@@ -250,7 +251,7 @@ trait IsFillable {
      * @param string|callable(mixed $value):mixed $parser When using a custom type, you must this and return the parsed value
      * @return void
      */
-    protected function cast(
+    protected final function cast(
         string          $key, string $type,
         mixed           $default_value = "@same@",
         string|callable $parser = "@nothing@"
@@ -301,7 +302,7 @@ trait IsFillable {
      * @return void
      * @throws \Exception if you try to assign a new prop to the model
      */
-    public function update_prop(string $key, mixed $value): void
+    public final function update_prop(string $key, mixed $value): void
     {
         if(!isset($this->columns[$key]))
             LayException::throw_exception(
@@ -312,52 +313,16 @@ trait IsFillable {
     }
 
     /**
-     * Define an alias for properties.
-     * This is especially useful if you are creating a relationship between two models
-     * @return array<int, array<int, string>>
-     */
-    protected function props_alias() : array
-    {
-        return [];
-
-        /**
-         * Example
-         */
-        return [
-            [static::$table . ".created_by", "creator"],
-            [static::$table . ".created_at", "submitted"],
-        ];
-    }
-
-    /**
-     * Define the relationships this model has if any.
-     *
-     * Take note: After creating relationships, you need to create props_alias for each column you want,
-     * because Lay will not fetch any columns of the joint or children tables
-     * @return void
-     */
-    protected function relationships() : void
-    {
-        return;
-
-        /**
-         * This is just an example of how to define a relationship
-         */
-        $this->join("dp")->to("Lay\\File\\Model");
-        $this->join("auth_id")->to("Lay\\User\\Model", "my_id");
-    }
-
-    /**
      * This is the start of a relationship definition.
      * Specify the column to be joints and call the `->to` method to complete the process
-     * @param string $column A column of this model
+     * @param string $on A column of this model
      */
-    protected function join(string $column, string $type = "left") : static
+    protected final function join(string $on, string $type = "left") : static
     {
         $this->join_index++;
 
         $this->joinery[$this->join_index] = [
-            "column" => $column,
+            "column" => $on,
             "type" => $type
         ];
 
@@ -367,13 +332,37 @@ trait IsFillable {
     /**
      * Connect this model to a dependent model based on a particular column (joint_col)
      * @param BaseModelHelper|string $model
-     * @param string $joint_col
-     * @return void
+     * @param string $on Column to join a child model on
      */
-    protected function to(BaseModelHelper|string $model, string $joint_col = "id") : void
+    protected final function to(BaseModelHelper|string $model, string $on = "id", ?string $table_alias = null) : self
     {
+        $table_alias ??= "ct" . $this->join_index;
+
         $this->joinery[$this->join_index]['child_table'] = $model::$table;
-        $this->joinery[$this->join_index]['child_col'] = $joint_col;
+        $this->joinery[$this->join_index]['child_table_alias'] = $table_alias;
+        $this->joinery[$this->join_index]['child_col'] = $on;
+
+        return $this;
+    }
+
+    /**
+     * Depends on `->to`.
+     * @requires $this->to()
+     *
+     * Define a column that should be included in the model after a child model has been joint.
+     *
+     * @param string $column The column of the new table/model being joint. Aka the child column
+     * @param string|null $alias An alias this column should be returned as
+     */
+    protected final function use(string $column, ?string $alias = null) : self
+    {
+        $this->aliases[$this->join_index] = [
+            "column" => $column,
+            "alias" => $alias,
+            "table" => $this->joinery[$this->join_index]['child_table_alias'],
+        ];
+
+        return $this;
     }
 
 }
