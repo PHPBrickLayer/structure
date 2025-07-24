@@ -27,10 +27,10 @@ abstract class ResourceHelper
 
     /**
      * Define how you want the resource to be mapped
-     * @param array<string, mixed>|object $data
+     * @param object $data This is basically the base model helper
      * @return array<string, mixed>
      */
-    abstract protected function schema(array|object $data): array;
+    abstract protected function schema(object $data): array;
 
     /**
      * Returns the mapped schema for external usage

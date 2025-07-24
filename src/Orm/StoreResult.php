@@ -18,10 +18,10 @@ final class StoreResult
      * @param string $except
      * @param Closure|null $fun a function that should execute at the end of a given row storage
      *
-     * @return Generator|array returns of result that can be accessed as assoc or row or a generator
+     * @return Generator|array<int|string, mixed> returns of result that can be accessed as assoc or row or a generator
      *
      */
-    public static function store(mixed $exec_result, bool $return_loop, OrmReturnType $fetch_as = OrmReturnType::BOTH, string $except = "", ?Closure $fun = null) : Generator|array
+    public static function store(mixed $exec_result, bool $return_loop, OrmReturnType $fetch_as = OrmReturnType::BOTH, string $except = "", ?Closure $fun = null) : mixed
     {
         $link = SQL::new()->get_link();
         $current_driver = SQL::get_driver();
@@ -52,7 +52,7 @@ final class StoreResult
             $break = false;
             $loop_handler($k, $result);
 
-            if(isset($result['_LAY_LOOP_']) && $result['_LAY_LOOP_'] == LayLoop::BREAK) {
+            if(is_array($result) && (isset($result['_LAY_LOOP_']) && $result['_LAY_LOOP_'] == LayLoop::BREAK)) {
                 unset($result['_LAY_LOOP_']);
                 $break = true;
             }

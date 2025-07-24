@@ -44,7 +44,7 @@ abstract class BaseModelHelper
     }
 
     /**
-     * @param callable(self):array<int|string, mixed> $each
+     * @param callable(self):mixed $each
      * @return self
      */
     public function each(callable $each) : self
@@ -373,6 +373,8 @@ abstract class BaseModelHelper
         if($this->debug_mode)
             $db->debug_full();
 
+        $db->each(fn($x) => $this->fill($x));
+
         $this->pre_get($db);
         $this->exec_pre_run($db);
 
@@ -417,7 +419,10 @@ abstract class BaseModelHelper
         if($this->debug_mode)
             $db->debug_full();
 
+        $db->each(fn($x) => $this->fill($x));
+
         $this->pre_get($db);
+
         $this->exec_pre_run($db);
 
         $db->column($this->fillable($db));

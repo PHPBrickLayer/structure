@@ -67,7 +67,6 @@ trait IsFillable {
      * }>
      */
     private array $aliases = [];
-    private int $alias_index = -1;
 
     public static function db() : SQL
     {
