@@ -52,6 +52,7 @@ trait IsFillable {
      *     column: string,
      *     type: string,
      *     child_table: string,
+     *     child_table_alias: string,
      *     child_col: string,
      * }>
      */
@@ -62,7 +63,7 @@ trait IsFillable {
      * @var array<int, array{
      *     column: string,
      *     alias: string,
-     *     model?: BaseModelHelper|string|null
+     *     table: string
      * }>
      */
     private array $aliases = [];
@@ -142,12 +143,9 @@ trait IsFillable {
         /**
          * This is just an example of how to define a relationship
          */
-        $this->join("dp")->to("Lay\\File\\Model");
-        $this->join("auth_id")->to("Lay\\User\\Model", "my_id");
-
-        $this->alias("last_name", model: "Lay\\File\\Model"); // Forcing the addition of last_name
-        $this->alias("first_name", "name"); // Aliasing a column of the primary model
-        $this->alias("url", "dp_src", "Lay\\User\\Model"); // Aliasing the url column of the specified model inside the primary model
+        $this->join("auth_id")->to("Lay\\User\\Model", "my_id")
+            ->use("last_name")                        // Forcing the inclusion of last_name in the props
+            ->use("first_name", "name");        // Include a column as an alias
     }
 
     /**
@@ -164,9 +162,9 @@ trait IsFillable {
 
         if (!empty($this->joinery)) {
             foreach ($this->joinery as $joint) {
-                $db->join($joint['child_table'], $joint['type'])
+                $db->join($joint['child_table'] . " as " . $joint['child_table_alias'], $joint['type'])
                     ->on(
-                        $joint['child_table'] . "." . $joint['child_col'],
+                        $joint['child_table_alias'] . "." . $joint['child_col'],
                         static::$table . "." . $joint['column']
                     );
             }
@@ -176,10 +174,9 @@ trait IsFillable {
 
         if (!empty($this->aliases)) {
             foreach ($this->aliases as $alias) {
-                $t = $alias['model'] ? $alias['model']::$table . "." : '';
                 $a = $alias['alias'] ? " as " . $alias['alias'] : '';
 
-                $cols .= "," . $t . $alias['column'] . $a;
+                $cols .= "," . $alias['table'] . "." . $alias['column'] . $a;
             }
         }
 
@@ -316,31 +313,16 @@ trait IsFillable {
     }
 
     /**
-     * Define an alias for properties. Or simply force the filler to add the specified column to the model props
-     * This is especially useful if you are creating a relationship between two models
-     */
-    protected final function alias(string $column, ?string $alias = null, BaseModelHelper|string $model = null) : void
-    {
-        $this->alias_index++;
-
-        $this->aliases[$this->alias_index] = [
-            "column" => $column,
-            "alias" => $alias,
-            "model" => $model,
-        ];
-    }
-
-    /**
      * This is the start of a relationship definition.
      * Specify the column to be joints and call the `->to` method to complete the process
-     * @param string $column A column of this model
+     * @param string $on A column of this model
      */
-    protected final function join(string $column, string $type = "left") : static
+    protected final function join(string $on, string $type = "left") : static
     {
         $this->join_index++;
 
         $this->joinery[$this->join_index] = [
-            "column" => $column,
+            "column" => $on,
             "type" => $type
         ];
 
@@ -350,13 +332,37 @@ trait IsFillable {
     /**
      * Connect this model to a dependent model based on a particular column (joint_col)
      * @param BaseModelHelper|string $model
-     * @param string $joint_col
-     * @return void
+     * @param string $on Column to join a child model on
      */
-    protected final function to(BaseModelHelper|string $model, string $joint_col = "id") : void
+    protected final function to(BaseModelHelper|string $model, string $on = "id", ?string $table_alias = null) : self
     {
+        $table_alias ??= "ct" . $this->join_index;
+
         $this->joinery[$this->join_index]['child_table'] = $model::$table;
-        $this->joinery[$this->join_index]['child_col'] = $joint_col;
+        $this->joinery[$this->join_index]['child_table_alias'] = $table_alias;
+        $this->joinery[$this->join_index]['child_col'] = $on;
+
+        return $this;
+    }
+
+    /**
+     * Depends on `->to`.
+     * @requires $this->to()
+     *
+     * Define a column that should be included in the model after a child model has been joint.
+     *
+     * @param string $column The column of the new table/model being joint. Aka the child column
+     * @param string|null $alias An alias this column should be returned as
+     */
+    protected final function use(string $column, ?string $alias = null) : self
+    {
+        $this->aliases[$this->join_index] = [
+            "column" => $column,
+            "alias" => $alias,
+            "table" => $this->joinery[$this->join_index]['child_table_alias'],
+        ];
+
+        return $this;
     }
 
 }
