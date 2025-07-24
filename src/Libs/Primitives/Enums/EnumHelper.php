@@ -96,7 +96,7 @@ trait EnumHelper
             return strtolower($str);
 
         if($case == "ucwords")
-            return ucwords(strtolower($str));e
+            return ucwords(strtolower($str));
 
         if($case == "ucfirst")
             return ucfirst(strtolower($str));
