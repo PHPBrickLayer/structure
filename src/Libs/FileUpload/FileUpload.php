@@ -367,16 +367,28 @@ final class FileUpload {
                 ]
             );
 
+
         if((is_array($file['tmp_name']))) {
+            $name = $file['name'][$post_index];
             $size = $file['size'][$post_index];
             $file = $file['tmp_name'][$post_index];
         }
         else {
+            $name = $file['name'] ?? null;
             $size = $file['size'] ?? null;
             $file = $file['tmp_name'] ?? null;
         }
 
         $file = $tmp_file ?? $file;
+
+        if($size == 0 && !$name)
+            return $this->upload_response (
+                false,
+                [
+                    "error" => "File was not received. Ensure the file is not above the set max file size. Try a file with a lower file size",
+                    "error_type" => FileUploadErrors::FILE_NOT_SET,
+                ]
+            );
 
         if($size == 0)
             return $this->upload_response(
