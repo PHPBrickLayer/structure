@@ -151,6 +151,8 @@ trait SelectorOOPCrud
 
     private function clean_input(mixed $value) : mixed
     {
+        if(!$value) return $value;
+
         // Avoid double escape if ' or " is found to be escaped already
         if(preg_match('/(\'|"|&#039;|&quot;)/', $value))
             return $value;
