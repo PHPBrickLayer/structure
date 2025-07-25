@@ -154,7 +154,7 @@ trait SelectorOOPCrud
         if(!$value) return $value;
 
         // Avoid double escape if ' or " is found to be escaped already
-        if(preg_match('/(\'|"|&#039;|&quot;)/', $value))
+        if(preg_match('/(\\\\\'|\\\\\")/', $value))
             return $value;
 
         return Escape::clean($value, EscapeType::TRIM_ESCAPE);
