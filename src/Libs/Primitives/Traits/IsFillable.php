@@ -65,7 +65,7 @@ trait IsFillable {
      * The cached columns selection and all the necessary aliases. To avoid looping all the time
      * @var string
      */
-    private static string $cached_cols;
+    private string $cached_cols;
 
     /**
      * @var array<int, array{
@@ -104,31 +104,20 @@ trait IsFillable {
         if($record_or_id instanceof self)
             $record_or_id = $record_or_id->props();
 
-        if(is_array($record_or_id) && !$invalidate) {
-            $by_id = fn() => $this->set_columns($record_or_id);
-        }
-        else {
-            $by_id = function () use ($record_or_id) {
-                $db = static::db();
+        if(is_array($record_or_id)) {
+            if($invalidate)
+                LayException::throw("Trying to invalidate Model: " . static::class . " but sent an array instead of a string as the record_id");
 
-                $db->column($this->fillable($db));
-
-                $db->where(static::$table . "." . static::$primary_key_col, Escape::clean($record_or_id, EscapeType::STRIP_TRIM_ESCAPE));
-
-                return $this->set_columns($db->then_select());
-            };
+            return $this->set_columns($record_or_id);
         }
 
-        if($invalidate)
-            return $by_id();
+        $db = static::db();
 
-        if(!isset($this->columns))
-            return $by_id();
+        $db->column($this->fillable($db));
 
-        if(@$this->columns[static::$primary_key_col] != $record_or_id)
-            return $by_id();
+        $db->where(static::$table . "." . static::$primary_key_col, Escape::clean($record_or_id, EscapeType::STRIP_TRIM_ESCAPE));
 
-        return $this;
+        return $this->set_columns($db->then_select());
     }
 
 
@@ -174,7 +163,7 @@ trait IsFillable {
     {
         $this->prefill();
 
-        $cols = static::$cached_cols ?? static::$table . ".*";
+        $cols = $this->cached_cols ?? static::$table . ".*";
 
         if (!empty($this->joinery)) {
             foreach ($this->joinery as $index => $joint) {
@@ -187,7 +176,7 @@ trait IsFillable {
                         $parent['table'] . "." . $parent['on']
                     );
 
-                if (!isset(static::$cached_cols) && !empty($this->aliases[$index])) {
+                if (!isset($this->cached_cols) && !empty($this->aliases[$index])) {
 
                     foreach ($this->aliases[$index] as $alias) {
                         $a = $alias['alias'] ? " as " . $alias['alias'] : '';
@@ -198,7 +187,7 @@ trait IsFillable {
             }
         }
 
-        return static::$cached_cols = $cols;
+        return $this->cached_cols = $cols;
     }
 
     private function set_columns(array $data) : static
@@ -226,7 +215,7 @@ trait IsFillable {
         if ($id)
             return $this->fill($id, true);
 
-        return $this;
+        return $this->unfill();
     }
 
     public final function __get(string $key) : mixed
@@ -386,7 +375,7 @@ trait IsFillable {
      */
     protected final function to(BaseModelHelper|string $model, string $on = "id") : self
     {
-        if(is_string($model) && !str_contains("\\", $model))
+        if(is_string($model) && !str_contains($model, "\\",))
             $table = $model;
         else
             $table = $model::$table;

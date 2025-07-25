@@ -107,13 +107,16 @@ abstract class ResourceHelper
     public static final function collect(array $data, array $except = [], ?callable $callback = null, bool $as_array = true): array
     {
         return LayArray::map($data, function($d) use ($except, $callback, $as_array) {
-            $data = (new static($d, false))->except(...$except);
+            if(isset($d['__LAY_MODEL__']))
+                $d = $d['__LAY_MODEL__']->fill($d);
 
-            if($as_array)
-                $data = $data->props();
+            $data = (new static($d, false))->except(...$except);
 
             if($callback)
                 return $callback($data);
+
+            if($as_array)
+                return $data->props();
 
             return $data;
         });

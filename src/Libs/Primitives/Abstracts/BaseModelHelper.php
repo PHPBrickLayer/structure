@@ -352,7 +352,11 @@ abstract class BaseModelHelper
         if($this->debug_mode)
             $db->debug_full();
 
-        $db->each(fn($x) => $this->fill($x));
+        $db->each(function($x) {
+            $x['__LAY_MODEL__'] = $this;
+            
+            return $x;
+        });
 
         $this->pre_get($db);
         $this->exec_pre_run($db);
@@ -384,7 +388,11 @@ abstract class BaseModelHelper
         if($this->debug_mode)
             $db->debug_full();
 
-        $db->each(fn($x) => $this->fill($x));
+        $db->each(function($x) {
+            $x['__LAY_MODEL__'] = $this;
+            
+            return $x;
+        });
 
         $this->pre_get($db);
         $this->exec_pre_run($db);
@@ -421,7 +429,11 @@ abstract class BaseModelHelper
         if($this->debug_mode)
             $db->debug_full();
 
-        $db->each(fn($x) => $this->fill($x));
+        $db->each(function($x) {
+            $x['__LAY_MODEL__'] = $this;
+            
+            return $x;
+        });
 
         $this->pre_get($db);
 

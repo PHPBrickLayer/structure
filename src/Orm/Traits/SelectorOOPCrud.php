@@ -149,6 +149,15 @@ trait SelectorOOPCrud
         return /** @lang text */ "INSERT INTO $table $column_and_values ON CONFLICT ($unique_cols) DO UPDATE SET $update_cols $clause;";
     }
 
+    private function clean_input(mixed $value) : mixed
+    {
+        // Avoid double escape if ' or " is found to be escaped already
+        if(preg_match('/(\'|"|&#039;|&quot;)/', $value))
+            return $value;
+
+        return Escape::clean($value, EscapeType::TRIM_ESCAPE);
+    }
+
     /**
      * Inserts a single record into the database.
      *
@@ -178,7 +187,7 @@ trait SelectorOOPCrud
 
             try {
                 foreach ($column_and_values as $k => $c) {
-                    $c = Escape::clean($c, EscapeType::TRIM_ESCAPE);
+                    $c = $this->clean_input($c);
 
                     if ($c === null) {
                         $k = self::escape_identifier($k);
@@ -305,7 +314,7 @@ trait SelectorOOPCrud
                     if(!isset($columns[$col]))
                         $columns[$col] = self::escape_identifier($col);
 
-                    $val = Escape::clean($val, EscapeType::TRIM_ESCAPE);
+                    $val = $this->clean_input($val);
 
                     if($val === null) {
                         $values .= "NULL,";
@@ -367,7 +376,7 @@ trait SelectorOOPCrud
             $table = self::escape_identifier($table);
 
             $treat_value = function ($val) {
-                $val = Escape::clean($val, EscapeType::TRIM_ESCAPE);
+                $val = $this->clean_input($val);
 
                 if($val === null) return "NULL";
 
@@ -445,7 +454,7 @@ trait SelectorOOPCrud
                     if(is_bool($value))
                         $value = $value ? 'true' : 'false';
 
-                    return Escape::clean($value, EscapeType::TRIM_ESCAPE);
+                    return $this->clean_input($value);
                 };
 
                 if($driver == OrmDriver::MYSQL) {
@@ -492,7 +501,7 @@ trait SelectorOOPCrud
                         continue;
                     }
 
-                    $c = Escape::clean($c, EscapeType::TRIM_ESCAPE);
+                    $c = $this->clean_input($c);
                     $cols .= $c == null ? "$k = NULL," : "$k = '$c',";
                 }
             } catch (Exception $e) {
