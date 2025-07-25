@@ -59,6 +59,8 @@ trait IsFillable {
     private array $joinery = [];
     private int $join_index = -1;
 
+    protected string $join_table;
+
     /**
      * @var array<int, array{
      *     column: string,
@@ -67,7 +69,6 @@ trait IsFillable {
      * }>
      */
     private array $aliases = [];
-    private int $alias_index = -1;
 
     public static function db() : SQL
     {
@@ -330,7 +331,11 @@ trait IsFillable {
     }
 
     /**
-     * Connect this model to a dependent model based on a particular column (joint_col)
+     * Connect this model to a dependent model based on a particular column (joint_col).
+     *
+     * After this function is called, the current table alias being joined is stored in the `$this->join_table` variable,
+     * so that you can use it before calling another join method
+     *
      * @param BaseModelHelper|string $model
      * @param string $on Column to join a child model on
      */
@@ -341,6 +346,8 @@ trait IsFillable {
         $this->joinery[$this->join_index]['child_table'] = $model::$table;
         $this->joinery[$this->join_index]['child_table_alias'] = $table_alias;
         $this->joinery[$this->join_index]['child_col'] = $on;
+
+        $this->join_table = $table_alias;
 
         return $this;
     }
