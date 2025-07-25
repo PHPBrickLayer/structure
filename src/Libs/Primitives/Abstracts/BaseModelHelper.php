@@ -257,27 +257,6 @@ abstract class BaseModelHelper
         return $this->add_batch($columns, $fun);
     }
 
-    /**
-     * @return array<int, array<string, mixed>>
-     */
-    public function all(int $page = 1, int $limit = 100) : array
-    {
-        $db = static::db();
-
-        if(static::$use_delete)
-            $db->where(static::$table . "." . static::$primary_delete_col, '0');
-
-        if($this->debug_mode)
-            $db->debug_full();
-
-        $this->pre_get($db);
-        $this->exec_pre_run($db);
-
-        $db->column($this->fillable($db));
-
-        return $db->loop()->limit($limit, $page)->then_select();
-    }
-
     public function count(string $field, string $value_or_operator, ?string $value = null) : int
     {
         $db = static::db();
@@ -390,6 +369,29 @@ abstract class BaseModelHelper
         }
 
         return $this;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function all(int $page = 1, int $limit = 100) : array
+    {
+        $db = static::db();
+
+        if(static::$use_delete)
+            $db->where(static::$table . "." . static::$primary_delete_col, '0');
+
+        if($this->debug_mode)
+            $db->debug_full();
+
+        $db->each(fn($x) => $this->fill($x));
+
+        $this->pre_get($db);
+        $this->exec_pre_run($db);
+
+        $db->column($this->fillable($db));
+
+        return $db->loop()->limit($limit, $page)->then_select();
     }
 
     /**
