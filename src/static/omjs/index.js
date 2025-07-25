@@ -719,6 +719,7 @@ const $cookie = (name = "*", value = null, expire = null, path = "/", domain = "
                 failCheck(field, "File " + (field.dataset.name ?? field.name) + " is required. But no file was uploaded");
                 continue;
             }
+            if (field.files.length === 0) continue;
             hasFile = true;
             if ($data(field, "max-size")) {
                 let maxSize = parseFloat($data(field, "max-size"));

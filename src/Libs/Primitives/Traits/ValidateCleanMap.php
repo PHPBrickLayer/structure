@@ -276,7 +276,7 @@ trait ValidateCleanMap {
 
         $file = (new FileUpload([
             "post_name" => $post_name,
-            "index" => $index,
+            "post_index" => $index,
             "new_name" =>  Escape::clean($new_name, EscapeType::P_URL),
             "directory" => $root . $dir,
             "permission" => 0755,
@@ -364,7 +364,7 @@ trait ValidateCleanMap {
 
             if(
                 !$is_required && !$file['uploaded'] && (
-                    $file['error_type'] == FileUploadErrors::FILE_NOT_SET || $file['error_type'] == FileUploadErrors::TMP_FILE_EMPTY
+                    $file['error_type'] == FileUploadErrors::FILE_NOT_SET
                 )
             ) {
                 $add_to_entry = false;

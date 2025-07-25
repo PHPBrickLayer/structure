@@ -363,14 +363,31 @@ final class FileUpload {
                 false,
                 [
                     "error" => "File was not received. Ensure the file is not above the set max file size. Try a file with a lower file size",
+                    "error_type" => FileUploadErrors::FILE_NOT_SET,
+                ]
+            );
+
+        if((is_array($file['tmp_name']))) {
+            $size = $file['size'][$post_index];
+            $file = $file['tmp_name'][$post_index];
+        }
+        else {
+            $size = $file['size'] ?? null;
+            $file = $file['tmp_name'] ?? null;
+        }
+
+        $file = $tmp_file ?? $file;
+
+        if($size == 0)
+            return $this->upload_response(
+                false,
+                [
+                    "error" => "File was not received. Ensure the file is not above the set max file size. Try a file with a lower file size",
                     "error_type" => FileUploadErrors::TMP_FILE_EMPTY,
                 ]
             );
 
-
-        $file = $tmp_file ?? (is_array($file['tmp_name']) ? $file['tmp_name'][$post_index] : $file['tmp_name']);
-
-        if($file_limit && $this->file_size($file) > $file_limit) {
+        if($file_limit && $size > $file_limit) {
             $file_limit = $file_limit/1000000;
 
             if($file_limit  > 1)
