@@ -44,6 +44,20 @@ abstract class BaseModelHelper
     }
 
     /**
+     * Pass the instance of the model to the return value of a select record, so that classes like ResourceHelper will use it
+     * @param SQL $db
+     * @return void
+     */
+    public function as_model(SQL $db) : void
+    {
+        $db->each(function($x) {
+            $x['__LAY_MODEL__'] = $this;
+
+            return $x;
+        });
+    }
+
+    /**
      * @param callable(self):mixed $each
      * @return self
      */
@@ -352,11 +366,7 @@ abstract class BaseModelHelper
         if($this->debug_mode)
             $db->debug_full();
 
-        $db->each(function($x) {
-            $x['__LAY_MODEL__'] = $this;
-            
-            return $x;
-        });
+        $this->as_model($db);
 
         $this->pre_get($db);
         $this->exec_pre_run($db);
@@ -388,11 +398,7 @@ abstract class BaseModelHelper
         if($this->debug_mode)
             $db->debug_full();
 
-        $db->each(function($x) {
-            $x['__LAY_MODEL__'] = $this;
-            
-            return $x;
-        });
+        $this->as_model($db);
 
         $this->pre_get($db);
         $this->exec_pre_run($db);
@@ -429,11 +435,7 @@ abstract class BaseModelHelper
         if($this->debug_mode)
             $db->debug_full();
 
-        $db->each(function($x) {
-            $x['__LAY_MODEL__'] = $this;
-            
-            return $x;
-        });
+        $this->as_model($db);
 
         $this->pre_get($db);
 

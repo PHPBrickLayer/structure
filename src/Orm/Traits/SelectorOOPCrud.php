@@ -153,6 +153,9 @@ trait SelectorOOPCrud
     {
         if(!$value) return $value;
 
+        if(is_array($value))
+            LayException::throw("Invalid! You cannot pass an array as a value to be inserted into the DB. You must first json_encode it", "ORM::ERR");
+
         // Avoid double escape if ' or " is found to be escaped already
         if(preg_match('/(\\\\\'|\\\\\")/', $value))
             return $value;
