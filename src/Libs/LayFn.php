@@ -13,7 +13,7 @@ final class LayFn
     private function __construct(){}
     private function __clone(){}
 
-    public static function var_cache(string $key, callable $action, bool $invalidate = false) : mixed
+    public static function var_cache(string $key, callable $action, bool $invalidate = false, string $expires = "1 day") : mixed
     {
         if(LayConfig::$ENV_IS_DEV)
             $invalidate = true;
@@ -22,7 +22,7 @@ final class LayFn
 
         $old = $cache->read("store");
 
-        if($old && !$invalidate)
+        if($old && !$invalidate && LayDate::expired($cache->read("expires") ?? 'now'))
             return $old;
 
         $data = $action();
@@ -30,6 +30,7 @@ final class LayFn
         if(empty($data)) return $data;
 
         $cache->store("store", $data);
+        $cache->store("expires", LayDate::unix($expires));
 
         return $data;
     }
