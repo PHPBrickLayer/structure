@@ -101,7 +101,7 @@ trait SelectorOOPCrud
             foreach ($conflict['update_columns'] as $col) {
                 if(in_array($col, $conflict['ignore_columns'], true)) continue;
 
-                $update .= "$col = VALUES($col),";
+                $update .= self::escape_identifier($col) . " = VALUES($col),";
             }
 
             $update = rtrim($update, ",");
@@ -141,7 +141,7 @@ trait SelectorOOPCrud
                 || in_array($trimmed_col, $conflict['unique_columns'], true)
             ) continue;
 
-            $update_cols .= "$col = $excluded.$col,";
+            $update_cols .= self::escape_identifier($col) . " = $excluded.$col,";
         }
 
         $update_cols = rtrim($update_cols, ",");
