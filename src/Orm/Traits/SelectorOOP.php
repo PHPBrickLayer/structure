@@ -388,18 +388,61 @@ trait SelectorOOP
      * Search a json column directly with the ORM
      * @param string $column
      * @param string $value
-     * @param 'OR'|'or'|'AND'|'AND'|null $prepend
+     * @param 'OR'|'or'|'AND'|'and'|null $prepend
+     * @param array{
+     *     wrap: bool,  // Wrap your value like this %VALUE% for a search operation; or any other component that needs to be wrapped. True by default.
+     *     search: bool, // Use the LIKE operand rather than the = operand to check for containment
+     *     insensitive: bool, // Make the search case-insensitive. True by default when searching
+     *     obj_key: string,  // If you want to check the value of a give json object key. {last_name: 'Motion'}; pass the last_name here
+     * } $opts
      * @return SelectorOOP|SQL
      */
-    final public function json_contains(string $column, string $value, ?string $prepend = null): self
+    final public function json_contains(string $column, string $value, ?string $prepend = null, array $opts = []): self
     {
-        $contain = match (self::get_driver()) {
-            default => "EXISTS (SELECT 1 FROM json_each($column) WHERE value = '$value')",
-            OrmDriver::MYSQL => "JSON_CONTAINS($column, '\"$value\"', '$')",
-            OrmDriver::POSTGRES => "$column @> '[\"$value\"]'"
-        };
+        $driver = self::get_driver();
+        $fun = fn($query) => $this->clause_array(" $prepend " . $this->process_condition_stmt($query,null, null));
 
-        return $this->clause_array(" $prepend " . $this->process_condition_stmt($contain,null, null));
+        $wrap = $opts['wrap'] ?? true;
+        $case_insensitive = $opts['insensitive'] ?? true;
+        $search = $opts['search'] ?? false;
+        $obj = $opts['obj_key'] ?? null;
+
+        $operand = $search ? 'LIKE' : '=';
+        $value = $search && $wrap ? "%$value%" : $value;
+
+        if($driver == OrmDriver::MYSQL) {
+            $contain = "JSON_CONTAINS($column, '\"$value\"', '$')";
+
+            if($obj) {
+                $contain = "JSON_UNQUOTE(JSON_EXTRACT($column, '$.$obj')) $operand '$value'";
+
+                if($case_insensitive)
+                    $contain = "LOWER(JSON_UNQUOTE(JSON_EXTRACT($column, '$.$obj'))) $operand '" . strtolower($value) . "'";
+            }
+
+            return $fun($contain);
+        }
+
+        if(OrmDriver::is_sqlite($driver)) {
+            $contain = "EXISTS (SELECT 1 FROM json_each($column) WHERE value $operand '$value')";
+
+            if($obj) {
+                $contain = "json_extract($column, '$.$obj') $operand '$value'";
+
+                if($case_insensitive)
+                    $contain = "LOWER(json_extract($column, '$.$obj')) $operand '" . strtolower($value) . "'";
+            }
+
+            return $fun($contain);
+        }
+
+        if($case_insensitive) $operand = 'ILIKE';
+
+        $contain = "$column @> " .  ($wrap ? "'[\"$value\"]'" : "'$value'");
+
+        if($obj) $contain = "$column->>'$obj' $operand '$value'";
+
+        return $fun($contain);
     }
 
     /**

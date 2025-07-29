@@ -5,7 +5,9 @@ namespace BrickLayer\Lay\BobDBuilder\Cmd;
 use BrickLayer\Lay\BobDBuilder\BobExec;
 use BrickLayer\Lay\BobDBuilder\EnginePlug;
 use BrickLayer\Lay\BobDBuilder\Interface\CmdLayout;
+use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Libs\Dir\LayDir;
+use BrickLayer\Lay\Libs\LayArray;
 use BrickLayer\Lay\Libs\LayCache;
 use BrickLayer\Lay\Libs\LayDate;
 use BrickLayer\Lay\Libs\Primitives\Enums\LayLoop;
@@ -19,6 +21,7 @@ final class Deploy implements CmdLayout
     private EnginePlug $plug;
     private string $root;
     private ?string $commit_msg;
+    private object $config;
     private ?string $ignore;
     private ?string $copy_only;
     private string $no_cache;
@@ -29,7 +32,7 @@ final class Deploy implements CmdLayout
         $this->plug->write_talk($message, ['silent' => true]);
     }
 
-    
+
     public function _init(EnginePlug $plug): void
     {
         $this->plug = $plug;
@@ -38,7 +41,7 @@ final class Deploy implements CmdLayout
         $plug->add_arg($this, ["deploy"], 'deploy', true);
     }
 
-    
+
     public function _spin(): void
     {
         $tags = $this->plug->tags;
@@ -48,7 +51,6 @@ final class Deploy implements CmdLayout
 
         $this->commit_msg = $this->plug->extract_tags(["-m", "-g"], 0)[0] ?? null;
         $this->push_git = $this->plug->extract_tags(["-ng", "--no-git"], false)[0] ?? $this->push_git;
-        $git_only = false;
         $git_only = $this->plug->extract_tags(["-go", "--git-only"], true)[0] ?? false;
 
         $ignore = $this->plug->extract_tags(["--ignore"], 0);
@@ -75,6 +77,7 @@ final class Deploy implements CmdLayout
             $ignore_file = isset($ignore->ignore) ? implode(",", $ignore->ignore) : "";
             $copy_file = isset($ignore->copy_only) ? implode(",", $ignore->copy_only): "";
 
+            $this->config = $ignore;
             $this->ignore = $this->ignore ? $this->ignore . "," . $ignore_file : $ignore_file;
             $this->copy_only = $this->copy_only ? $this->copy_only . "," . $copy_file : $copy_file;
         }
@@ -111,11 +114,24 @@ final class Deploy implements CmdLayout
         $this->push_with_git();
     }
 
-    public function batch_minification(string $src_dir, string $output_dir): void
+    public function batch_minification(string $src_dir, string $output_dir, ?string $domain = null): void
     {
         $copy_only = $this->copy_only ? explode(",", $this->copy_only) : [];
         $ignore = $this->ignore ? explode(",", $this->ignore) : [];
         $ignore = ["node_modules", "scss", ".DS_Store", ...$ignore];
+        $domain_root = LayConfig::server_data()->domains . $domain . DIRECTORY_SEPARATOR;
+
+        $whitelist = "";
+
+        if(isset($this->config)) {
+
+            foreach($this->config->purge_whitelist ?? [] as $list) {
+                $whitelist .= " '$list'";
+            }
+
+            if (!empty($whitelist))
+                $whitelist = "--safelist $whitelist";
+        }
 
         $gen_regex = function ($entry) : string {
             $regex_pattern = preg_quote($entry, '/');
@@ -156,7 +172,7 @@ final class Deploy implements CmdLayout
             },
 
             // After the file has been copied, work on it if it meets our criteria
-            post_copy: function ($file,$parent_dir,$output_dir) use ($is_css, $is_js, &$error, &$changes, $copy_only, $gen_regex) {
+            post_copy: function ($file,$parent_dir,$output_dir) use ($whitelist, $domain, $domain_root, $is_css, $is_js, &$error, &$changes, $copy_only, $gen_regex) {
 
                 // Check if directory matches one that needs to be copied only
                 foreach ($copy_only as $copy) {
@@ -188,11 +204,21 @@ final class Deploy implements CmdLayout
                 //TODO: we can add a condition to optimize if it's an image, reduce the size to a reasonable dimension
                 // also we can make the quality of the photo 70
 
-                if($is_js($file))
-                    $return = exec("terser '$file' -c -m -o '$output' 2>&1 &",$current_error);
+                if($is_js($file)) {
+                    if($domain)
+                        $return = exec("esbuild '$file' --bundle --format=esm --minify --tree-shaking=true --outfile=$output 2>&1 &", $current_error);
 
-                if ($is_css($file))
+//                    $return = exec("terser '$file' -c -m -o '$output' 2>&1 &", $current_error);
+
+                    $return = exec("terser '$file' --compress dead_code=true,unused=true,passes=2  -m -o '$output' 2>&1 &", $current_error);
+                }
+
+                if ($is_css($file)) {
+                    if($domain)
+                        $return = exec("purgecss --css $file --content {$domain_root}**/*.{php,view,js,html,inc} --output $output $whitelist 2>&1 &", $current_error);
+
                     $return = exec("uglifycss '$file' --output '$output' 2>&1 &", $current_error);
+                }
 
                 if(!empty($current_error))
                     $error[] = ["file" => $file, "error" => join("\n", $current_error)];
@@ -250,11 +276,13 @@ final class Deploy implements CmdLayout
     }
 
     public function check_dependencies() : void {
-        $this->talk("- Checking feature dependencies [*npm, terser & uglifycss*]");
+        $this->talk("- Checking feature dependencies [*npm, terser, uglifycss, esbuild & purgecss*]");
 
         $npm = shell_exec("cd $this->root && npm --version 2>&1");
         $terser = shell_exec("cd $this->root && terser --version 2>&1");
-        $uglifycss = shell_exec("cd $this->root && uglifycss --version 2>&1");
+        $uglify_css = shell_exec("cd $this->root && uglifycss --version 2>&1");
+        $esbuild = shell_exec("cd $this->root && esbuild --version 2>&1");
+        $purge_css = shell_exec("cd $this->root && purgecss --version 2>&1");
 
         if(!$npm || str_contains($npm, "not found"))
             $this->plug->write_fail(
@@ -268,9 +296,21 @@ final class Deploy implements CmdLayout
                 . "Please run *npm install* on the root folder of your project to install all the js dependencies"
             );
 
-        if(!$uglifycss || str_contains($uglifycss, "not found"))
+        if(!$uglify_css || str_contains($uglify_css, "not found"))
             $this->plug->write_fail(
                 "*uglifycss* is not installed on your machine, this feature depends on it. \n"
+                . "Please run *npm install* on the root folder of your project to install all the js dependencies"
+            );
+
+        if(!$esbuild || str_contains($esbuild, "not found"))
+            $this->plug->write_fail(
+                "*esbuild* is not installed on your machine, this feature depends on it. \n"
+                . "Please run *npm install* on the root folder of your project to install all the js dependencies"
+            );
+
+        if(!$purge_css || str_contains($purge_css, "not found"))
+            $this->plug->write_fail(
+                "*purgecss* is not installed on your machine, this feature depends on it. \n"
                 . "Please run *npm install* on the root folder of your project to install all the js dependencies"
             );
 
@@ -319,7 +359,7 @@ final class Deploy implements CmdLayout
 
     public function compress_static() : void
     {
-        LayDir::read($this->plug->server->domains, function ($domain, $src, DirectoryIterator $handler) {
+        LayDir::read($this->plug->server->domains, function (string $domain, string $src, DirectoryIterator $handler, array $obj) {
             $static = $src . $domain . DIRECTORY_SEPARATOR . "static";
 
             $dev = $static . DIRECTORY_SEPARATOR . "dev";
@@ -343,7 +383,7 @@ final class Deploy implements CmdLayout
             if($this->no_cache)
                 LayDir::unlink($prod);
 
-            $this->batch_minification($dev, $prod);
+            $this->batch_minification($dev, $prod, $domain);
         });
     }
 

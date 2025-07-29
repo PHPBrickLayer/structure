@@ -276,7 +276,7 @@ trait ValidateCleanMap {
 
         $file = (new FileUpload([
             "post_name" => $post_name,
-            "index" => $index,
+            "post_index" => $index,
             "new_name" =>  Escape::clean($new_name, EscapeType::P_URL),
             "directory" => $root . $dir,
             "permission" => 0755,
@@ -364,7 +364,7 @@ trait ValidateCleanMap {
 
             if(
                 !$is_required && !$file['uploaded'] && (
-                    $file['error_type'] == FileUploadErrors::FILE_NOT_SET || $file['error_type'] == FileUploadErrors::TMP_FILE_EMPTY
+                    $file['error_type'] == FileUploadErrors::FILE_NOT_SET
                 )
             ) {
                 $add_to_entry = false;
@@ -656,11 +656,12 @@ trait ValidateCleanMap {
             $clean = $options['clean'] ?? static::$_clean_by_default ?? true;
 
             if ($clean) {
-                $clean_type = is_array($clean) ? ($clean['escape'] ?? EscapeType::STRIP_TRIM) : EscapeType::STRIP_TRIM;
+                $clean_type = is_array($clean) ? ($clean['escape'] ?? [EscapeType::P_SPEC_CHAR, EscapeType::P_ESCAPE, EscapeType::P_TRIM]) : [EscapeType::P_SPEC_CHAR, EscapeType::P_ESCAPE, EscapeType::P_TRIM];
                 $strict = $is_required ? ($clean['strict'] ?? false) : false;
 
                 if (is_numeric($value) || is_bool($value))
                     $strict = false;
+
 
                 $value = Escape::clean($value, $clean_type, [
                     'strict' => $strict

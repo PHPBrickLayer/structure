@@ -62,6 +62,12 @@ trait IsFillable {
     protected string $join_table;
 
     /**
+     * The cached columns selection and all the necessary aliases. To avoid looping all the time
+     * @var string
+     */
+    private string $cached_cols;
+
+    /**
      * @var array<int, array{
      *     column: string,
      *     alias: string,
@@ -98,31 +104,20 @@ trait IsFillable {
         if($record_or_id instanceof self)
             $record_or_id = $record_or_id->props();
 
-        if(is_array($record_or_id) && !$invalidate) {
-            $by_id = fn() => $this->set_columns($record_or_id);
-        }
-        else {
-            $by_id = function () use ($record_or_id) {
-                $db = static::db();
+        if(is_array($record_or_id)) {
+            if($invalidate)
+                LayException::throw("Trying to invalidate Model: " . static::class . " but sent an array instead of a string as the record_id");
 
-                $db->column($this->fillable($db));
-
-                $db->where(static::$table . "." . static::$primary_key_col, Escape::clean($record_or_id, EscapeType::STRIP_TRIM_ESCAPE));
-
-                return $this->set_columns($db->then_select());
-            };
+            return $this->set_columns($record_or_id);
         }
 
-        if($invalidate)
-            return $by_id();
+        $db = static::db();
 
-        if(!isset($this->columns))
-            return $by_id();
+        $db->column($this->fillable($db));
 
-        if(@$this->columns[static::$primary_key_col] != $record_or_id)
-            return $by_id();
+        $db->where(static::$table . "." . static::$primary_key_col, Escape::clean($record_or_id, EscapeType::STRIP_TRIM_ESCAPE));
 
-        return $this;
+        return $this->set_columns($db->then_select());
     }
 
 
@@ -144,9 +139,16 @@ trait IsFillable {
         /**
          * This is just an example of how to define a relationship
          */
-        $this->join("auth_id")->to("Lay\\User\\Model", "my_id")
-            ->use("last_name")                        // Forcing the inclusion of last_name in the props
-            ->use("first_name", "name");        // Include a column as an alias
+
+        // Joining a child table to the primary model table
+        $this->join("Lay\\User\\Model", "auth_id")
+            ->use("last_name")
+            ->use("first_name", "name");
+
+        // Joining a child table to another table that isn't the primary model table
+        $this->join("Lay\\User\\Model", "auth_id")->to("Lay\\User\\Model", "my_id")
+            ->use("last_name")
+            ->use("first_name", "name");
     }
 
     /**
@@ -161,27 +163,31 @@ trait IsFillable {
     {
         $this->prefill();
 
+        $cols = $this->cached_cols ?? static::$table . ".*";
+
         if (!empty($this->joinery)) {
-            foreach ($this->joinery as $joint) {
-                $db->join($joint['child_table'] . " as " . $joint['child_table_alias'], $joint['type'])
+            foreach ($this->joinery as $index => $joint) {
+                $child = $joint['child'];
+                $parent = $joint['parent'];
+
+                $db->join($child['table'] . " as " . $child['table_alias'], $joint['type'])
                     ->on(
-                        $joint['child_table_alias'] . "." . $joint['child_col'],
-                        static::$table . "." . $joint['column']
+                        $child['table_alias'] . "." . $child['on'],
+                        $parent['table'] . "." . $parent['on']
                     );
+
+                if (!isset($this->cached_cols) && !empty($this->aliases[$index])) {
+
+                    foreach ($this->aliases[$index] as $alias) {
+                        $a = $alias['alias'] ? " as " . $alias['alias'] : '';
+
+                        $cols .= "," . $alias['table'] . "." . $alias['column'] . $a;
+                    }
+                }
             }
         }
 
-        $cols = static::$table . ".*";
-
-        if (!empty($this->aliases)) {
-            foreach ($this->aliases as $alias) {
-                $a = $alias['alias'] ? " as " . $alias['alias'] : '';
-
-                $cols .= "," . $alias['table'] . "." . $alias['column'] . $a;
-            }
-        }
-
-        return $cols;
+        return $this->cached_cols = $cols;
     }
 
     private function set_columns(array $data) : static
@@ -209,7 +215,7 @@ trait IsFillable {
         if ($id)
             return $this->fill($id, true);
 
-        return $this;
+        return $this->unfill();
     }
 
     public final function __get(string $key) : mixed
@@ -314,47 +320,75 @@ trait IsFillable {
     }
 
     /**
-     * This is the start of a relationship definition.
-     * Specify the column to be joints and call the `->to` method to complete the process
-     * @param string $on A column of this model
+     * Connect your model to dependent models or tables, so that the necessary props can be populated
+     *
+     * @param BaseModelHelper|string $model Child table/model to join.
+     * It's a model/class-string with the static property `::$table` or a regular table string
+     *
+     * @param string $on The anchor column on the primary table/model the child table should be joint on.
+     * @param string $to The column the child table should be joint to. The default is id
+     * @param string $type Type of join (left, right, inner)
      */
-    protected final function join(string $on, string $type = "left") : static
+    protected final function join(BaseModelHelper|string $model, string $on, string $to = "id", string $type = "left", ?string $table_alias = null) : static
     {
         $this->join_index++;
 
+        $table_alias ??= "ct" . $this->join_index;
+
+        if(is_string($model) && !str_contains("\\", $model))
+            $table = $model;
+        else
+            $table = $model::$table;
+
+        $this->join_table = $table_alias;
+
         $this->joinery[$this->join_index] = [
-            "column" => $on,
-            "type" => $type
+            "type" => $type,
+            "child" => [
+                "table" => $table,
+                "table_alias" => $table_alias,
+                "on" => $to,
+            ],
+            "parent" => [
+                "on" => $on,
+                "table" => static::$table
+            ]
         ];
 
         return $this;
     }
 
     /**
-     * Connect this model to a dependent model based on a particular column (joint_col).
+     * Use this to connect a child joining table to its parent.
      *
-     * After this function is called, the current table alias being joined is stored in the `$this->join_table` variable,
-     * so that you can use it before calling another join method
+     * If you are not joining a table to a primary model table,
+     * then this method will help Lay understand the model you wish to make the parent table
      *
-     * @param BaseModelHelper|string $model
-     * @param string $on Column to join a child model on
+     * This method cannot be called on its own, it must be called after a `->join()` call
+     * and before a `->use()` call.
+     * So it's `->join()->to()->use()`
+     *
+     * @param BaseModelHelper|string $model The new primary model or table.
+     * It's a model/class-string with the static property `::$table` or a regular table string
+     *
+     * @param string $on The column the child table will be joint on. The default is `id` even on the `->join()` method
      */
-    protected final function to(BaseModelHelper|string $model, string $on = "id", ?string $table_alias = null) : self
+    protected final function to(BaseModelHelper|string $model, string $on = "id") : self
     {
-        $table_alias ??= "ct" . $this->join_index;
+        if(is_string($model) && !str_contains($model, "\\",))
+            $table = $model;
+        else
+            $table = $model::$table;
 
-        $this->joinery[$this->join_index]['child_table'] = $model::$table;
-        $this->joinery[$this->join_index]['child_table_alias'] = $table_alias;
-        $this->joinery[$this->join_index]['child_col'] = $on;
-
-        $this->join_table = $table_alias;
+        $this->joinery[$this->join_index]['parent']['table'] = $table;
+        $this->joinery[$this->join_index]['child']['on'] = $on;
 
         return $this;
     }
 
     /**
-     * Depends on `->to`.
-     * @requires $this->to()
+     * Depends on `->to` || `->join`.
+     * @requires $this->to() || $this->join()
      *
      * Define a column that should be included in the model after a child model has been joint.
      *
@@ -363,10 +397,10 @@ trait IsFillable {
      */
     protected final function use(string $column, ?string $alias = null) : self
     {
-        $this->aliases[$this->join_index] = [
+        $this->aliases[$this->join_index][] = [
             "column" => $column,
             "alias" => $alias,
-            "table" => $this->joinery[$this->join_index]['child_table_alias'],
+            "table" => $this->joinery[$this->join_index]['child']['table_alias'],
         ];
 
         return $this;

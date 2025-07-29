@@ -290,6 +290,9 @@ class ViewBuilder
                 "ViewSentAlready"
             );
 
+
+        $route ??= self::DEFAULT_ROUTE;
+
         if ($route == self::DEFAULT_ROUTE) {
             self::$is_404 = true;
             $this->invoke(fn() => $this->default());
