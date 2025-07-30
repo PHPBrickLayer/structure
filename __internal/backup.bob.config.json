@@ -7,6 +7,10 @@
       "ignore" : {
         "path" : [],
         "pattern": []
+      },
+      "copy" : {
+        "path" : [],
+        "pattern": []
       }
     }
   }
