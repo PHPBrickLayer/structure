@@ -57,6 +57,13 @@ final class Deploy implements CmdLayout
         $copy = $this->plug->extract_tags(["--copy-only"], 0);
         $ignore_file = $this->root . "bob.config.json";
 
+        if(file_exists($this->root . "bob.ignore.json"))
+            $this->plug->write_fail(
+                "You are using the old bob config file *bob.ignore.json*.\n"
+                . "Run: php bob make:config for the new bob config file or delete this old config file to suppress this error",
+                [ "kill" => true ]
+            );
+
         if($ignore && $ignore[0] == null)
             $this->plug->write_warn(
                 "You added the ignore flag but didn't include the folder or file to ignore.\n"
