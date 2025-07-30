@@ -32,10 +32,10 @@ trait JsConfig
             LayDir::unlink($config_file);
         }
 
-        $this->dump_config_file($config_file);
+        $this->dump_js_config_file($config_file);
     }
 
-    private function dump_config_file(string $config_file): void
+    private function dump_js_config_file(string $config_file): void
     {
         $static = "";
         $shared = "";
