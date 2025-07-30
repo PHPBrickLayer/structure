@@ -1,0 +1,13 @@
+{
+  "purge_config" : {
+    "Default" : {
+      "lookup_src" : [],
+      "lookup_ext" : [],
+      "css_whitelist" : [],
+      "ignore" : {
+        "path" : [],
+        "pattern": []
+      }
+    }
+  }
+}

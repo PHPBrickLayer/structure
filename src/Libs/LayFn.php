@@ -22,7 +22,7 @@ final class LayFn
 
         $old = $cache->read("store");
 
-        if($old && !$invalidate && LayDate::expired($cache->read("expires") ?? 'now'))
+        if($old && !$invalidate && LayDate::expired($cache->read("expires") ?? 'yesterday'))
             return $old;
 
         $data = $action();

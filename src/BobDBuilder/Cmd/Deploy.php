@@ -55,7 +55,14 @@ final class Deploy implements CmdLayout
 
         $ignore = $this->plug->extract_tags(["--ignore"], 0);
         $copy = $this->plug->extract_tags(["--copy-only"], 0);
-        $ignore_file = $this->root . "bob.ignore.json";
+        $ignore_file = $this->root . "bob.config.json";
+
+        if(file_exists($this->root . "bob.ignore.json"))
+            $this->plug->write_fail(
+                "You are using the old bob config file *bob.ignore.json*.\n"
+                . "Run: php bob make:config for the new bob config file or delete this old config file to suppress this error",
+                [ "kill" => true ]
+            );
 
         if($ignore && $ignore[0] == null)
             $this->plug->write_warn(
@@ -116,17 +123,47 @@ final class Deploy implements CmdLayout
 
     public function batch_minification(string $src_dir, string $output_dir, ?string $domain = null): void
     {
-        $copy_only = $this->copy_only ? explode(",", $this->copy_only) : [];
-        $ignore = $this->ignore ? explode(",", $this->ignore) : [];
-        $ignore = ["node_modules", "scss", ".DS_Store", ...$ignore];
         $domain_root = LayConfig::server_data()->domains . $domain . DIRECTORY_SEPARATOR;
 
+        $copy_only = [];
+
+        $ignore_pattern = ["node_modules", "scss", ".DS_Store"];
+        $ignore_path = [];
+
+        $purge_lookup_ext = ["php", "view", "inc", "html", "js"];
+        $purge_lookup_ext_user = [];
         $whitelist = "";
+        $lookup = "";
+
+        if($domain) {
+            foreach ($purge_lookup_ext as $ext) {
+                $lookup .= " --content '{$domain_root}**/*.$ext'";
+            }
+        }
 
         if(isset($this->config)) {
+            $root = LayConfig::server_data()->root;
 
-            foreach($this->config->purge_whitelist ?? [] as $list) {
-                $whitelist .= " '$list'";
+            foreach($this->config->purge_config ?? [] as $dm => $list) {
+                if($dm != $domain) continue;
+
+                $purge_lookup_ext_user = array_unique([...$purge_lookup_ext, ...($list->lookup_ext ?? [])]);
+
+                foreach ($list->lookup_src ?? [] as $src) {
+                    foreach ($purge_lookup_ext_user as $ext) {
+                        $lookup .= " --content '" . $root . trim($src, "/") . "/**/*.$ext'";
+                    }
+                }
+
+                if(isset($list->ignore->path))
+                    $ignore_path = [...$ignore_path, ...$list->ignore->path];
+
+                if(isset($list->ignore->pattern))
+                    $ignore_pattern = [...$ignore_pattern, ...$list->ignore->pattern];
+
+                foreach($list->css_whitelist ?? [] as $white) {
+                    $whitelist .= "'$white' ";
+                }
             }
 
             if (!empty($whitelist))
@@ -172,7 +209,7 @@ final class Deploy implements CmdLayout
             },
 
             // After the file has been copied, work on it if it meets our criteria
-            post_copy: function ($file,$parent_dir,$output_dir) use ($whitelist, $domain, $domain_root, $is_css, $is_js, &$error, &$changes, $copy_only, $gen_regex) {
+            post_copy: function ($file,$parent_dir,$output_dir) use ($lookup, $whitelist, $domain, $domain_root, $is_css, $is_js, &$error, &$changes, $copy_only, $gen_regex) {
 
                 // Check if directory matches one that needs to be copied only
                 foreach ($copy_only as $copy) {
@@ -205,19 +242,24 @@ final class Deploy implements CmdLayout
                 // also we can make the quality of the photo 70
 
                 if($is_js($file)) {
-                    if($domain)
+                    if($domain) {
                         $return = exec("esbuild '$file' --bundle --format=esm --minify --tree-shaking=true --outfile=$output 2>&1 &", $current_error);
 
-//                    $return = exec("terser '$file' -c -m -o '$output' 2>&1 &", $current_error);
+                        if(!$return) $file = $output;
+                    }
 
                     $return = exec("terser '$file' --compress dead_code=true,unused=true,passes=2  -m -o '$output' 2>&1 &", $current_error);
                 }
 
                 if ($is_css($file)) {
-                    if($domain)
-                        $return = exec("purgecss --css $file --content {$domain_root}**/*.{php,view,js,html,inc} --output $output $whitelist 2>&1 &", $current_error);
+                    if($domain) {
+                        $return = exec("purgecss --css $file $lookup --output $output_dir/ $whitelist --allow-overwrite 2>&1 &", $current_error);
 
-                    $return = exec("uglifycss '$file' --output '$output' 2>&1 &", $current_error);
+
+                        if(!$return) $file = $output;
+                    }
+
+                    $return = exec("esbuild '$file' --minify --outfile=$output 2>&1 &", $current_error);
                 }
 
                 if(!empty($current_error))
@@ -230,15 +272,24 @@ final class Deploy implements CmdLayout
             },
 
             // Skip file if condition is true
-            skip_if: function($file, $parent_dir) use ($ignore, $gen_regex) {
+            skip_if: function($file, $parent_dir) use ($ignore_pattern, $ignore_path, $domain_root, $gen_regex) {
                 $skip = false;
 
-                foreach ($ignore as $entry) {
+                foreach ($ignore_pattern as $entry) {
                     preg_match($gen_regex($entry), $parent_dir . DIRECTORY_SEPARATOR . $file, $match);
 
                     if ($match) {
                         $skip = true;
                         break;
+                    }
+                }
+
+                if(!$skip) {
+                    foreach ($ignore_path as $entry) {
+                        if (($parent_dir . DIRECTORY_SEPARATOR . $file) === ($domain_root . $entry)) {
+                            $skip = true;
+                            break;
+                        }
                     }
                 }
 
@@ -276,11 +327,10 @@ final class Deploy implements CmdLayout
     }
 
     public function check_dependencies() : void {
-        $this->talk("- Checking feature dependencies [*npm, terser, uglifycss, esbuild & purgecss*]");
+        $this->talk("- Checking feature dependencies [*npm, terser, esbuild & purgecss*]");
 
         $npm = shell_exec("cd $this->root && npm --version 2>&1");
         $terser = shell_exec("cd $this->root && terser --version 2>&1");
-        $uglify_css = shell_exec("cd $this->root && uglifycss --version 2>&1");
         $esbuild = shell_exec("cd $this->root && esbuild --version 2>&1");
         $purge_css = shell_exec("cd $this->root && purgecss --version 2>&1");
 
@@ -293,12 +343,6 @@ final class Deploy implements CmdLayout
         if(!$terser || str_contains($terser, "not found"))
             $this->plug->write_fail(
                 "*terser* is not installed on your machine, this feature depends on it. \n"
-                . "Please run *npm install* on the root folder of your project to install all the js dependencies"
-            );
-
-        if(!$uglify_css || str_contains($uglify_css, "not found"))
-            $this->plug->write_fail(
-                "*uglifycss* is not installed on your machine, this feature depends on it. \n"
                 . "Please run *npm install* on the root folder of your project to install all the js dependencies"
             );
 
