@@ -147,7 +147,7 @@ trait AutoDeploy
 
             \$log .= "\\n";
             \$log .= "-- Invalidating Hooks\\n";
-            (new \Web\Api\Plaster())->invalidate_hooks();
+            (new \Web\Api\Plaster)->invalidate_hooks();
             
             \$log .= "\\n";
             \$log .= "--++ Post Invalidate Hooks Actions\\n";

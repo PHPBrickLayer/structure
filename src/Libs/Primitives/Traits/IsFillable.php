@@ -306,12 +306,13 @@ trait IsFillable {
      * Use this to update the values of your model props
      * @param string $key
      * @param mixed $value
+     * @param bool $throw
      * @return void
      * @throws \Exception if you try to assign a new prop to the model
      */
-    public final function update_prop(string $key, mixed $value): void
+    public final function update_prop(string $key, mixed $value, bool $throw = true): void
     {
-        if(!isset($this->columns[$key]))
+        if(!isset($this->columns[$key]) && $throw)
             LayException::throw_exception(
                 "Trying to dynamically add a new property to your Model. This is an illegal operation"
             );

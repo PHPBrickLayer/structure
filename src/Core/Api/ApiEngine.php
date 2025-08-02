@@ -176,6 +176,7 @@ abstract class ApiEngine {
     private static string $request_method;
     private static string $active_request_method;
 
+    private static array $middleware_list = [];
     private static ?Closure $current_middleware = null;
     private static bool $using_group_middleware = false;
     private static bool $using_route_middleware = false;
@@ -237,11 +238,9 @@ abstract class ApiEngine {
     }
 
     /**
-     * @param (int|null|string)[]|bool|callable|null|string $value
-     *
-     * @psalm-param bool|callable|list{int, string, null|string}|null|string $value
+     * @param mixed $value
      */
-    private static function update_global_props(string $key, array|string|callable|bool|null $value) : void
+    private static function update_global_props(string $key, mixed $value) : void
     {
         self::update_class_props($key, $value);
 
@@ -813,8 +812,7 @@ abstract class ApiEngine {
      * The array should be "code" => 200;
      * If it doesn't return 200, the bound method will not run.
      *
-     * @param callable $middleware_callback
-     * @param bool $__INTERNAL_
+     * @param callable $callback
      * @return self
      * @example
      * `ApiEngine::new()->request->post('client/transactions/buy')
@@ -822,23 +820,12 @@ abstract class ApiEngine {
      * ->bind(fn() => Transactions::new()->buy());
      * `
      */
-    public function middleware(callable $middleware_callback, bool $__INTERNAL_ = false) : self
+    public function middleware(callable $callback) : self
     {
-        if(self::$request_complete)
+        if(self::$request_complete || !self::$route_found || self::$DEBUG_DUMP_MODE || self::$indexing_routes)
             return $this;
 
-        self::$using_route_middleware = false;
-
-        if(!self::$route_found)
-            return $this;
-
-        self::$using_route_middleware = !$__INTERNAL_;
-
-        if(self::$DEBUG_DUMP_MODE)
-            return $this;
-
-        $arguments = self::get_mapped_args();
-        $return = $middleware_callback(...$arguments);
+        $return = $callback();
 
         if(!isset($return['code']))
             self::exception(
@@ -846,8 +833,25 @@ abstract class ApiEngine {
                 "You middleware must return an array with a key called \"code\", and its value should be 200 if the middleware's condition is met"
             );
 
+        if(isset(self::$middleware_list['__SCOPE__']['fn'])) {
+            foreach (self::$middleware_list['__SCOPE__']['fn'] as $fn) {
+                $grp_fn = $fn();
+
+                if(!isset($grp_fn['code']))
+                    self::exception(
+                        "MiddlewareError",
+                        "One of your group middlewares for class: " . static::class . " does not return an array with the key 'code' which should return 200 if conditions are met"
+                    );
+
+                if(!ApiStatus::is_ok($return['code'])) {
+                    $return = $grp_fn;
+                    break;
+                }
+            }
+        }
+
         // This means the request can go to the server
-        if($return['code'] == 200) {
+        if(ApiStatus::is_ok($return['code'])) {
             if(isset(self::$current_middleware))
                 self::$current_middleware = null;
 
@@ -862,30 +866,26 @@ abstract class ApiEngine {
         return $this;
     }
 
-    //TODO: Add a new method called scoped_middleware, where a middleware will be called instantly and it will affect
-    // everything inside the callable attached to the middleware, just like scoped_transaction
     /**
-     * This method runs for a series grouped routes.
-     * Routes are grouped either by using the `grouped` method or `prefix` method.
-     * When this method detects the group, it fires.
-     *
-     * You can group with just `prefix` or just the `group` method, or the both of them
+     * Perform middleware operations on a scope.
+     * If performed outside a group, the middleware will affect the routes below where it was defined.
+     * If performed in the apex Api class, it will affect all the routes in the project.
      *
      * @param callable $middleware_callback
      * @return self
      * @example
-    `ApiEngine::new()->request->group('client/transactions', function (ApiEngine $req) {
-    ->group_middleware(fn() => validate_session())
+    ```$this->group('client/transactions', function () {
+    $this->group_middleware(fn() => validate_session())
 
-    $req->post('buy')->bind(fn() => Transactions::new()->buy());
-    $req->post('sell')->bind(fn() => Transactions::new()->sell());
-    $req->post('history')->bind(fn() => Transactions::new()->history()
-    );`
+    $this->post('buy')->bind(fn() => Transactions::new()->buy());
+    $this->post('sell')->bind(fn() => Transactions::new()->sell());
+    $this->get('history')->bind(fn() => Transactions::new()->history()
+    });```
      * @see middleware
      */
     public function group_middleware(callable $middleware_callback) : self
     {
-        if(self::$request_complete)
+        if(self::$request_complete || self::$indexing_routes)
             return $this;
 
         self::$using_group_middleware = false;
@@ -921,7 +921,22 @@ abstract class ApiEngine {
         if(self::$DEBUG_DUMP_MODE)
             return $this;
 
-        return $this->middleware($middleware_callback, true);
+        if(static::class == self::GLOBAL_API_CLASS) {
+            self::$middleware_list["__GLOBAL__"][] = $middleware_callback;
+            return $this;
+        }
+
+        // Reset middleware when moving to a new class
+        if(
+            isset(self::$middleware_list["__SCOPE__"]['class'])
+            && self::$middleware_list["__SCOPE__"]['class'] != static::class
+        )
+            self::$middleware_list["__SCOPE__"]['fn'] = [];
+
+        self::$middleware_list["__SCOPE__"]['class'] = static::class;
+        self::$middleware_list["__SCOPE__"]['fn'][] = $middleware_callback;
+
+        return $this;
     }
 
     /**
@@ -1004,6 +1019,7 @@ abstract class ApiEngine {
         }
 
         if(self::$current_middleware) {
+
             $this->middleware(self::$current_middleware);
 
             if(isset(self::$bind_return_value))

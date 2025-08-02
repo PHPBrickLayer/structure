@@ -103,17 +103,36 @@ final class LayCookieStorage
         return null;
     }
 
+    /**
+     * @return array{
+     *     found: bool,
+     *     data?: array {
+     *       created_by: string,
+     *       auth: string,
+     *     },
+     *     why?: string,
+     * }
+     */
     public static function validate_cookie(): array
     {
         self::init(self::$table);
 
         if (!isset($_COOKIE[self::$session_user_cookie]))
-            return self::response(2, "Cookie is not set");
+            return [
+                "found" => false,
+                "why" => "NOT_SET"
+            ];
 
         if ($id = self::decrypt_cookie())
-            return self::response(1, "Cookie Found!", self::get_user_token($id));
+            return [
+                "found" => true,
+                "data" => self::get_user_token($id)
+            ];
 
-        return self::response(0, "Could not decrypt, invalid token saved",);
+        return [
+            "found" => false,
+            "why" => "ERROR"
+        ];
     }
 
     private static function decrypt_cookie(): ?string
@@ -131,13 +150,19 @@ final class LayCookieStorage
         return LayCrypt::basic($cookie, false);
     }
 
-    private static function get_user_token(string $id): array|\Generator
+    /**
+     * @param string $id
+     * @return array{
+     *     created_by: string,
+     *     auth: string,
+     * }
+     */
+    private static function get_user_token(string $id): array
     {
-        self::cleanse($id);
-
         return self::orm()->open(self::$table)
             ->column("created_by, auth")
-            ->then_select("WHERE id='$id'");
+            ->where("id", self::clean($id))
+            ->then_select();
     }
 
     private static function store_user_token(string $user_id): string
@@ -191,7 +216,7 @@ final class LayCookieStorage
         self::destroy_cookie(self::$session_user_cookie);
     }
 
-    public static function save_to_db(string $immutable_key): bool
+    public static function save_to_db(string $immutable_value): bool
     {
         self::init(self::$table);
 
@@ -202,7 +227,7 @@ final class LayCookieStorage
 
         return self::set_cookie(
             self::$session_user_cookie,
-            LayCrypt::basic(LayCookieStorage::save_user_token($immutable_key))
+            LayCrypt::basic(LayCookieStorage::save_user_token($immutable_value))
         );
     }
 

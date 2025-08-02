@@ -5,6 +5,7 @@ namespace BrickLayer\Lay\Libs\LayCrypt;
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\LayException;
 use BrickLayer\Lay\Libs\LayCrypt\Enums\HashType;
+use BrickLayer\Lay\Libs\LayCrypt\Enums\JwtError;
 use BrickLayer\Lay\Libs\LayDate;
 use BrickLayer\Lay\Libs\LayFn;
 use Jose\Component\Core\AlgorithmManager;
@@ -121,7 +122,7 @@ class LayCrypt
             (  new JWSBuilder( self::jwt_algo() )  )
                 ->create()
                 ->withPayload(json_encode($payload))
-                ->addSignature(self::gen_jwk(), ["alg" => HashType::SHA256->value, "typ" => "JWT"])
+                ->addSignature(self::gen_jwk(), ["alg" => HashType::SHA256, "typ" => "JWT"])
                 ->build(),
             0
         );
@@ -131,6 +132,7 @@ class LayCrypt
      * @param string $jwt
      * @return array{
      *     valid: bool,
+     *     why?: JwtError,
      *     message: string,
      *     data: ?array,
      * }
@@ -145,6 +147,7 @@ class LayCrypt
             LayException::log("", $e);
             return [
                 "valid" => false,
+                "why" => JwtError::INVALID_TOKEN,
                 "message" => "Invalid token received!",
                 "data" => null,
             ];
@@ -153,6 +156,7 @@ class LayCrypt
         if (!(new JWSVerifier(self::jwt_algo()))->verifyWithKey($jws, self::gen_jwk(), 0))
             return [
                 "valid" => false,
+                "why" => JwtError::INVALID_TOKEN,
                 "message" => "Invalid token!",
                 "data" => null,
             ];
@@ -162,6 +166,7 @@ class LayCrypt
         if(!$payload)
             return [
                 "valid" => false,
+                "why" => JwtError::INVALID_PAYLOAD,
                 "message" => "Invalid payload!",
                 "data" => null,
             ];
@@ -170,6 +175,7 @@ class LayCrypt
         if (LayDate::expired($payload['exp']))
             return [
                 "valid" => false,
+                "why" => JwtError::EXPIRED,
                 "message" => "Token has expired!",
                 "data" => null,
             ];
@@ -177,6 +183,7 @@ class LayCrypt
         if (LayDate::greater($payload['nbf'], invert: true))
             return [
                 "valid" => false,
+                "why" => JwtError::NBF,
                 "message" => "Token is not yet active!",
                 "data" => null,
             ];
