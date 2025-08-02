@@ -68,7 +68,7 @@ const $field = (fieldName, parent = $doc) => $name(fieldName, parent)[0];
 const $on = (element, event, listener, ...options) => {
     element = $omjsElSub(element, "$on");
     const option = options[0] ?? "on";
-    const multipleElement = element.length && !(!element.type || element.type === "select-one" || element.type === "select-multiple");
+    const multipleElement = element?.length > 1;
     try {
         const addListener = (listenerElement, index) => {
             let listenerFn = e => listener(e, multipleElement ? element[index] : element, index, ...options);
@@ -428,15 +428,11 @@ const $media = ({srcElement: srcElement, previewElement: previewElement, then: t
     let previewMedia = _srcElement => {
         _srcElement = _srcElement ?? srcElement;
         if (_srcElement?.multiple) return osNote("Media preview doesn't support preview for multiple files");
-        const inputFile = defaultInputFile ?? _srcElement.files[0];
         const wrapper = previewElement.parentElement;
         if (!wrapper.$sel(".lay-media-previewer-loader")) {
             wrapper.style.position = "relative";
             wrapper.$html("afterbegin", `<div class="lay-media-previewer-loader">Loading...</div>`);
         } else wrapper.$sel(".lay-media-previewer-loader").style.display = "flex";
-        if (inputFile?.type === "image/heic" && !checkedHEIC) {
-            return prepHEICForPreview(inputFile);
-        }
         switch (_srcElement.type) {
             default:
                 wrapper.$sel(".lay-media-previewer-loader").style.display = "none";
@@ -444,6 +440,10 @@ const $media = ({srcElement: srcElement, previewElement: previewElement, then: t
                 break;
 
             case "file":
+                const inputFile = defaultInputFile ?? _srcElement.files[0];
+                if (inputFile?.type === "image/heic" && !checkedHEIC) {
+                    return prepHEICForPreview(inputFile);
+                }
                 if (useReader) {
                     const reader = new FileReader;
                     $on(reader, "load", (() => {

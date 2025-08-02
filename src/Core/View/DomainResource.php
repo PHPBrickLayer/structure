@@ -199,13 +199,12 @@ abstract  class DomainResource
      *     use_get_content: bool,
      *     error_file_not_found: bool,
      *     get_last_mod: bool,
+     *     local_as_object: bool,
      * } $option
-     *
-     * @return (false|int|string)[]|false|null|string
      *
      * @throws \Exception
      *
-     * @psalm-return array{last_mod: false|int, content: false|string}|false|null|string
+     * @return array{last_mod: false|int, content: false|string}|false|null|string
      */
     public static function include_file(string $file, string $type = "inc", array $option = []) : array|string|false|null
     {
@@ -222,6 +221,7 @@ abstract  class DomainResource
         $use_get_content = $option['use_get_content'] ?? false;
         $error_file_not_found = $option['error_file_not_found'] ?? true;
         $get_last_mod = $option['get_last_mod'] ?? false;
+        $local_as_object = $option['local_as_object'] ?? true;
 
         $replace = fn($src) => !$use_referring_domain ? $src : str_replace(
             DIRECTORY_SEPARATOR . $domain->domain_name . DIRECTORY_SEPARATOR,
@@ -269,7 +269,7 @@ abstract  class DomainResource
         self::make_plaster_local(
             LayArray::merge(
                 self::plaster()->local ?? [],
-                $local, true
+                $local, $local_as_object
             )
         );
 
@@ -302,6 +302,5 @@ abstract  class DomainResource
         $once ? include_once $file : include $file;
         return null;
     }
-
 
 }

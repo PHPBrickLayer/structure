@@ -7,7 +7,6 @@ use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Libs\Cron\CronController;
 use BrickLayer\Lay\Libs\LayDate;
 use BrickLayer\Lay\Orm\SQL;
-use JetBrains\PhpStorm\ExpectedValues;
 
 trait TableTrait
 {
@@ -136,26 +135,4 @@ trait TableTrait
     {
         self::$created_by = $actor_id;
     }
-
-    /**
-     * This response is for functions like cookieStorage that doesn't need to set http_response_code,
-     * yet it needs to return an array
-     *
-     * @param int $code
-     * @param string $message
-     * @param array $data
-     *
-     * @return (array|int|string)[]
-     *
-     * @psalm-return array{code: int, message: string, data: array}
-     */
-    public static function response(#[ExpectedValues([0,1,2])] int $code, string $message, array $data = []) : array
-    {
-        return [
-            "code" => $code,
-            "message" => $message,
-            "data" => $data
-        ];
-    }
-
 }
