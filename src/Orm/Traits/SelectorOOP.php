@@ -394,10 +394,11 @@ trait SelectorOOP
      *     search: bool, // Use the LIKE operand rather than the = operand to check for containment
      *     insensitive: bool, // Make the search case-insensitive. True by default when searching
      *     obj_key: string,  // If you want to check the value of a give json object key. {last_name: 'Motion'}; pass the last_name here
+     *     return_query: bool,  // Instruct the function to return the query rather than add it to the query builder automatically
      * } $opts
      * @return SelectorOOP|SQL
      */
-    final public function json_contains(string $column, string $value, ?string $prepend = null, array $opts = []): self
+    final public function json_contains(string $column, string $value, ?string $prepend = null, array $opts = []): self|string
     {
         $driver = self::get_driver();
         $fun = fn($query) => $this->clause_array(" $prepend " . $this->process_condition_stmt($query,null, null));
@@ -406,6 +407,7 @@ trait SelectorOOP
         $case_insensitive = $opts['insensitive'] ?? true;
         $search = $opts['search'] ?? false;
         $obj = $opts['obj_key'] ?? null;
+        $return_query = $opts['return_query'] ?? false;
 
         $operand = $search ? 'LIKE' : '=';
         $value = $search && $wrap ? "%$value%" : $value;
@@ -420,6 +422,8 @@ trait SelectorOOP
                     $contain = "LOWER(JSON_UNQUOTE(JSON_EXTRACT($column, '$.$obj'))) $operand '" . strtolower($value) . "'";
             }
 
+            if($return_query) return $contain;
+
             return $fun($contain);
         }
 
@@ -433,6 +437,8 @@ trait SelectorOOP
                     $contain = "LOWER(json_extract($column, '$.$obj')) $operand '" . strtolower($value) . "'";
             }
 
+            if($return_query) return $contain;
+
             return $fun($contain);
         }
 
@@ -441,6 +447,8 @@ trait SelectorOOP
         $contain = "$column @> " .  ($wrap ? "'[\"$value\"]'" : "'$value'");
 
         if($obj) $contain = "$column->>'$obj' $operand '$value'";
+
+        if($return_query) return $contain;
 
         return $fun($contain);
     }

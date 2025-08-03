@@ -56,6 +56,10 @@ trait Functions
      *          'keyword' => 8 // score for keywords/partial match
      *      ],
      *      "blogs.tags" => 3, // Score for partial match
+     *      "blogs.tags" => [
+     *          "keyword" => 3,
+     *          "is_json" => true,
+     *      ], // Check a json column
      *      ... // you can add as much columns as needed
      * ]);
      */
@@ -93,13 +97,21 @@ trait Functions
 
         $keywords = $filter_words($query);
 
-        $format = function($token, $col, $score, $op = "LIKE"): string {
+        $format = function($token, $col, $score, $op = "LIKE", $rule = null): string {
             $op = $op ? strtolower($op) : null;
 
             if($op == "=")
                 $op = "='$token'";
             else
                 $op = "LIKE '%$token%'";
+
+            if(isset($rule['is_json'])) {
+                $col = $this->json_contains($col, $token, opts: [
+                    'return_query' => true
+                ]);
+
+                $op = "";
+            }
 
             return "CASE WHEN $col $op THEN $score ELSE 0 END + ";
         };
@@ -113,7 +125,7 @@ trait Functions
 
             if (is_array($rule)) {
                 $score = $rule['full'] ?? $rule[0] ?? null;
-                $sql_text .= $score ? $format($esc_query, $col, $score, $rule['op'] ?? null) : "";
+                $sql_text .= $score ? $format($esc_query, $col, $score, $rule['op'] ?? null, rule: $rule) : "";
             }
             else {
                 $sql_text .= rtrim($format($esc_query, $col, $rule), "+ ") . ") + ";
@@ -126,7 +138,7 @@ trait Functions
                         continue;
 
                     $esc_query = Escape::clean($key, EscapeType::STRIP_TRIM_ESCAPE);
-                    $sql_text .= $format($esc_query, $col, $rule['keyword'] ?? $rule[1]);
+                    $sql_text .= $format($esc_query, $col, $rule['keyword'] ?? $rule[1], rule: $rule);
                 }
             }
 
