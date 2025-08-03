@@ -98,12 +98,22 @@ trait Functions
         $keywords = $filter_words($query);
 
         $format = function($token, $col, $score, $op = "LIKE", $rule = null): string {
+            $insensitive = $rule['insensitive'] ?? true;
             $op = $op ? strtolower($op) : null;
+
+            if($rule['insensitive'] ?? true && $op = "like") {
+                if(self::get_driver() == OrmDriver::POSTGRES)
+                    $op = "ILIKE";
+                else {
+                    $col = "LOWER($col)";
+                    $token = strtolower($token);
+                }
+            }
 
             if($op == "=")
                 $op = "='$token'";
             else
-                $op = "LIKE '%$token%'";
+                $op = "$op '%$token%'";
 
             if(isset($rule['is_json'])) {
                 $col = $this->json_contains($col, $token, opts: [
