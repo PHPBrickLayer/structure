@@ -68,7 +68,7 @@ const $field = (fieldName, parent = $doc) => $name(fieldName, parent)[0];
 const $on = (element, event, listener, ...options) => {
     element = $omjsElSub(element, "$on");
     const option = options[0] ?? "on";
-    const multipleElement = element?.length > 1;
+    const multipleElement = $type(element) === "NodeList";
     try {
         const addListener = (listenerElement, index) => {
             let listenerFn = e => listener(e, multipleElement ? element[index] : element, index, ...options);
