@@ -33,7 +33,7 @@ final class MailerQueueHandler {
                 updated_at timestamp NULL,
                 created_by char(36) DEFAULT NULL,
                 updated_by char(36) DEFAULT NULL,
-                deleted integer DEFAULT 0,
+                deleted smallint DEFAULT 0,
                 deleted_at timestamp DEFAULT NULL,
                 deleted_by char(36) DEFAULT NULL,
                 cc $json DEFAULT NULL,
@@ -43,8 +43,8 @@ final class MailerQueueHandler {
                 body text NOT NULL,
                 actors $json NOT NULL,
                 status varchar(20) DEFAULT '" . MailerStatus::QUEUED->name . "',
-                priority integer DEFAULT 0,
-                retries integer DEFAULT 0,
+                priority smallint DEFAULT 0,
+                retries smallint DEFAULT 0,
                 time_sent timestamp DEFAULT NULL
             )"
         );
