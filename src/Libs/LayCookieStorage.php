@@ -6,6 +6,7 @@ namespace BrickLayer\Lay\Libs;
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Libs\LayCrypt\LayCrypt;
 use BrickLayer\Lay\Libs\Primitives\Traits\TableTrait;
+use BrickLayer\Lay\Orm\SQL;
 
 /**
  * Store session as cookie through accurate environment storage and encrypted storage token.
@@ -40,17 +41,16 @@ final class LayCookieStorage
 
     protected static function table_creation_query() : void
     {
-
-        self::orm()->query("CREATE TABLE IF NOT EXISTS `" . self::$table . "` (
-                `id` char(36) UNIQUE PRIMARY KEY,
-                `created_by` char(36) NOT NULL,
-                `created_at` datetime,
-                `deleted` int(1) DEFAULT 0 NOT NULL,
-                `deleted_by` char(36),
-                `deleted_at` datetime,
-                `env_info` text,
-                `auth` text,
-                `expire` datetime
+        self::orm()->query("CREATE TABLE IF NOT EXISTS " . SQL::escape_identifier(self::$table) . " (
+                " . SQL::escape_identifier('id') . " char(36) UNIQUE PRIMARY KEY,
+                " . SQL::escape_identifier('created_by') . " char(36) NOT NULL,
+                " . SQL::escape_identifier('created_at') . " datetime,
+                " . SQL::escape_identifier('deleted') . " int(1) DEFAULT 0 NOT NULL,
+                " . SQL::escape_identifier('deleted_by') . " char(36),
+                " . SQL::escape_identifier('deleted_at') . " datetime,
+                " . SQL::escape_identifier('env_info') . " text,
+                " . SQL::escape_identifier('auth') . " text,
+                " . SQL::escape_identifier('expire') . " datetime
             )
         ");
     }
