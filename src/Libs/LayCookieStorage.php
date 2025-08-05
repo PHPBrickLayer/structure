@@ -42,17 +42,16 @@ final class LayCookieStorage
     protected static function table_creation_query() : void
     {
         self::orm()->query("CREATE TABLE IF NOT EXISTS " . SQL::escape_identifier(self::$table) . " (
-                " . SQL::escape_identifier('id') . " char(36) UNIQUE PRIMARY KEY,
-                " . SQL::escape_identifier('created_by') . " char(36) NOT NULL,
-                " . SQL::escape_identifier('created_at') . " datetime,
-                " . SQL::escape_identifier('deleted') . " int(1) DEFAULT 0 NOT NULL,
-                " . SQL::escape_identifier('deleted_by') . " char(36),
-                " . SQL::escape_identifier('deleted_at') . " datetime,
-                " . SQL::escape_identifier('env_info') . " text,
-                " . SQL::escape_identifier('auth') . " text,
-                " . SQL::escape_identifier('expire') . " datetime
-            )
-        ");
+            " . SQL::escape_identifier('id') . " char(36) UNIQUE PRIMARY KEY,
+            " . SQL::escape_identifier('created_by') . " char(36) NOT NULL,
+            " . SQL::escape_identifier('created_at') . " timestamp,
+            " . SQL::escape_identifier('deleted') . " smallint DEFAULT 0 NOT NULL,
+            " . SQL::escape_identifier('deleted_by') . " char(36),
+            " . SQL::escape_identifier('deleted_at') . " timestamp,
+            " . SQL::escape_identifier('env_info') . " text,
+            " . SQL::escape_identifier('auth') . " text,
+            " . SQL::escape_identifier('expire') . " timestamp
+        )");
     }
 
     private static function delete_expired_tokens(): void
