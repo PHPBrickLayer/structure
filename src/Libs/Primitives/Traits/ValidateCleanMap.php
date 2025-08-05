@@ -56,7 +56,7 @@ use Exception;
  *     request?: array<string|int, mixed>|object,
  *
  *     // A custom function to handle validation rather than using the inbuilt validator
- *     validator: callable(string $field, mixed &$value, bool $is_required, VcmOptions $options): array{ apply_clean: bool, add_to_entry: bool },
+ *     validator?: callable(string $field, mixed &$value, bool $is_required, VcmOptions $options): array{ apply_clean: bool, add_to_entry: bool },
  *
  *     // By default, VCM returns an assoc array with the key being (`alias` ?? `db_col` ?? `field`),
  *     // and the value is the validated result of the current field. With this option, vcm can append the value to the

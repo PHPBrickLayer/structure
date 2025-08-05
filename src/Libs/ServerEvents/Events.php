@@ -109,8 +109,8 @@ class Events
      */
     public function event(?string $event, array $data, ApiStatus|int $status = ApiStatus::OK) : void
     {
-        if ($status instanceof ApiStatus) $status->respond();
-        else LayFn::http_response_code($status, true);
+        if ($status instanceof ApiStatus) $status->respond(log_error: false);
+        else LayFn::http_response_code($status, true, log_sent: false);
 
         $this->set_headers();
 
