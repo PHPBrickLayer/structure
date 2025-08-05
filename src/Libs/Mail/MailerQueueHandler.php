@@ -21,6 +21,11 @@ final class MailerQueueHandler {
 
     protected static function table_creation_query() : void
     {
+        $json = "json";
+
+        if(SQL::get_driver() == OrmDriver::POSTGRES)
+            $json = "jsonb";
+
         self::orm()->query(
             "CREATE TABLE IF NOT EXISTS " . self::$table . " (
                 id char(36) NOT NULL PRIMARY KEY,
@@ -31,12 +36,12 @@ final class MailerQueueHandler {
                 deleted integer DEFAULT 0,
                 deleted_at timestamp DEFAULT NULL,
                 deleted_by char(36) DEFAULT NULL,
-                cc json DEFAULT NULL,
-                bcc json DEFAULT NULL,
-                attachment json DEFAULT NULL,
+                cc $json DEFAULT NULL,
+                bcc $json DEFAULT NULL,
+                attachment $json DEFAULT NULL,
                 subject varchar(100) NOT NULL,
                 body text NOT NULL,
-                actors json NOT NULL,
+                actors $json NOT NULL,
                 status varchar(20) DEFAULT '" . MailerStatus::QUEUED->name . "',
                 priority integer DEFAULT 0,
                 retries integer DEFAULT 0,
@@ -154,6 +159,21 @@ final class MailerQueueHandler {
         return $this->change_status($id, MailerStatus::FAILED);
     }
 
+    public function fail_stale_queued_items() : void
+    {
+        $orm = self::orm(self::$table);
+
+        $updated = $orm->column([ 'status' => MailerStatus::FAILED->name, "updated_at" => LayDate::date() ])
+            ->where("deleted", "0")
+            ->and_where($orm->days_diff(LayDate::date(), "created_at"), ">", "1")
+            ->and_where("status", MailerStatus::SENDING->name)
+        ->edit();
+
+        if($updated) {
+            Mailer::write_to_log("[x] -- Intentionally failed stale queued emails!");
+        }
+    }
+
     public function email_sent(string $id) : bool
     {
         return $this->change_status($id, MailerStatus::SENT);
@@ -201,7 +221,10 @@ final class MailerQueueHandler {
         if(!$this->has_queued_items()) {
             Mailer::write_to_log("[x] -- No more mails in queue, removing cron job: " . self::JOB_UID);
             LayCron::new()->unset(self::JOB_UID);
+            return;
         }
+
+        $this->fail_stale_queued_items();
     }
 
     /**
