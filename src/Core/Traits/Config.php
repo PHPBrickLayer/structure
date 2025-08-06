@@ -95,12 +95,9 @@ trait Config
             return;
         }
 
-        if($about_to_die) {
+        if($about_to_die && Domain::is_in_use()) {
             Domain::current_route_data("*");
         }
-
-
-
     }
 
     /**
