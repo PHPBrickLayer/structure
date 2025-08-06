@@ -636,11 +636,8 @@ final class CoreException
                 die;
 
             if(isset($opt['exception_object']) and !empty($opt['exception_object'])) {
-                $obj = $opt['exception_object'];
-
-                throw new \Exception($obj->getMessage() . " " . $obj->getFile() . ": " . $obj->getLine());
+                throw new \Exception(previous: $opt['exception_object']);
             }
-//                throw new $opt['exception_object'];
 
             if(self::$IN_TRY)
                 throw new \Exception(strip_tags($act['error']));
