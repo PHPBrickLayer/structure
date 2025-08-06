@@ -50,7 +50,7 @@ final class Composer implements CmdLayout
             }
         }
 
-        $cmd = "export HOME=$root && cd $root && $composer $command --no-dev --optimize-autoloader";
+        $cmd = "export HOME=$root && cd $root && $composer $command --no-dev --optimize-autoloader -n";
 
         exec("$cmd 2>&1 &", $out);
 
