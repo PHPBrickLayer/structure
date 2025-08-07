@@ -544,8 +544,10 @@ trait SelectorOOPCrud
         $d['query_type'] = OrmQueryType::UPDATE;
         $table = self::escape_identifier($table);
 
+        $res = $this->query(/** @lang text */ "UPDATE $table SET $values $clause", $d);
+
         return $this->capture_result(
-            [$this->query(/** @lang text */ "UPDATE $table SET $values $clause", $d), $d],
+            [is_bool($res) ? $res : false, $d],
             'bool'
         );
     }
