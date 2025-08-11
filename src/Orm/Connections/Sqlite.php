@@ -116,4 +116,10 @@ final class Sqlite implements OrmConnections
         return $this->exec("ROLLBACK");
     }
 
+    public function in_transaction(): bool
+    {
+        $state = $this->link->querySingle("PRAGMA transaction_state");
+
+        return $state > 0;
+    }
 }

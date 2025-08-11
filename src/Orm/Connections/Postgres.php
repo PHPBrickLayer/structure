@@ -136,4 +136,9 @@ final class Postgres implements OrmConnections
         return true;
     }
 
+    public function in_transaction(): bool
+    {
+        return pg_transaction_status($this->link) !== PGSQL_TRANSACTION_IDLE;
+    }
+
 }

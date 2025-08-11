@@ -28,7 +28,7 @@ trait TransactionHandler
 
     final public function __rollback_on_error() : void
     {
-        if((self::$DB_IN_TRANSACTION || self::$BEGIN_TRANSACTION_COUNTER == 0) && isset(self::$link))
+        if(isset(self::$link) && ($this->get_link()->in_transaction() || self::$DB_IN_TRANSACTION))
             $this->rollback();
     }
 

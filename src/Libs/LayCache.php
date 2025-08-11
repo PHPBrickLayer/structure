@@ -86,7 +86,8 @@ final class LayCache
 
         $this->cache_store = $use_lay_temp_dir ? LayConfig::mk_tmp_dir() : $server->root;
         $this->cache_store = $this->cache_store . "cache/";
-        $this->cache_store = $this->cache_store . $path_to_cache;
+
+        LayDir::make($this->cache_store, 0755, true);
 
         if(str_contains($path_to_cache, "/")) {
             $path = str_replace(["/", DIRECTORY_SEPARATOR], DIRECTORY_SEPARATOR, $this->cache_store);
@@ -97,11 +98,10 @@ final class LayCache
 
             $x = implode(DIRECTORY_SEPARATOR, $x);
 
-            if(!is_dir($x)) {
-                umask(0);
-                mkdir($x, 0755, true);
-            }
+            LayDir::make($this->cache_store . $x, 0755, true);
         }
+
+        $this->cache_store = $this->cache_store . $path_to_cache;
 
         if(!file_exists($this->cache_store) || $invalidate)
             file_put_contents($this->cache_store, "");

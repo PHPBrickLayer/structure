@@ -31,4 +31,5 @@ interface OrmConnections {
     public function begin_transaction(?OrmTransactionMode $flags = null, ?string $name = null, bool $in_transaction = false) : bool;
     public function commit(?OrmTransactionMode $flags = null, ?string $name = null) : bool;
     public function rollback(?OrmTransactionMode $flags = null, ?string $name = null) : bool;
+    public function in_transaction() : bool;
 }
