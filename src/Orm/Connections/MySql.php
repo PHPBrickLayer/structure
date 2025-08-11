@@ -121,4 +121,13 @@ final class MySql implements OrmConnections
 
         return $this->link->rollback($flags, $name);
     }
+
+    /**
+     * TODO: Implement this after migrating to a more modern mysqli oop style of querying
+     * @return bool
+     */
+    public function in_transaction(): bool
+    {
+        return false;
+    }
 }
