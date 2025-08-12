@@ -98,6 +98,10 @@ trait SelectorOOPCrud
                     "OnConflict Error; update_columns and ignore_columns cannot be empty when action is `UPDATE` for $table; you must specify the columns to update or ignore"
                 );
 
+            if(in_array($conflict['action'], ['REPLACE', 'UPDATE'], true) && empty($conflict['update_columns'])) {
+                $conflict['update_columns'] = explode(",", trim(explode("VALUES", $column_and_values, 2)[0], "( )"));
+            }
+
             foreach ($conflict['update_columns'] as $col) {
                 if(in_array($col, $conflict['ignore_columns'], true)) continue;
 
