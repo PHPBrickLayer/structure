@@ -14,10 +14,6 @@ const $win = window;
 
 const $doc = document;
 
-const $obj = Object;
-
-const $web = navigator;
-
 const $loc = $win.location;
 
 let $store;
@@ -93,9 +89,9 @@ const $on = (element, event, listener, ...options) => {
     }
 };
 
-const $set = listener => $on($doc, "DOMContentLoaded", listener);
+const $set = listener => $on($doc, "DOMContentLoaded", listener, "add");
 
-const $load = listener => $on($win, "load", listener);
+const $load = listener => $on($win, "load", listener, "add");
 
 const $attr = (element, attributeName, attributeValue = null) => {
     element = $omjsElSub(element, "$attr");
@@ -213,7 +209,7 @@ const $html = (element, whereOrHtml = null, code__moveTo = null) => {
 };
 
 const $type = (element, silent = true) => {
-    let result = $obj.prototype.toString.call(element).replace("[object ", "").replace("]", "");
+    let result = Object.prototype.toString.call(element).replace("[object ", "").replace("]", "");
     if (silent === false) {
         console.log("%cOMJ$ VIEW: $type", "background: #fff3cd; color: #1d2124; padding: 5px");
         console.info(element);
@@ -1144,15 +1140,14 @@ const $freeze = (element, operation, attr = true) => {
     }
 };
 
-"use strict";
-
 /**!
  * Osai Custom Box buils with OMJ$
  * @author Osahenrumwen Aigbogun
- * @version 1.4
+ * @version 1.5
  * @copyright (c) 2019 Osai Technologies LLC.
- * @modified 14/02/2025
- */ const $osaiBox = (boxToDraw = "all") => {
+ * @modified 12/08/2025
+ */
+const $osaiBox = (boxToDraw = "all") => {
     const dialogZindex = 9990;
     const colorVariant = `\n\t\t/*normal variant*/\n\t\t--text: #fffffa;\n\t\t--bg: #1d2124;\n\t\t--link: #009edc;\n\t\t--info: #445ede;\n\t\t--warn: #ffde5c;\n\t\t--fail: #f40204;\n\t\t--fade: #e2e2e2;\n\t\t--success: #0ead69;\n\t\t/*dark variant*/\n\t\t--dark-text: #f5f7fb;\n\t\t--dark-link: #00506e;\n\t\t--dark-info: #3247ac;\n\t\t--dark-warn: #626200;\n\t\t--dark-fail: #a20002;\n\t\t--dark-success: #104e00;\n\t`;
     const ggIcon = `.gg-copy{box-sizing: border-box;position: relative;display: block;transform: scale(var(--ggs, 1));width: 14px;height: 18px;border: 2px solid;margin-left: -5px;margin-top: -4px}.gg-copy::after,.gg-copy::before{content: "";display: block;box-sizing: border-box;position: absolute}.gg-copy::before{background: linear-gradient(to left, currentColor 5px, transparent 0) no-repeat right top/5px 2px, linear-gradient(to left, currentColor 5px, transparent 0) no-repeat left bottom/ 2px 5px;box-shadow: inset -4px -4px 0 -2px;bottom: -6px;right: -6px;width: 14px;height: 18px}.gg-copy::after{ width: 6px; height: 2px; background: currentColor; left: 2px; top: 2px; box-shadow: 0 4px 0, 0 8px 0}\n        .gg-bell,.gg-bell::before{border-top-left-radius:100px;border-top-right-radius:100px}.gg-bell{box-sizing:border-box;position:relative;display:block;transform:scale(var(--ggs,1));border:2px solid;border-bottom:0;width:14px;height:14px}.gg-bell::after,.gg-bell::before{content:"";display:block;box-sizing:border-box;position:absolute}.gg-bell::before{background:currentColor;width:4px;height:4px;top:-4px;left:3px}.gg-bell::after{border-radius:3px;width:16px;height:10px;border:6px solid transparent;border-top:1px solid transparent;box-shadow:inset 0 0 0 4px,0 -2px 0 0;top:14px;left:-3px;border-bottom-left-radius:100px;border-bottom-right-radius:100px}.gg-check{box-sizing:border-box;position:relative;display:block;transform:scale(var(--ggs,1));width:22px;height:22px;border:2px solid transparent;border-radius:100px}.gg-check::after{content:"";display:block;box-sizing:border-box;position:absolute;left:3px;top:-1px;width:6px;height:10px;border-width:0 2px 2px 0;border-style:solid;transform-origin:bottom left;transform:rotate(45deg)}.gg-check-o{box-sizing:border-box;position:relative;display:block;transform:scale(var(--ggs,1));width:22px;height:22px;border:2px solid;border-radius:100px}.gg-check-o::after{content:"";display:block;box-sizing:border-box;position:absolute;left:3px;top:-1px;width:6px;height:10px;border-color:currentColor;border-width:0 2px 2px 0;border-style:solid;transform-origin:bottom left;transform:rotate(45deg)}.gg-bulb{box-sizing:border-box;position:relative;display:block;transform:scale(var(--ggs,1));width:16px;height:16px;border:2px solid;border-bottom-color:transparent;border-radius:100px}.gg-bulb::after,.gg-bulb::before{content:"";display:block;box-sizing:border-box;position:absolute}.gg-bulb::before{border-top:0;border-bottom-left-radius:18px;border-bottom-right-radius:18px;top:10px;border-bottom:2px solid transparent;box-shadow:0 5px 0 -2px,inset 2px 0 0 0,inset -2px 0 0 0,inset 0 -4px 0 -2px;width:8px;height:8px;left:2px}.gg-bulb::after{width:12px;height:2px;border-left:3px solid;border-right:3px solid;border-radius:2px;bottom:0;left:0}.gg-danger{box-sizing:border-box;position:relative;display:block;transform:scale(var(--ggs,1));width:20px;height:20px;border:2px solid;border-radius:40px}.gg-danger::after,.gg-danger::before{content:"";display:block;box-sizing:border-box;position:absolute;border-radius:3px;width:2px;background:currentColor;left:7px}.gg-danger::after{top:2px;height:8px}.gg-danger::before{height:2px;bottom:2px}.gg-dark-mode{box-sizing:border-box;position:relative;display:block;transform:scale(var(--ggs,1));border:2px solid;border-radius:100px;width:20px;height:20px}\n        .gg-close-o{box-sizing:border-box;position:relative;display:block;transform:scale(var(--ggs,.9));width:22px;height:22px;border:2px solid;border-radius:40px}.gg-close-o::after,.gg-close-o::before{content:"";display:block;box-sizing:border-box;position:absolute;width:12px;height:2px;background:currentColor;transform:rotate(45deg);border-radius:5px;top:8px;left:3px}.gg-close-o::after{transform:rotate(-45deg)}\n        .gg-close{box-sizing:border-box;position:relative;display:block;transform:scale(var(--ggs,1));width:22px;height:22px;border:2px solid transparent;border-radius:40px}.gg-close::after,.gg-close::before{content:"";display:block;box-sizing:border-box;position:absolute;width:16px;height:2px;background:currentColor;transform:rotate(45deg);border-radius:5px;top:8px;left:1px}.gg-close::after{transform:rotate(-45deg)}.gg-add-r{box-sizing:border-box;position:relative;display:block;width:22px;height:22px;border:2px solid;transform:scale(var(--ggs,1));border-radius:4px}.gg-add-r::after,.gg-add-r::before{content:"";display:block;box-sizing:border-box;position:absolute;width:10px;height:2px;background:currentColor;border-radius:5px;top:8px;left:4px}.gg-add-r::after{width:2px;height:10px;top:4px;left:8px}.gg-add{box-sizing:border-box;position:relative;display:block;width:22px;height:22px;border:2px solid;transform:scale(var(--ggs,1));border-radius:22px}.gg-add::after,.gg-add::before{content:"";display:block;box-sizing:border-box;position:absolute;width:10px;height:2px;background:currentColor;border-radius:5px;top:8px;left:4px}.gg-add::after{width:2px;height:10px;top:4px;left:8px}.gg-adidas{position:relative;box-sizing:border-box;display:block;width:23px;height:15px;transform:scale(var(--ggs,1));overflow:hidden}\n        `;
@@ -1377,10 +1372,59 @@ const $freeze = (element, operation, attr = true) => {
         };
     }
     if (boxToDraw === "all" || boxToDraw === "notifier" || boxToDraw === "notify") {
-        if (!$in($sel(".osai-simple-notifier"))) $html($sel("body"), "beforeend", `<div class="osai-simple-notifier"><div style="display: none" class="osai-notifier__config_wrapper"></div></div>`);
-        if (!$in($sel(".osai-notifier__stylesheet"))) $html($sel("head"), "beforeend", `<style class="osai-notifier__stylesheet" rel="stylesheet" media="all">\n\t\t\t.osai-notifier{\n\t\t\t    line-height: normal;\n\t\t\t\tscroll-behavior: smooth;\n\t\t\t\tposition: fixed;\n\t\t\t\ttop: 10px;\n\t\t\t\tright: 10px;\n\t\t\t\tborder-radius: 0 10px 10px 0;\n\t\t\t\tpadding: 10px;\n\t\t\t\tfont-weight: 500;\n\t\t\t\tcolor: #000000;\n\t\t\t\tbackground-color: var(--text);\n\t\t\t\tborder-left: solid .5rem var(--bg);\n\t\t\t\tbox-shadow: 0 1px 2px rgba(0, 0, 0, .3);\n\t\t\t\tdisplay: flex;\n\t\t\t\topacity: 0;\n\t\t\t\ttransform: translate(50%, 0);\n\t\t\t\tz-index: 9993;\n\t\t\t\tmin-height: 50px;\n\t\t\t\tmin-width: 150px;\n\t\t\t\tjustify-content: center;\n\t\t\t\talign-items: center;\n                transition: ease-in-out all .5s;\n\t\t\t}\n\t\t\t.osai-notifier__dialog{\n\t\t\tpadding-left:10px;\n\t\t\t}\n\t\t\t.osai-notifier__copy{\n                border-radius: 5px;\n                padding: 8px 15px;\n                font-size: .8rem;\n                background: rgba(229,234,246,0.5);\n                transform: scale(.9);\n                margin-top: 10px;\n                display: flex;\n                gap: 10px;\n                justify-content: center;\n                align-items: center;\n                transition: all 0.55s ease-in-out;\n                border: outset;\n                color: #000000;\n\t\t\t}\n\t\t\t.osai-notifier__copy:hover{\n\t\t\t    border-color: transparent;\n\t\t\t}\n\t\t\t.osai-notifier__display{\n\t\t\t\topacity: 1;\n\t\t\t\ttransform: translate(0,0);\n\t\t\t\tmax-width: 50vw;\n\t\t\t}\n\t\t\t.osai-notifier__display-center{\n\t\t\t\ttop: 50%; \n\t\t\t\tleft: 50%;\n                right: auto;\n\t\t\t\ttransform: translate(-50%,-50%);\n\t\t\t} @media (max-width: 767px){\n                .osai-notifier__display-center{\n                    max-width: 60vw;\n                }\n            }\n            @media (max-width: 426px){\n            \t.osai-notifier__display-center{\n                    max-width: 93vw;\n                }\n                .osai-notifier__display{\n\t\t\t\t\tmax-width: 93vw;\n\t\t\t\t}\n            }\n\t\t\t.osai-notifier__close{\n\t\t\t\tposition: absolute;\n\t\t\t\tright: 10px;\n\t\t\t\ttop: 10px;\n\t\t\t\tcursor: pointer;\n\t\t\t\topacity: .8;\n\t\t\t}\n\t\t\t.osai-notifier__close:hover{\n\t\t\t\topacity: 1;\n\t\t\t\tcolor: var(--fail);\n\t\t\t}\n\t\t\t.osai-notifier.success{\n\t\t\t\tborder-color: var(--success);\n\t\t\t}\n\t\t\t.osai-notifier.fail{\n\t\t\t\tborder-color: var(--fail);\n\t\t\t}\n\t\t\t.osai-notifier.warn{\n\t\t\t\tborder-color: var(--warn);\n\t\t\t}\n\t\t\t.osai-notifier.info{\n\t\t\t\tborder-color: var(--info);\n\t\t\t}\n\t\t\t.osai-notifier__body{\n\t\t\t\tpadding: 5px 26px 5px 36px;\n\t\t\t\tpadding-left: 0;\n\t\t\t\twidth: 100%;\n\t\t\t}\n\t\t</style>`);
+        if (!$in($sel(".osai-simple-notifier"))) {
+            $html($sel("body"), "beforeend", `\n                <div class="osai-simple-notifier">\n                    <div style="display: none" class="osai-notifier__config_wrapper"></div>\n                    <div class="osai-notifier__controls">\n                        <div class="osai-notifier__controls-inner">\n                            <button class="osai-notifier__control-btn osai-notifier__fold-btn" title="Fold/Expand Notifications">\n                                <i class="gg-chevron-up"></i>\n                            </button>\n                            <button class="osai-notifier__control-btn osai-notifier__clear-btn" title="Clear All Notifications">\n                                Clear All\n                            </button>\n                        </div>\n                    </div>\n                </div>\n            `);
+        }
+        if (!$in($sel(".osai-notifier__stylesheet"))) {
+            $html($sel("head"), "beforeend", `<style class="osai-notifier__stylesheet" rel="stylesheet" media="all">\n                .osai-notifier {\n                    line-height: normal;\n                    scroll-behavior: smooth;\n                    position: fixed;\n                    top: 10px;\n                    right: 10px;\n                    border-radius: 0 10px 10px 0;\n                    padding: 16px 20px;\n                    font-weight: 500;\n                    color: rgba(0, 0, 0, 0.87);\n                    background: rgba(255, 255, 255, 0.9);\n                    box-shadow: \n                        0 8px 32px rgba(0, 0, 0, 0.12),\n                        0 2px 16px rgba(0, 0, 0, 0.08),\n                        inset 0 1px 0 rgba(255, 255, 255, 0.5),\n                        inset 0 0 0 1px rgba(255, 255, 255, 0.05);\n                    display: flex;\n                    opacity: 0;\n                    transform: translate(50%, 0);\n                    z-index: 9993;\n                    min-height: 50px;\n                    min-width: 150px;\n                    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);\n                    backdrop-filter: blur(20px) saturate(150%);\n                }\n                \n                @media (prefers-color-scheme: dark) {\n                    .osai-notifier {\n                        color: rgba(255, 255, 255, 0.9);\n                        background: rgba(0, 0, 0, 0.7);\n                        border-color: rgba(255, 255, 255, 0.12);\n                        box-shadow: \n                            0 8px 32px rgba(0, 0, 0, 0.3),\n                            0 2px 16px rgba(0, 0, 0, 0.2),\n                            inset 0 1px 0 rgba(255, 255, 255, 0.1);\n                    }\n                }\n\n                .osai-notifier::before {\n                    content: '';\n                    position: absolute;\n                    inset: 0;\n                    border-radius: inherit;\n                    background: linear-gradient(135deg, \n                        rgba(255, 255, 255, 0.25) 0%, \n                        rgba(255, 255, 255, 0.05) 100%);\n                    opacity: 0.6;\n                    pointer-events: none;\n                }\n\n                .osai-notifier::after {\n                    content: '';\n                    position: absolute;\n                    left: 0;\n                    top: 50%;\n                    transform: translateY(-50%);\n                    width: 5px;\n                    height: 100%;\n                    transition: all 0.3s ease;\n                }\n\n                /* Control buttons container */\n                 .osai-notifier__controls {\n                    position: fixed;\n                    top: 2px;\n                    right: 10px;\n                    z-index: 9995;\n                    opacity: 0;\n                    visibility: hidden;\n                    transform: translateY(-10px);\n                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);\n                }\n\n                .osai-notifier__controls.show {\n                    opacity: 1;\n                    visibility: visible;\n                    transform: translateY(0);\n                }\n\n                .osai-notifier__controls-inner {\n                    display: flex;\n                    justify-content: space-between;\n                    background: rgba(0, 0, 0, 0.4);\n                    border: 1px solid rgba(255, 255, 255, 0.2);\n                    border-radius: 16px;\n                    padding: 10px 5px 10px 15px;\n                    box-shadow: \n                        0 8px 32px rgba(0, 0, 0, 0.15),\n                        0 2px 8px rgba(0, 0, 0, 0.1),\n                        inset 0 1px 0 rgba(255, 255, 255, 0.3);\n                    backdrop-filter: blur(20px) saturate(150%);\n                    width: 200px;\n                    position: relative;\n                }\n\n                .osai-notifier__control-btn {\n                    background: rgba(255, 255, 255, 0.12);\n                    border: 1px solid rgba(255, 255, 255, 0.15);\n                    border-radius: 10px;\n                    width: 36px;\n                    height: 36px;\n                    color: rgba(0, 0, 0, 0.85);\n                    cursor: pointer;\n                    display: flex;\n                    align-items: center;\n                    justify-content: center;\n                    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);\n                    font-size: 14px;\n                    position: relative;\n                    backdrop-filter: blur(10px);\n                    box-shadow: \n                        0 2px 4px rgba(0, 0, 0, 0.1),\n                        inset 0 1px 0 rgba(255, 255, 255, 0.2);\n                }\n\n                /* Dark background adaptation */\n                @media (prefers-color-scheme: dark) {\n                    .osai-notifier__control-btn {\n                        color: rgba(255, 255, 255, 0.9);\n                        background: rgba(255, 255, 255, 0.08);\n                        border-color: rgba(255, 255, 255, 0.12);\n                    }\n                }\n\n                /* Dynamic adaptation for different backgrounds */\n                .osai-notifier__control-btn::before {\n                    content: '';\n                    position: absolute;\n                    inset: 0;\n                    border-radius: inherit;\n                    background: linear-gradient(135deg, \n                        rgba(255, 255, 255, 0.1) 0%, \n                        rgba(255, 255, 255, 0.05) 100%);\n                    opacity: 0;\n                    transition: opacity 0.2s ease;\n                }\n\n                .osai-notifier__control-btn:hover {\n                    background: rgba(255, 255, 255, 0.2);\n                    border-color: rgba(255, 255, 255, 0.3);\n                    transform: translateY(-1px) scale(1.02);\n                    box-shadow: \n                        0 4px 12px rgba(0, 0, 0, 0.15),\n                        0 2px 4px rgba(0, 0, 0, 0.1),\n                        inset 0 1px 0 rgba(255, 255, 255, 0.3);\n                }\n\n                .osai-notifier__control-btn:hover::before {\n                    opacity: 1;\n                }\n                \n                .osai-notifier__copy{\n                    margin-top: 10px;\n                }\n                \n                .osai-notifier__clear-btn, .osai-notifier__copy {\n                    width: auto;\n                    height: auto;\n                    padding: 5px 10px;\n                }\n                \n\n                .osai-notifier__control-btn:active {\n                    transform: translateY(0) scale(0.98);\n                    box-shadow: \n                        0 1px 2px rgba(0, 0, 0, 0.1),\n                        inset 0 1px 4px rgba(0, 0, 0, 0.1);\n                }\n\n                .osai-notifier__clear-btn:hover {\n                    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%);\n                    border-color: rgba(238, 90, 90, 0.6);\n                    color: white;\n                    box-shadow: \n                        0 4px 16px rgba(255, 107, 107, 0.4),\n                        0 2px 4px rgba(0, 0, 0, 0.1),\n                        inset 0 1px 0 rgba(255, 255, 255, 0.2);\n                }\n\n                .osai-notifier__fold-btn:hover, .osai-notifier__copy:hover {\n                    background: linear-gradient(135deg, #4dabf7 0%, #339af0 100%);\n                    border-color: rgba(51, 154, 240, 0.6);\n                    color: white;\n                    box-shadow: \n                        0 4px 16px rgba(77, 171, 247, 0.4),\n                        0 2px 4px rgba(0, 0, 0, 0.1),\n                        inset 0 1px 0 rgba(255, 255, 255, 0.2);\n                }\n\n                /* Folded state */\n                .osai-simple-notifier.folded .osai-notifier-entry:not(.osai-notifier__display-center) {\n                    transform: translateX(calc(100% + 20px));\n                    opacity: 0;\n                    pointer-events: none;\n                }\n\n                .osai-notifier__fold-btn.folded .gg-chevron-up {\n                    transform: rotate(-90deg);\n                }\n\n                .osai-notifier__dialog {\n                    padding-left: 10px;\n                }\n\n                .osai-notifier__display {\n                    opacity: 1;\n                    transform: translate(0,0);\n                    max-width: 50vw;\n                }\n\n                .osai-notifier__display-center {\n                    top: 50%; \n                    left: 50%;\n                    right: auto;\n                    transform: translate(-50%,-50%);\n                }\n\n                @media (max-width: 767px) {\n                    .osai-notifier__display-center {\n                        max-width: 60vw;\n                    }\n                }\n\n                @media (max-width: 426px) {\n                    .osai-notifier__display-center {\n                        max-width: 93vw;\n                    }\n                    .osai-notifier__display {\n                        max-width: 93vw;\n                    }\n                    .osai-notifier__controls {\n                        right: 5px;\n                        top: 5px;\n                    }\n                }\n\n                .osai-notifier__close {\n                    position: absolute;\n                    right: 10px;\n                    top: 10px;\n                    cursor: pointer;\n                    opacity: .8;\n                }\n\n                .osai-notifier__close:hover {\n                    opacity: 1;\n                    color: var(--fail);\n                }\n\n                .osai-notifier.success::after {\n                    background: linear-gradient(135deg, \n                        rgba(34, 197, 94, 0.9) 0%, \n                        rgba(34, 197, 94, 0.6) 100%);\n                    box-shadow: 0 0 20px rgba(34, 197, 94, 0.3);\n                }\n\n                .osai-notifier.fail::after {\n                    background: linear-gradient(135deg, \n                        rgba(239, 68, 68, 0.9) 0%, \n                        rgba(239, 68, 68, 0.6) 100%);\n                    box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);\n                }\n\n                .osai-notifier.warn::after {\n                    background: linear-gradient(135deg, \n                        rgba(245, 158, 11, 0.9) 0%, \n                        rgba(245, 158, 11, 0.6) 100%);\n                    box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);\n                }\n\n                .osai-notifier.info::after {\n                    background: linear-gradient(135deg, \n                        rgba(59, 130, 246, 0.9) 0%, \n                        rgba(59, 130, 246, 0.6) 100%);\n                    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);\n                }\n\n                .osai-notifier__body {\n                    padding: 5px 26px 5px 36px;\n                    padding-left: 0;\n                    width: 100%;\n                }\n\n                /* Add chevron icon */\n                .gg-chevron-up {\n                    box-sizing: border-box;\n                    position: relative;\n                    display: block;\n                    transform: scale(var(--ggs, 1)) rotate(90deg) translateY(5px);\n                    width: 22px;\n                    height: 22px;\n                    border: 2px solid transparent;\n                    border-radius: 100px;\n                    transition: transform 0.3s ease-in-out;\n                }\n\n                .gg-chevron-up::after {\n                    content: "";\n                    display: block;\n                    box-sizing: border-box;\n                    position: absolute;\n                    width: 10px;\n                    height: 10px;\n                    border-bottom: 2px solid;\n                    border-right: 2px solid;\n                    transform: rotate(-135deg);\n                    right: 4px;\n                    top: 2px;\n                }\n            </style>`);
+        }
         let presenceSelector = ".osai-simple-notifier";
         let sideCardSelector = ".osai-notifier-entry:not(.osai-notifier__display-center)";
+        let isFolded = false;
+        let notificationCount = 0;
+        const initializeControls = () => {
+            const controls = $sel(".osai-notifier__controls");
+            const foldBtn = $sel(".osai-notifier__fold-btn");
+            const clearBtn = $sel(".osai-notifier__clear-btn");
+            const updateControlsVisibility = () => {
+                const hasNotifications = $sela(".osai-notifier-entry").length > 0;
+                if (hasNotifications) {
+                    $class(controls, "add", "show");
+                } else {
+                    $class(controls, "del", "show");
+                    isFolded = false;
+                    $class($sel(presenceSelector), "del", "folded");
+                    $class(foldBtn, "del", "folded");
+                }
+            };
+            $on(foldBtn, "click", (e => {
+                e.preventDefault();
+                isFolded = !isFolded;
+                if (isFolded) {
+                    $class($sel(presenceSelector), "add", "folded");
+                    $class(foldBtn, "add", "folded");
+                } else {
+                    $class($sel(presenceSelector), "del", "folded");
+                    $class(foldBtn, "del", "folded");
+                }
+            }));
+            $on(clearBtn, "click", (e => {
+                e.preventDefault();
+                const notifications = $sela(".osai-notifier-entry");
+                $loop(notifications, (notification => {
+                    $class(notification, "del", "osai-notifier__display");
+                }));
+                setTimeout((() => {
+                    $loop(notifications, (notification => {
+                        notification.remove();
+                    }));
+                    notificationCount = 0;
+                    updateControlsVisibility();
+                }), 300);
+            }));
+            return updateControlsVisibility;
+        };
+        const updateControlsVisibility = initializeControls();
         const NOTIFY = (dialog, theme, options) => {
             if (!$in($sel(presenceSelector))) {
                 console.error("Omj$ Notifier could not be found, you probably didn't draw it's box");
@@ -1399,13 +1443,15 @@ const $freeze = (element, operation, attr = true) => {
             let position = options.position ?? configSelector("position") ?? "side";
             let uniqueId = options.id ? `id="${options.id}"` : "";
             let duration = parseInt(options.duration ?? configSelector("duration") ?? 5e3);
+            let pin = options.pin ?? (duration === "pin" || duration === "fixed" || duration === -1 || duration === false);
             let showCopy = options.showCopy ?? configSelector("showCopy") ?? false;
             let defaultTopMargin = configSelector("margin") ?? 10;
-            let previousEntryHeight = 0;
+            const defaultStartingTop = 70;
+            let previousEntryHeight = defaultStartingTop;
             let operation = options.then ?? (() => null);
             let onClose = options.onClose ?? (() => null);
             let getNextEntryTop = () => {
-                let nextTop = 0;
+                let nextTop = defaultStartingTop;
                 $loop($sela(sideCardSelector), (entry => nextTop += Math.floor(entry.offsetHeight + defaultTopMargin)));
                 return nextTop;
             };
@@ -1425,14 +1471,13 @@ const $freeze = (element, operation, attr = true) => {
                 return null;
             };
             let adjustEntries = (currentEntry, entrySibling, closed = false) => {
-                if (!currentEntry || !entrySibling || currentEntry === entrySibling || !$class(entrySibling, "has", "osai-notifier__display")) return;
+                if (!currentEntry || !entrySibling || currentEntry === entrySibling || !$class(entrySibling, "has", "osai-notifier__display") || $class(entrySibling, "has", "osai-notifier__display-center")) return;
                 let x = getMyLastSideEntryTopSide(currentEntry);
-                if (!x && $class(entrySibling, "has", "osai-notifier__display-center")) entrySibling = getMyLastSideEntryDownSide(entrySibling);
                 if (closed && x) {
                     currentEntry = x;
                     closed = false;
                 }
-                let newTop = closed ? 0 : parseInt($style(currentEntry).top.replace("px", "")) + currentEntry.offsetHeight;
+                let newTop = closed ? defaultStartingTop : parseInt($style(currentEntry).top.replace("px", "")) + currentEntry.offsetHeight;
                 placeNewEntry(entrySibling, null, newTop + defaultTopMargin);
                 adjustEntries(entrySibling, entrySibling.nextElementSibling);
             };
@@ -1446,13 +1491,15 @@ const $freeze = (element, operation, attr = true) => {
                     entry.$class("del", "osai-notifier__display");
                     setTimeout((() => {
                         entry.remove();
+                        notificationCount = Math.max(0, notificationCount - 1);
+                        updateControlsVisibility();
                         try {
                             onClose();
                         } catch (e) {}
                     }), 150);
                 }), duration);
                 if (closeEntry) remove(0, true);
-                if (duration === "pin" || duration === "fixed" || duration === -1 || duration === false) return;
+                if (pin) return;
                 let removeNote = remove(duration);
                 $on(entry, "mouseover", (() => clearTimeout(removeNote)));
                 $on(entry, "mouseout", (() => {
@@ -1476,8 +1523,8 @@ const $freeze = (element, operation, attr = true) => {
                 if (!useThisHeight && $class(entry, "has", "osai-notifier__display-center")) return;
                 if (useThisHeight) return $style(entry, `top:${useThisHeight}px`);
                 oldEntryHeight = parseInt(oldEntryHeight);
-                let currentTop = oldEntryHeight + defaultTopMargin;
-                if (oldEntryHeight === 0) return $style(entry, "top:10px");
+                let currentTop = oldEntryHeight;
+                if (oldEntryHeight === 0) return $style(entry, "top:65px");
                 $style(entry, "top:" + currentTop + "px");
             };
             if (position === "center") postStyle = "osai-notifier__display-center";
@@ -1503,9 +1550,11 @@ const $freeze = (element, operation, attr = true) => {
                     styleClass = "warn";
                     break;
             }
-            $html($sel(presenceSelector), "beforeend", `<div class="osai-notifier osai-notifier-entry ${postStyle} ${styleClass}" ${uniqueId}><div class="osai-notifier__body"><div class="osai-notifier__dialog">${dialog}</div><div style="${!showCopy ? "display:none" : ""}"><button class="osai-notifier__copy"><i class="gg-copy"></i> Copy Text</button></div></div><div class="osai-notifier__close"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"><rect opacity="0.5" x="6" y="17.3137" width="16" height="2" rx="1" transform="rotate(-45 6 17.3137)" fill="currentColor"></rect><rect x="7.41422" y="6" width="16" height="2" rx="1" transform="rotate(45 7.41422 6)" fill="currentColor"></rect></svg></div></div>`);
+            $html($sel(presenceSelector), "beforeend", `<div class="osai-notifier osai-notifier-entry ${postStyle} ${styleClass}" ${uniqueId}>\n                    <div class="osai-notifier__body">\n                        <div class="osai-notifier__dialog">${dialog}</div>\n                        <div style="${!showCopy ? "display:none" : ""}">\n                            <button class="osai-notifier__copy osai-notifier__control-btn">\n                                <i class="gg-copy" style="margin: 5px 10px 5px 0"></i> Copy Text\n                            </button>\n                        </div>\n                    </div>\n                    <div class="osai-notifier__close">\n                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">\n                            <rect opacity="0.5" x="6" y="17.3137" width="16" height="2" rx="1" transform="rotate(-45 6 17.3137)" fill="currentColor"></rect>\n                            <rect x="7.41422" y="6" width="16" height="2" rx="1" transform="rotate(45 7.41422 6)" fill="currentColor"></rect>\n                        </svg>\n                    </div>\n                </div>`);
             let notifyEntry = $sela(".osai-notifier-entry");
             let currentEntry = $end(notifyEntry);
+            notificationCount++;
+            updateControlsVisibility();
             placeNewEntry(currentEntry, previousEntryHeight);
             setTimeout((() => {
                 $class(currentEntry, "add", "osai-notifier__display");
@@ -1527,6 +1576,14 @@ const $freeze = (element, operation, attr = true) => {
                 addConfig("margin", margin);
                 addConfig("message", message?.replaceAll('"', "'"));
                 addConfig("showCopy", showCopy);
+            },
+            clearAll: () => {
+                const clearBtn = $sel(".osai-notifier__clear-btn");
+                if (clearBtn) clearBtn.click();
+            },
+            toggleFold: () => {
+                const foldBtn = $sel(".osai-notifier__fold-btn");
+                if (foldBtn) foldBtn.click();
             }
         };
     }
