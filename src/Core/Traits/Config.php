@@ -151,10 +151,9 @@ trait Config
             exit(0);
         }
 
-        if ($fun !== null) $fun("");
+        if ($fun !== null) $fun();
 
         return true;
-
     }
 
     public static function cors_active(): bool
