@@ -90,15 +90,9 @@ final class LayCache
         LayDir::make($this->cache_store, 0755, true);
 
         if(str_contains($path_to_cache, "/")) {
-            $path = str_replace(["/", DIRECTORY_SEPARATOR], DIRECTORY_SEPARATOR, $this->cache_store);
+            $path = pathinfo($path_to_cache);
 
-            $x = explode(DIRECTORY_SEPARATOR, $path);
-
-            array_pop($x);
-
-            $x = implode(DIRECTORY_SEPARATOR, $x);
-
-            LayDir::make($this->cache_store . $x, 0755, true);
+            LayDir::make($this->cache_store . $path['dirname'], 0755, true);
         }
 
         $this->cache_store = $this->cache_store . $path_to_cache;
