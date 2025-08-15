@@ -230,13 +230,15 @@ trait Config
     public static function is_bot(): bool
     {
         $from = self::get_header("From");
-        $user_agent = self::get_header("User-Agent");
+        $user_agent = self::get_header("user-agent");
 
-        $exists = preg_match('~(bot|crawl)~i', $from ?? '', flags: PREG_UNMATCHED_AS_NULL);
+        if(!$user_agent) return true;
+
+        $exists = preg_match('~(bot|crawl|ai)~i', $from ?? '', flags: PREG_UNMATCHED_AS_NULL);
 
         if($exists) return true;
 
-        $exists = preg_match('~(bot|crawl)~i', $user_agent ?? '', flags: PREG_UNMATCHED_AS_NULL);
+        $exists = preg_match('~(bot|crawl|ai)~i', $user_agent, flags: PREG_UNMATCHED_AS_NULL);
 
         return (bool) $exists;
     }
@@ -249,33 +251,28 @@ trait Config
      */
     public static function get_header(string $key): mixed
     {
-        if(function_exists("getallheaders"))
-            $all = getallheaders();
-        else {
-            $all = [];
+        $all = [];
+        $headers = $_SERVER;
+        $is_server = true;
 
-            foreach ($_SERVER as $k => $server) {
-                if(!str_starts_with($k, "HTTP_"))
-                    continue;
-
-                $k = str_replace(["http_", "_"], ["", " "], strtolower($k));
-                $k = str_replace(" ", "-", ucwords($k));
-                $k_lower = strtolower($k);
-
-                if($k_lower == "dnt")
-                    $k = strtoupper($k);
-
-                $all[$k_lower] = $server;
-            }
+        if(function_exists("getallheaders")) {
+            $headers = getallheaders();
+            $is_server = false;
         }
 
-        $authorization_header = /**
-         * @return (null|string)[]|null
-         *
-         * @psalm-return array{scheme: string, data: null|string}|null
-         */
-        function ($all): array|null {
-            $auth = $all['Authorization'] ?? $all['authorization'] ?? $all['AUTHORIZATION'] ?? null;
+        foreach ($headers as $k => $header) {
+            if($is_server && !str_starts_with($k, "HTTP_"))
+                continue;
+
+            $k = str_replace(["http_", "_"], ["", " "], strtolower($k));
+
+            $all[$k] = $header;
+        }
+
+        if ($key === "*") return $all;
+
+        $authorization_header = function ($all): array|null {
+            $auth = $all['authorization'] ?? null;
 
             if(!$auth)
                 return null;
@@ -288,14 +285,12 @@ trait Config
             ];
         };
 
-        if ($key === "*") return $all;
+        $key = strtolower($key);
 
-        $key_lower = strtolower($key);
-
-        if($key_lower == "authorization")
+        if($key == "authorization")
             return $authorization_header($all);
 
-        if($key_lower == "bearer" || $key_lower == "basic" || $key_lower == "digest") {
+        if(in_array($key, ["bearer","basic", "digest"], true)) {
             $auth = $authorization_header($all);
 
             if(!$auth)
@@ -305,24 +300,21 @@ trait Config
         }
 
 
-        return $all[$key] ?? $all[$key_lower] ?? $all[strtoupper($key)] ?? null;
+        return $all[$key] ?? null;
     }
 
     /**
-     * @return (mixed|string)[]|null
-     *
-     * @psalm-return array{agent: string, product?: string, platform?: string, engine?: string, browser?: mixed|string}|null
+     * @return array{
+     *     agent: string,
+     *     product?: string,
+     *     platform?: string,
+     *     engine?: string,
+     *     browser?: string
+     * }|null
      */
-    #[ArrayShape([
-        "agent" => "string",
-        "product" => "string",
-        "platform" => "string",
-        "engine" => "string",
-        "browser" => "string",
-    ])]
     public static function user_agent() : array|null
     {
-        $agent = $_SERVER['HTTP_USER_AGENT'] ?? null;
+        $agent = self::get_header('user-agent');
 
         if(!$agent)
             return null;

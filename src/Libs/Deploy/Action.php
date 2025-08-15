@@ -2,6 +2,7 @@
 
 namespace BrickLayer\Lay\Libs\Deploy;
 
+use BrickLayer\Lay\Core\Api\ApiHooks;
 use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\LayException;
 use BrickLayer\Lay\Libs\Cron\LayCron;
@@ -11,14 +12,18 @@ class Action
 {
     private bool $log_ddos = false;
 
-    private Closure $pre_hook_action;
-    private Closure $post_hook_action;
+    private ApiHooks $apex_api_class;
 
     private string $action_id;
     private string $hook_file;
 
+    private Closure $pre_hook_action;
+    private Closure $post_hook_action;
+
     public function __construct(private readonly string $branch)
     {
+        $this->apex_api_class = new \Web\Api\Plaster();
+
         $this->hook_file = LayConfig::server_data()->temp . "git_webhook.txt";
 
         file_put_contents($this->hook_file, "[" . date("Y-m-d H:i:s e") . "]\n");
@@ -79,14 +84,21 @@ class Action
         return $this;
     }
 
+    public function apex_api(string $class) : self
+    {
+        $this->apex_api_class = new $class;
+        return $this;
+    }
+
     public function run() : void
     {
-        $method = $_SERVER['REQUEST_METHOD'] ?? null;
+        $method = $_SERVER['REQUEST_METHOD'] ?? '';
 
-        if($method !== 'POST') {
+        if(strtolower($method) !== 'post' || LayConfig::is_bot()) {
             if($this->log_ddos)
                 LayException::throw("Wrong mode of contact", "GitADMismatched");
 
+            echo "Try harder!";
             return;
         }
 
@@ -95,6 +107,8 @@ class Action
         if($action_id !== $this->action_id) {
             if($this->log_ddos)
                 LayException::throw("Invalid endpoint met! please check your uuid and try again", "GitADMismatched");
+
+            echo "Try harder!";
 
             return;
         }
@@ -132,7 +146,7 @@ class Action
         // Invalidate cached hooks using the Apex APi Class File
         $log .= "\n";
         $log .= "-- Invalidating Hooks\n";
-        (new \Web\Api\Plaster())->invalidate_hooks();
+        $this->apex_api_class->invalidate_hooks();
 
         if(isset($this->post_hook_action)) {
             $log .= "\n";
