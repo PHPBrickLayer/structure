@@ -116,8 +116,6 @@ final class Deploy implements CmdLayout
         $this->compress_shared_static();
         $this->compress_static();
 
-        (new LaySymlink(""))->prune_link(true);
-
         $this->push_with_git();
     }
 

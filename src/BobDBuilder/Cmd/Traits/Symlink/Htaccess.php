@@ -16,7 +16,7 @@ trait Htaccess
             return;
 
         $domain = str_replace(["/", ".htaccess"], [DIRECTORY_SEPARATOR, ""], $dest);
-        $domain = rtrim($domain, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+        $domain = rtrim($domain, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . "public" . DIRECTORY_SEPARATOR;
         $dest = $plug->server->domains . $domain;
 
         if (!is_dir($dest))
@@ -37,8 +37,6 @@ trait Htaccess
 
         LaySymlink::remove($dest);
         LaySymlink::make($src, $dest);
-
-        $this->track_link("", $domain, SymlinkTrackType::HTACCESS);
 
         $plug->write_success("htaccess successfully linked to: *$dest*");
     }

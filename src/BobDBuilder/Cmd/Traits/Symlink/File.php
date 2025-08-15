@@ -38,8 +38,6 @@ trait File
         LaySymlink::remove($dest);
         LaySymlink::make($src, $dest);
 
-        $this->track_link($link[0], $link[1], SymlinkTrackType::FILE);
-
         $this->plug->write_success(
             "FILE symlinked!\n"
             . "SRC: *$src*\n"

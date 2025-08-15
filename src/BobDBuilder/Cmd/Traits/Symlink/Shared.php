@@ -17,7 +17,7 @@ trait Shared
             return;
 
         $domain = str_replace(["/", "shared"], [DIRECTORY_SEPARATOR, ""], $dest);
-        $domain = rtrim($domain, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+        $domain = rtrim($domain, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . "public" . DIRECTORY_SEPARATOR;
         $dest = $plug->server->domains . $domain;
 
         if (!is_dir($dest))
@@ -49,8 +49,6 @@ trait Shared
 
         LaySymlink::remove($dest);
         LaySymlink::make($src, $dest, SymlinkWindowsType::SOFT);
-
-        $this->track_link("", $domain, SymlinkTrackType::SHARED);
 
         $plug->write_success("*shared* directory successfully linked to: *$dest*");
     }

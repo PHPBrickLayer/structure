@@ -181,7 +181,6 @@ final class LayDir {
             if($use_symlink and !$has_js_css && !self::in_link($current_dest)) {
                 self::unlink($current_dest);
                 self::$symlink::make($current_src, $current_dest);
-                self::$symlink->track_link( $current_src, $current_dest, SymlinkTrackType::FILE );
             }
             else {
 
@@ -220,7 +219,6 @@ final class LayDir {
             if ($all_symlinks) {
                 self::unlink($dest_dir);
                 self::$symlink::make($src_dir, $dest_dir);
-                self::$symlink->track_link($src_dir, $dest_dir, SymlinkTrackType::DIRECTORY);
             }
         }
     }
