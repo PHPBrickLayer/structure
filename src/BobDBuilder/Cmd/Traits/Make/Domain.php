@@ -5,7 +5,6 @@ namespace BrickLayer\Lay\BobDBuilder\Cmd\Traits\Make;
 use BrickLayer\Lay\BobDBuilder\BobExec;
 use BrickLayer\Lay\Libs\Dir\LayDir;
 
-
 trait Domain
 {
     public function domain(): void
