@@ -80,10 +80,7 @@ trait Domain
         new BobExec("link:htaccess $domain --silent");
 
         $this->talk("- Linking shared directory *{$this->plug->server->shared}*");
-        new BobExec("link:dir web{$this->plug->s}shared web{$this->plug->s}domains{$this->plug->s}$domain{$this->plug->s}shared --silent");
-
-        $this->talk("- Linking Api domain to new domain *{$this->plug->server->domains}Api*");
-        new BobExec("link:dir web{$this->plug->s}domains{$this->plug->s}Api web{$this->plug->s}domains{$this->plug->s}$domain{$this->plug->s}api --silent");
+        new BobExec("link:dir web{$this->plug->s}shared web{$this->plug->s}domains{$this->plug->s}$domain{$this->plug->s}public{$this->plug->s}shared --silent");
 
         $this->talk("- Updating domains entry in *{$this->plug->server->web}index.php*");
         $this->update_general_domain_entry($domain, $domain_id, $pattern);
@@ -93,17 +90,15 @@ trait Domain
     {
         // root index.php
         file_put_contents(
-            $domain_dir . $this->plug->s . "index.php",
+            $domain_dir . $this->plug->s . "public" . $this->plug->s . "index.php",
             <<<FILE
             <?php
-            use BrickLayer\Lay\Core\View\Domain;
-            
             const SAFE_TO_INIT_LAY = true;
-            include_once __DIR__ . DIRECTORY_SEPARATOR . ".." . DIRECTORY_SEPARATOR . ".." . DIRECTORY_SEPARATOR . ".." . DIRECTORY_SEPARATOR . "foundation.php";
+            include_once __DIR__ . DIRECTORY_SEPARATOR . ".." . DIRECTORY_SEPARATOR . ".." . DIRECTORY_SEPARATOR . ".." . DIRECTORY_SEPARATOR . ".." . DIRECTORY_SEPARATOR . "foundation.php";
             
-            Domain::new()->index("$domain_id");
+            \BrickLayer\Lay\Core\View\Domain::new()->index("$domain_id");
             
-            include_once __DIR__ . DIRECTORY_SEPARATOR . ".." . DIRECTORY_SEPARATOR . ".." . DIRECTORY_SEPARATOR . "index.php";
+            include_once \BrickLayer\Lay\Core\LayConfig::server_data()->web . "index.php";
             
             FILE
         );
@@ -160,14 +155,15 @@ trait Domain
         if(file_exists($this->plug->server->web . "favicon.ico")) {
             copy(
                 $this->plug->server->web . "favicon.ico",
-                $domain_dir . $this->plug->s . "favicon.ico"
+                $domain_dir . $this->plug->s . "public" . $this->plug->s . "favicon.ico"
             );
 
             return;
         }
+
         copy(
             $this->plug->server->lay_static . "img" . $this->plug->s . "favicon.ico",
-            $domain_dir . $this->plug->s . "favicon.ico"
+            $domain_dir . $this->plug->s . "public" . $this->plug->s . "favicon.ico"
         );
     }
 

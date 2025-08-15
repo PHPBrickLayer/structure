@@ -187,7 +187,7 @@ final class Domain {
         $domain_root = "web" . DIRECTORY_SEPARATOR . "domains" . DIRECTORY_SEPARATOR . "$domain_name" . DIRECTORY_SEPARATOR;
 
         $data = LayConfig::site_data();
-        $domain_base = $data->use_domain_file ? "domains/$domain_name/" : "";
+        $domain_base = $data->use_domain_file ? "domains/$domain_name/public/" : "";
         $domain_base = str_replace("/Api/", "/" . ($_SERVER['HTTP_LAY_DOMAIN'] ?? $domain_name) . "/", $domain_base, $is_api);
 
         $uri = ($pattern != '*' ? $pattern . '/' : '');

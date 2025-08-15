@@ -18,7 +18,7 @@ trait Uploads
 
         $source = $plug->server->web . "uploads";
         $dest = str_replace(["/","\\"], DIRECTORY_SEPARATOR, $dest);
-        $domain = rtrim(str_replace("uploads", "", $dest), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+        $domain = rtrim(str_replace("uploads", "", $dest), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . "public" . DIRECTORY_SEPARATOR;
         $dest = $plug->server->domains . $domain;
 
         if (!is_dir($source)) {
@@ -45,8 +45,6 @@ trait Uploads
 
         LaySymlink::remove($dest);
         LaySymlink::make($source, $dest, SymlinkWindowsType::SOFT);
-
-        $this->track_link("", $domain, SymlinkTrackType::UPLOADS);
 
         $plug->write_success("Uploads folder successfully linked to: *$dest*");
     }

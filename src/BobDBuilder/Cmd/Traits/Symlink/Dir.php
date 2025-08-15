@@ -43,8 +43,6 @@ trait Dir
         LaySymlink::remove($dest);
         LaySymlink::make($src, $dest, SymlinkWindowsType::SOFT);
 
-        $this->track_link($link[0], $link[1], SymlinkTrackType::DIRECTORY);
-
         $this->plug->write_success(
             "DIRECTORY symlinked!\n"
             . "SRC: *$src*\n"

@@ -3,7 +3,6 @@
 namespace BrickLayer\Lay\BobDBuilder\Cmd;
 
 use BrickLayer\Lay\BobDBuilder\BobExec;
-use BrickLayer\Lay\BobDBuilder\Cmd\Traits\Symlink\Api;
 use BrickLayer\Lay\BobDBuilder\Cmd\Traits\Symlink\Dir;
 use BrickLayer\Lay\BobDBuilder\Cmd\Traits\Symlink\File;
 use BrickLayer\Lay\BobDBuilder\Cmd\Traits\Symlink\Htaccess;
@@ -11,17 +10,12 @@ use BrickLayer\Lay\BobDBuilder\Cmd\Traits\Symlink\Shared;
 use BrickLayer\Lay\BobDBuilder\Cmd\Traits\Symlink\Uploads;
 use BrickLayer\Lay\BobDBuilder\EnginePlug;
 use BrickLayer\Lay\BobDBuilder\Interface\CmdLayout;
-use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Libs\Dir\LayDir;
-use BrickLayer\Lay\Libs\Symlink\LaySymlink;
-use BrickLayer\Lay\Libs\Symlink\SymlinkTrackType;
 
 
 final class Symlink implements CmdLayout
 {
     private EnginePlug $plug;
-    private static string $link_db;
-    private static LaySymlink $lay_symlink;
 
     public function __construct(?EnginePlug $plug = null)
     {
@@ -29,7 +23,6 @@ final class Symlink implements CmdLayout
             return;
 
         $this->plug = $plug;
-        $this->init_db();
     }
 
     
@@ -38,57 +31,24 @@ final class Symlink implements CmdLayout
         $this->plug = $plug;
 
         $plug->add_arg($this, ["link:htaccess"], 'link_htaccess', 0);
-        $plug->add_arg($this, ["link:api"], 'link_api', 0);
         $plug->add_arg($this, ["link:shared"], 'link_shared', 0);
         $plug->add_arg($this, ["link:uploads"], 'link_uploads', 0);
         $plug->add_arg($this, ["link:dir"], 'link_dir', 0, 1);
         $plug->add_arg($this, ["link:file"], 'link_file', 0, 1);
-        $plug->add_arg($this, ["link:refresh"], 'link_refresh', true);
-        $plug->add_arg($this, ["link:prune"], 'link_prune', true);
         $plug->add_arg($this, ["link:rm"], 'link_remove', 0, 1, 2, 3);
     }
 
     
     public function _spin(): void
     {
-        $this->init_db();
-
         $this->htaccess();
         $this->uploads();
         $this->dir();
         $this->file();
         $this->shared();
-        $this->api();
-
-        if($this->plug->tags['link_refresh'])
-            $this->refresh_link();
-
-        if($this->plug->tags['link_prune'])
-            $this->prune_link();
 
         if($this->plug->tags['link_remove'])
             $this->unlink();
-    }
-
-    private function init_db() : void
-    {
-        self::$lay_symlink = new LaySymlink("zz_project_symlinks.json");
-        self::$link_db = self::$lay_symlink->current_db();
-    }
-
-    private function track_link(string $src, string $dest, SymlinkTrackType $link_type) : void
-    {
-        self::$lay_symlink->track_link($src, $dest, $link_type);
-    }
-
-    public function refresh_link() : void
-    {
-        self::$lay_symlink->refresh_link(true);
-    }
-
-    public function prune_link() : void
-    {
-        self::$lay_symlink->prune_link(true);
     }
 
     public function unlink() : void
@@ -126,6 +86,5 @@ final class Symlink implements CmdLayout
     use File;
     use Uploads;
     use Shared;
-    use Api;
 
 }
